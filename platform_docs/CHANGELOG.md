@@ -22,6 +22,13 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 - El contrato de ingeniería dejó de vivir en `platform_docs/SKILL.md`; todas las referencias explícitas apuntan a la única copia canónica.
 - El estado operativo y los comandos de inicio ahora reflejan la implementación real de Epic 00.
+- Epic 00 queda validado de extremo a extremo en Docker Desktop/WSL2 con los seis servicios saludables y endpoints API/web accesibles desde el host.
+
+### Fixed
+
+- Compose construye una sola vez la imagen compartida de aplicación y evita la colisión concurrente `image ... already exists`.
+- El usuario runtime `node` reutiliza la caché preparada de Corepack/pnpm sin intentar descargas desde redes internas.
+- `app-network` permite los bindings localhost de API/web mientras `data-network` conserva el aislamiento de PostgreSQL y Redis.
 
 ### Decided
 
@@ -33,7 +40,6 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 - Epic 01 y todo schema funcional de base de datos.
 - Tenancy, auth, Super Admin, providers WhatsApp, inbox, Rules Engine, agenda, cotizaciones, AI Gateway funcional y backups reales.
-- Verificación runtime de Docker, bloqueada por el engine local no disponible durante esta ejecución.
 
 ## [0.0.0-preimplementation] - 2026-08-12
 

@@ -1,7 +1,7 @@
 # docs/MANIFEST.md — Baseline documental verificada
 
 **Fecha:** 2026-08-12  
-**Estado:** documentación sincronizada con Epic 00 — Repository Foundation.  
+**Estado:** documentación sincronizada con Epic 00 — PASS / COMPLETE.
 **Propósito:** comprobar integridad y composición del conjunto de documentos que permite continuar el proyecto sin depender de memoria conversacional.
 
 > Las rutas son relativas a la raíz del repositorio. Los hashes cambian si se edita un archivo. Después de cambios intencionales, regenerar este manifest.
@@ -12,7 +12,7 @@
 | `README.md` | 2555 | 305 | `f1b8b3c890a16cec3923bf38928f6c7f17a315ffc48d0b3130f9dd155aadcbe7` |
 | `.agents/agents.md` | 388 | 41 | `d52b02af7fdab6d2ecbf7af4dd2f311d5d244f153817498ff9e542427e9e1675` |
 | `.agents/skills/whatsapp-platform-engineering/SKILL.md` | 19764 | 2747 | `8597b90ddbb55ccb4dbcb5b1d98b100b264759be2357f772ec5c997a1a0ff23b` |
-| `platform_docs/CHANGELOG.md` | 2446 | 337 | `08d4d5510e1e82aebe23f82f26bb226f99637b10e068c3061e9f4f8b17af2ef0` |
+| `platform_docs/CHANGELOG.md` | 2882 | 402 | `077cbb0b52f1c7a6eba39910955369be584879f1acd989a31a1778c438295310` |
 | `platform_docs/DATA_MODEL_ERD_MVP_BACKLOG.md` | 71380 | 9645 | `4217a4b3b0f2e564188fc789c064c42520e3b0f23a980ea7fc312d5aa58584c4` |
 | `platform_docs/DEMO_AND_SALES.md` | 8689 | 1253 | `28944d7c37827e10f72d6cdac811eb8bda92fbc9da96fa4947f09ef42eb5b9f4` |
 | `platform_docs/DEPLOYMENT.md` | 5620 | 789 | `ca59dba14fddf91df8eb7a1503cb71b1d53f0f3a58aedcca1304aa4c8d3045be` |
@@ -34,7 +34,7 @@
 | `platform_docs/RUNBOOK_BACKUP_RESTORE.md` | 4857 | 666 | `27e324b4cea0cd3a2514f44eeee4ce31db80a3a4701f0ba528ffb36afcebb3ff` |
 | `platform_docs/RUNBOOK_OPERATIONS.md` | 5777 | 796 | `23d4c537dd3bbcf4b8f08b39b4a948c42c10e3a458594c25ccf2b65937376252` |
 | `platform_docs/SECURITY.md` | 10634 | 1530 | `5d6460147035971fa2e477bba48eebbccbdb46f320f72ae98c2d3f118bb72e22` |
-| `platform_docs/STATUS.md` | 3686 | 506 | `8ea43862535442041f5c1928b27a095f5747409ace7cc6a143ba251fdcd592c1` |
+| `platform_docs/STATUS.md` | 4449 | 596 | `a987898b785b862a262640751cb6b2295c26b9d3ffa48cc1592adbe472975f80` |
 | `platform_docs/SYSTEM_DESIGN.md` | 38457 | 5162 | `e964153c1cd85f555c3a79635f35b30539b9eb757c0415f3b25607e3995460ea` |
 | `platform_docs/TESTING_STRATEGY.md` | 6304 | 927 | `178ff2870021d7eff8d9a54c025f732adc272d13f22de0512a854b6e8f49f6c8` |
 | `platform_docs/UI_FLOWS.md` | 21742 | 3143 | `b62156f9570904f2dabba110221763c4dd0b3a06e8ef9fd1ed1800eafda6edac` |
