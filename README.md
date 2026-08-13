@@ -1,6 +1,6 @@
 # WhatsApp Automation Platform
 
-Multi-tenant B2B WhatsApp automation platform. The repository currently contains only **Epic 00 — Repository Foundation**; product domains begin in later epics.
+Multi-tenant B2B WhatsApp automation platform. **Epic 00 — Repository Foundation** is complete, and database work starts in Epic 01.
 
 `design-prototype/` is an approved visual reference. It is not production architecture and is not used as application source code.
 
@@ -17,6 +17,12 @@ pnpm install
 ```
 
 The committed `pnpm-lock.yaml` is the reproducible dependency source. Do not add another package manager or lockfile.
+
+Prisma Client is generated during the database package build. It can also be generated explicitly after install:
+
+```powershell
+pnpm db:generate
+```
 
 ## Quality gates
 
@@ -66,6 +72,20 @@ docker compose down
 ```
 
 The development stack contains `postgres`, `redis`, `api`, `web`, `worker-jobs`, and `worker-whatsapp`. PostgreSQL and Redis bind to localhost only. Application and data services use internal Docker networks.
+
+## Database
+
+Prisma schema and migrations live exclusively in `packages/database`. Configure `DATABASE_URL` through the existing environment configuration, then use:
+
+```powershell
+pnpm db:validate
+pnpm db:generate
+pnpm db:migrate:dev -- --name <migration-name>
+pnpm db:migrate:deploy
+pnpm test:integration:database
+```
+
+Database integration tests require a disposable PostgreSQL database with the committed migrations already applied. Do not use `prisma db push` as a replacement for migrations.
 
 ## Repository map
 

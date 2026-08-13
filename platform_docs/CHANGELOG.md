@@ -17,6 +17,10 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 - `packages/config` con configuración tipada, validación, overrides, separación secret/non-secret y pruebas.
 - Docker development baseline con PostgreSQL, Redis, API, web y workers.
 - `.env.example`, ignores y Dockerfile de desarrollo sin secretos reales.
+- E01-S01 con Prisma ORM 7.9.1 dentro de `packages/database`, Prisma Client generado y adapter PostgreSQL oficial.
+- Migration inicial versionada para `PlatformDeployment`, `Tenant`, `TenantEntitlement`, `PlatformFeatureFlag` y `OrganizationUnit`.
+- Scripts reproducibles de Prisma y suite de integración con nueve pruebas contra PostgreSQL real.
+- ADR-0011 formaliza Prisma como ORM dentro del boundary de database.
 
 ### Changed
 
@@ -35,11 +39,13 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 - pnpm workspaces es el único package manager.
 - Node.js 24 LTS, pnpm 11, Next.js 16, NestJS 11 y TypeScript 6 forman la baseline compatible de Foundation.
 - El workflow CI se pospone hasta contar con evidencia del proveedor mediante remote o decisión documental.
+- `tenant.slug` es globalmente único en la baseline y cada tenant tiene como máximo una fila efectiva por `entitlement_key`; vigencias complejas se posponen hasta existir un requisito real.
+- IDs baseline usan tipo físico PostgreSQL UUID sin default; UUID v7 vs ULID sigue reservado para E01-S02.
 
 ### Not yet implemented
 
-- Epic 01 y todo schema funcional de base de datos.
-- Tenancy, auth, Super Admin, providers WhatsApp, inbox, Rules Engine, agenda, cotizaciones, AI Gateway funcional y backups reales.
+- E01-S02 convenciones de ID/timestamps, E01-S03 repositories tenant-aware, Outbox y AuditLog.
+- Auth, Super Admin, providers WhatsApp, contactos/conversaciones, Rules Engine, agenda, cotizaciones, documentos, IA funcional y backups reales.
 
 ## [0.0.0-preimplementation] - 2026-08-12
 

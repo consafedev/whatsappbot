@@ -8,6 +8,7 @@
       "!.agents",
       "!**/.next",
       "!**/dist",
+      "!packages/database/src/generated",
       "!coverage",
       "!node_modules"
     ]

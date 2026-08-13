@@ -2,24 +2,38 @@
 
 **Actualizado:** 2026-08-12  
 **Versión de producto:** `0.0.0`  
-**Estado:** **Epic 00 — PASS / COMPLETE**.
+**Estado:** E01-S01 — PASS; **Epic 01 — IN PROGRESS**.
 
 ## Current milestone
 
-Repository Foundation.
+Database Foundation.
 
 ## Current epic
 
-**Epic 00 — Repository Foundation**
+**Epic 01 — Database Foundation**
 
 Estado por historia:
 
-- E00-S01 — Monorepo bootstrap: completada.
-- E00-S02 — Code quality gates: completada localmente; workflow CI pendiente de identificar proveedor.
-- E00-S03 — Docker Compose development: **PASS**; build, arranque, health checks, endpoints y limpieza validados en Docker Desktop/WSL2.
-- E00-S04 — Configuration package: completada con pruebas.
+- E01-S01 — Prisma/schema baseline: **PASS**.
+- E01-S02 — ID/timestamp conventions: no iniciada.
+- E01-S03 — Tenant-aware repository utilities: no iniciada.
+- E01-S04 — Outbox foundation: no iniciada.
+- E01-S05 — Audit foundation: no iniciada.
 
 ## Completed
+
+- Epic 00 — Repository Foundation: **PASS / COMPLETE**.
+- E01-S01 con Prisma ORM 7.9.1 dentro del boundary `packages/database` y ADR-0011.
+- Baseline PostgreSQL versionada para `PlatformDeployment`, `Tenant`, `TenantEntitlement`, `PlatformFeatureFlag` y `OrganizationUnit`.
+- IDs almacenados como PostgreSQL UUID sin default de generación; UUID v7 vs ULID permanece reservado para E01-S02.
+- Naming físico snake_case, JSONB limitado a configuración/metadata, TIMESTAMPTZ UTC, enums de dominio, FKs e índices baseline.
+- `tenant_id NOT NULL` en `tenant_entitlement` y `organization_unit`; FK compuesta impide parent cross-tenant.
+- Unique global de `tenant.slug` y unique `(tenant_id, entitlement_key)` con semántica mínima de una fila efectiva por key.
+- `business_hours_id` permanece UUID nullable sin FK hasta el epic que introduzca Business Hours.
+- Prisma Client reusable con adapter PostgreSQL y lifecycle compartido; sin acoplamiento a `apps/api`.
+- Scripts root/package para validate, generate, migrate dev/deploy, Studio e integración DB.
+- Migration `20260813040527_initial_platform_baseline` aplicada desde cero y verificada contra PostgreSQL 18.4 real.
+- Nueve tests de integración DB para conexión, CRUD baseline, uniques, FKs, jerarquía tenant-consistent y vigencia.
 
 - Agent Skill movida a `.agents/skills/whatsapp-platform-engineering/SKILL.md` con frontmatter estándar y rutas desde la raíz.
 - `AGENTS.md` raíz y adaptador `.agents/agents.md` creados sin duplicar el contrato.
@@ -41,15 +55,15 @@ Estado por historia:
 
 ## In progress
 
-Ninguna historia adicional. No se inició Epic 01.
+Epic 01 permanece en progreso. No se inició E01-S02.
 
 ## Blocked
 
-Ningún bloqueo para Epic 00.
+Ningún bloqueo para E01-S01.
 
 ## Next story
 
-`E01-S01 — Prisma/schema baseline`
+`E01-S02 — ID/timestamp conventions`
 
 No implementarla sin una instrucción separada.
 
@@ -73,8 +87,24 @@ No implementarla sin una instrucción separada.
 - `curl.exe --fail --silent --show-error http://127.0.0.1:3000/` — PASS; HTTP 200.
 - `docker run --rm --network none --entrypoint pnpm whatsapp-platform-dev:epic00 --version` — PASS; `11.21.0` sin red.
 - `docker compose down` — PASS; contenedores/redes retirados y named volumes `postgres-data`/`redis-data` preservados.
+- `pnpm install --frozen-lockfile` — PASS; 17 workspaces y lockfile reproducible.
+- `pnpm db:validate` — PASS; Prisma schema válido.
+- `pnpm db:generate` — PASS; Prisma Client 7.9.1 generado desde output explícito.
+- `pnpm db:migrate:deploy` — PASS contra PostgreSQL 18.4 limpio; una migration aplicada.
+- `prisma migrate status` — PASS; database schema up to date.
+- `prisma migrate diff --from-config-datasource --to-schema ... --exit-code` — PASS; sin diferencias.
+- Migration SHA-256 — `743bffcb89c6051759f5417269255c6c6d96359b0520418a2d9c7c7cb37196ab`, igual al checksum registrado por Prisma.
+- `pnpm test:integration:database` — PASS; 1 archivo, 9 pruebas contra PostgreSQL real.
+- `pnpm lint` — PASS; 63 archivos.
+- `pnpm typecheck` — PASS; raíz y 16 workspaces, incluido generate de Prisma.
+- `pnpm test` — PASS; 1 archivo, 4 pruebas unitarias de configuración.
+- `pnpm build` — PASS; 16 workspaces, Next.js y package database con generate.
+- `pnpm format:check` — PASS.
+- `git diff --check` — PASS.
+- `docker compose config --quiet` — PASS sin modificar la infraestructura versionada.
 
 ## Known issues
 
 - El proveedor CI permanece deliberadamente sin seleccionar hasta que exista un remote o una decisión documental explícita.
-- Epic 01 y todo schema funcional siguen fuera de alcance y no están implementados.
+- UUID v7 vs ULID y la política global de generación permanecen deliberadamente pendientes para E01-S02.
+- Tenant-aware repositories, RLS, Outbox, AuditLog y todas las entidades de epics posteriores permanecen fuera de alcance.

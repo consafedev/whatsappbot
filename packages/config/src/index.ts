@@ -14,6 +14,8 @@ const secretEnvironmentSchema = z.object({
   REDIS_URL: z.url({ protocol: /^redis(s)?$/ }),
 });
 
+const databaseEnvironmentSchema = secretEnvironmentSchema.pick({ DATABASE_URL: true });
+
 export interface NonSecretConfig {
   readonly apiPort: number;
   readonly environment: "development" | "test" | "production";
@@ -24,6 +26,10 @@ export interface NonSecretConfig {
 export interface SecretConfig {
   readonly databaseUrl: string;
   readonly redisUrl: string;
+}
+
+export interface DatabaseConfig {
+  readonly databaseUrl: string;
 }
 
 export type RuntimeConfig = NonSecretConfig & SecretConfig;
@@ -72,6 +78,14 @@ export function loadSecretConfig(
     databaseUrl: values.DATABASE_URL,
     redisUrl: values.REDIS_URL,
   });
+}
+
+export function loadDatabaseConfig(
+  environment: NodeJS.ProcessEnv = process.env,
+): Readonly<DatabaseConfig> {
+  const values = parseOrThrow(databaseEnvironmentSchema, environment);
+
+  return Object.freeze({ databaseUrl: values.DATABASE_URL });
 }
 
 export function loadRuntimeConfig(

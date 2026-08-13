@@ -10,9 +10,15 @@
   },
   "scripts": {
     "build": "pnpm -r --if-present run build",
+    "db:generate": "pnpm --filter @whatsapp-platform/database db:generate",
+    "db:migrate:deploy": "pnpm --filter @whatsapp-platform/database db:migrate:deploy",
+    "db:migrate:dev": "pnpm --filter @whatsapp-platform/database db:migrate:dev",
+    "db:studio": "pnpm --filter @whatsapp-platform/database db:studio",
+    "db:validate": "pnpm --filter @whatsapp-platform/database db:validate",
     "lint": "biome lint .",
     "typecheck": "tsc -p tsconfig.json --noEmit && pnpm -r --if-present run typecheck",
     "test": "vitest run",
+    "test:integration:database": "pnpm --filter @whatsapp-platform/database test:integration",
     "format": "biome format --write .",
     "format:check": "biome check --formatter-enabled=true --linter-enabled=false ."
   },

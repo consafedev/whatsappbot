@@ -5,8 +5,29 @@
   "type": "commonjs",
   "main": "dist/index.js",
   "types": "src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "build": "pnpm db:generate && tsc -p tsconfig.json",
+    "db:generate": "prisma generate --config prisma.config.ts",
+    "db:migrate:deploy": "prisma migrate deploy --config prisma.config.ts",
+    "db:migrate:dev": "prisma migrate dev --config prisma.config.ts",
+    "db:studio": "prisma studio --config prisma.config.ts",
+    "db:validate": "prisma validate --config prisma.config.ts",
+    "test:integration": "pnpm --filter @whatsapp-platform/config build && vitest run --config vitest.integration.config.mts",
+    "typecheck": "pnpm db:generate && tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "7.9.1",
+    "@prisma/client": "7.9.1",
+    "@whatsapp-platform/config": "workspace:*"
+  },
+  "devDependencies": {
+    "prisma": "7.9.1"
   }
 }
