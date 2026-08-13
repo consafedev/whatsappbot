@@ -1,6 +1,6 @@
 import { loadDatabaseConfig } from "@whatsapp-platform/config";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createPrismaClient, type PrismaClient } from "./index";
+import { createPlatformDatabaseClient, type PrismaClient } from "./platform";
 
 const ids = {
   childUnit: "01989f20-0005-7000-8000-000000000005",
@@ -34,7 +34,7 @@ async function cleanFixtures(): Promise<void> {
 
 describe.sequential("database baseline integration", () => {
   beforeAll(async () => {
-    prisma = createPrismaClient(loadDatabaseConfig());
+    prisma = createPlatformDatabaseClient(loadDatabaseConfig());
     await prisma.$connect();
     await cleanFixtures();
   });

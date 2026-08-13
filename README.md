@@ -87,6 +87,8 @@ pnpm test:integration:database
 
 Database integration tests require a disposable PostgreSQL database with the committed migrations already applied. Do not use `prisma db push` as a replacement for migrations.
 
+Tenant-owned access uses the safe root entrypoint: create a validated `TenantContext`, then call `createTenantDataAccess(context, client)` to obtain the scoped entitlement and organization-unit repositories. The raw Prisma client is intentionally available only through the privileged `@whatsapp-platform/database/platform` subpath for authorized platform code, migrations, and infrastructure tests.
+
 ## Repository map
 
 ```text

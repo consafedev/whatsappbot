@@ -2,7 +2,7 @@
 
 **Actualizado:** 2026-08-12  
 **Versión de producto:** `0.0.0`  
-**Estado:** E01-S02 — PASS; **Epic 01 — IN PROGRESS**.
+**Estado:** E01-S03 — PASS; **Epic 01 — IN PROGRESS**.
 
 ## Current milestone
 
@@ -16,7 +16,7 @@ Estado por historia:
 
 - E01-S01 — Prisma/schema baseline: **PASS**.
 - E01-S02 — ID/timestamp conventions: **PASS**.
-- E01-S03 — Tenant-aware repository utilities: no iniciada.
+- E01-S03 — Tenant-aware repository utilities: **PASS**.
 - E01-S04 — Outbox foundation: no iniciada.
 - E01-S05 — Audit foundation: no iniciada.
 
@@ -25,6 +25,15 @@ Estado por historia:
 - Epic 00 — Repository Foundation: **PASS / COMPLETE**.
 - E01-S01 — Prisma/schema baseline: **PASS**.
 - E01-S02 — ID/timestamp conventions: **PASS**, documentada por ADR-0012.
+- E01-S03 — Tenant-aware repository utilities: **PASS**.
+- `TenantContext` obligatorio, inmutable y validado como UUIDv7 antes de construir acceso tenant-owned.
+- `createTenantDataAccess(context, database)` expone únicamente repositories scoped de entitlements y organization units.
+- Reads y updates por ID combinan `id` + `tenant_id` en la misma query; acceso cross-tenant se comporta como not found.
+- Inputs planos de create/update no aceptan `tenantId`, relación `tenant` ni cambio de `id`; el tenant se inyecta internamente.
+- Root `@whatsapp-platform/database` es el camino tenant-safe; `@whatsapp-platform/database/platform` es el escape hatch Prisma explícitamente privilegiado.
+- Repositories compatibles con Prisma Client normal y `TransactionClient`, sin UnitOfWork ni Outbox.
+- Nueve pruebas tenant-aware sobre PostgreSQL real cubren dos tenants, aislamiento, updates, creación, jerarquía y transacción.
+- Schema Prisma y las dos migrations permanecen sin cambios y sin drift.
 - PK UUID surrogate canónicas como UUIDv7 con tipo físico PostgreSQL UUID y default nativo `uuidv7()`.
 - `PlatformFeatureFlag.key` conserva su clave natural; la convención no fuerza UUID sobre identidades naturales deliberadas.
 - Timestamps de instantes como `TIMESTAMPTZ(3)` UTC; `created_at` y `updated_at` tienen valor inicial `now()` y Prisma mantiene `updated_at` en operaciones normales.
@@ -62,15 +71,15 @@ Estado por historia:
 
 ## In progress
 
-Epic 01 permanece en progreso. No se inició E01-S03.
+Epic 01 permanece en progreso. No se inició E01-S04.
 
 ## Blocked
 
-Ningún bloqueo para E01-S02.
+Ningún bloqueo para E01-S03.
 
 ## Next story
 
-`E01-S03 — Tenant-aware repository utilities`
+`E01-S04 — Outbox foundation`
 
 No implementarla sin una instrucción separada.
 
@@ -118,8 +127,15 @@ No implementarla sin una instrucción separada.
 - `pnpm test:integration:database` — PASS; 1 archivo, 12 pruebas contra PostgreSQL 18.4 real.
 - Inspección `information_schema` — PASS; cuatro PK `uuid` con default `uuidv7()` y 14 timestamps `timestamp with time zone` precisión 3.
 - `uuid_extract_version()` / `uuid_extract_timestamp()` — PASS; versión 7 y timestamp disponible.
+- `pnpm db:validate` / `pnpm db:generate` — PASS; schema E01-S02 intacto.
+- `prisma migrate status` — PASS; dos migrations, database schema up to date.
+- `prisma migrate diff --from-config-datasource --to-schema ... --exit-code` — PASS; sin drift.
+- `pnpm test:integration:database` — PASS; 2 archivos, 21 pruebas, incluidas 9 tenant-aware contra PostgreSQL 18.4 real.
+- `pnpm test` — PASS; 2 archivos, 9 pruebas unitarias, incluida validación de `TenantContext`.
+- Inspección de exports — PASS; root sin Prisma raw y subpath `/platform` explícitamente privilegiado.
+- Limpieza de fixtures — PASS; cero tenants/entitlements E01-S03 residuales.
 
 ## Known issues
 
 - El proveedor CI permanece deliberadamente sin seleccionar hasta que exista un remote o una decisión documental explícita.
-- Tenant-aware repositories, RLS, Outbox, AuditLog y todas las entidades de epics posteriores permanecen fuera de alcance.
+- RLS, Outbox, AuditLog, autenticación/middleware y todas las entidades de epics posteriores permanecen fuera de alcance.
