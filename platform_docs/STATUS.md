@@ -1,8 +1,8 @@
 # STATUS.md — Estado operativo actual del proyecto
 
-**Actualizado:** 2026-08-12  
+**Actualizado:** 2026-08-13
 **Versión de producto:** `0.0.0`  
-**Estado:** E01-S03 — PASS; **Epic 01 — IN PROGRESS**.
+**Estado:** E01-S04 — PASS; **Epic 01 — IN PROGRESS**.
 
 ## Current milestone
 
@@ -17,7 +17,7 @@ Estado por historia:
 - E01-S01 — Prisma/schema baseline: **PASS**.
 - E01-S02 — ID/timestamp conventions: **PASS**.
 - E01-S03 — Tenant-aware repository utilities: **PASS**.
-- E01-S04 — Outbox foundation: no iniciada.
+- E01-S04 — Outbox foundation: **PASS**.
 - E01-S05 — Audit foundation: no iniciada.
 
 ## Completed
@@ -26,6 +26,13 @@ Estado por historia:
 - E01-S01 — Prisma/schema baseline: **PASS**.
 - E01-S02 — ID/timestamp conventions: **PASS**, documentada por ADR-0012.
 - E01-S03 — Tenant-aware repository utilities: **PASS**.
+- E01-S04 — Outbox foundation: **PASS**, documentada por ADR-0013.
+- `DomainEventOutbox` tenant-owned con UUIDv7 DB-side, payload JSONB y bookkeeping de publicación pendiente.
+- `outbox.append(...)` inyecta `tenant_id` desde `TenantContext` y no expone IDs ni campos de publicación al caller.
+- `withTenantTransaction(context, database, callback)` entrega el facade tenant-scoped sobre el mismo `TransactionClient`, sin Prisma raw.
+- Commit y rollback atómicos verificados con domain write + Outbox; un insert Outbox inválido revierte también el domain write.
+- Seis pruebas Outbox sobre PostgreSQL 18.4 cubren campos físicos, UUIDv7, payload, dos tenants y atomicidad en ambas direcciones.
+- Tercera migration `20260813140000_transactional_outbox_foundation`, append-only y sin cambios a las dos migrations históricas.
 - `TenantContext` obligatorio, inmutable y validado como UUIDv7 antes de construir acceso tenant-owned.
 - `createTenantDataAccess(context, database)` expone únicamente repositories scoped de entitlements y organization units.
 - Reads y updates por ID combinan `id` + `tenant_id` en la misma query; acceso cross-tenant se comporta como not found.
@@ -71,15 +78,15 @@ Estado por historia:
 
 ## In progress
 
-Epic 01 permanece en progreso. No se inició E01-S04.
+Epic 01 permanece en progreso. No se inició E01-S05.
 
 ## Blocked
 
-Ningún bloqueo para E01-S03.
+Ningún bloqueo para E01-S04.
 
 ## Next story
 
-`E01-S04 — Outbox foundation`
+`E01-S05 — Audit foundation`
 
 No implementarla sin una instrucción separada.
 
@@ -134,8 +141,26 @@ No implementarla sin una instrucción separada.
 - `pnpm test` — PASS; 2 archivos, 9 pruebas unitarias, incluida validación de `TenantContext`.
 - Inspección de exports — PASS; root sin Prisma raw y subpath `/platform` explícitamente privilegiado.
 - Limpieza de fixtures — PASS; cero tenants/entitlements E01-S03 residuales.
+- `pnpm install --frozen-lockfile` — PASS; 17 workspaces, lockfile reproducible.
+- `pnpm db:validate` / `pnpm db:generate` — PASS; `DomainEventOutbox` generado con Prisma 7.9.1.
+- `pnpm db:migrate:deploy` desde PostgreSQL 18.4 limpio — PASS; migrations E01-S01, E01-S02 y E01-S04 aplicadas en orden.
+- `prisma migrate status` — PASS; tres migrations, database schema up to date.
+- `prisma migrate diff --from-config-datasource --to-schema ... --exit-code` — PASS; sin drift.
+- Migration E01-S04 SHA-256 — `093b675c86909179c9707df1d1d92031313c3cb8042f5d0fe0b44c5fa117bfbd`.
+- Migrations históricas E01-S01/E01-S02 — PASS; objetos Git del working tree coinciden con `HEAD`.
+- `pnpm test:integration:database` — PASS; 3 archivos, 27 pruebas contra PostgreSQL 18.4, incluidas 6 de Outbox.
+- Atomicidad Outbox — PASS; commit conjunto, rollback deliberado y rollback del dominio ante insert Outbox inválido.
+- Campos físicos — PASS; UUIDv7, UUID/FK tenant NOT NULL, JSONB, `TIMESTAMPTZ(3)`, attempts 0 y campos nullable verificados.
+- `pnpm lint` — PASS; 70 archivos.
+- `pnpm typecheck` — PASS; raíz y 16 workspaces, incluido Prisma generate.
+- `pnpm test` — PASS; 2 archivos, 9 pruebas unitarias.
+- `pnpm build` — PASS; 16 workspaces y build Next.js de producción.
+- `pnpm format:check` — PASS; 70 archivos.
+- `docker compose config --quiet` — PASS con variables locales efímeras.
+- `git diff --check` — PASS.
+- Limpieza de fixtures/DB temporal — PASS; cero eventos/tenants E01-S04 residuales y contenedor temporal eliminado.
 
 ## Known issues
 
 - El proveedor CI permanece deliberadamente sin seleccionar hasta que exista un remote o una decisión documental explícita.
-- RLS, Outbox, AuditLog, autenticación/middleware y todas las entidades de epics posteriores permanecen fuera de alcance.
+- RLS, publisher/dispatcher Outbox, AuditLog, autenticación/middleware y todas las entidades de epics posteriores permanecen fuera de alcance.

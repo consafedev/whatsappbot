@@ -1,4 +1,5 @@
 import type {
+  DomainEventInput,
   OrganizationUnitCreateData,
   OrganizationUnitUpdateData,
   TenantEntitlementCreateData,
@@ -9,6 +10,11 @@ type Assert<T extends true> = T;
 type Excludes<T, Key extends PropertyKey> = Key extends keyof T ? false : true;
 
 export type TenantDataAccessInputAssertions = [
+  Assert<Excludes<DomainEventInput, "id">>,
+  Assert<Excludes<DomainEventInput, "tenantId">>,
+  Assert<Excludes<DomainEventInput, "publishedAt">>,
+  Assert<Excludes<DomainEventInput, "attempts">>,
+  Assert<Excludes<DomainEventInput, "lastError">>,
   Assert<Excludes<TenantEntitlementCreateData, "tenantId">>,
   Assert<Excludes<TenantEntitlementCreateData, "tenant">>,
   Assert<Excludes<TenantEntitlementUpdateData, "id">>,

@@ -107,10 +107,30 @@ model Tenant {
   deployment        PlatformDeployment? @relation(fields: [deploymentId], references: [id], onDelete: SetNull, onUpdate: Cascade)
   entitlements      TenantEntitlement[]
   organizationUnits OrganizationUnit[]
+  domainEvents      DomainEventOutbox[]
 
   @@index([status], map: "tenant_status_idx")
   @@index([deploymentId], map: "tenant_deployment_id_idx")
   @@map("tenant")
+}
+
+model DomainEventOutbox {
+  id            String   @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  tenantId      String   @map("tenant_id") @db.Uuid
+  eventType     String   @map("event_type")
+  aggregateType String   @map("aggregate_type")
+  aggregateId   String   @map("aggregate_id") @db.Uuid
+  payload       Json     @db.JsonB
+  occurredAt    DateTime @default(now()) @map("occurred_at") @db.Timestamptz(3)
+  publishedAt   DateTime? @map("published_at") @db.Timestamptz(3)
+  attempts      Int      @default(0)
+  lastError     String?  @map("last_error")
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([tenantId], map: "domain_event_outbox_tenant_id_idx")
+  @@index([publishedAt, occurredAt], map: "domain_event_outbox_pending_idx")
+  @@index([aggregateType, aggregateId], map: "domain_event_outbox_aggregate_idx")
+  @@map("domain_event_outbox")
 }
 
 model TenantEntitlement {

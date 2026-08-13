@@ -1,7 +1,7 @@
 # docs/MANIFEST.md — Baseline documental verificada
 
-**Fecha:** 2026-08-12  
-**Estado:** documentación sincronizada con E01-S03 — PASS; Epic 01 — IN PROGRESS.
+**Fecha:** 2026-08-13
+**Estado:** documentación sincronizada con E01-S04 — PASS; Epic 01 — IN PROGRESS.
 **Propósito:** comprobar integridad y composición del conjunto de documentos que permite continuar el proyecto sin depender de memoria conversacional.
 
 > Las rutas son relativas a la raíz del repositorio. Los hashes cambian si se edita un archivo. Después de cambios intencionales, regenerar este manifest.
@@ -9,10 +9,10 @@
 | Archivo | Bytes | Palabras | SHA-256 |
 |---|---:|---:|---|
 | `AGENTS.md` | 924 | 113 | `b97dac3ea20e30b8f42e5d82f13a58e32b06dab89a0d919bc2b8a9110b6661a2` |
-| `README.md` | 3576 | 427 | `7877290433588589aca2c49efd41365dbadb4ece54a4d351da267051cb1be6d5` |
+| `README.md` | 3779 | 455 | `e1bd34d77e55aff2afa71f0c679a50b094cab9a427493d55cf042534685529a3` |
 | `.agents/agents.md` | 388 | 41 | `d52b02af7fdab6d2ecbf7af4dd2f311d5d244f153817498ff9e542427e9e1675` |
 | `.agents/skills/whatsapp-platform-engineering/SKILL.md` | 19764 | 2747 | `8597b90ddbb55ccb4dbcb5b1d98b100b264759be2357f772ec5c997a1a0ff23b` |
-| `platform_docs/CHANGELOG.md` | 4667 | 624 | `621297fad62956f8b2ebafb47d75e6358c983ac4495e0e535f751043d01711a4` |
+| `platform_docs/CHANGELOG.md` | 5153 | 679 | `d9f03053f507db6cf7b4ff7b6b17b015edebffdb6ac2f5ffc28cc971de3ba045` |
 | `platform_docs/DATA_MODEL_ERD_MVP_BACKLOG.md` | 71380 | 9645 | `4217a4b3b0f2e564188fc789c064c42520e3b0f23a980ea7fc312d5aa58584c4` |
 | `platform_docs/DEMO_AND_SALES.md` | 8689 | 1253 | `28944d7c37827e10f72d6cdac811eb8bda92fbc9da96fa4947f09ef42eb5b9f4` |
 | `platform_docs/DEPLOYMENT.md` | 5766 | 811 | `665319a6f0a460d4cd509c062af9e5879416c795f2227f63287d076f1c3d7293` |
@@ -29,6 +29,7 @@
 | `platform_docs/docs/adr/0010-modules-entitlements-super-admin.md` | 739 | 91 | `fc58d7539bb0058f4a2952fcdac8522b9804b85e6a4b49786c920040765071b6` |
 | `platform_docs/docs/adr/0011-prisma-database-boundary.md` | 2069 | 282 | `c03c27393f9f2b7aa80d8549e9505caa7d9749e0bca989bcbc43c88648266fb4` |
 | `platform_docs/docs/adr/0012-uuidv7-and-timestamp-conventions.md` | 3609 | 493 | `976e8471e5018a1f8a6c219c951162d417dba261995585d6c1095f3c888cfc85` |
+| `platform_docs/docs/adr/0013-transactional-outbox.md` | 2723 | 359 | `ae4bd9f1d18a1c1cdd14cb70a028eefab1f87a20a713cc57ea0acbd8040ddc9f` |
 | `platform_docs/docs/INDEX.md` | 12437 | 1687 | `d692e50c9f969e6ee096a14daf674281f585d3e2a2841211822734dbedd6c5f8` |
 | `platform_docs/PRD.md` | 90479 | 13033 | `81426bd8cabd9b4d5408ff0741c1cfa6aa1741986f2355d4294c6faa7bfdb380` |
 | `platform_docs/README.md` | 1953 | 242 | `31b67b6ef55a2adb4b2840cbe5993156c4fa0421f8752b2d130c97ceb84e880a` |
@@ -36,7 +37,7 @@
 | `platform_docs/RUNBOOK_BACKUP_RESTORE.md` | 4857 | 666 | `27e324b4cea0cd3a2514f44eeee4ce31db80a3a4701f0ba528ffb36afcebb3ff` |
 | `platform_docs/RUNBOOK_OPERATIONS.md` | 5777 | 796 | `23d4c537dd3bbcf4b8f08b39b4a948c42c10e3a458594c25ccf2b65937376252` |
 | `platform_docs/SECURITY.md` | 10634 | 1530 | `5d6460147035971fa2e477bba48eebbccbdb46f320f72ae98c2d3f118bb72e22` |
-| `platform_docs/STATUS.md` | 10149 | 1325 | `d8356e4f6b7ea5411809756f66e6f0a4953767148f6b4c8940918cbaf9fc78c6` |
+| `platform_docs/STATUS.md` | 12556 | 1646 | `dfc2a3acece334d78f238d39f46f572c4dd90e07dd7aafbab12f35013e3e8e44` |
 | `platform_docs/SYSTEM_DESIGN.md` | 38740 | 5200 | `4d28da76a6a8c4732db7775c7c53e6ceaf39083a7e3f4aa54e6bcae0a6524ae0` |
 | `platform_docs/TESTING_STRATEGY.md` | 6304 | 927 | `178ff2870021d7eff8d9a54c025f732adc272d13f22de0512a854b6e8f49f6c8` |
 | `platform_docs/UI_FLOWS.md` | 21742 | 3143 | `b62156f9570904f2dabba110221763c4dd0b3a06e8ef9fd1ed1800eafda6edac` |

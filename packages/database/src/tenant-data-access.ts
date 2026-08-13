@@ -1,10 +1,15 @@
-import { type OrganizationUnit, Prisma, type TenantEntitlement } from "./generated/prisma/client";
+import {
+  type DomainEventOutbox,
+  type OrganizationUnit,
+  Prisma,
+  type TenantEntitlement,
+} from "./generated/prisma/client";
 import type { OrganizationUnitType, TenantEntitlementSource } from "./generated/prisma/enums";
 import { createTenantContext, type TenantContext } from "./tenant-context";
 
 type TenantDatabaseClient = Pick<
   Prisma.TransactionClient,
-  "organizationUnit" | "tenantEntitlement"
+  "domainEventOutbox" | "organizationUnit" | "tenantEntitlement"
 >;
 
 type JsonInput = Prisma.InputJsonValue;
@@ -54,6 +59,13 @@ export type OrganizationUnitUpdateData = Readonly<{
   active?: boolean;
 }>;
 
+export type DomainEventInput = Readonly<{
+  eventType: string;
+  aggregateType: string;
+  aggregateId: string;
+  payload: JsonInput;
+}>;
+
 export interface TenantEntitlementRepository {
   list(): Promise<TenantEntitlement[]>;
   findById(id: string): Promise<TenantEntitlement | null>;
@@ -71,10 +83,21 @@ export interface OrganizationUnitRepository {
   update(id: string, data: OrganizationUnitUpdateData): Promise<OrganizationUnit>;
 }
 
+export interface TenantOutboxWriter {
+  append(event: DomainEventInput): Promise<DomainEventOutbox>;
+}
+
 export type TenantDataAccess = Readonly<{
   entitlements: TenantEntitlementRepository;
   organizationUnits: OrganizationUnitRepository;
+  outbox: TenantOutboxWriter;
 }>;
+
+export interface TenantTransactionDatabase {
+  $transaction<Result>(
+    callback: (transaction: Prisma.TransactionClient) => Promise<Result>,
+  ): Promise<Result>;
+}
 
 export class TenantScopedRecordNotFoundError extends Error {
   constructor(resource: "TenantEntitlement" | "OrganizationUnit") {
@@ -252,6 +275,24 @@ function createOrganizationUnitRepository(
   return Object.freeze(repository);
 }
 
+function createTenantOutboxWriter(
+  context: TenantContext,
+  database: TenantDatabaseClient,
+): TenantOutboxWriter {
+  return Object.freeze({
+    append: (event: DomainEventInput) =>
+      database.domainEventOutbox.create({
+        data: {
+          aggregateId: event.aggregateId,
+          aggregateType: event.aggregateType,
+          eventType: event.eventType,
+          payload: event.payload,
+          tenantId: context.tenantId,
+        },
+      }),
+  });
+}
+
 export function createTenantDataAccess(
   context: TenantContext,
   database: TenantDatabaseClient,
@@ -261,5 +302,18 @@ export function createTenantDataAccess(
   return Object.freeze({
     entitlements: createTenantEntitlementRepository(validatedContext, database),
     organizationUnits: createOrganizationUnitRepository(validatedContext, database),
+    outbox: createTenantOutboxWriter(validatedContext, database),
   });
+}
+
+export async function withTenantTransaction<Result>(
+  context: TenantContext,
+  database: TenantTransactionDatabase,
+  callback: (data: TenantDataAccess) => Promise<Result>,
+): Promise<Result> {
+  const validatedContext = createTenantContext(context.tenantId);
+
+  return database.$transaction((transaction) =>
+    callback(createTenantDataAccess(validatedContext, transaction)),
+  );
 }

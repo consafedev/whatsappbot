@@ -26,6 +26,9 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 - ADR-0012 formaliza UUIDv7, `TIMESTAMPTZ(3)`, UTC y PostgreSQL 18 como baseline mínima.
 - E01-S03 con `TenantContext` UUIDv7 explícito y repositories tenant-scoped para `TenantEntitlement` y `OrganizationUnit`.
 - Suite de aislamiento con dos tenants, lecturas/updates cross-tenant, inyección de tenant, FK jerárquica y `TransactionClient` reales.
+- E01-S04 con `DomainEventOutbox`, writer tenant-safe append-only y `withTenantTransaction` sobre el mismo `TransactionClient`.
+- Tercera migration append-only y pruebas PostgreSQL de commit/rollback atómico, defaults UUIDv7, campos físicos y payload JSONB.
+- ADR-0013 formaliza Transactional Outbox, persist-before-publish y side effects externos sólo después del commit.
 
 ### Changed
 
@@ -34,6 +37,7 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 - Epic 00 queda validado de extremo a extremo en Docker Desktop/WSL2 con los seis servicios saludables y endpoints API/web accesibles desde el host.
 - El datastore principal requiere PostgreSQL 18 o superior mientras se utilice `uuidv7()` nativo.
 - El entrypoint raíz de `packages/database` expone sólo acceso tenant-aware; Prisma raw queda en el subpath privilegiado `@whatsapp-platform/database/platform`.
+- El facade tenant-aware expone Outbox sólo para append; lectura/publicación permanece infraestructura privilegiada futura.
 
 ### Fixed
 
@@ -52,7 +56,7 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Not yet implemented
 
-- E01-S04 Outbox y E01-S05 AuditLog.
+- E01-S05 AuditLog.
 - Auth, Super Admin, providers WhatsApp, contactos/conversaciones, Rules Engine, agenda, cotizaciones, documentos, IA funcional y backups reales.
 
 ## [0.0.0-preimplementation] - 2026-08-12
