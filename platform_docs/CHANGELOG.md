@@ -44,6 +44,8 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 - E02-S03 conecta la sesión Tenant User autenticada con el `TenantContext` canónico mediante guards ordenados de Nest, request/decorators tipados y contexto inmutable.
 - `TenantDataAccessFactory` conecta explícitamente el contexto autenticado con `createTenantDataAccess(...)` sobre el cliente singleton, sin Prisma request-scoped ni contexto ambiental.
 - Suite vertical API/PostgreSQL para contextos A/B, fuentes de tenant hostiles, sesiones inválidas, acceso tenant-scoped real y requests concurrentes.
+- E02-S04 con suite de seguridad dedicada `pnpm test:security:tenant-isolation`: matriz A/B de repositories, auth/context, IDs/FKs hostiles, atomicidad, concurrencia y boundary de imports privilegiados.
+- Cobertura ejecutable para todas las superficies tenant-owned actuales; los modelos/endpoints posteriores quedan explícitamente diferidos hasta existir.
 
 ### Changed
 
@@ -57,6 +59,7 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 - E02-S01 — Platform Admin auth queda PASS; Epic 02 permanece IN PROGRESS y no incluye Tenant User auth ni RBAC.
 - E02-S02 — Tenant user auth queda PASS; Epic 02 permanece IN PROGRESS y E02-S03 sigue pendiente.
 - E02-S03 — Tenant context middleware queda PASS; Epic 02 permanece IN PROGRESS y E02-S04 es la siguiente historia.
+- E02-S04 — Tenant isolation tests queda PASS; Epic 02 permanece IN PROGRESS y E02-S05 es la siguiente historia.
 
 ### Fixed
 
@@ -75,7 +78,7 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Not yet implemented
 
-- Tenant isolation suite E02-S04, RBAC, MFA, delivery real de password reset, providers WhatsApp, contactos/conversaciones, Rules Engine, agenda, cotizaciones, documentos, IA funcional y backups reales.
+- RBAC, MFA, delivery real de password reset, providers WhatsApp, contactos/conversaciones, Rules Engine, agenda, cotizaciones, documentos, IA funcional y backups reales.
 
 ## [0.0.0-preimplementation] - 2026-08-12
 

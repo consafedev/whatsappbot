@@ -2,7 +2,7 @@
 
 **Actualizado:** 2026-08-13
 **Versión de producto:** `0.0.0`  
-**Estado:** E02-S03 — PASS; **Epic 02 — IN PROGRESS**.
+**Estado:** E02-S04 — PASS; **Epic 02 — IN PROGRESS**.
 
 ## Current milestone
 
@@ -17,7 +17,7 @@ Estado por historia:
 - E02-S01 — Platform Admin auth: **PASS**, documentada por ADR-0015.
 - E02-S02 — Tenant user auth: **PASS**, documentada por ADR-0016.
 - E02-S03 — Tenant context middleware: **PASS**.
-- E02-S04 — Tenant isolation tests: **NOT STARTED**.
+- E02-S04 — Tenant isolation tests: **PASS**.
 - E02-S05 — RBAC base: **NOT STARTED**.
 
 Epic anterior:
@@ -30,6 +30,13 @@ Epic anterior:
 
 ## Completed
 
+- E02-S04 — Tenant isolation tests: **PASS**; no requirió cambios de schema, migrations ni arquitectura productiva.
+- Comando dedicado `pnpm test:security:tenant-isolation`: 5 archivos y 34 pruebas contra PostgreSQL 18.4 real (8 database; 26 API/auth/arquitectura).
+- Matriz A/B exhaustiva para las superficies tenant-owned actuales: `TenantEntitlement`, `OrganizationUnit`, `AuditLog`, `DomainEventOutbox`, `User`, `UserSession`, `UserPasswordResetToken` y endpoints tenant autenticados existentes.
+- IDs ajenos, inputs hostiles `tenantId`/`tenant`, FKs compuestas cross-tenant, mismo email en tenants distintos, sesiones/reset cross-tenant, revocación/expiración y fuentes de request hostiles fallan sin fuga ni mutación.
+- Transacciones commit/rollback y operaciones concurrentes A/B sobre el mismo Prisma Client preservan el tenant correcto; el facade tenant no expone Prisma raw, publisher Outbox ni audit platform.
+- Test arquitectónico fija los únicos imports privilegiados actuales en composition root, bootstrap/auth/infraestructura; ningún camino tenant-owned de aplicación obtiene Prisma raw.
+- `Message`, `Conversation`, `Process`, `ActionRequest`, `Quote`, `Document`, portal grants y jobs tenant-owned quedan **DEFERRED** hasta que sus modelos y endpoints existan; no se anticipó Epic posterior.
 - E02-S03 — Tenant context middleware: **PASS**; no requirió migration ni ADR nuevo.
 - Pipeline Nest explícito `TenantUserSessionGuard` → `TenantContextGuard` → controller/service; guards ejecutados en ese orden y sin middleware pre-auth.
 - `TenantSessionIdentity` expone `sessionId`, `userId` y `tenantId` persistidos; la request autenticada recibe `auth` y `tenantContext` como propiedades readonly/no reasignables.
@@ -122,21 +129,32 @@ Epic anterior:
 
 ## In progress
 
-Epic 02 continúa con E02-S04 pendiente.
+Epic 02 continúa con E02-S05 pendiente.
 
 ## Blocked
 
-Ningún bloqueo de código para E02-S03. Password recovery requiere un adapter de delivery antes de habilitarse operativamente.
+Ningún bloqueo de código para E02-S04. Password recovery requiere un adapter de delivery antes de habilitarse operativamente.
 
 ## Next story
 
-`E02-S04 — Tenant isolation tests`
+`E02-S05 — RBAC base`
 
 No implementarla sin una instrucción separada.
 
 ## Last verified commands
 
-- `pnpm install --frozen-lockfile` — PASS; 17 workspaces y lockfile reproducible para E02-S03.
+- `pnpm test:security:tenant-isolation` — PASS; 5 archivos, 34 pruebas contra PostgreSQL 18.4 real: 8 database y 26 API/auth/arquitectura.
+- `pnpm test:integration:database` — PASS; 5 archivos, 44 pruebas PostgreSQL, incluidas las 8 de aislamiento E02-S04.
+- `pnpm test:integration:auth` — PASS; 4 archivos, 26 pruebas, incluido el boundary arquitectónico.
+- `pnpm lint` / `pnpm typecheck` / `pnpm test` / `pnpm build` / `pnpm format:check` — PASS; 90 archivos revisados, 16 workspaces compilados y 3 archivos/14 pruebas unitarias.
+- `docker compose config --quiet` — PASS con variables efímeras de validación; no se creó `.env` ni se persistieron secretos.
+- Schema/migrations — PASS; `schema.prisma` y las seis migrations permanecen sin cambios, `migrate status` actualizado y `migrate diff` sin drift.
+- Limpieza E02-S04 — PASS; cero tenants/audits residuales y contenedor PostgreSQL temporal retirado sin crear named volumes.
+- `git diff --check` y secret scan — PASS.
+- Matriz E02-S04 — PASS; aislamiento A/B en repositories, auth/context, transacciones concurrentes, rollback, IDs/FKs cross-tenant e inputs hostiles.
+- Static privileged-import review — PASS; imports raw limitados a composition root, bootstrap/auth/infraestructura y ningún camino tenant-owned de aplicación.
+- Modelos futuros (`Message`, `Conversation`, `Process`, `ActionRequest`, `Quote`, `Document`, portal grants y jobs) — DEFERRED por inexistencia; deberán añadirse al implementar cada superficie.
+- `pnpm install --frozen-lockfile` — PASS; 17 workspaces y lockfile reproducible para E02-S04.
 - `pnpm db:validate` / `pnpm db:generate` — PASS; schema sin cambios y Prisma Client 7.9.1 generado.
 - `pnpm db:migrate:deploy` desde PostgreSQL 18 limpio — PASS; las seis migrations existentes aplicadas, ninguna nueva.
 - `prisma migrate status` / `prisma migrate diff --exit-code` — PASS; schema actualizado y sin drift.

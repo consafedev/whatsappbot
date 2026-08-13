@@ -77,6 +77,19 @@ Probar que A no puede:
 
 Añadir test por cada nuevo repository tenant-owned.
 
+## Matriz ejecutable actual (E02-S04)
+
+La matriz dedicada se ejecuta con `pnpm test:security:tenant-isolation` contra PostgreSQL 18 con las migrations aplicadas. En la baseline actual cubre:
+
+- `TenantEntitlement` y `OrganizationUnit`: reads, create/update, IDs ajenos, inputs hostiles, jerarquía y FK compuesta;
+- `AuditLog` y `DomainEventOutbox`: tenant inyectado, separación A/B, atomicidad commit/rollback y acceso privilegiado no exportado por el facade tenant;
+- `User`, `UserSession` y `UserPasswordResetToken`: mismo email en tenants distintos, credenciales/sesiones/reset cross-tenant, revocación, expiración y FKs compuestas;
+- `/auth/me`, `/auth/logout` y `/auth/sessions/revoke-all`: el contexto deriva sólo de la sesión autenticada y no de body, query, header, route param ni cookie de plataforma;
+- requests y transacciones concurrentes A/B sobre el mismo cliente sin contaminación de contexto;
+- revisión arquitectónica de imports privilegiados para impedir Prisma raw en caminos tenant-owned.
+
+`Message`, `Conversation`, `Process`, `ActionRequest`, `Quote`, `Document`, portal grants y jobs tenant-owned permanecen **DEFERRED** porque sus modelos/repositories/endpoints aún no existen. Cada superficie se incorpora a esta suite en la historia que la implemente; no se crean modelos anticipadamente sólo para satisfacer la matriz normativa.
+
 ---
 
 # 5. Entitlements

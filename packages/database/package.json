@@ -25,6 +25,7 @@
     "db:studio": "prisma studio --config prisma.config.ts",
     "db:validate": "prisma validate --config prisma.config.ts",
     "test:integration": "pnpm --filter @whatsapp-platform/config build && vitest run --config vitest.integration.config.mts",
+    "test:security:tenant-isolation": "pnpm --filter @whatsapp-platform/config build && vitest run --config vitest.tenant-isolation.config.mts",
     "typecheck": "pnpm db:generate && tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
