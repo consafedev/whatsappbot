@@ -6,14 +6,18 @@
   "main": "dist/main.js",
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "platform-admin:create": "node dist/platform-admin-create.js",
     "start": "node dist/main.js",
+    "test:integration": "pnpm --filter @whatsapp-platform/auth build && pnpm --filter @whatsapp-platform/config build && pnpm --filter @whatsapp-platform/database build && vitest run --config vitest.integration.config.mts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "@nestjs/common": "11.1.29",
     "@nestjs/core": "11.1.29",
     "@nestjs/platform-express": "11.1.29",
+    "@whatsapp-platform/auth": "workspace:*",
     "@whatsapp-platform/config": "workspace:*",
+    "@whatsapp-platform/database": "workspace:*",
     "reflect-metadata": "0.2.2",
     "rxjs": "7.8.2"
   }

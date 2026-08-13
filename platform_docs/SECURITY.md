@@ -360,6 +360,16 @@ Limits can be IP/user/tenant/account scoped according to endpoint.
 - password reset can revoke existing sessions per policy;
 - tenant suspension invalidates/blocks use.
 
+Baseline Platform Admin E02-S01:
+
+- Argon2id `m=19456`, `t=2`, `p=1`, salt aleatorio de 16 bytes;
+- token de sesión opaco aleatorio de 256 bits y sólo SHA-256 persistido;
+- expiración absoluta de 8 horas, idle timeout de 30 minutos y revocación server-side;
+- cookie `__Host-platform_session` Secure en producción, HttpOnly, SameSite Strict, Path `/` y sin Domain;
+- Origin exacto y CORS explícito para mutaciones con cookie;
+- login limitado a 10 intentos por email normalizado por minuto y respuestas genéricas para credenciales inválidas;
+- auditoría transaccional de login exitoso y logout, sin secretos ni token raw.
+
 ---
 
 # 20. Browser security headers

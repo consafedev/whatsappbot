@@ -1,23 +1,10 @@
 import "reflect-metadata";
-import { Controller, Get, Module } from "@nestjs/common";
-import { NestFactory } from "@nestjs/core";
 import { loadRuntimeConfig } from "@whatsapp-platform/config";
-
-@Controller()
-class HealthController {
-  @Get("health")
-  health(): { service: "api"; status: "ok" } {
-    return { service: "api", status: "ok" };
-  }
-}
-
-@Module({ controllers: [HealthController] })
-class AppModule {}
+import { createApiApplication } from "./app";
 
 async function bootstrap(): Promise<void> {
   const config = loadRuntimeConfig();
-  const app = await NestFactory.create(AppModule);
-
+  const app = await createApiApplication(config);
   await app.listen(config.apiPort, "0.0.0.0");
 }
 

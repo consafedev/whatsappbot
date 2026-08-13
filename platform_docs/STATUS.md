@@ -2,17 +2,25 @@
 
 **Actualizado:** 2026-08-13
 **Versión de producto:** `0.0.0`  
-**Estado:** E01-S05 — PASS; **Epic 01 — PASS / COMPLETE**.
+**Estado:** E02-S01 — PASS; **Epic 02 — IN PROGRESS**.
 
 ## Current milestone
 
-Database Foundation.
+Authentication and Tenancy.
 
 ## Current epic
 
-**Epic 01 — Database Foundation**
+**Epic 02 — Authentication and Tenancy**
 
 Estado por historia:
+
+- E02-S01 — Platform Admin auth: **PASS**, documentada por ADR-0015.
+- E02-S02 — Tenant user auth: **NOT STARTED**.
+- E02-S03 — Tenant context middleware: **NOT STARTED**.
+- E02-S04 — Tenant isolation tests: **NOT STARTED**.
+- E02-S05 — RBAC base: **NOT STARTED**.
+
+Epic anterior:
 
 - E01-S01 — Prisma/schema baseline: **PASS**.
 - E01-S02 — ID/timestamp conventions: **PASS**.
@@ -22,6 +30,16 @@ Estado por historia:
 
 ## Completed
 
+- E02-S01 — Platform Admin auth: **PASS**, documentada por ADR-0015.
+- `PlatformAdmin` y `PlatformAdminSession` permanecen separados de Tenant User y sin `tenant_id`.
+- Quinta migration append-only con UUIDv7, `TIMESTAMPTZ(3)`, hash de token `BYTEA` unique, revocación y expiración.
+- Password hashing Argon2id y bootstrap explícito `pnpm platform-admin:create`; ninguna credencial se crea al iniciar la aplicación.
+- Sesiones opacas server-side de 256 bits, sólo SHA-256 persistido, expiración absoluta de 8 horas e idle timeout de 30 minutos.
+- Cookie HttpOnly/SameSite Strict; `__Host-` + Secure en producción y nombre local separado en desarrollo/test.
+- Endpoints `POST /platform/auth/login`, `GET /platform/auth/me` y `POST /platform/auth/logout`, con logout idempotente.
+- Origin exacto, CORS sin wildcard, JSON estricto, respuesta genérica de credenciales y rate limiting de login sin sleeps.
+- Login/logout auditados transaccionalmente con `tenant_id = NULL`, sin password, hash ni token raw.
+- Suite de integración API/PostgreSQL real cubre migración física, login válido/inválido, admin disabled, expiración absoluta, inactividad, revocación, sesiones simultáneas, cookie, origen y audit.
 - Epic 00 — Repository Foundation: **PASS / COMPLETE**.
 - Epic 01 — Database Foundation: **PASS / COMPLETE**.
 - E01-S01 — Prisma/schema baseline: **PASS**.
@@ -133,6 +151,7 @@ No implementarla sin una instrucción separada.
 - `pnpm build` — PASS; 16 workspaces, Next.js y package database con generate.
 - `pnpm format:check` — PASS.
 - `git diff --check` — PASS.
+- Limpieza E02-S01 — PASS; PostgreSQL temporal y Compose retirados, named volumes preservados.
 - `docker compose config --quiet` — PASS sin modificar la infraestructura versionada.
 - `pnpm db:validate` — PASS con defaults `dbgenerated("uuidv7()")` y `TIMESTAMPTZ(3)`.
 - `pnpm db:generate` — PASS; Prisma Client 7.9.1 generado.
@@ -186,8 +205,23 @@ No implementarla sin una instrucción separada.
 - `docker compose config --quiet` — PASS con variables locales efímeras.
 - `git diff --check` — PASS.
 - Limpieza E01-S05 — PASS; cero audit/outbox/tenants residuales y contenedor PostgreSQL temporal eliminado.
+- `pnpm install --frozen-lockfile` — PASS; Argon2 0.45.1 reproducible y build script autorizado explícitamente.
+- `pnpm db:validate` / `pnpm db:generate` — PASS; modelos Platform Admin generados con Prisma 7.9.1.
+- `pnpm db:migrate:deploy` desde PostgreSQL 18.4 limpio — PASS; cinco migrations aplicadas en orden.
+- `prisma migrate status` — PASS; cinco migrations y database schema up to date.
+- `prisma migrate diff --from-config-datasource --to-schema ... --exit-code` — PASS; sin drift.
+- Migration E02-S01 SHA-256 — `59ccadb8795ff39df2c8ad40670e15e1623916a620129b7e087438b06e457ff7`.
+- `pnpm test:integration:database` — PASS; 4 archivos, 36 pruebas PostgreSQL existentes sin regresión.
+- `pnpm test:integration:auth` — PASS; 1 archivo, 7 pruebas de API/auth contra PostgreSQL 18.4 real.
+- `pnpm platform-admin:create` — PASS; admin explícito creado, email normalizado y PHC Argon2id verificado sin imprimir password/hash.
+- `docker compose build api` — la imagen fue renovada, aunque el cliente agotó su timeout sin emitir salida final; validación directa posterior ejecutó Argon2id dentro de Alpine sin red — PASS.
+- API container — PASS; `whatsapp-platform-dev-api-1` healthy y `GET http://127.0.0.1:3001/health` respondió `{"service":"api","status":"ok"}`.
+- Compose DB migration con el volumen histórico local — WARN/P1000 por credenciales antiguas del named volume; no se borró ni modificó el volumen. La migration limpia y la suite auth usaron PostgreSQL temporal aislado.
+- `pnpm lint` / `pnpm typecheck` / `pnpm test` / `pnpm build` / `pnpm format:check` — PASS.
+- `git diff --check` — PASS.
 
 ## Known issues
 
 - El proveedor CI permanece deliberadamente sin seleccionar hasta que exista un remote o una decisión documental explícita.
-- RLS, publisher/dispatcher Outbox, TimelineEvent, autenticación/middleware y todas las entidades de epics posteriores permanecen fuera de alcance.
+- El rate limiter E02-S01 es local a cada proceso; coordinación distribuida queda para una historia operativa futura si la topología escala horizontalmente.
+- Tenant User auth, tenant context middleware, RBAC, MFA, password reset, gestión de sesiones, RLS, publisher/dispatcher Outbox, TimelineEvent y entidades posteriores permanecen fuera de alcance.

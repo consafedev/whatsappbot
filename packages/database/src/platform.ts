@@ -8,6 +8,17 @@ import {
 } from "./audit";
 import { PrismaClient } from "./generated/prisma/client";
 
+export {
+  type BootstrapPlatformAdminInput,
+  type CreatePlatformAdminInput,
+  type CreatePlatformAdminSessionInput,
+  createPlatformAuthRepository,
+  type PlatformAdminCredentialRecord,
+  type PlatformAdminProfile,
+  type PlatformAuthRepository,
+  type PlatformSessionIdentity,
+} from "./platform-auth";
+
 export type PlatformAuditEntryInput = Readonly<
   AuditEntryInput & {
     tenantId?: string | null;

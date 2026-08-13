@@ -70,6 +70,20 @@ enum OrganizationUnitType {
   @@map("organization_unit_type")
 }
 
+enum PlatformAdminStatus {
+  active
+  disabled
+
+  @@map("platform_admin_status")
+}
+
+enum PlatformAdminMfaState {
+  disabled
+  enabled
+
+  @@map("platform_admin_mfa_state")
+}
+
 model PlatformDeployment {
   id             String                   @id @default(dbgenerated("uuidv7()")) @db.Uuid
   name           String
@@ -87,6 +101,41 @@ model PlatformDeployment {
   tenants        Tenant[]
 
   @@map("platform_deployment")
+}
+
+model PlatformAdmin {
+  id            String                @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  email         String                @unique(map: "platform_admin_email_key")
+  passwordHash  String                @map("password_hash")
+  displayName   String                @map("display_name")
+  status        PlatformAdminStatus   @default(active)
+  locale        String
+  timezone      String
+  lastLoginAt   DateTime?             @map("last_login_at") @db.Timestamptz(3)
+  mfaState      PlatformAdminMfaState @default(disabled) @map("mfa_state")
+  createdAt     DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  sessions      PlatformAdminSession[]
+
+  @@index([status], map: "platform_admin_status_idx")
+  @@map("platform_admin")
+}
+
+model PlatformAdminSession {
+  id              String        @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  platformAdminId String        @map("platform_admin_id") @db.Uuid
+  tokenHash       Bytes         @unique(map: "platform_admin_session_token_hash_key") @map("token_hash")
+  deviceLabel     String?       @map("device_label")
+  ipHash          Bytes?        @map("ip_hash")
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  lastSeenAt      DateTime      @default(now()) @map("last_seen_at") @db.Timestamptz(3)
+  expiresAt       DateTime      @map("expires_at") @db.Timestamptz(3)
+  revokedAt       DateTime?     @map("revoked_at") @db.Timestamptz(3)
+  platformAdmin   PlatformAdmin @relation(fields: [platformAdminId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([platformAdminId], map: "platform_admin_session_admin_id_idx")
+  @@index([expiresAt], map: "platform_admin_session_expires_at_idx")
+  @@map("platform_admin_session")
 }
 
 model Tenant {

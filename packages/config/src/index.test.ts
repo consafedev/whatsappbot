@@ -16,6 +16,7 @@ describe("configuration", () => {
       apiPort: 3001,
       environment: "development",
       logLevel: "info",
+      platformWebOrigin: "http://localhost:3000",
       webPort: 3000,
     });
     expect(overrides.apiPort).toBe(4100);

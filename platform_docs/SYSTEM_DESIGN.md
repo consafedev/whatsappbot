@@ -1171,6 +1171,8 @@ MVP:
 
 Super Admin debe tener política más estricta y ruta/host diferenciable cuando sea viable.
 
+E02-S01 implementa Platform Admin como identidad de control plane separada, sin tenant. Usa Argon2id para contraseñas y sesiones opacas server-side: el navegador conserva el token sólo en cookie HttpOnly/SameSite Strict y PostgreSQL conserva exclusivamente su SHA-256. La sesión revalida estado activo, revocación, expiración absoluta de 8 horas e inactividad de 30 minutos. Las rutas baseline son `POST /platform/auth/login`, `GET /platform/auth/me` y `POST /platform/auth/logout`; las mutaciones exigen el origen web configurado.
+
 ---
 
 # 29. RBAC y scopes

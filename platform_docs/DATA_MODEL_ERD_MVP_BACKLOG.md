@@ -2158,6 +2158,8 @@ Servicio central de AuditLog.
 
 Acceso separado Super Admin.
 
+Implementado con `PlatformAdmin` y `PlatformAdminSession` sin tenant, password Argon2id, token opaco con hash server-side, expiración/revocación, bootstrap explícito y endpoints `/platform/auth/login`, `/platform/auth/me`, `/platform/auth/logout`. Decisión detallada en ADR-0015.
+
 ## E02-S02 Tenant user auth [L]
 
 - login;

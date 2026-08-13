@@ -24,6 +24,11 @@
       "preset": "recommended"
     }
   },
+  "javascript": {
+    "parser": {
+      "unsafeParameterDecoratorsEnabled": true
+    }
+  },
   "assist": {
     "actions": {
       "source": {

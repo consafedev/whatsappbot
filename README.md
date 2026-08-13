@@ -1,6 +1,6 @@
 # WhatsApp Automation Platform
 
-Multi-tenant B2B WhatsApp automation platform. **Epic 00 — Repository Foundation** is complete, and database work starts in Epic 01.
+Multi-tenant B2B WhatsApp automation platform. Epics 00 and 01 are complete; Epic 02 is in progress with Platform Admin authentication available.
 
 `design-prototype/` is an approved visual reference. It is not production architecture and is not used as application source code.
 
@@ -90,6 +90,17 @@ Database integration tests require a disposable PostgreSQL database with the com
 Tenant-owned access uses the safe root entrypoint: create a validated `TenantContext`, then call `createTenantDataAccess(context, client)` to obtain scoped repositories plus the append-only `audit.append(...)` and `outbox.append(...)` APIs. Use `withTenantTransaction(context, client, callback)` when domain, audit, and Outbox writes must commit or roll back together; the callback receives the tenant-scoped facade, never raw Prisma. Audit summaries and IP metadata must be explicit, minimal, and already sanitized by the caller.
 
 The raw Prisma client and `createPlatformAuditWriter(...)` are intentionally available only through the privileged `@whatsapp-platform/database/platform` subpath for authorized platform/control-plane code, migrations, and infrastructure tests. Platform audit can use a nullable tenant; tenant code cannot.
+
+## Platform Admin bootstrap
+
+There is no self-registration and API startup never creates an administrator. To create one explicitly, set `DATABASE_URL` plus the `PLATFORM_ADMIN_BOOTSTRAP_*` variables documented in `.env.example`, then run:
+
+```powershell
+pnpm build
+pnpm platform-admin:create
+```
+
+The password is read from `PLATFORM_ADMIN_BOOTSTRAP_PASSWORD`, must contain 15–128 Unicode characters, and is never printed. Remove the bootstrap variables from the process environment after use. Duplicate normalized emails fail without replacing the existing password.
 
 ## Repository map
 
