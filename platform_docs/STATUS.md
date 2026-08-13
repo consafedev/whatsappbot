@@ -2,7 +2,7 @@
 
 **Actualizado:** 2026-08-12  
 **Versión de producto:** `0.0.0`  
-**Estado:** E01-S01 — PASS; **Epic 01 — IN PROGRESS**.
+**Estado:** E01-S02 — PASS; **Epic 01 — IN PROGRESS**.
 
 ## Current milestone
 
@@ -15,7 +15,7 @@ Database Foundation.
 Estado por historia:
 
 - E01-S01 — Prisma/schema baseline: **PASS**.
-- E01-S02 — ID/timestamp conventions: no iniciada.
+- E01-S02 — ID/timestamp conventions: **PASS**.
 - E01-S03 — Tenant-aware repository utilities: no iniciada.
 - E01-S04 — Outbox foundation: no iniciada.
 - E01-S05 — Audit foundation: no iniciada.
@@ -23,9 +23,16 @@ Estado por historia:
 ## Completed
 
 - Epic 00 — Repository Foundation: **PASS / COMPLETE**.
+- E01-S01 — Prisma/schema baseline: **PASS**.
+- E01-S02 — ID/timestamp conventions: **PASS**, documentada por ADR-0012.
+- PK UUID surrogate canónicas como UUIDv7 con tipo físico PostgreSQL UUID y default nativo `uuidv7()`.
+- `PlatformFeatureFlag.key` conserva su clave natural; la convención no fuerza UUID sobre identidades naturales deliberadas.
+- Timestamps de instantes como `TIMESTAMPTZ(3)` UTC; `created_at` y `updated_at` tienen valor inicial `now()` y Prisma mantiene `updated_at` en operaciones normales.
+- Segunda migration `20260813044133_uuidv7_timestamp_conventions` append-only, sin alterar la migration histórica E01-S01.
+- PostgreSQL >= 18 declarado requisito mínimo mientras se use `uuidv7()` nativo.
+- Doce tests de integración verifican generación DB-side, versión UUID 7, tipos físicos, nullability y actualización Prisma de `updated_at`.
 - E01-S01 con Prisma ORM 7.9.1 dentro del boundary `packages/database` y ADR-0011.
 - Baseline PostgreSQL versionada para `PlatformDeployment`, `Tenant`, `TenantEntitlement`, `PlatformFeatureFlag` y `OrganizationUnit`.
-- IDs almacenados como PostgreSQL UUID sin default de generación; UUID v7 vs ULID permanece reservado para E01-S02.
 - Naming físico snake_case, JSONB limitado a configuración/metadata, TIMESTAMPTZ UTC, enums de dominio, FKs e índices baseline.
 - `tenant_id NOT NULL` en `tenant_entitlement` y `organization_unit`; FK compuesta impide parent cross-tenant.
 - Unique global de `tenant.slug` y unique `(tenant_id, entitlement_key)` con semántica mínima de una fila efectiva por key.
@@ -55,15 +62,15 @@ Estado por historia:
 
 ## In progress
 
-Epic 01 permanece en progreso. No se inició E01-S02.
+Epic 01 permanece en progreso. No se inició E01-S03.
 
 ## Blocked
 
-Ningún bloqueo para E01-S01.
+Ningún bloqueo para E01-S02.
 
 ## Next story
 
-`E01-S02 — ID/timestamp conventions`
+`E01-S03 — Tenant-aware repository utilities`
 
 No implementarla sin una instrucción separada.
 
@@ -102,9 +109,17 @@ No implementarla sin una instrucción separada.
 - `pnpm format:check` — PASS.
 - `git diff --check` — PASS.
 - `docker compose config --quiet` — PASS sin modificar la infraestructura versionada.
+- `pnpm db:validate` — PASS con defaults `dbgenerated("uuidv7()")` y `TIMESTAMPTZ(3)`.
+- `pnpm db:generate` — PASS; Prisma Client 7.9.1 generado.
+- Migration limpia `20260813040527_initial_platform_baseline` seguida por `20260813044133_uuidv7_timestamp_conventions` — PASS en PostgreSQL 18.4 real.
+- Migration E01-S02 SHA-256 — `d29a5f692606c6836e7b3999a3f0b40b6138246a51e5c40c5871c09415dd70d0`.
+- `prisma migrate status` — PASS; dos migrations y schema actualizado.
+- `prisma migrate diff --from-config-datasource --to-schema ... --exit-code` — PASS; sin diferencias.
+- `pnpm test:integration:database` — PASS; 1 archivo, 12 pruebas contra PostgreSQL 18.4 real.
+- Inspección `information_schema` — PASS; cuatro PK `uuid` con default `uuidv7()` y 14 timestamps `timestamp with time zone` precisión 3.
+- `uuid_extract_version()` / `uuid_extract_timestamp()` — PASS; versión 7 y timestamp disponible.
 
 ## Known issues
 
 - El proveedor CI permanece deliberadamente sin seleccionar hasta que exista un remote o una decisión documental explícita.
-- UUID v7 vs ULID y la política global de generación permanecen deliberadamente pendientes para E01-S02.
 - Tenant-aware repositories, RLS, Outbox, AuditLog y todas las entidades de epics posteriores permanecen fuera de alcance.

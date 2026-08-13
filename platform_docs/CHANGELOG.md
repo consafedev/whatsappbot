@@ -21,12 +21,16 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 - Migration inicial versionada para `PlatformDeployment`, `Tenant`, `TenantEntitlement`, `PlatformFeatureFlag` y `OrganizationUnit`.
 - Scripts reproducibles de Prisma y suite de integración con nueve pruebas contra PostgreSQL real.
 - ADR-0011 formaliza Prisma como ORM dentro del boundary de database.
+- E01-S02 con defaults PostgreSQL `uuidv7()` para las cuatro PK UUID surrogate existentes y valor inicial de `updated_at`.
+- Segunda migration append-only y pruebas de integración UUIDv7/timestamps contra PostgreSQL 18.4.
+- ADR-0012 formaliza UUIDv7, `TIMESTAMPTZ(3)`, UTC y PostgreSQL 18 como baseline mínima.
 
 ### Changed
 
 - El contrato de ingeniería dejó de vivir en `platform_docs/SKILL.md`; todas las referencias explícitas apuntan a la única copia canónica.
 - El estado operativo y los comandos de inicio ahora reflejan la implementación real de Epic 00.
 - Epic 00 queda validado de extremo a extremo en Docker Desktop/WSL2 con los seis servicios saludables y endpoints API/web accesibles desde el host.
+- El datastore principal requiere PostgreSQL 18 o superior mientras se utilice `uuidv7()` nativo.
 
 ### Fixed
 
@@ -40,11 +44,12 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 - Node.js 24 LTS, pnpm 11, Next.js 16, NestJS 11 y TypeScript 6 forman la baseline compatible de Foundation.
 - El workflow CI se pospone hasta contar con evidencia del proveedor mediante remote o decisión documental.
 - `tenant.slug` es globalmente único en la baseline y cada tenant tiene como máximo una fila efectiva por `entitlement_key`; vigencias complejas se posponen hasta existir un requisito real.
-- IDs baseline usan tipo físico PostgreSQL UUID sin default; UUID v7 vs ULID sigue reservado para E01-S02.
+- Las PK internas surrogate usan UUIDv7 con tipo físico PostgreSQL UUID y generación default nativa mediante `uuidv7()`; claves naturales deliberadas como `PlatformFeatureFlag.key` se conservan.
+- Los instantes persistentes usan `TIMESTAMPTZ(3)` con semántica UTC; Prisma mantiene `updated_at` y raw SQL debe mantenerlo explícitamente.
 
 ### Not yet implemented
 
-- E01-S02 convenciones de ID/timestamps, E01-S03 repositories tenant-aware, Outbox y AuditLog.
+- E01-S03 repositories tenant-aware, Outbox y AuditLog.
 - Auth, Super Admin, providers WhatsApp, contactos/conversaciones, Rules Engine, agenda, cotizaciones, documentos, IA funcional y backups reales.
 
 ## [0.0.0-preimplementation] - 2026-08-12

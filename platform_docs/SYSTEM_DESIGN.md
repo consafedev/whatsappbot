@@ -61,6 +61,8 @@ No se optimizará prematuramente para miles de tenants antes de validar el produ
 
 Todo estado crítico debe ser recuperable desde PostgreSQL.
 
+El datastore principal requiere PostgreSQL 18 o superior mientras la convención canónica de IDs utilice `uuidv7()` nativo, según ADR-0012.
+
 Redis/BullMQ se utilizan para:
 
 - colas;
@@ -1377,6 +1379,8 @@ Reglas:
 # 37. Release y migraciones
 
 SemVer.
+
+Requisito de datastore: PostgreSQL >= 18. Las migrations pueden depender de funciones core introducidas en esa major, incluido `uuidv7()`.
 
 Canales:
 

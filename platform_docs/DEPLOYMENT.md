@@ -75,6 +75,8 @@ Evitar `latest` como única referencia en producción.
 
 Usar variables/config externas por environment.
 
+Requisito del datastore principal: PostgreSQL >= 18. La baseline de IDs usa la función core `uuidv7()` y no requiere `uuid-ossp` ni `pgcrypto`.
+
 Categorías:
 
 - app URLs;

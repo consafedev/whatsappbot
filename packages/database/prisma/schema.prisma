@@ -71,7 +71,7 @@ enum OrganizationUnitType {
 }
 
 model PlatformDeployment {
-  id             String                   @id @db.Uuid
+  id             String                   @id @default(dbgenerated("uuidv7()")) @db.Uuid
   name           String
   mode           PlatformDeploymentMode
   environment    DeploymentEnvironment
@@ -83,14 +83,14 @@ model PlatformDeployment {
   metadata       Json?                    @db.JsonB
   lastHealthAt   DateTime?                @map("last_health_at") @db.Timestamptz(3)
   createdAt      DateTime                 @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt      DateTime                 @updatedAt @map("updated_at") @db.Timestamptz(3)
+  updatedAt      DateTime                 @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
   tenants        Tenant[]
 
   @@map("platform_deployment")
 }
 
 model Tenant {
-  id                String              @id @db.Uuid
+  id                String              @id @default(dbgenerated("uuidv7()")) @db.Uuid
   deploymentId      String?             @map("deployment_id") @db.Uuid
   legalName         String              @map("legal_name")
   displayName       String              @map("display_name")
@@ -102,7 +102,7 @@ model Tenant {
   brandingConfig    Json                @default("{}") @map("branding_config") @db.JsonB
   settings          Json                @default("{}") @db.JsonB
   createdAt         DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt         DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+  updatedAt         DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
   suspendedAt       DateTime?           @map("suspended_at") @db.Timestamptz(3)
   deployment        PlatformDeployment? @relation(fields: [deploymentId], references: [id], onDelete: SetNull, onUpdate: Cascade)
   entitlements      TenantEntitlement[]
@@ -114,7 +114,7 @@ model Tenant {
 }
 
 model TenantEntitlement {
-  id             String                  @id @db.Uuid
+  id             String                  @id @default(dbgenerated("uuidv7()")) @db.Uuid
   tenantId       String                  @map("tenant_id") @db.Uuid
   entitlementKey String                  @map("entitlement_key")
   enabled        Boolean                 @default(false)
@@ -124,7 +124,7 @@ model TenantEntitlement {
   endsAt         DateTime?               @map("ends_at") @db.Timestamptz(3)
   source         TenantEntitlementSource
   createdAt      DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt      DateTime                @updatedAt @map("updated_at") @db.Timestamptz(3)
+  updatedAt      DateTime                @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
   tenant         Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
   @@unique([tenantId, entitlementKey], map: "tenant_entitlement_tenant_key_key")
@@ -137,13 +137,13 @@ model PlatformFeatureFlag {
   enabledGlobally Boolean  @default(false) @map("enabled_globally")
   rolloutConfig   Json     @default("{}") @map("rollout_config") @db.JsonB
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   @@map("platform_feature_flag")
 }
 
 model OrganizationUnit {
-  id              String               @id @db.Uuid
+  id              String               @id @default(dbgenerated("uuidv7()")) @db.Uuid
   tenantId        String               @map("tenant_id") @db.Uuid
   parentId        String?              @map("parent_id") @db.Uuid
   type            OrganizationUnitType
@@ -155,7 +155,7 @@ model OrganizationUnit {
   settings        Json                 @default("{}") @db.JsonB
   active          Boolean              @default(true)
   createdAt       DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt       DateTime             @updatedAt @map("updated_at") @db.Timestamptz(3)
+  updatedAt       DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
   tenant          Tenant               @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   parent          OrganizationUnit?    @relation("OrganizationUnitHierarchy", fields: [tenantId, parentId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade)
   children        OrganizationUnit[]   @relation("OrganizationUnitHierarchy")
