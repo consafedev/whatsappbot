@@ -18,6 +18,18 @@ export {
   type PlatformAuthRepository,
   type PlatformSessionIdentity,
 } from "./platform-auth";
+export {
+  type CreatePasswordResetInput,
+  type CreateTenantSessionInput,
+  type CreateTenantUserInput,
+  createTenantAuthRepository,
+  type PasswordResetRecord,
+  type TenantAuthRepository,
+  type TenantAuthTenant,
+  type TenantLoginRecord,
+  type TenantSessionIdentity,
+  type TenantUserProfile,
+} from "./tenant-auth";
 
 export type PlatformAuditEntryInput = Readonly<
   AuditEntryInput & {

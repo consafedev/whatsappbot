@@ -36,6 +36,11 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 - Quinta migration append-only para `platform_admin` y `platform_admin_session`, con UUIDv7, timestamps UTC, token hash `BYTEA` unique y FK restrictiva.
 - Endpoints Platform Admin login/me/logout, cookie protegida por entorno, validación Origin/CORS, rate limiting y audit transaccional platform.
 - ADR-0015 formaliza hashing, cookie, expiración absoluta/idle, revocación, bootstrap y límites de la historia.
+- E02-S02 con `User`, `UserSession` y `UserPasswordResetToken` tenant-owned, separados físicamente de Platform Admin.
+- Sexta migration append-only con email unique por tenant, FKs compuestas tenant/user, hashes `BYTEA` y timestamps UTC.
+- Login tenant por slug pre-auth, `/auth/me`, logout idempotente, revoke-all propio y password reset single-use de 15 minutos.
+- `PasswordResetDelivery` limita el raw reset token a un port explícito; delivery operativo permanece pendiente sin exponer tokens por HTTP/log.
+- ADR-0016 formaliza identidad tenant, sesiones opacas, pre-auth por slug y recuperación de contraseña.
 
 ### Changed
 
@@ -47,6 +52,7 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 - El facade tenant-aware expone Outbox sólo para append; lectura/publicación permanece infraestructura privilegiada futura.
 - Epic 01 — Database Foundation queda PASS / COMPLETE con las historias E01-S01 a E01-S05 verificadas.
 - E02-S01 — Platform Admin auth queda PASS; Epic 02 permanece IN PROGRESS y no incluye Tenant User auth ni RBAC.
+- E02-S02 — Tenant user auth queda PASS; Epic 02 permanece IN PROGRESS y E02-S03 sigue pendiente.
 
 ### Fixed
 
@@ -65,7 +71,7 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Not yet implemented
 
-- Tenant User auth, tenant middleware, RBAC, MFA/reset, providers WhatsApp, contactos/conversaciones, Rules Engine, agenda, cotizaciones, documentos, IA funcional y backups reales.
+- Tenant context middleware, RBAC, MFA, delivery real de password reset, providers WhatsApp, contactos/conversaciones, Rules Engine, agenda, cotizaciones, documentos, IA funcional y backups reales.
 
 ## [0.0.0-preimplementation] - 2026-08-12
 

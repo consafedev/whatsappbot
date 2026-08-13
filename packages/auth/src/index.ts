@@ -6,9 +6,18 @@ export const PLATFORM_SESSION_IDLE_TTL_MS = 30 * 60 * 1000;
 export const PLATFORM_SESSION_TOUCH_INTERVAL_MS = 5 * 60 * 1000;
 export const PLATFORM_PASSWORD_MIN_LENGTH = 15;
 export const PLATFORM_PASSWORD_MAX_LENGTH = 128;
+export const TENANT_SESSION_ABSOLUTE_TTL_MS = 12 * 60 * 60 * 1000;
+export const TENANT_SESSION_IDLE_TTL_MS = 2 * 60 * 60 * 1000;
+export const TENANT_SESSION_TOUCH_INTERVAL_MS = 5 * 60 * 1000;
+export const PASSWORD_RESET_TTL_MS = 15 * 60 * 1000;
 
 export type PlatformCookieConfig = Readonly<{
   name: "__Host-platform_session" | "platform_session";
+  secure: boolean;
+}>;
+
+export type TenantCookieConfig = Readonly<{
+  name: "__Host-tenant_session" | "tenant_session";
   secure: boolean;
 }>;
 
@@ -18,6 +27,12 @@ export class InvalidPlatformPasswordError extends Error {
 
 export function normalizePlatformAdminEmail(email: string): string {
   return email.trim().toLocaleLowerCase("en-US");
+}
+
+export const normalizeTenantUserEmail = normalizePlatformAdminEmail;
+
+export function normalizeTenantSlug(slug: string): string {
+  return slug.trim().toLocaleLowerCase("en-US");
 }
 
 export function validatePlatformPassword(password: string): void {
@@ -51,9 +66,13 @@ export function generatePlatformSessionToken(): string {
   return randomBytes(32).toString("base64url");
 }
 
+export const generateOpaqueToken = generatePlatformSessionToken;
+
 export function hashPlatformSessionToken(token: string): Buffer {
   return createHash("sha256").update(token, "utf8").digest();
 }
+
+export const hashOpaqueToken = hashPlatformSessionToken;
 
 export function hashPlatformClientAddress(address: string): Buffer {
   return createHash("sha256").update(address, "utf8").digest();
@@ -67,6 +86,11 @@ export function platformCookieConfig(environment: string): PlatformCookieConfig 
   };
 }
 
+export function tenantCookieConfig(environment: string): TenantCookieConfig {
+  const secure = environment === "production";
+  return { name: secure ? "__Host-tenant_session" : "tenant_session", secure };
+}
+
 export function serializePlatformSessionCookie(
   token: string,
   config: PlatformCookieConfig,
@@ -78,6 +102,18 @@ export function serializePlatformSessionCookie(
 }
 
 export function serializeClearedPlatformSessionCookie(config: PlatformCookieConfig): string {
+  const secure = config.secure ? "; Secure" : "";
+  return `${config.name}=; HttpOnly${secure}; SameSite=Strict; Path=/; Max-Age=0`;
+}
+
+export function serializeTenantSessionCookie(token: string, config: TenantCookieConfig): string {
+  const secure = config.secure ? "; Secure" : "";
+  return `${config.name}=${token}; HttpOnly${secure}; SameSite=Strict; Path=/; Max-Age=${Math.floor(
+    TENANT_SESSION_ABSOLUTE_TTL_MS / 1000,
+  )}`;
+}
+
+export function serializeClearedTenantSessionCookie(config: TenantCookieConfig): string {
   const secure = config.secure ? "; Secure" : "";
   return `${config.name}=; HttpOnly${secure}; SameSite=Strict; Path=/; Max-Age=0`;
 }

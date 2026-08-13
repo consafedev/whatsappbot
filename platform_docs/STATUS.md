@@ -2,7 +2,7 @@
 
 **Actualizado:** 2026-08-13
 **Versión de producto:** `0.0.0`  
-**Estado:** E02-S01 — PASS; **Epic 02 — IN PROGRESS**.
+**Estado:** E02-S02 — PASS; **Epic 02 — IN PROGRESS**.
 
 ## Current milestone
 
@@ -15,7 +15,7 @@ Authentication and Tenancy.
 Estado por historia:
 
 - E02-S01 — Platform Admin auth: **PASS**, documentada por ADR-0015.
-- E02-S02 — Tenant user auth: **NOT STARTED**.
+- E02-S02 — Tenant user auth: **PASS**, documentada por ADR-0016.
 - E02-S03 — Tenant context middleware: **NOT STARTED**.
 - E02-S04 — Tenant isolation tests: **NOT STARTED**.
 - E02-S05 — RBAC base: **NOT STARTED**.
@@ -30,6 +30,16 @@ Epic anterior:
 
 ## Completed
 
+- E02-S02 — Tenant user auth: **PASS**, documentada por ADR-0016.
+- `User`, `UserSession` y `UserPasswordResetToken` tenant-owned y separados de Platform Admin, con `tenant_id NOT NULL`.
+- Email normalizado unique por tenant; misma dirección verificada en dos tenants con passwords distintos.
+- Sexta migration append-only con UUIDv7, `TIMESTAMPTZ(3)`, token hashes `BYTEA` unique y FKs compuestas `(tenant_id, user_id)`.
+- Login pre-auth por tenant slug, sesión opaca de 12 horas/2 horas idle y cookie tenant distinta de platform.
+- `/auth/me`, logout idempotente y revoke-all limitado al user actual; status User/Tenant revalidado en cada request.
+- Password reset CSPRNG de 256 bits, 15 minutos, single-use, revocación de tokens previos y de todas las sesiones al completar.
+- `PasswordResetDelivery` recibe el reset link sólo después del commit; no existe todavía adapter operativo de correo.
+- Origin exacto, CORS explícito y buckets process-local separados para login/reset request/reset confirm.
+- Auditoría tenant transaccional para login, logout, revoke-all y password reset request/completed sin secrets.
 - E02-S01 — Platform Admin auth: **PASS**, documentada por ADR-0015.
 - `PlatformAdmin` y `PlatformAdminSession` permanecen separados de Tenant User y sin `tenant_id`.
 - Quinta migration append-only con UUIDv7, `TIMESTAMPTZ(3)`, hash de token `BYTEA` unique, revocación y expiración.
@@ -105,15 +115,15 @@ Epic anterior:
 
 ## In progress
 
-Ninguna historia de Epic 01 permanece en progreso.
+Epic 02 continúa con E02-S03 pendiente.
 
 ## Blocked
 
-Ningún bloqueo para E01-S05.
+Ningún bloqueo de código para E02-S02. Password recovery requiere un adapter de delivery antes de habilitarse operativamente.
 
 ## Next story
 
-`E02-S01 — Platform Admin auth`
+`E02-S03 — Tenant context middleware`
 
 No implementarla sin una instrucción separada.
 
@@ -151,6 +161,21 @@ No implementarla sin una instrucción separada.
 - `pnpm build` — PASS; 16 workspaces, Next.js y package database con generate.
 - `pnpm format:check` — PASS.
 - `git diff --check` — PASS.
+- `pnpm install --frozen-lockfile` — PASS; 17 workspaces, lockfile sin cambios de dependencias.
+- `pnpm db:validate` / `pnpm db:generate` — PASS; modelos E02-S02 generados con Prisma 7.9.1.
+- `pnpm db:migrate:deploy` desde PostgreSQL 18.4 limpio — PASS; migrations 1–6 aplicadas en orden.
+- `prisma migrate status` — PASS; seis migrations, database schema up to date.
+- `prisma migrate diff --from-config-datasource --to-schema ... --exit-code` — PASS; sin drift.
+- Migration E02-S02 SHA-256 — `3859b064fe27b970cc64f5eae24fdda51d4dd06531bce2d70dbb9719edbbad4e`.
+- Migrations históricas 1–5 — PASS; sin diferencias frente a `HEAD` inicial de la historia.
+- `pnpm test:integration:database` — PASS; 4 archivos, 36 pruebas PostgreSQL sin regresión.
+- `pnpm test:integration:auth` — PASS; 2 archivos, 17 pruebas: 10 tenant/reset y 7 Platform Admin regression.
+- `pnpm lint` — PASS sin warnings; `pnpm typecheck` — PASS; `pnpm test` — PASS, 3 archivos/14 pruebas; `pnpm build` — PASS; `pnpm format:check` — PASS.
+- `docker compose config --quiet` — PASS con variables locales efímeras.
+- `docker compose build api` — PASS; build completo Node 24/Alpine con Prisma y Argon2.
+- API Docker aislada — PASS; `/health` 200 y login tenant desconocido 401 contra PostgreSQL temporal por `host.docker.internal`.
+- Limpieza E02-S02 — PASS; contenedores aislados de API/PostgreSQL retirados y named volumes preservados.
+- `git diff --check` — PASS y secret scan sin hallazgos.
 - Limpieza E02-S01 — PASS; PostgreSQL temporal y Compose retirados, named volumes preservados.
 - `docker compose config --quiet` — PASS sin modificar la infraestructura versionada.
 - `pnpm db:validate` — PASS con defaults `dbgenerated("uuidv7()")` y `TIMESTAMPTZ(3)`.
@@ -224,4 +249,6 @@ No implementarla sin una instrucción separada.
 
 - El proveedor CI permanece deliberadamente sin seleccionar hasta que exista un remote o una decisión documental explícita.
 - El rate limiter E02-S01 es local a cada proceso; coordinación distribuida queda para una historia operativa futura si la topología escala horizontalmente.
-- Tenant User auth, tenant context middleware, RBAC, MFA, password reset, gestión de sesiones, RLS, publisher/dispatcher Outbox, TimelineEvent y entidades posteriores permanecen fuera de alcance.
+- Los limiters E02-S02 también son locales a proceso y deben distribuirse antes de horizontal scaling.
+- `PasswordResetDelivery` no tiene adapter SMTP/provider operativo; la API conserva respuesta genérica y nunca devuelve el token, pero recovery real debe permanecer deshabilitado hasta configurarlo.
+- Tenant context middleware, RBAC, MFA, RLS, publisher/dispatcher Outbox, TimelineEvent y entidades posteriores permanecen fuera de alcance.

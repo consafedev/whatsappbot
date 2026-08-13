@@ -84,6 +84,20 @@ enum PlatformAdminMfaState {
   @@map("platform_admin_mfa_state")
 }
 
+enum UserStatus {
+  active
+  disabled
+
+  @@map("user_status")
+}
+
+enum UserMfaState {
+  disabled
+  enabled
+
+  @@map("user_mfa_state")
+}
+
 model PlatformDeployment {
   id             String                   @id @default(dbgenerated("uuidv7()")) @db.Uuid
   name           String
@@ -158,10 +172,72 @@ model Tenant {
   organizationUnits OrganizationUnit[]
   domainEvents      DomainEventOutbox[]
   auditLogs         AuditLog[]
+  users             User[]
+  userSessions      UserSession[]
+  passwordResetTokens UserPasswordResetToken[]
 
   @@index([status], map: "tenant_status_idx")
   @@index([deploymentId], map: "tenant_deployment_id_idx")
   @@map("tenant")
+}
+
+model User {
+  id            String       @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  tenantId      String       @map("tenant_id") @db.Uuid
+  email         String
+  passwordHash  String       @map("password_hash")
+  displayName   String       @map("display_name")
+  status        UserStatus   @default(active)
+  locale        String
+  timezone      String
+  lastLoginAt   DateTime?    @map("last_login_at") @db.Timestamptz(3)
+  mfaState      UserMfaState @default(disabled) @map("mfa_state")
+  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  tenant        Tenant       @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  sessions      UserSession[]
+  passwordResetTokens UserPasswordResetToken[]
+
+  @@unique([tenantId, email], map: "tenant_user_tenant_email_key")
+  @@unique([tenantId, id], map: "tenant_user_tenant_id_id_key")
+  @@index([tenantId, status], map: "tenant_user_tenant_status_idx")
+  @@map("tenant_user")
+}
+
+model UserSession {
+  id          String    @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  tenantId    String    @map("tenant_id") @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  tokenHash   Bytes     @unique(map: "user_session_token_hash_key") @map("token_hash")
+  deviceLabel String?   @map("device_label")
+  ipHash      Bytes?    @map("ip_hash")
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  lastSeenAt  DateTime  @default(now()) @map("last_seen_at") @db.Timestamptz(3)
+  expiresAt   DateTime  @map("expires_at") @db.Timestamptz(3)
+  revokedAt   DateTime? @map("revoked_at") @db.Timestamptz(3)
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  user        User      @relation(fields: [tenantId, userId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([tenantId, userId], map: "user_session_tenant_user_idx")
+  @@index([expiresAt], map: "user_session_expires_at_idx")
+  @@map("user_session")
+}
+
+model UserPasswordResetToken {
+  id         String    @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  tenantId   String    @map("tenant_id") @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  tokenHash  Bytes     @unique(map: "user_password_reset_token_hash_key") @map("token_hash")
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  expiresAt  DateTime  @map("expires_at") @db.Timestamptz(3)
+  consumedAt DateTime? @map("consumed_at") @db.Timestamptz(3)
+  revokedAt  DateTime? @map("revoked_at") @db.Timestamptz(3)
+  tenant     Tenant    @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  user       User      @relation(fields: [tenantId, userId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([tenantId, userId], map: "user_password_reset_tenant_user_idx")
+  @@index([expiresAt], map: "user_password_reset_expires_at_idx")
+  @@map("user_password_reset_token")
 }
 
 model AuditLog {

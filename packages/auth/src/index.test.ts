@@ -7,6 +7,8 @@ import {
   platformCookieConfig,
   readCookie,
   serializePlatformSessionCookie,
+  serializeTenantSessionCookie,
+  tenantCookieConfig,
 } from "./index";
 
 describe("platform admin authentication primitives", () => {
@@ -49,5 +51,13 @@ describe("platform admin authentication primitives", () => {
     expect(cookie).toContain("SameSite=Strict");
     expect(cookie).not.toContain("Domain=");
     expect(readCookie(cookie, config.name)).toBe("opaque");
+  });
+
+  it("keeps the production tenant cookie separate from the platform cookie", () => {
+    const cookie = serializeTenantSessionCookie("opaque", tenantCookieConfig("production"));
+    expect(cookie).toContain("__Host-tenant_session=opaque");
+    expect(cookie).toContain("HttpOnly; Secure; SameSite=Strict; Path=/");
+    expect(cookie).not.toContain("Domain=");
+    expect(cookie).not.toContain("platform_session");
   });
 });

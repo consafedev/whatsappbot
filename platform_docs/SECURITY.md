@@ -370,6 +370,18 @@ Baseline Platform Admin E02-S01:
 - login limitado a 10 intentos por email normalizado por minuto y respuestas genéricas para credenciales inválidas;
 - auditoría transaccional de login exitoso y logout, sin secretos ni token raw.
 
+Baseline Tenant User E02-S02:
+
+- identidad y cookie separadas de Platform Admin; `tenant_id` deriva de sesión después del login;
+- slug de ruta sólo para resolución pre-auth y nunca `tenantId` desde body;
+- Argon2id y política 15–128 compartidos con Platform Admin;
+- sesión opaca de 256 bits, sólo SHA-256 persistido, 12 horas absolutas y 2 horas idle;
+- cookie `__Host-tenant_session` Secure en producción, HttpOnly, SameSite Strict, Path `/`, sin Domain;
+- reset de 256 bits, sólo hash persistido, 15 minutos, single-use y revocación de sesiones al completar;
+- URL de reset sólo desde `TENANT_WEB_ORIGIN`; el raw token sólo cruza `PasswordResetDelivery` y nunca HTTP/logs;
+- delivery real pendiente de adapter operativo; no se habilita recuperación productiva hasta configurarlo;
+- límites separados process-local para login, reset request y confirm; distribución requerida antes de horizontal scaling.
+
 ---
 
 # 20. Browser security headers

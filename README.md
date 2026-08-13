@@ -102,6 +102,21 @@ pnpm platform-admin:create
 
 The password is read from `PLATFORM_ADMIN_BOOTSTRAP_PASSWORD`, must contain 15–128 Unicode characters, and is never printed. Remove the bootstrap variables from the process environment after use. Duplicate normalized emails fail without replacing the existing password.
 
+## Tenant authentication
+
+Tenant login resolves the workspace from the route slug and never accepts `tenantId` in the body:
+
+```text
+POST /auth/tenants/:tenantSlug/login
+GET  /auth/me
+POST /auth/logout
+POST /auth/sessions/revoke-all
+POST /auth/tenants/:tenantSlug/password-reset/request
+POST /auth/tenants/:tenantSlug/password-reset/confirm
+```
+
+Set `TENANT_WEB_ORIGIN` to the trusted web origin used for CORS, Origin checks and reset links. Password reset delivery is intentionally a port in E02-S02; no SMTP/provider adapter exists yet, so recovery must not be enabled for real users until an operational delivery adapter is configured. Tokens are never returned by the API or logged.
+
 ## Repository map
 
 ```text

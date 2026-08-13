@@ -7,6 +7,7 @@ const nonSecretEnvironmentSchema = z.object({
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   PLATFORM_WEB_ORIGIN: z.url({ protocol: /^https?$/ }).default("http://localhost:3000"),
+  TENANT_WEB_ORIGIN: z.url({ protocol: /^https?$/ }).default("http://localhost:3000"),
   WEB_PORT: portSchema.default(3000),
 });
 
@@ -22,6 +23,7 @@ export interface NonSecretConfig {
   readonly environment: "development" | "test" | "production";
   readonly logLevel: "debug" | "info" | "warn" | "error";
   readonly platformWebOrigin: string;
+  readonly tenantWebOrigin: string;
   readonly webPort: number;
 }
 
@@ -68,6 +70,7 @@ export function loadNonSecretConfig(
     environment: values.NODE_ENV,
     logLevel: values.LOG_LEVEL,
     platformWebOrigin: values.PLATFORM_WEB_ORIGIN,
+    tenantWebOrigin: values.TENANT_WEB_ORIGIN,
     webPort: values.WEB_PORT,
   });
 }

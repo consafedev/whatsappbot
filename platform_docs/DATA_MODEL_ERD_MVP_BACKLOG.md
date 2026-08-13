@@ -2168,6 +2168,8 @@ Implementado con `PlatformAdmin` y `PlatformAdminSession` sin tenant, password A
 - password reset básico;
 - session revoke.
 
+Implementado con `User`, `UserSession` y `UserPasswordResetToken` tenant-owned, email unique por tenant, FKs compuestas tenant/user, sesión opaca server-side, revoke-all y password reset single-use mediante delivery port. El slug sólo resuelve tenant durante pre-auth; E02-S03 permanece separado. Decisión completa en ADR-0016.
+
 ## E02-S03 Tenant context middleware [M]
 
 Resolver tenant desde session/domain, nunca request body.

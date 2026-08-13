@@ -1173,6 +1173,8 @@ Super Admin debe tener política más estricta y ruta/host diferenciable cuando 
 
 E02-S01 implementa Platform Admin como identidad de control plane separada, sin tenant. Usa Argon2id para contraseñas y sesiones opacas server-side: el navegador conserva el token sólo en cookie HttpOnly/SameSite Strict y PostgreSQL conserva exclusivamente su SHA-256. La sesión revalida estado activo, revocación, expiración absoluta de 8 horas e inactividad de 30 minutos. Las rutas baseline son `POST /platform/auth/login`, `GET /platform/auth/me` y `POST /platform/auth/logout`; las mutaciones exigen el origen web configurado.
 
+E02-S02 mantiene `User` físicamente separado y tenant-owned. El login pre-session resuelve workspace exclusivamente por slug de ruta; tras autenticar, `UserSession.tenant_id` es la autoridad. Sesiones tenant opacas usan cookie distinta, TTL absoluto de 12 horas e idle de 2 horas. Password reset usa token opaco single-use de 15 minutos, delivery port posterior al commit y URL construida desde `TENANT_WEB_ORIGIN`; E02-S03 añadirá el middleware general de `TenantContext`.
+
 ---
 
 # 29. RBAC y scopes
