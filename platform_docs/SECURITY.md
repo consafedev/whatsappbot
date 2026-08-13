@@ -125,6 +125,19 @@ Ejemplos sensibles:
 - AI credential/policy;
 - portal grant creation.
 
+Baseline Tenant RBAC E02-S05:
+
+- autorización por `PermissionKey`, nunca por nombre de role;
+- `UserRole` exige el mismo tenant para User, Role y Organization Unit mediante FKs compuestas;
+- templates globales no son asignables directamente;
+- el guard tenant-wide sólo cuenta assignments sin OU y grants sin constraints;
+- permisos desconocidos fallan cerrados;
+- múltiples requirements usan ALL;
+- revocaciones se leen desde PostgreSQL en la siguiente request, sin snapshot en `UserSession` ni cache Redis;
+- Platform Admin no utiliza Tenant RBAC.
+
+Ver ADR-0017.
+
 ---
 
 # 7. Secrets

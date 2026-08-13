@@ -2,7 +2,7 @@
 
 **Actualizado:** 2026-08-13
 **Versión de producto:** `0.0.0`  
-**Estado:** E02-S04 — PASS; **Epic 02 — IN PROGRESS**.
+**Estado:** E02-S05 — PASS; **Epic 02 — PASS / COMPLETE**.
 
 ## Current milestone
 
@@ -18,7 +18,7 @@ Estado por historia:
 - E02-S02 — Tenant user auth: **PASS**, documentada por ADR-0016.
 - E02-S03 — Tenant context middleware: **PASS**.
 - E02-S04 — Tenant isolation tests: **PASS**.
-- E02-S05 — RBAC base: **NOT STARTED**.
+- E02-S05 — RBAC base: **PASS**, documentada por ADR-0017.
 
 Epic anterior:
 
@@ -30,6 +30,16 @@ Epic anterior:
 
 ## Completed
 
+- Epic 02 — Authentication and Tenancy: **PASS / COMPLETE** con E02-S01 a E02-S05 verificadas.
+- E02-S05 — RBAC base: **PASS**, documentada por ADR-0017.
+- Séptima migration añade exclusivamente `Role`, `Permission`, `UserRole` y `RolePermission`, con UUIDv7, `TIMESTAMPTZ(3)`, FKs compuestas tenant-aware e índices de assignment.
+- Catálogo global de 29 `PermissionKey` exactas en `packages/rbac`; `pnpm rbac:sync-permissions` inserta/actualiza de forma idempotente, no borra extras y no crea roles tenant.
+- `TenantDataAccess` expone roles custom, grants/revokes, assignments/revokes y resolución efectiva sin Prisma inputs arbitrarios; tenant/isSystem nunca proceden del caller.
+- `UserRole` no puede mezclar User, Role u Organization Unit de tenants distintos ni apuntar a templates globales; la DB y el boundary de aplicación lo rechazan.
+- Resolver tenant-wide usa unión allow-set de roles válidos, ignora assignments OU-scoped, grants constrained y permission keys desconocidas, y consulta PostgreSQL por request.
+- `@RequirePermissions` usa `PermissionKey`; `TenantPermissionGuard` se ejecuta después de sesión/contexto, requiere ALL, devuelve 403 sin permiso y conserva 401 para auth inválida.
+- Owner/Viewer no son security boundaries: Owner sin grant falla y Viewer con grant pasa. Revocation se refleja en la misma sesión en la siguiente request.
+- Default roles Owner, Administrator, Supervisor, Agent, Operator y Viewer quedan definidos sin permission matrix; provisioning/mapping se difiere explícitamente a E03-S02.
 - E02-S04 — Tenant isolation tests: **PASS**; no requirió cambios de schema, migrations ni arquitectura productiva.
 - Comando dedicado `pnpm test:security:tenant-isolation`: 5 archivos y 34 pruebas contra PostgreSQL 18.4 real (8 database; 26 API/auth/arquitectura).
 - Matriz A/B exhaustiva para las superficies tenant-owned actuales: `TenantEntitlement`, `OrganizationUnit`, `AuditLog`, `DomainEventOutbox`, `User`, `UserSession`, `UserPasswordResetToken` y endpoints tenant autenticados existentes.
@@ -129,24 +139,32 @@ Epic anterior:
 
 ## In progress
 
-Epic 02 continúa con E02-S05 pendiente.
+Ninguna historia en progreso; Epic 02 está completo.
 
 ## Blocked
 
-Ningún bloqueo de código para E02-S04. Password recovery requiere un adapter de delivery antes de habilitarse operativamente.
+Ningún bloqueo de código para E02-S05. Password recovery requiere un adapter de delivery antes de habilitarse operativamente.
 
 ## Next story
 
-`E02-S05 — RBAC base`
+`E03-S01 — Tenant list`
 
 No implementarla sin una instrucción separada.
 
 ## Last verified commands
 
-- `pnpm test:security:tenant-isolation` — PASS; 5 archivos, 34 pruebas contra PostgreSQL 18.4 real: 8 database y 26 API/auth/arquitectura.
-- `pnpm test:integration:database` — PASS; 5 archivos, 44 pruebas PostgreSQL, incluidas las 8 de aislamiento E02-S04.
-- `pnpm test:integration:auth` — PASS; 4 archivos, 26 pruebas, incluido el boundary arquitectónico.
-- `pnpm lint` / `pnpm typecheck` / `pnpm test` / `pnpm build` / `pnpm format:check` — PASS; 90 archivos revisados, 16 workspaces compilados y 3 archivos/14 pruebas unitarias.
+- `pnpm rbac:sync-permissions` ejecutado dos veces — PASS; 29 permissions sincronizadas en cada ejecución, sin duplicados ni borrado de fila extra.
+- `pnpm test:integration:rbac` — PASS; 2 archivos y 22 pruebas PostgreSQL/Nest dedicadas.
+- `pnpm test:integration:database` — PASS; 6 archivos y 56 pruebas contra PostgreSQL 18.4.
+- `pnpm test:integration:auth` — PASS; 5 archivos y 37 pruebas, incluidas 11 del guard RBAC.
+- `pnpm test:security:tenant-isolation` — PASS; 6 archivos y 46 pruebas, incluidas superficies Role/UserRole/RolePermission.
+- `pnpm db:migrate:deploy` desde PostgreSQL 18.4 limpio — PASS; migrations 1–7 aplicadas en orden.
+- `prisma migrate status` / `prisma migrate diff --exit-code` — PASS; siete migrations y sin drift.
+- Migration E02-S05 SHA-256 — `02f40cb66c2dcaead3083f84e88edbec73fa1c803a6be859b33d72e3ed88e4cf`; migrations históricas 1–6 permanecen intactas.
+- `pnpm lint` / `pnpm typecheck` / `pnpm test` / `pnpm build` / `pnpm format:check` — PASS; 100 archivos revisados, 16 workspaces compilados y 4 archivos/17 pruebas unitarias.
+- `docker compose build api` — PASS; imagen Linux `whatsapp-platform-dev:epic00` construida con instalación frozen y build de los 16 workspaces.
+- Runtime Compose aislado (`postgres`, `redis`, `api`) — PASS; PostgreSQL 18.4, Redis 8.8.1 y API `healthy`; `GET http://127.0.0.1:53001/health` respondió HTTP 200 con `{"service":"api","status":"ok"}`.
+- Limpieza E02-S05 — PASS; cero tenants fixture, exactamente 29 permissions globales, contenedor PostgreSQL temporal retirado y `docker compose down` ejecutado sin borrar named volumes.
 - `docker compose config --quiet` — PASS con variables efímeras de validación; no se creó `.env` ni se persistieron secretos.
 - Schema/migrations — PASS; `schema.prisma` y las seis migrations permanecen sin cambios, `migrate status` actualizado y `migrate diff` sin drift.
 - Limpieza E02-S04 — PASS; cero tenants/audits residuales y contenedor PostgreSQL temporal retirado sin crear named volumes.

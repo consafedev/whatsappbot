@@ -46,6 +46,9 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 - Suite vertical API/PostgreSQL para contextos A/B, fuentes de tenant hostiles, sesiones inválidas, acceso tenant-scoped real y requests concurrentes.
 - E02-S04 con suite de seguridad dedicada `pnpm test:security:tenant-isolation`: matriz A/B de repositories, auth/context, IDs/FKs hostiles, atomicidad, concurrencia y boundary de imports privilegiados.
 - Cobertura ejecutable para todas las superficies tenant-owned actuales; los modelos/endpoints posteriores quedan explícitamente diferidos hasta existir.
+- E02-S05 con modelos `Role`, `Permission`, `UserRole` y `RolePermission`, FKs tenant-aware, catálogo canónico de 29 permisos y sync explícito idempotente.
+- Resolver tenant-wide fail-closed, `@RequirePermissions`, `TenantPermissionGuard` y suite PostgreSQL/Nest para escalación, OU/constraints, ALL, 401/403 y revocación inmediata.
+- ADR-0017 formaliza autorización granular por permission keys, templates globales no asignables y ausencia de snapshots/caché de permisos.
 
 ### Changed
 
@@ -60,6 +63,7 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 - E02-S02 — Tenant user auth queda PASS; Epic 02 permanece IN PROGRESS y E02-S03 sigue pendiente.
 - E02-S03 — Tenant context middleware queda PASS; Epic 02 permanece IN PROGRESS y E02-S04 es la siguiente historia.
 - E02-S04 — Tenant isolation tests queda PASS; Epic 02 permanece IN PROGRESS y E02-S05 es la siguiente historia.
+- E02-S05 — RBAC base queda PASS; Epic 02 — Authentication and Tenancy queda PASS / COMPLETE.
 
 ### Fixed
 
@@ -78,7 +82,7 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Not yet implemented
 
-- RBAC, MFA, delivery real de password reset, providers WhatsApp, contactos/conversaciones, Rules Engine, agenda, cotizaciones, documentos, IA funcional y backups reales.
+- MFA, delivery real de password reset, tenant provisioning/default role matrix, providers WhatsApp, contactos/conversaciones, Rules Engine, agenda, cotizaciones, documentos, IA funcional y backups reales.
 
 ## [0.0.0-preimplementation] - 2026-08-12
 

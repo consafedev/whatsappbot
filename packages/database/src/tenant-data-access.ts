@@ -6,11 +6,30 @@ import {
   type TenantEntitlement,
 } from "./generated/prisma/client";
 import type { OrganizationUnitType, TenantEntitlementSource } from "./generated/prisma/enums";
+import {
+  type CustomRoleCreateData,
+  createTenantRbacDataAccess,
+  type RolePermissionGrantOptions,
+  type TenantPermissionResolver,
+  type TenantRbacDataAccess,
+  type TenantRolePermissionRepository,
+  type TenantRoleRepository,
+  type TenantUserRoleRepository,
+  type UserRoleAssignmentData,
+} from "./rbac-data-access";
 import { createTenantContext, type TenantContext } from "./tenant-context";
 
 export type TenantDataAccessDatabase = Pick<
   Prisma.TransactionClient,
-  "auditLog" | "domainEventOutbox" | "organizationUnit" | "tenantEntitlement"
+  | "auditLog"
+  | "domainEventOutbox"
+  | "organizationUnit"
+  | "permission"
+  | "role"
+  | "rolePermission"
+  | "tenantEntitlement"
+  | "user"
+  | "userRole"
 >;
 
 type JsonInput = Prisma.InputJsonValue;
@@ -93,7 +112,8 @@ export type TenantDataAccess = Readonly<{
   entitlements: TenantEntitlementRepository;
   organizationUnits: OrganizationUnitRepository;
   outbox: TenantOutboxWriter;
-}>;
+}> &
+  TenantRbacDataAccess;
 
 export interface TenantTransactionDatabase {
   $transaction<Result>(
@@ -316,8 +336,19 @@ export function createTenantDataAccess(
     entitlements: createTenantEntitlementRepository(validatedContext, database),
     organizationUnits: createOrganizationUnitRepository(validatedContext, database),
     outbox: createTenantOutboxWriter(validatedContext, database),
+    ...createTenantRbacDataAccess(validatedContext, database),
   });
 }
+
+export type {
+  CustomRoleCreateData,
+  RolePermissionGrantOptions,
+  TenantPermissionResolver,
+  TenantRolePermissionRepository,
+  TenantRoleRepository,
+  TenantUserRoleRepository,
+  UserRoleAssignmentData,
+};
 
 export async function withTenantTransaction<Result>(
   context: TenantContext,

@@ -1,6 +1,6 @@
 # WhatsApp Automation Platform
 
-Multi-tenant B2B WhatsApp automation platform. Epics 00 and 01 are complete; Epic 02 is in progress with Platform Admin authentication available.
+Multi-tenant B2B WhatsApp automation platform. Epics 00, 01, and 02 are complete; the next story is E03-S01 — Tenant list.
 
 `design-prototype/` is an approved visual reference. It is not production architecture and is not used as application source code.
 
@@ -83,12 +83,21 @@ pnpm db:generate
 pnpm db:migrate:dev -- --name <migration-name>
 pnpm db:migrate:deploy
 pnpm test:integration:database
+pnpm test:integration:rbac
 pnpm test:security:tenant-isolation
 ```
 
 Database integration tests require a disposable PostgreSQL database with the committed migrations already applied. Do not use `prisma db push` as a replacement for migrations.
 
 The dedicated tenant-isolation security suite exercises the current tenant-owned database and authenticated API surfaces against PostgreSQL. Add each future tenant-owned repository or endpoint to this matrix when it is implemented.
+
+After applying migrations, synchronize the code-versioned global permission catalog explicitly. The command is idempotent, updates canonical descriptions, preserves unknown rows for diagnosis, and never creates tenant roles or assignments:
+
+```powershell
+pnpm rbac:sync-permissions
+```
+
+Tenant authorization uses `PermissionKey` grants, not role names. Global role templates, OU-scoped assignments, and constrained grants do not authorize generic tenant-wide endpoints. Default role provisioning and its permission matrix remain deferred to E03-S02.
 
 Tenant-owned access uses the safe root entrypoint: create a validated `TenantContext`, then call `createTenantDataAccess(context, client)` to obtain scoped repositories plus the append-only `audit.append(...)` and `outbox.append(...)` APIs. Use `withTenantTransaction(context, client, callback)` when domain, audit, and Outbox writes must commit or roll back together; the callback receives the tenant-scoped facade, never raw Prisma. Audit summaries and IP metadata must be explicit, minimal, and already sanitized by the caller.
 

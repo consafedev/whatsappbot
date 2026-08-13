@@ -39,6 +39,7 @@ import {
   TenantContextGuard,
   TenantDataAccessFactory,
 } from "./tenant-context";
+import { TenantPermissionGuard } from "./tenant-rbac";
 
 @Controller()
 class HealthController {
@@ -74,6 +75,7 @@ export async function createApiApplication(
       TenantUserSessionGuard,
       TenantLogoutGuard,
       TenantContextGuard,
+      TenantPermissionGuard,
       TenantDataAccessFactory,
       {
         provide: PLATFORM_AUTH_REPOSITORY,

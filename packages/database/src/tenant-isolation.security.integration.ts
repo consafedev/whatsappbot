@@ -15,6 +15,7 @@ import {
   createPlatformAuditWriter,
   createPlatformDatabaseClient,
   type PrismaClient,
+  syncPermissionCatalog,
 } from "./platform";
 
 const slugs = { a: "e02-s04-security-a", b: "e02-s04-security-b" } as const;
@@ -44,11 +45,14 @@ async function cleanFixtures(): Promise<void> {
   });
   const tenantIds = tenants.map(({ id }) => id);
   if (tenantIds.length === 0) return;
+  await prisma.userRole.deleteMany({ where: { tenantId: { in: tenantIds } } });
+  await prisma.rolePermission.deleteMany({ where: { role: { tenantId: { in: tenantIds } } } });
   await prisma.userPasswordResetToken.deleteMany({ where: { tenantId: { in: tenantIds } } });
   await prisma.userSession.deleteMany({ where: { tenantId: { in: tenantIds } } });
   await prisma.user.deleteMany({ where: { tenantId: { in: tenantIds } } });
   await prisma.auditLog.deleteMany({ where: { tenantId: { in: tenantIds } } });
   await prisma.domainEventOutbox.deleteMany({ where: { tenantId: { in: tenantIds } } });
+  await prisma.role.deleteMany({ where: { tenantId: { in: tenantIds } } });
   await prisma.organizationUnit.deleteMany({ where: { tenantId: { in: tenantIds } } });
   await prisma.tenantEntitlement.deleteMany({ where: { tenantId: { in: tenantIds } } });
   await prisma.tenant.deleteMany({ where: { id: { in: tenantIds } } });
@@ -59,6 +63,7 @@ describe.sequential("E02-S04 tenant isolation security matrix", () => {
     prisma = createPlatformDatabaseClient(loadDatabaseConfig());
     await prisma.$connect();
     await cleanFixtures();
+    await syncPermissionCatalog(prisma);
     const [createdA, createdB] = await Promise.all(
       Object.values(slugs).map((slug) =>
         prisma.tenant.create({
@@ -382,5 +387,32 @@ describe.sequential("E02-S04 tenant isolation security matrix", () => {
           entitlements.every(({ tenantId }) => tenantId === expectedTenantId),
       ),
     ).toBe(true);
+  });
+
+  it("isolates Role, UserRole, and RolePermission surfaces across tenants", async () => {
+    const [roleA, roleB] = await Promise.all([
+      tenantA.roles.createCustom({ key: "security-role", name: "Security Role A" }),
+      tenantB.roles.createCustom({ key: "security-role", name: "Security Role B" }),
+    ]);
+    await Promise.all([
+      tenantA.rolePermissions.grant(roleA.id, "channels.read"),
+      tenantB.rolePermissions.grant(roleB.id, "channels.manage"),
+    ]);
+    await tenantA.userRoles.assign({ roleId: roleA.id, userId: userAId });
+
+    expect(await tenantA.roles.findById(roleB.id)).toBeNull();
+    expect(await tenantB.roles.findById(roleA.id)).toBeNull();
+    await expect(tenantA.userRoles.assign({ roleId: roleB.id, userId: userAId })).rejects.toThrow(
+      "Tenant-scoped Role was not found",
+    );
+    await expect(
+      tenantA.userRoles.assign({
+        organizationUnitId: rootBId,
+        roleId: roleA.id,
+        userId: userAId,
+      }),
+    ).rejects.toThrow("Tenant-scoped OrganizationUnit was not found");
+    expect(await tenantA.permissions.resolveForUser(userAId)).toEqual(new Set(["channels.read"]));
+    expect((await tenantA.permissions.resolveForUser(userAId)).has("channels.manage")).toBe(false);
   });
 });

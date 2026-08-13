@@ -24,14 +24,17 @@
     "db:migrate:dev": "prisma migrate dev --config prisma.config.ts",
     "db:studio": "prisma studio --config prisma.config.ts",
     "db:validate": "prisma validate --config prisma.config.ts",
-    "test:integration": "pnpm --filter @whatsapp-platform/config build && vitest run --config vitest.integration.config.mts",
-    "test:security:tenant-isolation": "pnpm --filter @whatsapp-platform/config build && vitest run --config vitest.tenant-isolation.config.mts",
+    "rbac:sync-permissions": "pnpm --filter @whatsapp-platform/rbac build && pnpm build && node dist/rbac-sync.js",
+    "test:integration": "pnpm --filter @whatsapp-platform/config build && pnpm --filter @whatsapp-platform/rbac build && vitest run --config vitest.integration.config.mts",
+    "test:integration:rbac": "pnpm --filter @whatsapp-platform/config build && pnpm --filter @whatsapp-platform/rbac build && vitest run --config vitest.rbac.config.mts",
+    "test:security:tenant-isolation": "pnpm --filter @whatsapp-platform/config build && pnpm --filter @whatsapp-platform/rbac build && vitest run --config vitest.tenant-isolation.config.mts",
     "typecheck": "pnpm db:generate && tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.9.1",
     "@prisma/client": "7.9.1",
-    "@whatsapp-platform/config": "workspace:*"
+    "@whatsapp-platform/config": "workspace:*",
+    "@whatsapp-platform/rbac": "workspace:*"
   },
   "devDependencies": {
     "prisma": "7.9.1"

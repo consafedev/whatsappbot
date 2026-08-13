@@ -116,6 +116,20 @@ Matriz mínima:
 - process transition;
 - public timeline update.
 
+## Matriz ejecutable actual (E02-S05)
+
+`pnpm test:integration:rbac` ejecuta la matriz RBAC sobre PostgreSQL 18:
+
+- catálogo canónico exacto, sync repetible y preservación de permissions desconocidas;
+- roles iguales en tenants distintos, key única dentro del tenant e inputs sin `tenantId`/`isSystem`;
+- FKs User/Role/Organization Unit cross-tenant y templates globales no asignables;
+- unión de múltiples roles, nombres Owner/Viewer no autoritativos y semántica ALL;
+- assignments OU-scoped y grants constrained ignorados por el resolver tenant-wide;
+- unknown permissions fail-closed y revoke efectivo en la siguiente request sin relogin;
+- pipeline 401/403/200 y request tenant overrides hostiles.
+
+La suite `pnpm test:security:tenant-isolation` incorpora además `Role`, `UserRole` y `RolePermission` a la matriz A/B. Resource/OU-aware authorization y la default permission matrix quedan diferidas hasta sus historias propietarias.
+
 ---
 
 # 7. Messaging contract tests

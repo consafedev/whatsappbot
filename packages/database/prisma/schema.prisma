@@ -118,18 +118,18 @@ model PlatformDeployment {
 }
 
 model PlatformAdmin {
-  id            String                @id @default(dbgenerated("uuidv7()")) @db.Uuid
-  email         String                @unique(map: "platform_admin_email_key")
-  passwordHash  String                @map("password_hash")
-  displayName   String                @map("display_name")
-  status        PlatformAdminStatus   @default(active)
-  locale        String
-  timezone      String
-  lastLoginAt   DateTime?             @map("last_login_at") @db.Timestamptz(3)
-  mfaState      PlatformAdminMfaState @default(disabled) @map("mfa_state")
-  createdAt     DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt     DateTime              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
-  sessions      PlatformAdminSession[]
+  id           String                 @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  email        String                 @unique(map: "platform_admin_email_key")
+  passwordHash String                 @map("password_hash")
+  displayName  String                 @map("display_name")
+  status       PlatformAdminStatus    @default(active)
+  locale       String
+  timezone     String
+  lastLoginAt  DateTime?              @map("last_login_at") @db.Timestamptz(3)
+  mfaState     PlatformAdminMfaState  @default(disabled) @map("mfa_state")
+  createdAt    DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime               @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  sessions     PlatformAdminSession[]
 
   @@index([status], map: "platform_admin_status_idx")
   @@map("platform_admin")
@@ -153,28 +153,30 @@ model PlatformAdminSession {
 }
 
 model Tenant {
-  id                String              @id @default(dbgenerated("uuidv7()")) @db.Uuid
-  deploymentId      String?             @map("deployment_id") @db.Uuid
-  legalName         String              @map("legal_name")
-  displayName       String              @map("display_name")
-  slug              String              @unique(map: "tenant_slug_key")
-  status            TenantStatus
-  defaultTimezone   String              @map("default_timezone")
-  defaultLocale     String              @map("default_locale")
-  defaultCurrency   String              @map("default_currency")
-  brandingConfig    Json                @default("{}") @map("branding_config") @db.JsonB
-  settings          Json                @default("{}") @db.JsonB
-  createdAt         DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt         DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
-  suspendedAt       DateTime?           @map("suspended_at") @db.Timestamptz(3)
-  deployment        PlatformDeployment? @relation(fields: [deploymentId], references: [id], onDelete: SetNull, onUpdate: Cascade)
-  entitlements      TenantEntitlement[]
-  organizationUnits OrganizationUnit[]
-  domainEvents      DomainEventOutbox[]
-  auditLogs         AuditLog[]
-  users             User[]
-  userSessions      UserSession[]
+  id                  String                   @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  deploymentId        String?                  @map("deployment_id") @db.Uuid
+  legalName           String                   @map("legal_name")
+  displayName         String                   @map("display_name")
+  slug                String                   @unique(map: "tenant_slug_key")
+  status              TenantStatus
+  defaultTimezone     String                   @map("default_timezone")
+  defaultLocale       String                   @map("default_locale")
+  defaultCurrency     String                   @map("default_currency")
+  brandingConfig      Json                     @default("{}") @map("branding_config") @db.JsonB
+  settings            Json                     @default("{}") @db.JsonB
+  createdAt           DateTime                 @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime                 @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  suspendedAt         DateTime?                @map("suspended_at") @db.Timestamptz(3)
+  deployment          PlatformDeployment?      @relation(fields: [deploymentId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  entitlements        TenantEntitlement[]
+  organizationUnits   OrganizationUnit[]
+  domainEvents        DomainEventOutbox[]
+  auditLogs           AuditLog[]
+  users               User[]
+  userSessions        UserSession[]
   passwordResetTokens UserPasswordResetToken[]
+  roles               Role[]
+  userRoles           UserRole[]
 
   @@index([status], map: "tenant_status_idx")
   @@index([deploymentId], map: "tenant_deployment_id_idx")
@@ -182,21 +184,22 @@ model Tenant {
 }
 
 model User {
-  id            String       @id @default(dbgenerated("uuidv7()")) @db.Uuid
-  tenantId      String       @map("tenant_id") @db.Uuid
-  email         String
-  passwordHash  String       @map("password_hash")
-  displayName   String       @map("display_name")
-  status        UserStatus   @default(active)
-  locale        String
-  timezone      String
-  lastLoginAt   DateTime?    @map("last_login_at") @db.Timestamptz(3)
-  mfaState      UserMfaState @default(disabled) @map("mfa_state")
-  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt     DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
-  tenant        Tenant       @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  sessions      UserSession[]
+  id                  String                   @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  tenantId            String                   @map("tenant_id") @db.Uuid
+  email               String
+  passwordHash        String                   @map("password_hash")
+  displayName         String                   @map("display_name")
+  status              UserStatus               @default(active)
+  locale              String
+  timezone            String
+  lastLoginAt         DateTime?                @map("last_login_at") @db.Timestamptz(3)
+  mfaState            UserMfaState             @default(disabled) @map("mfa_state")
+  createdAt           DateTime                 @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime                 @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  tenant              Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  sessions            UserSession[]
   passwordResetTokens UserPasswordResetToken[]
+  roleAssignments     UserRole[]
 
   @@unique([tenantId, email], map: "tenant_user_tenant_email_key")
   @@unique([tenantId, id], map: "tenant_user_tenant_id_id_key")
@@ -240,6 +243,70 @@ model UserPasswordResetToken {
   @@map("user_password_reset_token")
 }
 
+model Role {
+  id              String           @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  tenantId        String?          @map("tenant_id") @db.Uuid
+  name            String
+  key             String
+  description     String?
+  isSystem        Boolean          @default(false) @map("is_system")
+  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  tenant          Tenant?          @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  permissions     RolePermission[]
+  userAssignments UserRole[]
+
+  @@unique([tenantId, key], map: "role_tenant_key_key")
+  @@unique([tenantId, id], map: "role_tenant_id_id_key")
+  @@index([tenantId], map: "role_tenant_id_idx")
+  @@map("role")
+}
+
+model Permission {
+  id              String           @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  key             String           @unique(map: "permission_key_key")
+  description     String
+  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  roleAssignments RolePermission[]
+
+  @@map("permission")
+}
+
+model UserRole {
+  id                 String            @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  tenantId           String            @map("tenant_id") @db.Uuid
+  userId             String            @map("user_id") @db.Uuid
+  roleId             String            @map("role_id") @db.Uuid
+  organizationUnitId String?           @map("organization_unit_id") @db.Uuid
+  createdAt          DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  tenant             Tenant            @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  user               User              @relation(fields: [tenantId, userId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade)
+  role               Role              @relation(fields: [tenantId, roleId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade)
+  organizationUnit   OrganizationUnit? @relation(fields: [tenantId, organizationUnitId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@unique([tenantId, userId, roleId, organizationUnitId], map: "user_role_assignment_key")
+  @@index([tenantId, userId], map: "user_role_tenant_user_idx")
+  @@index([tenantId, roleId], map: "user_role_tenant_role_idx")
+  @@index([organizationUnitId], map: "user_role_organization_unit_id_idx")
+  @@map("user_role")
+}
+
+model RolePermission {
+  roleId           String     @map("role_id") @db.Uuid
+  permissionId     String     @map("permission_id") @db.Uuid
+  scopeConstraints Json?      @map("scope_constraints") @db.JsonB
+  createdAt        DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  role             Role       @relation(fields: [roleId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  permission       Permission @relation(fields: [permissionId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@id([roleId, permissionId])
+  @@index([permissionId], map: "role_permission_permission_id_idx")
+  @@map("role_permission")
+}
+
 model AuditLog {
   id                 String            @id @default(dbgenerated("uuidv7()")) @db.Uuid
   tenantId           String?           @map("tenant_id") @db.Uuid
@@ -264,17 +331,17 @@ model AuditLog {
 }
 
 model DomainEventOutbox {
-  id            String   @id @default(dbgenerated("uuidv7()")) @db.Uuid
-  tenantId      String   @map("tenant_id") @db.Uuid
-  eventType     String   @map("event_type")
-  aggregateType String   @map("aggregate_type")
-  aggregateId   String   @map("aggregate_id") @db.Uuid
-  payload       Json     @db.JsonB
-  occurredAt    DateTime @default(now()) @map("occurred_at") @db.Timestamptz(3)
+  id            String    @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  tenantId      String    @map("tenant_id") @db.Uuid
+  eventType     String    @map("event_type")
+  aggregateType String    @map("aggregate_type")
+  aggregateId   String    @map("aggregate_id") @db.Uuid
+  payload       Json      @db.JsonB
+  occurredAt    DateTime  @default(now()) @map("occurred_at") @db.Timestamptz(3)
   publishedAt   DateTime? @map("published_at") @db.Timestamptz(3)
-  attempts      Int      @default(0)
-  lastError     String?  @map("last_error")
-  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  attempts      Int       @default(0)
+  lastError     String?   @map("last_error")
+  tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
   @@index([tenantId], map: "domain_event_outbox_tenant_id_idx")
   @@index([publishedAt, occurredAt], map: "domain_event_outbox_pending_idx")
@@ -329,6 +396,7 @@ model OrganizationUnit {
   parent          OrganizationUnit?    @relation("OrganizationUnitHierarchy", fields: [tenantId, parentId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade)
   children        OrganizationUnit[]   @relation("OrganizationUnitHierarchy")
   auditLogs       AuditLog[]
+  userRoles       UserRole[]
 
   @@unique([tenantId, id], map: "organization_unit_tenant_id_id_key")
   @@index([tenantId], map: "organization_unit_tenant_id_idx")

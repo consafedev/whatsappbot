@@ -1,12 +1,14 @@
 import type { AuditEntryInput, AuditWriter } from "./audit";
 import type * as TenantSafeDatabase from "./index";
 import type {
+  CustomRoleCreateData,
   DomainEventInput,
   OrganizationUnitCreateData,
   OrganizationUnitUpdateData,
   TenantDataAccess,
   TenantEntitlementCreateData,
   TenantEntitlementUpdateData,
+  UserRoleAssignmentData,
 } from "./tenant-data-access";
 
 type Assert<T extends true> = T;
@@ -39,4 +41,9 @@ export type TenantDataAccessInputAssertions = [
   Assert<Excludes<OrganizationUnitUpdateData, "id">>,
   Assert<Excludes<OrganizationUnitUpdateData, "tenantId">>,
   Assert<Excludes<OrganizationUnitUpdateData, "tenant">>,
+  Assert<Excludes<CustomRoleCreateData, "tenantId">>,
+  Assert<Excludes<CustomRoleCreateData, "tenant">>,
+  Assert<Excludes<CustomRoleCreateData, "isSystem">>,
+  Assert<Excludes<UserRoleAssignmentData, "tenantId">>,
+  Assert<Excludes<UserRoleAssignmentData, "tenant">>,
 ];

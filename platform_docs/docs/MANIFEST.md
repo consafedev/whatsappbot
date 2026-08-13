@@ -1,7 +1,7 @@
 # docs/MANIFEST.md — Baseline documental verificada
 
 **Fecha:** 2026-08-13
-**Estado:** documentación sincronizada con E02-S04 — PASS; Epic 02 — IN PROGRESS.
+**Estado:** documentación sincronizada con E02-S05 — PASS; Epic 02 — PASS / COMPLETE.
 **Propósito:** comprobar integridad y composición del conjunto de documentos que permite continuar el proyecto sin depender de memoria conversacional.
 
 > Las rutas son relativas a la raíz del repositorio. Los hashes cambian si se edita un archivo. Después de cambios intencionales, regenerar este manifest.
@@ -9,10 +9,10 @@
 | Archivo | Bytes | Palabras | SHA-256 |
 |---|---:|---:|---|
 | `AGENTS.md` | 924 | 113 | `b97dac3ea20e30b8f42e5d82f13a58e32b06dab89a0d919bc2b8a9110b6661a2` |
-| `README.md` | 5553 | 673 | `7b7aa697fd0dd5dbc6e0cc2acadecd92b21e204e020c6ba6ccb0d3b422a893ce` |
+| `README.md` | 6110 | 740 | `284cce1300ed78bb25d2d9f1b1bce5aafda0de2e403c0ef212ee17552e6c74e2` |
 | `.agents/agents.md` | 388 | 41 | `d52b02af7fdab6d2ecbf7af4dd2f311d5d244f153817498ff9e542427e9e1675` |
 | `.agents/skills/whatsapp-platform-engineering/SKILL.md` | 19764 | 2747 | `8597b90ddbb55ccb4dbcb5b1d98b100b264759be2357f772ec5c997a1a0ff23b` |
-| `platform_docs/CHANGELOG.md` | 8139 | 1074 | `39f255aa87aa7311c08ed4d78b401e5ffad620a7036204a1e54aca4749cf001b` |
+| `platform_docs/CHANGELOG.md` | 8752 | 1149 | `6197373bd64ee3ddb340e89cc3a0265a145d6cdb752c1f5e3917dad97fc9d538` |
 | `platform_docs/DATA_MODEL_ERD_MVP_BACKLOG.md` | 71997 | 9710 | `fa826abb9921511f566c874cdce0ba1f963941a90e55b0138d6e86827feba4f6` |
 | `platform_docs/DEMO_AND_SALES.md` | 8689 | 1253 | `28944d7c37827e10f72d6cdac811eb8bda92fbc9da96fa4947f09ef42eb5b9f4` |
 | `platform_docs/DEPLOYMENT.md` | 5766 | 811 | `665319a6f0a460d4cd509c062af9e5879416c795f2227f63287d076f1c3d7293` |
@@ -33,16 +33,17 @@
 | `platform_docs/docs/adr/0014-append-only-audit-boundaries.md` | 3315 | 431 | `465615a1f85bbced51b70c10cefa09b34af0d775e2c9b31bf1be5c594b37c125` |
 | `platform_docs/docs/adr/0015-platform-admin-auth-sessions.md` | 3453 | 484 | `0f656b1aa2d0bc01ee557292d575413f15d37ca8050d5b4d42878996b359f1dc` |
 | `platform_docs/docs/adr/0016-tenant-user-auth-and-password-recovery.md` | 4226 | 572 | `70914f598f2315066e4b9a564f1820eb1454e8e9686a22537f60358b46c45910` |
+| `platform_docs/docs/adr/0017-tenant-rbac-permission-resolution.md` | 3999 | 527 | `83354b57127a14198e70d29c8c1c8e8bde90b471cfb8b6bee43aefccbcce9b9e` |
 | `platform_docs/docs/INDEX.md` | 12437 | 1687 | `d692e50c9f969e6ee096a14daf674281f585d3e2a2841211822734dbedd6c5f8` |
 | `platform_docs/PRD.md` | 90479 | 13033 | `81426bd8cabd9b4d5408ff0741c1cfa6aa1741986f2355d4294c6faa7bfdb380` |
 | `platform_docs/README.md` | 1953 | 242 | `31b67b6ef55a2adb4b2840cbe5993156c4fa0421f8752b2d130c97ceb84e880a` |
 | `platform_docs/ROADMAP.md` | 7314 | 1022 | `20bdfd6731368a1047b0f1c6b2f99b73fd2ac30c90ca772d06b7e2f4abb98fc4` |
 | `platform_docs/RUNBOOK_BACKUP_RESTORE.md` | 4857 | 666 | `27e324b4cea0cd3a2514f44eeee4ce31db80a3a4701f0ba528ffb36afcebb3ff` |
 | `platform_docs/RUNBOOK_OPERATIONS.md` | 5777 | 796 | `23d4c537dd3bbcf4b8f08b39b4a948c42c10e3a458594c25ccf2b65937376252` |
-| `platform_docs/SECURITY.md` | 12191 | 1758 | `40673104e09b1184eedfc25cf91bcbc0ba5a6542a5845ef403be70c9759409cc` |
-| `platform_docs/STATUS.md` | 27160 | 3565 | `9055c05d0ad4ae2d59dc3364d090d162957c094235aba9f0538f777269fdd10d` |
-| `platform_docs/SYSTEM_DESIGN.md` | 39756 | 5335 | `59d0303fae04ae995773e00db06815bea921234e6d074e14fc303e464bf37ba0` |
-| `platform_docs/TESTING_STRATEGY.md` | 7672 | 1097 | `3b42b21c4f0c6186a18d55e6f41a574b214adae5161a97036f38d5d86e5a10c9` |
+| `platform_docs/SECURITY.md` | 12760 | 1842 | `6a597fd7c431dbe736a988075631f2934ce21639b527984da27ce7cc6ca36eec` |
+| `platform_docs/STATUS.md` | 29839 | 3911 | `0675c307a1bee5557b739222d841fc2675ad5adb90b053bb5d953809fcee6029` |
+| `platform_docs/SYSTEM_DESIGN.md` | 40641 | 5458 | `6bf730d9b491a9015053b098ea3ff8a3f655893e615cfbac6db2d5922095d178` |
+| `platform_docs/TESTING_STRATEGY.md` | 8616 | 1218 | `a0317547f19d1adba500b763b5110c6c8f613c80ce95785c909274206915a720` |
 | `platform_docs/UI_FLOWS.md` | 21742 | 3143 | `b62156f9570904f2dabba110221763c4dd0b3a06e8ef9fd1ed1800eafda6edac` |
 
 ## Uso

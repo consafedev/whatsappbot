@@ -1195,6 +1195,17 @@ Ejemplo:
 
 No codificar sólo `role === admin`.
 
+Baseline E02-S05:
+
+- `PermissionKey` deriva del catálogo global versionado en `packages/rbac`; roles agrupan grants explícitos y sus nombres no son autoridad.
+- Los roles asignables son tenant-owned. Roles template con `tenant_id = NULL` no se asignan directamente a `User`.
+- El flujo protegido es `TenantUserSessionGuard` → `TenantContextGuard` → `TenantPermissionGuard`; RBAC consume el contexto autenticado y nunca lo reconstruye desde request.
+- El resolver tenant-wide ignora assignments con Organization Unit y grants con constraints; ambas variantes fallan cerradas hasta existir resolución resource-aware.
+- Múltiples permisos requeridos usan ALL y múltiples roles válidos producen una unión allow-set sin deny ni jerarquía.
+- Los permisos se consultan en PostgreSQL por request y no se embeben en sesión ni se cachean en Redis.
+
+Decisión completa en ADR-0017.
+
 ---
 
 # 30. Observabilidad

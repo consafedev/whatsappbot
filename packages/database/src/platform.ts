@@ -19,6 +19,10 @@ export {
   type PlatformSessionIdentity,
 } from "./platform-auth";
 export {
+  type PermissionCatalogDatabase,
+  syncPermissionCatalog,
+} from "./rbac-permissions";
+export {
   type CreatePasswordResetInput,
   type CreateTenantSessionInput,
   type CreateTenantUserInput,
