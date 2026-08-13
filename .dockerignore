@@ -1,0 +1,16 @@
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+node_modules
+**/node_modules
+**/dist
+**/.next
+coverage
+design-prototype
+platform_docs
+runtime
+storage
+sessions
+*.log

@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="es-ES">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Super Admin · Crear tenant</title>
+<link rel="stylesheet" href="./assets/styles.css">
+<style>
+  .wizard { max-width: 720px; margin: 0 auto; }
+  .steps { display: flex; gap: 0; margin-bottom: 28px; }
+  .step { flex: 1; display: flex; align-items: center; gap: 8px; padding: 10px 12px; }
+  .step__num {
+    width: 26px; height: 26px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 600; flex-shrink: 0;
+    background: var(--bg-subtle); color: var(--muted); border: 1px solid var(--border);
+  }
+  .step.is-active .step__num { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+  .step.is-done .step__num { background: oklch(55% 0.13 150); color: var(--on-accent); border-color: oklch(55% 0.13 150); }
+  .step__label { font-size: 13px; font-weight: 500; color: var(--muted); }
+  .step.is-active .step__label { color: var(--fg); }
+  .step__connector { flex: 1; height: 1px; background: var(--border); margin: 0 4px; }
+  .step.is-done + .step__connector, .step.is-active + .step__connector { background: var(--accent); }
+  .plan-check {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--r-md); cursor: pointer;
+  }
+  .plan-check:hover { border-color: var(--border-strong); }
+  .plan-check.is-selected { border-color: var(--accent); background: var(--accent-soft); }
+  .plan-check input { margin-top: 2px; accent-color: var(--accent); }
+  .plan-check__name { font-size: 13.5px; font-weight: 500; }
+  .plan-check__desc { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .summary-row { display: flex; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .summary-row:last-child { border-bottom: none; }
+  .summary-label { width: 200px; color: var(--muted); }
+  .summary-value { flex: 1; font-weight: 500; }
+  .step-panel { display: none; }
+  .step-panel.is-active { display: block; }
+  .wizard-actions { display: flex; justify-content: space-between; margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--border); }
+</style>
+</head>
+<body class="platform-accent">
+<div data-shell="platform" data-active="sa-create" data-topbar='<span class="topbar__crumb"><strong>Platform Control</strong> · <a href="super-admin-tenants.html">Tenants</a> · Crear</span>'>
+<div data-shell-content>
+
+  <div class="wizard" data-od-id="wizard-create-tenant">
+
+  <div class="page-header" data-od-id="page-header">
+    <div>
+      <h1 class="page-header__title t-h1">Crear tenant</h1>
+      <p class="page-header__sub t-small">Configura empresa, capacidades contratadas y usuario owner. La workspace se aprovisiona al confirmar.</p>
+    </div>
+    <div class="page-header__actions">
+      <a class="btn btn--ghost btn--sm" href="super-admin-tenants.html">Cancelar</a>
+    </div>
+  </div>
+
+  <!-- Step indicator -->
+  <div class="steps" data-od-id="step-indicator">
+    <div class="step is-active" data-step="1"><span class="step__num">1</span><span class="step__label">Empresa</span></div>
+    <div class="step" data-step="2"><span class="step__num">2</span><span class="step__label">Capacidades</span></div>
+    <div class="step" data-step="3"><span class="step__num">3</span><span class="step__label">Owner</span></div>
+    <div class="step" data-step="4"><span class="step__num">4</span><span class="step__label">Confirmación</span></div>
+  </div>
+
+  <!-- Step 1: Empresa -->
+  <div class="step-panel is-active" data-panel="1" data-od-id="step-company">
+    <div class="card">
+      <div class="grid grid--2">
+        <div class="field">
+          <label class="field__label">Nombre del tenant<span class="req">*</span></label>
+          <input class="input" type="text" value="Servicios Atlas QA" data-od-id="in-name">
+          <span class="field__help">Visible en la workspace y facturación.</span>
+        </div>
+        <div class="field">
+          <label class="field__label">Slug<span class="req">*</span></label>
+          <input class="input" type="text" value="atlas-qa" data-od-id="in-slug">
+          <span class="field__help">Identificador URL · único, minúsculas, sin espacios.</span>
+        </div>
+        <div class="field">
+          <label class="field__label">Razón social / Legal name</label>
+          <input class="input" type="text" value="Servicios Atlas de QA S.A. de C.V.">
+        </div>
+        <div class="field">
+          <label class="field__label">Industria</label>
+          <select class="select">
+            <option>Servicios / Taller</option>
+            <option>Despacho legal</option>
+            <option>Clínica / Salud</option>
+            <option>Distribuidor B2B</option>
+            <option>Comercio / Retail</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="field__label">País</label>
+          <select class="select"><option>México</option><option>Colombia</option><option>España</option></select>
+        </div>
+        <div class="field">
+          <label class="field__label">Huso horario</label>
+          <select class="select"><option>américa/mexico_city (UTC-6)</option><option>américa/bogota (UTC-5)</option><option>europa/madrid (UTC+1)</option></select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 2: Capacidades -->
+  <div class="step-panel" data-panel="2" data-od-id="step-capabilities">
+    <div class="card">
+      <h2 class="t-h3" style="margin:0 0 4px">Capacidades contratadas</h2>
+      <p class="t-small" style="margin:0 0 16px">Define módulos y límites. Se pueden ajustar después desde Entitlements.</p>
+      <div class="grid grid--2 gap-3" style="gap:10px">
+        <label class="plan-check is-selected"><input type="checkbox" checked><div><div class="plan-check__name">Messaging Basic</div><div class="plan-check__desc">Inbox + conversaciones + Automation Mode.</div></div></label>
+        <label class="plan-check is-selected"><input type="checkbox" checked><div><div class="plan-check__name">CRM Lite</div><div class="plan-check__desc">Contactos + vista 360.</div></div></label>
+        <label class="plan-check"><input type="checkbox"><div><div class="plan-check__name">Processes</div><div class="plan-check__desc">Board con pasos por proceso.</div></div></label>
+        <label class="plan-check"><input type="checkbox"><div><div class="plan-check__name">Quotes</div><div class="plan-check__desc">Editor de cotizaciones + preview.</div></div></label>
+        <label class="plan-check"><input type="checkbox"><div><div class="plan-check__name">Documents</div><div class="plan-check__desc">Generación y firma de documentos.</div></div></label>
+        <label class="plan-check"><input type="checkbox"><div><div class="plan-check__name">Customer Portal</div><div class="plan-check__desc">Portal del cliente con seguimiento.</div></div></label>
+        <label class="plan-check"><input type="checkbox"><div><div class="plan-check__name">Agenda</div><div class="plan-check__desc">Calendario + citas + recordatorios.</div></div></label>
+        <label class="plan-check"><input type="checkbox"><div><div class="plan-check__name">White Label</div><div class="plan-check__desc">Logo + nombre para planes superiores.</div></div></label>
+      </div>
+      <hr class="divider">
+      <div class="grid grid--3" style="grid-template-columns:repeat(3,1fr);gap:12px">
+        <div class="field" style="margin:0">
+          <label class="field__label">Límite de canales WhatsApp</label>
+          <input class="input" type="number" value="2" min="1" max="20">
+        </div>
+        <div class="field" style="margin:0">
+          <label class="field__label">Límite de usuarios</label>
+          <input class="input" type="number" value="5" min="1" max="200">
+        </div>
+        <div class="field" style="margin:0">
+          <label class="field__label">Plan comercial</label>
+          <select class="select"><option>Messaging Basic</option><option>Processes + Quotes</option><option>Documents + Customer Portal</option><option>Custom</option></select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 3: Owner -->
+  <div class="step-panel" data-panel="3" data-od-id="step-owner">
+    <div class="card">
+      <h2 class="t-h3" style="margin:0 0 4px">Usuario owner</h2>
+      <p class="t-small" style="margin:0 0 16px">Recibirá credenciales de acceso y deberá completar el primer login. Rol inicial: <strong>Tenant Owner</strong>.</p>
+      <div class="grid grid--2">
+        <div class="field"><label class="field__label">Nombre completo<span class="req">*</span></label><input class="input" type="text" value="Sergio Peña"></div>
+        <div class="field"><label class="field__label">Correo<span class="req">*</span></label><input class="input" type="email" value="sergio.pena@atlas-qa.mx"></div>
+        <div class="field"><label class="field__label">Teléfono (opcional)</label><input class="input" type="tel" value="+52 477 555 9001"></div>
+        <div class="field"><label class="field__label">Idioma preferido</label><select class="select"><option>Español (es-ES)</option><option>English</option><option>Português (BR)</option></select></div>
+      </div>
+      <div class="field" style="margin-top:8px">
+        <label class="switch"><input type="checkbox" checked><span class="switch__track"></span><span>Enviar invitación por correo al confirmar</span></label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 4: Confirmación -->
+  <div class="step-panel" data-panel="4" data-od-id="step-confirm">
+    <div class="card">
+      <h2 class="t-h3" style="margin:0 0 12px">Revisa y confirma</h2>
+      <div class="summary-row"><div class="summary-label">Tenant</div><div class="summary-value">Servicios Atlas QA · <span class="t-mono">atlas-qa</span></div></div>
+      <div class="summary-row"><div class="summary-label">Industria</div><div class="summary-value">Servicios / Taller</div></div>
+      <div class="summary-row"><div class="summary-label">Capacidades</div><div class="summary-value">Messaging Basic, CRM Lite (+ resto off)</div></div>
+      <div class="summary-row"><div class="summary-label">Límites</div><div class="summary-value">2 canales · 5 usuarios · plan Messaging Basic</div></div>
+      <div class="summary-row"><div class="summary-label">Owner</div><div class="summary-value">Sergio Peña · sergio.pena@atlas-qa.mx · rol Tenant Owner</div></div>
+      <div class="summary-row"><div class="summary-label">Acciones post-aprovisionamiento</div><div class="summary-value">Enviar invitación · deployment Shared · sin canales conectados inicialmente</div></div>
+      <div class="alert alert--info mt-4" style="margin-top:14px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+        <span>El tenant inicia en estado <strong>Provisioning</strong> y pasa a <strong>Activo</strong> tras el primer login del owner.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Wizard actions -->
+  <div class="wizard-actions" data-od-id="wizard-actions">
+    <button class="btn btn--secondary" id="btn-prev" disabled data-od-id="btn-prev">Atrás</button>
+    <div class="flex gap-2">
+      <a class="btn btn--ghost" href="super-admin-tenants.html">Cancelar</a>
+      <button class="btn btn--primary" id="btn-next" data-od-id="btn-next">Continuar</button>
+      <button class="btn btn--primary" id="btn-finish" style="display:none" data-od-id="btn-finish">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 12l5 5 9-11"/></svg>
+        Aprovisionar tenant
+      </button>
+    </div>
+  </div>
+
+  </div>
+</div>
+</div>
+
+<script src="./assets/app.js"></script>
+<script src="./assets/shell.js"></script>
+<script>
+(function(){
+  'use strict';
+  let step = 1;
+  const total = 4;
+  function paint() {
+    document.querySelectorAll('.step').forEach(s => {
+      const n = +s.getAttribute('data-step');
+      s.classList.toggle('is-active', n === step);
+      s.classList.toggle('is-done', n < step);
+    });
+    document.querySelectorAll('.step-panel').forEach(p => p.classList.toggle('is-active', +p.getAttribute('data-panel') === step));
+    document.getElementById('btn-prev').disabled = step === 1;
+    document.getElementById('btn-next').style.display = step === total ? 'none' : '';
+    document.getElementById('btn-finish').style.display = step === total ? '' : 'none';
+    document.getElementById('btn-next').textContent = step === total - 1 ? 'Revisar' : 'Continuar';
+  }
+  document.addEventListener('DOMContentLoaded', function(){
+    document.getElementById('btn-next').addEventListener('click', function(){ if (step < total) { step++; paint(); } });
+    document.getElementById('btn-prev').addEventListener('click', function(){ if (step > 1) { step--; paint(); } });
+    document.getElementById('btn-finish').addEventListener('click', function(){ window.location.href = 'super-admin-tenant-detail.html'; });
+    document.querySelectorAll('.plan-check input').forEach(cb => cb.addEventListener('change', function(){ cb.closest('.plan-check').classList.toggle('is-selected', cb.checked); }));
+    paint();
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="es-ES">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Acceso · Talleres Motor Norte</title>
+<link rel="stylesheet" href="./assets/styles.css">
+<style>
+  .login-wrap { display: flex; min-height: 100vh; }
+  .login-side {
+    flex: 1; background: oklch(20% 0.015 240); color: oklch(96% 0.005 240);
+    display: flex; flex-direction: column; justify-content: space-between;
+    padding: 48px 56px; position: relative; overflow: hidden;
+  }
+  .login-side__brand { display: flex; align-items: center; gap: 12px; font-size: 15px; font-weight: 500; letter-spacing: 0.02em; }
+  .login-side__brand svg { color: var(--accent); }
+  .login-side__title { font-size: 30px; font-weight: 600; line-height: 1.25; letter-spacing: -0.01em; margin: 0 0 14px; max-width: 18ch; }
+  .login-side__text { font-size: 14px; color: oklch(72% 0.01 240); max-width: 42ch; line-height: 1.6; }
+  .login-side__foot { font-size: 12px; color: oklch(58% 0.01 240); display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .login-side__foot a { color: oklch(78% 0.01 240); text-decoration: none; }
+  .login-side__foot a:hover { color: oklch(92% 0.01 240); text-decoration: underline; }
+  .login-form-wrap { display: flex; align-items: center; justify-content: center; flex: 1; padding: 32px; }
+  .login-form { width: 100%; max-width: 380px; }
+  .login-form__tenant-chip { display: inline-flex; align-items: center; gap: 8px; padding: 4px 10px 4px 4px; border-radius: 14px; background: var(--accent-soft); border: 1px solid oklch(85% 0.07 245); font-size: 12px; color: var(--accent); margin-bottom: 18px; }
+  .login-form__tenant-chip > span:first-child { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: var(--on-accent); font-size: 11px; font-weight: 600; }
+  .login-form h1 { font-size: 26px; font-weight: 600; letter-spacing: -0.01em; margin: 0 0 6px; }
+  .login-form p.lead { font-size: 13.5px; color: var(--muted); margin: 0 0 26px; }
+  .login-error { display: none; margin-top: 14px; }
+  .assert { font-size: 12px; color: var(--muted); line-height: 1.5; }
+  .assert a { color: var(--accent); }
+  .field-row { display: flex; align-items: flex-end; gap: 8px; }
+  .field-row .field { flex: 1; margin: 0; }
+  .state-toggle { display: flex; flex-direction: column; gap: 8px; margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--border); }
+  .state-toggle__label { font-size: 11px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
+  .state-toggle__btns { display: flex; gap: 6px; flex-wrap: wrap; }
+  .state-toggle__btns .chip { height: 26px; font-size: 11.5px; padding: 0 10px; }
+  @media (max-width: 860px) { .login-side { display: none; } }
+</style>
+</head>
+<body>
+<div class="login-wrap" data-od-id="login">
+
+  <!-- Brand side -->
+  <aside class="login-side" data-od-id="login-brand">
+    <div class="login-side__brand">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 7c5-3 9-3 14 0M5 11c5-2 9-2 14 0M5 15c5-1 9-1 14 0"/></svg>
+      <span>WhatsApp Bot · Workspaces</span>
+    </div>
+    <div>
+      <p class="login-side__title">Operación multicanal y automatización con control B2B.</p>
+      <p class="login-side__text">Workspace de <strong>Talleres Motor Norte</strong>. Acceso restringido a personas autorizadas por el tenant. La plataforma nunca expone contenido sensible a Super Admin.</p>
+    </div>
+    <div class="login-side__foot">
+      <span>© 2026 · Host independiente vía Baileys · No afiliado a WhatsApp Inc.</span>
+      <div class="flex gap-3"><a href="#">Privacidad</a><a href="#">Términos</a><a href="#">Soporte</a></div>
+    </div>
+  </aside>
+
+  <!-- Form side -->
+  <section class="login-form-wrap" data-od-id="login-form-wrap">
+    <form class="login-form" onsubmit="return false" data-od-id="login-form">
+      <span class="login-form__tenant-chip"><span>MN</span>Talleres Motor Norte · motor-norte</span>
+      <h1>Iniciar sesión</h1>
+      <p class="lead">Accede con tu correo asignado por el administrador del tenant.</p>
+
+      <div class="field">
+        <label class="field__label" for="email">Correo</label>
+        <input class="input" id="email" type="email" autocomplete="username" value="ana.lopez@motor-norte.mx" data-od-id="in-email">
+      </div>
+      <div class="field">
+        <label class="field__label" for="pw">Contraseña</label>
+        <input class="input" id="pw" type="password" autocomplete="current-password" value="••••••••••" data-od-id="in-pw">
+        <span class="field__help"><a href="#" style="color:var(--accent);text-decoration:none">¿Olvidaste tu contraseña?</a></span>
+      </div>
+      <button class="btn btn--primary" style="width:100%;height:42px;margin-top:6px" id="btn-submit" data-od-id="btn-submit">
+        Entrar
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </button>
+
+      <div class="alert alert--danger login-error" id="login-error" data-od-id="login-error">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+        <span id="login-error-msg"><strong>Credenciales inválidas.</strong> Verifica correo y contraseña o contacta al administrador del tenant.</span>
+      </div>
+
+      <div class="assert" style="margin-top:18px">
+        Al ingresar aceptas la política de uso del tenant. El acceso queda auditado por el administrador. No se permiten credenciales compartidas.
+      </div>
+
+      <!-- Demo state switcher -->
+      <div class="state-toggle" data-od-id="state-toggle">
+        <div class="state-toggle__label">Estados de demo</div>
+        <div class="state-toggle__btns">
+          <span class="chip chip--active" data-st="default">default</span>
+          <span class="chip" data-st="error">error credenciales</span>
+          <span class="chip" data-st="suspended">tenant suspendido</span>
+          <span class="chip" data-st="mfa">MFA requerido</span>
+          <span class="chip" data-st="loading">loading</span>
+        </div>
+      </div>
+    </form>
+  </section>
+
+</div>
+
+<script src="./assets/app.js"></script>
+<script>
+(function(){
+  'use strict';
+  function initState() {
+    var errEl = document.getElementById('login-error');
+    var errBox = document.getElementById('login-error-msg');
+    var btn = document.getElementById('btn-submit');
+    var chip = document.querySelector('.login-form__tenant-chip');
+    var lead = document.querySelector('.login-form .lead');
+    var leadOrg = lead.textContent;
+
+    function setState(st) {
+      errEl.style.display = 'none';
+      btn.disabled = false; btn.textContent = 'Entrar';
+      chip.style.borderColor = ''; chip.style.background = ''; chip.style.color = '';
+      chip.lastChild.textContent = 'Talleres Motor Norte · motor-norte';
+      lead.textContent = leadOrg;
+      if (st === 'default') return;
+      if (st === 'error') {
+        errEl.style.display = 'flex';
+        errEl.className = 'alert alert--danger login-error';
+        errBox.innerHTML = '<strong>Credenciales inválidas.</strong> Verifica correo y contraseña o contacta al administrador del tenant.';
+      } else if (st === 'suspended') {
+        errEl.style.display = 'flex';
+        errEl.className = 'alert alert--warn login-error';
+        errBox.innerHTML = '<strong>Tenant suspendido.</strong> Operación detenida por impago o acción del Super Admin. Contacta a tu administrador comercial.';
+        chip.style.borderColor = 'var(--warn)'; chip.style.background = 'var(--warn-soft)'; chip.style.color = 'oklch(45% 0.14 70)';
+        chip.lastChild.textContent = 'Talleres Motor Norte · suspendido';
+        lead.textContent = 'Acceso bloqueado por suspensión comercial.';
+      } else if (st === 'mfa') {
+        errEl.style.display = 'flex';
+        errEl.className = 'alert alert--info login-error';
+        errBox.innerHTML = '<strong>Verificación en 2 pasos requerida.</strong> Introduce el código enviado a tu correo o app autenticadora. Código válido: 482-193.';
+        lead.textContent = 'Verificación adicional obligatoria para tu usuario.';
+      } else if (st === 'loading') {
+        btn.disabled = true; btn.textContent = 'Verificando…';
+        errEl.style.display = 'none';
+      }
+    }
+    return { setState: setState, btn: btn, errEl: errEl };
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    var s = initState();
+    document.querySelectorAll('.state-toggle__btns .chip').forEach(function(c){
+      c.addEventListener('click', function(){
+        document.querySelectorAll('.state-toggle__btns .chip').forEach(function(x){ x.classList.remove('chip--active'); });
+        c.classList.add('chip--active');
+        s.setState(c.getAttribute('data-st'));
+      });
+    });
+    s.btn.addEventListener('click', function(){ s.setState('error'); });
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="es-ES">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reglas · Talleres Motor Norte</title>
+<link rel="stylesheet" href="./assets/styles.css">
+<style>
+  .rule-builder { display: grid; grid-template-columns: 1fr 320px; gap: 16px; }
+  .sentence-token {
+    display: inline-flex; align-items: center;
+    padding: 2px 8px; border-radius: 4px; margin: 0 2px;
+    background: var(--accent-soft); color: var(--accent); border: 1px solid oklch(85% 0.07 245);
+    font-size: 13px; font-weight: 500;
+  }
+  .sentence-token.danger { background: var(--danger-soft); color: oklch(42% 0.17 27); border-color: oklch(86% 0.07 27); }
+  .sentence-token.warn   { background: var(--warn-soft); color: oklch(45% 0.14 70); border-color: oklch(86% 0.08 75); }
+  .sentence-token.neutral{ background: var(--bg-subtle); color: var(--muted); border-color: var(--border-strong); }
+  .condition-line { padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--r-sm); margin-bottom: 8px; background: var(--bg); }
+  .condition-line strong { font-size: 13px; }
+  .action-line { padding: 10px 12px; border: 1px solid oklch(86% 0.07 245); background: var(--accent-soft); border-radius: var(--r-sm); margin-bottom: 8px; }
+  .preview-sentence { font-size: 14px; line-height: 1.7; padding: 14px 16px; border: 1px dashed var(--border-strong); border-radius: var(--r-md); background: var(--bg-subtle); }
+  .module-pill { font-size: 11px; padding: 2px 7px; border-radius: 11px; background: var(--bg-subtle); color: var(--muted); border: 1px solid var(--border); }
+  .panel-state-rules { display: none; }
+  .panel-state-rules.is-active { display: block; }
+</style>
+</head>
+<body>
+<div data-shell="tenant" data-active="automations" data-topbar='<span class="topbar__crumb"><strong>Automatizaciones</strong></span><span class="topbar__spacer"></span><span class="badge badge--outline">4 activas · 1 pausada</span>'>
+<div data-shell-content>
+
+  <div class="page-header" data-od-id="page-header">
+    <div>
+      <h1 class="t-h1">Reglas y automatizaciones</h1>
+      <p class="page-header__sub t-small">Reglas declarativas que responden a eventos de Messaging, Quotes, Agenda, etc. Cada regla se expresa como una oración legible y una acción esperada.</p>
+    </div>
+    <div class="page-header__actions">
+      <div class="filterbar rules-states" style="margin:0" data-od-id="rules-states">
+        <span class="chip chip--active" data-st="list">Listado</span>
+        <span class="chip" data-st="builder">Builder</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Listado -->
+  <div class="panel-state-rules is-active" data-panel="list" data-od-id="rules-list">
+    <div class="filterbar">
+      <span class="chip chip--active">Todas (5)</span>
+      <span class="chip">Activas (4)</span>
+      <span class="chip">Pausadas (1)</span>
+      <span class="spacer"></span>
+      <button class="btn btn--primary btn--sm" data-od-id="btn-new-rule">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        Nueva regla
+      </button>
+    </div>
+
+    <div class="table-wrap">
+      <table class="data">
+        <thead>
+          <tr><th>Regla</th><th>Módulo</th><th>Disparador</th><th>Ejecuciones (24h)</th><th>Fallos</th><th>Estado</th><th class="row-action"></th></tr>
+        </thead>
+        <tbody id="rules-body"></tbody>
+      </table>
+    </div>
+
+    <div class="alert alert--info" style="margin-top:14px">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+      <span>Las reglas se ejecutan en orden estricto. Una conversación solo entra en una regla a la vez. Pausa reglas críticas y prueba antes de activar nuevos disparadores en producción.</span>
+    </div>
+  </div>
+
+  <!-- Builder -->
+  <div class="panel-state-rules" data-panel="builder" data-od-id="rules-builder">
+
+    <div class="rule-builder">
+
+      <div>
+        <div class="page-header" style="margin-bottom:14px">
+          <div>
+            <div class="t-kicker" style="color:var(--accent)">Configurando</div>
+            <h2 class="t-h2" style="margin:6px 0 0">Crear regla</h2>
+          </div>
+          <div class="page-header__actions">
+            <button class="btn btn--ghost btn--sm">Cancelar</button>
+            <button class="btn btn--secondary btn--sm">Guardar borrador</button>
+            <button class="btn btn--primary btn--sm">Activar regla</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="grid grid--2">
+            <div class="field" style="margin:0 0 14px">
+              <label class="field__label">Nombre<span class="req">*</span></label>
+              <input class="input" type="text" value="Asignar nueva conversación a Ventas">
+            </div>
+            <div class="field" style="margin:0 0 14px">
+              <label class="field__label">Módulo</label>
+              <select class="select"><option>Messaging</option><option>Quotes</option><option>Agenda</option><option>Documents</option><option>Contacts</option></select>
+            </div>
+          </div>
+          <div class="field" style="margin:0">
+            <label class="field__label">Descripción corta</label>
+            <input class="input" type="text" value="Nuevas conversaciones de WhatsApp se asignan automáticamente a un agente de Ventas disponible.">
+          </div>
+        </div>
+
+        <h3 class="t-section" style="margin:18px 0 10px">Disparador (cuándo)</h3>
+        <div class="preview-sentence" data-od-id="preview-when">
+          Cuando
+          <span class="sentence-token">una conversación</span>
+          entra en
+          <span class="sentence-token neutral">WhatsApp Ventas</span>
+          y
+          <span class="sentence-token">no tiene asignado</span>
+          un responsable
+          y
+          <span class="sentence-token warn">dentro de horario</span>
+          (lun-vie 09:00-19:00)
+        </div>
+        <div class="condition-line">
+          <div class="flex-between"><strong>Tipo de evento</strong><span class="badge badge--accent">conversación.creada</span></div>
+          <div class="t-micro" style="margin-top:4px">Aplica a cualquier canal etiquetado como Ventas · 2 canales.</div>
+        </div>
+        <div class="condition-line">
+          <div class="flex-between"><strong>Condición de filtro</strong><span class="badge badge--outline">assignee == null</span></div>
+          <div class="t-micro" style="margin-top:4px">Solo conversaciones nuevas sin asignar.</div>
+        </div>
+
+        <h3 class="t-section" style="margin:18px 0 10px">Acciones (qué)</h3>
+        <div class="preview-sentence" data-od-id="preview-then">
+          Entonces
+          <span class="sentence-token">asignar a un agente</span>
+          disponible en
+          <span class="sentence-token neutral">Ventas · León</span>
+          y
+          <span class="sentence-token">cambiar Automation Mode</span>
+          a
+          <span class="sentence-token" style="background:var(--accent);color:var(--on-accent);border-color:var(--accent)">ASSISTED</span>
+        </div>
+        <div class="action-line">
+          <div class="flex-between"><strong>Asignar conversación</strong><span class="badge badge--neutral">módulo Messaging · rnd-robin</span></div>
+          <div class="t-micro" style="margin-top:4px">Unidad: Ventas · León · agentes disponibles: 3 · objetivo < 8 conversaciones por agente.</div>
+        </div>
+        <div class="action-line" style="border-color:oklch(86% 0.08 75);background:var(--warn-soft)">
+          <div class="flex-between"><strong>Cambiar Automation Mode</strong><span class="badge badge--neutral">ASSISTED</span></div>
+          <div class="t-micro" style="margin-top:4px;color:oklch(45% 0.14 70)">Si el canal está en AUTO, esta acción lo pasa a ASSISTED para que el agente asuma máximo control.</div>
+        </div>
+
+        <h3 class="t-section" style="margin:18px 0 10px">Salidas (qué dejar)</h3>
+        <div class="field"><label class="switch"><input type="checkbox" checked><span class="switch__track"></span><span>Guardar log en Timeline (visible al equipo)</span></label></div>
+        <div class="field"><label class="switch"><input type="checkbox" checked><span class="switch__track"></span><span>Notificar al agente asignado por correo</span></label></div>
+        <div class="field" style="margin:0"><label class="switch"><input type="checkbox"><span class="switch__track"></span><span>Pausar si fallos 24h > 10</span></label></div>
+      </div>
+
+      <!-- Side panel: estadísticas y preview final -->
+      <aside>
+        <div class="card" style="margin-bottom:14px">
+          <h3 class="t-h3" style="margin:0 0 12px">Versión actual</h3>
+          <div class="summary-row" style="display:flex;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px"><div style="width:120px;color:var(--muted)">Versión</div><div style="flex:1;font-weight:500">v3 (draft)</div></div>
+          <div class="summary-row" style="display:flex;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px"><div style="width:120px;color:var(--muted)">Ejecuciones 24h</div><div style="flex:1;font-weight:500">142</div></div>
+          <div class="summary-row" style="display:flex;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px"><div style="width:120px;color:var(--muted)">Fallos 24h</div><div style="flex:1;font-weight:500">0</div></div>
+          <div class="summary-row" style="display:flex;padding:8px 0;font-size:13px"><div style="width:120px;color:var(--muted)">Último ejecutor</div><div class="t-mono" style="flex:1;font-size:12px">job-runner · deployment shared</div></div>
+        </div>
+
+        <div class="card" style="margin-bottom:14px">
+          <h3 class="t-h3" style="margin:0 0 10px">Oración final</h3>
+          <div class="alert alert--info" style="margin:0;font-size:12.5px">
+            <div>Cuando una conversación entre en WhatsApp Ventas y no tenga responsable y horario esté en lun-vie 09-19, asignarla a un agente disponible de Ventas · León, cambiar Automation Mode a ASSISTED y notificar al agente asignado.</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 class="t-h3" style="margin:0 0 10px">Próximos pasos</h3>
+          <div class="t-small" style="margin:0 0 12px;color:var(--fg);line-height:1.5">Activa la regla para que entre en producción. Puedes auditar su comportamiento en una muestra de 10 conversaciones aleatorias durante 2 horas.</div>
+          <button class="btn btn--secondary btn--sm" style="width:100%;justify-content:center">Probar en 10 conversaciones</button>
+          <button class="btn btn--primary btn--sm" style="width:100%;justify-content:center;margin-top:8px">Activar regla</button>
+          <hr class="divider" style="margin:12px 0">
+          <div class="t-micro">Editada por Ana López · 2026-08-11 16:55</div>
+        </div>
+      </aside>
+
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script src="./assets/app.js"></script>
+<script src="./assets/shell.js"></script>
+<script>
+(function(){
+  'use strict';
+  const RULES = (window.OD && window.OD.rules) || [];
+  function row(r){
+    const modulePill = '<span class="module-pill">' + r.module + '</span>';
+    const statusBadge = r.enabled
+      ? '<span class="badge badge--success"><span class="badge__dot"></span>Activa</span>'
+      : '<span class="badge badge--neutral"><span class="badge__dot"></span>Pausada</span>';
+    return '<tr>' +
+      '<td><div class="row-title">' + r.name + '</div><div class="row-sub">v' + r.version + ' · último: ' + r.last + '</div></td>' +
+      '<td>' + modulePill + '</td>' +
+      '<td class="row-sub">' + r.trigger + '</td>' +
+      '<td><strong>' + r.success + '</strong></td>' +
+      '<td>' + (r.failure ? '<span style="color:var(--warn);font-weight:500">' + r.failure + '</span>' : '—') + '</td>' +
+      '<td>' + statusBadge + '</td>' +
+      '<td class="row-action"><button class="btn btn--ghost btn--icon btn--sm" aria-label="Abrir"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></button></td>' +
+    '</tr>';
+  }
+  document.addEventListener('DOMContentLoaded', function(){
+    const body = document.getElementById('rules-body');
+    if (body) body.innerHTML = RULES.map(row).join('');
+    // State switcher
+    document.querySelectorAll('.rules-states .chip').forEach(function(c){
+      c.addEventListener('click', function(){
+        const st = c.getAttribute('data-st');
+        document.querySelectorAll('.rules-states .chip').forEach(x => x.classList.toggle('chip--active', x === c));
+        document.querySelectorAll('.panel-state-rules').forEach(p => p.classList.toggle('is-active', p.getAttribute('data-panel') === st));
+      });
+    });
+    document.querySelector('[data-od-id="btn-new-rule"]').addEventListener('click', function(){
+      document.querySelector('.rules-states .chip[data-st="builder"]').click();
+    });
+  });
+})();
+</script>
+</body>
+</html>

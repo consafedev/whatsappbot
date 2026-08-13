@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="es-ES">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Super Admin · Dashboard</title>
+<link rel="stylesheet" href="./assets/styles.css">
+<style>
+  .platform-accent { --accent: oklch(34% 0.06 245); --accent-soft: oklch(94% 0.03 245); --accent-hover: oklch(28% 0.06 245); }
+  .platform-accent .sidebar { background: oklch(20% 0.01 240); border-right-color: oklch(28% 0.01 240); }
+  .platform-accent .sidebar__brand { border-bottom-color: oklch(28% 0.01 240); }
+  .platform-accent .sidebar .tenant { color: oklch(96% 0.005 240); }
+  .platform-accent .sidebar .role { color: oklch(70% 0.01 240); }
+  .platform-accent .nav-group__label { color: oklch(58% 0.01 240); }
+  .platform-accent .nav-item { color: oklch(86% 0.005 240); }
+  .platform-accent .nav-item:hover { background: oklch(26% 0.01 240); color: oklch(98% 0.003 240); }
+  .platform-accent .nav-item--active { background: oklch(28% 0.02 245); color: oklch(96% 0.005 240); }
+  .platform-accent .nav-item__count { background: oklch(28% 0.01 240); border-color: oklch(35% 0.01 240); color: oklch(78% 0.01 240); }
+  .platform-accent .sidebar__user:hover { background: oklch(26% 0.01 240); }
+  .platform-accent .sidebar__foot { border-top-color: oklch(28% 0.01 240); }
+  .health-row { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+  .health-row + .health-row { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+  .health-row__name { flex: 1; }
+  .health-row__meta { color: var(--muted); font-size: 12px; }
+  .log-row { display: flex; gap: 10px; font-size: 12.5px; padding: 7px 0; border-bottom: 1px solid var(--border); }
+  .log-row:last-child { border-bottom: none; }
+  .log-row__time { color: var(--muted); font-family: var(--font-mono); width: 58px; flex-shrink: 0; }
+</style>
+</head>
+<body class="platform-accent">
+<div data-shell="platform" data-active="sa-dashboard" data-topbar='<span class="topbar__crumb"><strong>Platform Control</strong> · Dashboard</span><span class="topbar__spacer"></span><button class="btn btn--secondary btn--sm" data-od-id="btn-reload"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20 4v6h-6M4 20v-6h6"/><path d="M20 10A9 9 0 0 0 7 4M4 14a9 9 0 0 0 13 6"/></svg>Actualizar</button><span style="width:8px"></span><span style="width:28px;height:28px;border-radius:50%;background:var(--surface);border:1px solid var(--border-strong);display:inline-flex;align-items:center;justify-content:center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 8a6 6 0 0 1 12 0c0 7 2 8 2 8H4s2-1 2-8z"/></svg></span>'>
+<div data-shell-content>
+
+  <div class="page-header" data-od-id="page-header">
+    <div>
+      <div class="t-kicker" style="color:var(--accent)">Platform Control</div>
+      <h1 class="page-header__title t-h1">Salud de plataforma</h1>
+      <p class="page-header__sub t-small">Estado comercial y operativo de todos los tenants. Sin acceso a contenido sensible de conversaciones o documentos.</p>
+    </div>
+    <div class="page-header__actions">
+      <a class="btn btn--secondary" href="super-admin-tenants.html" data-od-id="btn-manage-tenants">Gestionar tenants</a>
+      <a class="btn btn--primary" href="super-admin-create-tenant.html" data-od-id="btn-create-tenant">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        Crear tenant
+      </a>
+    </div>
+  </div>
+
+  <!-- Metrics row -->
+  <div class="grid grid--metrics" data-od-id="metrics-row">
+    <div class="card metric-card"><div class="metric-card__label">Tenants activos</div><div class="metric-card__value">114</div><div class="metric-card__delta badge badge--success"><span class="badge__dot"></span>3 nuevos en 7 días</div></div>
+    <div class="card metric-card"><div class="metric-card__label">Suspendidos</div><div class="metric-card__value">7</div><div class="metric-card__delta muted">de 121 totales</div></div>
+    <div class="card metric-card"><div class="metric-card__label">Cuentas WhatsApp conectadas</div><div class="metric-card__value">208</div><div class="metric-card__delta badge badge--success"><span class="badge__dot"></span>healthy</div></div>
+    <div class="card metric-card"><div class="metric-card__label">Requieren reauth</div><div class="metric-card__value">9</div><div class="metric-card__delta badge badge--warn"><span class="badge__dot"></span>degraded</div></div>
+  </div>
+
+  <div class="grid grid--metrics" style="margin-top:14px" data-od-id="metrics-row-2">
+    <div class="card metric-card"><div class="metric-card__label">Deployments healthy</div><div class="metric-card__value">4 / 4</div><div class="metric-card__delta muted">Shared · Dedicated · On-premise · Staging</div></div>
+    <div class="card metric-card"><div class="metric-card__label">Último backup verificado</div><div class="metric-card__value">hoy 03:00</div><div class="metric-card__delta muted">retención 2 · ok</div></div>
+    <div class="card metric-card"><div class="metric-card__label">Jobs fallidos críticos</div><div class="metric-card__value">2</div><div class="metric-card__delta badge badge--danger"><span class="badge__dot"></span>requieren atención</div></div>
+    <div class="card metric-card"><div class="metric-card__label">Uso de disco</div><div class="metric-card__value">61%</div><div class="metric-card__delta muted">412 GB / 680 GB</div></div>
+  </div>
+
+  <div class="grid grid--2" style="margin-top:16px" data-od-id="lists-row">
+    <!-- Tenants con problemas -->
+    <div class="card" data-od-id="tenants-with-issues">
+      <div class="flex-between" style="margin-bottom:12px">
+        <h2 class="t-h3" style="margin:0">Tenants con problemas</h2>
+        <span class="badge badge--warn"><span class="badge__dot"></span>3</span>
+      </div>
+      <div class="health-row">
+        <span class="ch-indicator" style="width:10px;height:10px;border-radius:50%;background:var(--warn-soft);color:var(--warn)"></span>
+        <div class="health-row__name"><strong>Bufete Álvarez & Peña</strong> · <span class="t-mono t-micro">bufete-alvarez</span><div class="health-row__meta">1 canal requiere reauth hace 2 h</div></div>
+        <a class="btn btn--ghost btn--sm" href="super-admin-tenant-detail.html">Abrir</a>
+      </div>
+      <div class="health-row">
+        <span class="ch-indicator" style="width:10px;height:10px;border-radius:50%;background:var(--danger-soft);color:var(--danger)"></span>
+        <div class="health-row__name"><strong>Distribuidora FERCOMEX</strong> · <span class="t-mono t-micro">fercomex</span><div class="health-row__meta">Suspensión activa · pago vencido hace 5 días</div></div>
+        <a class="btn btn--ghost btn--sm" href="super-admin-tenant-detail.html">Abrir</a>
+      </div>
+      <div class="health-row">
+        <span class="ch-indicator" style="width:10px;height:10px;border-radius:50%;background:var(--warn-soft);color:var(--warn)"></span>
+        <div class="health-row__name"><strong>Servicios Atlas QA</strong> · <span class="t-mono t-micro">atlas-qa</span><div class="health-row__meta">Provisioning > 20 minutos</div></div>
+        <a class="btn btn--ghost btn--sm" href="super-admin-tenant-detail.html">Abrir</a>
+      </div>
+    </div>
+
+    <!-- Backups stale / errores recientes -->
+    <div class="card" data-od-id="system-issues">
+      <div class="flex-between" style="margin-bottom:12px">
+        <h2 class="t-h3" style="margin:0">Errores recientes y backups</h2>
+        <span class="badge badge--danger"><span class="badge__dot"></span>2 críticos</span>
+      </div>
+      <div class="log-row"><span class="log-row__time">08:41</span><span><strong>job.scheduled-reminder</strong> falló en deployment <span class="t-mono">Shared</span> · timeout; reintentado.</span><span class="spacer"></span><span class="badge badge--danger">retry</span></div>
+      <div class="log-row"><span class="log-row__time">08:03</span><span>Backup tenant <span class="t-mono">clinica-valle</span> marcado como <strong>stale</strong>: última verificación > 48 h.</span><span class="spacer"></span><span class="badge badge--warn">stale</span></div>
+      <div class="log-row"><span class="log-row__time">07:12</span><span>Channel disconnected: <span class="t-mono">bufete-alvarez</span> cuenta <span class="t-mono">soporte-mesa</span>.</span><span class="spacer"></span><span class="badge badge--warn">degraded</span></div>
+      <div class="log-row"><span class="log-row__time">03:00</span><span>Backup global verificado OK · 412 GB · retención 2.</span><span class="spacer"></span><span class="badge badge--success">ok</span></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px" data-od-id="version-card">
+    <div class="flex-between">
+      <div>
+        <h2 class="t-h3" style="margin:0">Versión actual · 0.1.0-demo</h2>
+        <p class="t-small" style="margin:6px 0 0">Commit <span class="t-mono">a91f2c3</span> · desplegado 2026-08-08 · 4/4 deployments healthy.</p>
+      </div>
+      <span class="badge badge--success"><span class="badge__dot"></span>healthy</span>
+    </div>
+  </div>
+
+</div>
+</div>
+<script src="./assets/app.js"></script>
+<script src="./assets/shell.js"></script>
+</body>
+</html>

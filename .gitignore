@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+
+# Build and test output
+dist/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Logs
+*.log
+logs/
+pnpm-debug.log*
+
+# Runtime and provider session data
+runtime/
+storage/
+sessions/
+*.session
+
+# IDE and operating-system files
+.idea/
+.vscode/
+*.swp
+*.tmp
+.DS_Store
+Thumbs.db
+
+# Docker local overrides
+compose.override.yaml
+docker-compose.override.yml

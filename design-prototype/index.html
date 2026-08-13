@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="es-ES">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WhatsApp Bot B2B · Visor de prototipo</title>
+<link rel="stylesheet" href="./assets/styles.css">
+<style>
+  .launcher { max-width: 920px; margin: 0 auto; padding: 48px 24px 80px; }
+  .launcher h1 { margin: 0 0 6px; }
+  .lead { color: var(--muted); margin: 0 0 32px; max-width: 62ch; }
+  .group-label { font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin: 32px 0 12px; }
+  .group-label:first-of-type { margin-top: 0; }
+  .grid-launch { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .launch-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md); padding: 16px; text-decoration: none; color: var(--fg); display: flex; flex-direction: column; gap: 6px; min-height: 92px; transition: border-color 140ms, transform 140ms; }
+  .launch-card:hover { text-decoration: none; border-color: var(--accent); transform: translateY(-1px); }
+  .launch-card__title { font-size: 14px; font-weight: 600; margin: 0; }
+  .launch-card__sub { font-size: 12px; color: var(--muted); margin: 0; line-height: 1.45; }
+  .launch-card__file { font-family: var(--font-mono); font-size: 11px; color: var(--muted); margin-top: auto; }
+  .footer-note { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--border); color: var(--muted); font-size: 12px; max-width: 70ch; }
+  @media (max-width: 760px) { .grid-launch { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header class="topbar" data-od-id="launcher-topbar">
+  <span class="topbar__crumb"><strong>WhatsApp Bot B2B</strong> · prototipo visual</span>
+  <span class="spacer"></span>
+  <span class="t-micro">v0.1.0-demo · DESIGN.md + UI_FLOWS.md</span>
+</header>
+
+<main class="launcher" data-od-id="launcher">
+  <h1 class="t-h1">Visor del prototipo</h1>
+  <p class="lead">Conjunto consistente de pantallas siguiendo <span class="t-mono">UI_FLOWS.md</span> §42 (primera generación) y <span class="t-mono">DESIGN.md</span> (Corporate Blue / Professional Neutral). Datos ficticios de demo.</p>
+
+  <div class="group-label">Super Admin — Platform Control</div>
+  <div class="grid-launch">
+    <a class="launch-card" href="./super-admin-dashboard.html" data-od-id="link-sa-dashboard">
+      <h2 class="launch-card__title">Super Admin Dashboard</h2>
+      <p class="launch-card__sub">Salud comercial/operativa de la plataforma.</p>
+      <span class="launch-card__file">super-admin-dashboard.html</span>
+    </a>
+    <a class="launch-card" href="./super-admin-tenants.html" data-od-id="link-sa-tenants">
+      <h2 class="launch-card__title">Listado de tenants</h2>
+      <p class="launch-card__sub">Tabla con filtros y acciones por tenant.</p>
+      <span class="launch-card__file">super-admin-tenants.html</span>
+    </a>
+    <a class="launch-card" href="./super-admin-create-tenant.html" data-od-id="link-sa-create">
+      <h2 class="launch-card__title">Crear tenant (wizard)</h2>
+      <p class="launch-card__sub">Empresa · capacidades · owner · confirmación.</p>
+      <span class="launch-card__file">super-admin-create-tenant.html</span>
+    </a>
+    <a class="launch-card" href="./super-admin-tenant-detail.html" data-od-id="link-sa-detail">
+      <h2 class="launch-card__title">Tenant detail / Entitlements</h2>
+      <p class="launch-card__sub">Overview, usage, channels, deployment, audit.</p>
+      <span class="launch-card__file">super-admin-tenant-detail.html</span>
+    </a>
+  </div>
+
+  <div class="group-label">Tenant Workspace — MVP (Talleres Motor Norte)</div>
+  <div class="grid-launch">
+    <a class="launch-card" href="./tenant-login.html" data-od-id="link-t-login">
+      <h2 class="launch-card__title">Login tenant</h2>
+      <p class="launch-card__sub">Acceso con estados de error seguro.</p>
+      <span class="launch-card__file">tenant-login.html</span>
+    </a>
+    <a class="launch-card" href="./tenant-home.html" data-od-id="link-t-home">
+      <h2 class="launch-card__title">Home dashboard</h2>
+      <p class="launch-card__sub">Cards dinámicas según módulos contratados.</p>
+      <span class="launch-card__file">tenant-home.html</span>
+    </a>
+    <a class="launch-card" href="./channels.html" data-od-id="link-channels">
+      <h2 class="launch-card__title">Canales</h2>
+      <p class="launch-card__sub">Estado normal, vacío, degraded y límite.</p>
+      <span class="launch-card__file">channels.html</span>
+    </a>
+    <a class="launch-card" href="./add-whatsapp-qr.html" data-od-id="link-qr">
+      <h2 class="launch-card__title">Agregar WhatsApp / QR</h2>
+      <p class="launch-card__sub">4 pasos · estados de vinculación.</p>
+      <span class="launch-card__file">add-whatsapp-qr.html</span>
+    </a>
+    <a class="launch-card" href="./inbox.html" data-od-id="link-inbox">
+      <h2 class="launch-card__title">Inbox + conversación</h2>
+      <p class="launch-card__sub">Listado, detalle, composer y Automation Mode.</p>
+      <span class="launch-card__file">inbox.html</span>
+    </a>
+    <a class="launch-card" href="./contacts.html" data-od-id="link-contacts">
+      <h2 class="launch-card__title">Contactos + 360</h2>
+      <p class="launch-card__sub">Lista + detalle con tabs por módulo.</p>
+      <span class="launch-card__file">contacts.html</span>
+    </a>
+    <a class="launch-card" href="./rules.html" data-od-id="link-rules">
+      <h2 class="launch-card__title">Reglas + Builder</h2>
+      <p class="launch-card__sub">Listado y builder por oraciones legible.</p>
+      <span class="launch-card__file">rules.html</span>
+    </a>
+    <a class="launch-card" href="./users-org.html" data-od-id="link-users">
+      <h2 class="launch-card__title">Usuarios y organización</h2>
+      <p class="launch-card__sub">Users + organization units (árbol).</p>
+      <span class="launch-card__file">users-org.html</span>
+    </a>
+  </div>
+
+  <p class="footer-note">Estados de Inbox y Canales (vacío/loading/degraded/permission/limit) están incrustados dentro de <span class="t-mono">inbox.html</span> y <span class="t-mono">channels.html</span> mediante pestañas. Todos los datos son ficticios.
+    La UI no inventa capacidades, sólo renderiza lo descrito en <span class="t-mono">UI_FLOWS.md</span>.
+    El tenant de demo tiene Messaging Basic + Automation Basic + CRM Lite habilitados; el resto de módulos está deshabilitado y no aparece en la navegación.</p>
+</main>
+</body>
+</html>

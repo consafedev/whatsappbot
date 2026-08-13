@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="es-ES">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Super Admin · Tenant detail</title>
+<link rel="stylesheet" href="./assets/styles.css">
+<style>
+  .summary-row { display: flex; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .summary-row:last-child { border-bottom: none; }
+  .summary-label { width: 200px; color: var(--muted); }
+  .summary-value { flex: 1; font-weight: 500; }
+  .usage-bar { height: 6px; background: var(--bg-subtle); border-radius: 3px; overflow: hidden; margin-top: 6px; }
+  .usage-bar__fill { height: 100%; background: var(--accent); }
+  .usage-bar__fill.warn { background: var(--warn); }
+  .usage-bar__fill.danger { background: var(--danger); }
+  .tab-panel { display: none; }
+  .tab-panel.is-active { display: block; }
+  .audit-row { display: flex; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .audit-row:last-child { border-bottom: none; }
+  .audit-row__time { color: var(--muted); font-family: var(--font-mono); width: 96px; flex-shrink: 0; }
+  .audit-row__actor { font-weight: 500; }
+  .ent-badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 11px; white-space: nowrap; }
+  .ent-on { background: var(--success-soft); color: oklch(38% 0.13 150); }
+  .ent-off { background: var(--bg-subtle); color: var(--muted); }
+</style>
+</head>
+<body class="platform-accent">
+<div data-shell="platform" data-active="sa-detail" data-topbar='<span class="topbar__crumb"><strong>Platform Control</strong> · <a href="super-admin-tenants.html">Tenants</a> · Talleres Motor Norte</span><span class="topbar__spacer"></span><span class="badge badge--success"><span class="badge__dot"></span>Active</span><span style="width:8px"></span><button class="btn btn--secondary btn--sm">Suspender</button><span style="width:8px"></span><button class="btn btn--danger btn--sm">Eliminar</button>'>
+<div data-shell-content>
+
+  <div class="page-header" data-od-id="page-header">
+    <div>
+      <div class="t-kicker" style="color:var(--accent)">Tenant detail</div>
+      <h1 class="page-header__title t-h1">Talleres Motor Norte</h1>
+      <p class="page-header__sub t-small"><span class="t-mono">motor-norte</span> · creado 2026-05-12 · deployment Shared · último contacto usuario hace 12 min. La identidad de marca del tenant no se aplica aquí.</p>
+    </div>
+    <div class="page-header__actions">
+      <a class="btn btn--secondary" href="super-admin-tenants.html">Volver al listado</a>
+      <button class="btn btn--primary" data-od-id="btn-edit-entitlements">Editar entitlements</button>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs" data-od-id="tabs">
+    <button class="tabs__tab is-active" data-tab="overview">Overview</button>
+    <button class="tabs__tab" data-tab="usage">Uso (30 días)</button>
+    <button class="tabs__tab" data-tab="channels">Canales (2/3)</button>
+    <button class="tabs__tab" data-tab="deployment">Deployment</button>
+    <button class="tabs__tab" data-tab="audit">Audit log</button>
+  </div>
+
+  <!-- Overview -->
+  <div class="tab-panel is-active" data-panel="overview" data-od-id="panel-overview">
+    <div class="grid grid--2">
+      <div class="card">
+        <h2 class="t-h3" style="margin:0 0 12px">Datos del tenant</h2>
+        <div class="summary-row"><div class="summary-label">Razón social</div><div class="summary-value">Talleres Motor Norte S.A. de C.V.</div></div>
+        <div class="summary-row"><div class="summary-label">Industria</div><div class="summary-value">Servicios / Taller</div></div>
+        <div class="summary-row"><div class="summary-label">País / Huso</div><div class="summary-value">México · américa/mexico_city (UTC-6)</div></div>
+        <div class="summary-row"><div class="summary-label">Plan comercial</div><div class="summary-value">Messaging Basic + Automation Basic + CRM Lite</div></div>
+        <div class="summary-row"><div class="summary-label">Estado</div><div class="summary-value"><span class="badge badge--success"><span class="badge__dot"></span>Active</span></div></div>
+        <div class="summary-row"><div class="summary-label">White label</div><div class="summary-value">No</div></div>
+        <div class="summary-row"><div class="summary-label">Owner</div><div class="summary-value">Ana López · ana.lopez@motor-norte.mx · rol Tenant Owner</div></div>
+      </div>
+      <div class="card">
+        <div class="grid grid--2 gap-3"><div><div class="t-micro">Canales</div><div class="t-h3" style="margin:0">2 / 3</div></div><div><div class="t-micro">Usuarios</div><div class="t-h3" style="margin:0">9 / 15</div></div></div>
+        <hr class="divider">
+        <div class="summary-row"><div class="summary-label">Unidades org.</div><div class="summary-value">10</div></div>
+        <div class="summary-row"><div class="summary-label">Almacenamiento</div><div class="summary-value">1.8 GB · tope soft 10 GB</div></div>
+        <div class="summary-row"><div class="summary-label">Reglas activas</div><div class="summary-value">3 activas · 1 pausada</div></div>
+        <div class="summary-row"><div class="summary-label">Backup</div><div class="summary-value">Último verificado hoy 03:00 · retención 2</div></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:14px" data-od-id="panel-entitlements">
+      <div class="flex-between" style="margin-bottom:12px">
+        <h2 class="t-h3" style="margin:0">Entitlements (14 capacidades)</h2>
+        <button class="btn btn--secondary btn--sm" data-od-id="btn-edit-entitlements-2">Editar</button>
+      </div>
+      <div class="table-wrap">
+        <table class="data">
+          <thead>
+            <tr><th>Capacidad</th><th>Enabled</th><th>Limit</th><th>Source</th><th>Validity</th><th>Config</th><th class="row-action"></th></tr>
+          </thead>
+          <tbody id="ent-body">
+            <!-- rows inyectadas vía JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="grid grid--metrics mt-4" style="margin-top:14px">
+      <div class="card metric-card"><div class="metric-card__label">Conversaciones (30d)</div><div class="metric-card__value">3 142</div><div class="metric-card__delta muted">+12% vs anterior</div></div>
+      <div class="card metric-card"><div class="metric-card__label">Mensajes inbound</div><div class="metric-card__value">12 480</div><div class="metric-card__delta muted">auto 68% · human 32%</div></div>
+      <div class="card metric-card"><div class="metric-card__label">Cotizaciones creadas</div><div class="metric-card__value">214</div><div class="metric-card__delta muted">187 enviadas · 27 borrador</div></div>
+      <div class="card metric-card"><div class="metric-card__label">Tasa de respuesta</div><div class="metric-card__value">94%</div><div class="metric-card__delta muted">objetivo 90%</div></div>
+    </div>
+  </div>
+
+  <!-- Usage -->
+  <div class="tab-panel" data-panel="usage" data-od-id="panel-usage">
+    <div class="grid grid--2">
+      <div class="card">
+        <h2 class="t-h3" style="margin:0 0 12px">Límites y uso</h2>
+        <div class="field" style="margin:0 0 14px">
+          <div class="flex-between"><span class="t-small" style="color:var(--fg)">Canales WhatsApp</span><span class="t-mono t-small">2 / 3 (66%)</span></div>
+          <div class="usage-bar"><div class="usage-bar__fill" style="width:66%"></div></div>
+        </div>
+        <div class="field" style="margin:0 0 14px">
+          <div class="flex-between"><span class="t-small" style="color:var(--fg)">Usuarios</span><span class="t-mono t-small">9 / 15 (60%)</span></div>
+          <div class="usage-bar"><div class="usage-bar__fill" style="width:60%"></div></div>
+        </div>
+        <div class="field" style="margin:0 0 14px">
+          <div class="flex-between"><span class="t-small" style="color:var(--fg)">Reglas activas</span><span class="t-mono t-small">3 / — (ilimitado plan)</span></div>
+          <div class="usage-bar"><div class="usage-bar__fill" style="width:25%;background:var(--border-strong)"></div></div>
+        </div>
+        <div class="field" style="margin:0">
+          <div class="flex-between"><span class="t-small" style="color:var(--fg)">Almacenamiento</span><span class="t-mono t-small">1.8 GB · tope soft 10 GB</span></div>
+          <div class="usage-bar"><div class="usage-bar__fill" style="width:18%"></div></div>
+        </div>
+      </div>
+      <div class="card">
+        <h2 class="t-h3" style="margin:0 0 12px">Mensajes por día</h2>
+        <svg viewBox="0 0 360 160" width="100%" height="170" role="img" aria-label="Línea de mensajes por día en los últimos 30 días">
+          <line x1="20" y1="140" x2="350" y2="140" stroke="var(--border)" stroke-width="1"/>
+          <line x1="20" y1="40" x2="350" y2="40" stroke="var(--border)" stroke-width="0.5" stroke-dasharray="3,3"/>
+          <polyline fill="none" stroke="var(--accent)" stroke-width="1.7" points="30,100 50,90 70,105 90,78 110,95 130,60 150,85 170,72 190,95 210,55 230,70 250,48 270,80 290,62 310,50 330,68"/>
+          <polyline fill="oklch(48% 0.13 245 / 0.12)" stroke="none" points="30,100 50,90 70,105 90,78 110,95 130,60 150,85 170,72 190,95 210,55 230,70 250,48 270,80 290,62 310,50 330,68 330,140 30,140"/>
+          <text x="20" y="156" font-family="var(--font-mono)" font-size="9" fill="var(--muted)">— 30 días</text>
+          <text x="300" y="156" font-family="var(--font-mono)" font-size="9" fill="var(--muted)">hoy →</text>
+        </svg>
+        <div class="flex gap-3 mt-2" style="margin-top:8px">
+          <span class="badge badge--accent">Inbound 12 480</span>
+          <span class="badge badge--neutral">Outbound 8 210</span>
+          <span class="badge badge--success">Auto 68%</span>
+        </div>
+      </div>
+    </div>
+    <div class="grid grid--metrics mt-4" style="margin-top:14px">
+      <div class="card metric-card"><div class="metric-card__label">Cotizaciones enviadas (30d)</div><div class="metric-card__value">187</div><div class="metric-card__delta muted">24 convertidas a proceso</div></div>
+      <div class="card metric-card"><div class="metric-card__label">Procesos activos</div><div class="metric-card__value">14</div><div class="metric-card__delta muted">3 en espera de aprobación</div></div>
+      <div class="card metric-card"><div class="metric-card__label">Documentos generados</div><div class="metric-card__value">98</div><div class="metric-card__delta muted">42 PDF · 56 generados vía API</div></div>
+      <div class="card metric-card"><div class="metric-card__label">Fallas de reglas</div><div class="metric-card__value">17</div><div class="metric-card__delta muted">5 con timeout · 12 bot no-match</div></div>
+    </div>
+  </div>
+
+  <!-- Channels -->
+  <div class="tab-panel" data-panel="channels" data-od-id="panel-channels">
+    <div class="flex-between" style="margin-bottom:14px">
+      <h2 class="t-h3" style="margin:0">Canales WhatsApp (2 de 3)</h2>
+      <button class="btn btn--secondary btn--sm" disabled>Agregar canal (límite alcanzado)</button>
+    </div>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>Cuenta</th><th>Teléfono</th><th>Unidad</th><th>Estado</th><th>Última conexión</th><th>Último mensaje</th></tr></thead>
+        <tbody>
+          <tr><td><div class="row-title">Ventas — Línea principal</div></td><td class="t-mono">+52 477 123 4567</td><td>León · Ventas</td><td><span class="badge badge--success"><span class="badge__dot"></span>Connected</span></td><td>12 min</td><td>3 min</td></tr>
+          <tr><td><div class="row-title">Soporte — Mesa de ayuda</div></td><td class="t-mono">+52 477 987 6543</td><td>León · Taller</td><td><span class="badge badge--warn"><span class="badge__dot"></span>Degraded · Requires reauth</span></td><td>2 h</td><td>15 min</td></tr>
+          <tr><td><div class="row-title">Querétaro — Atención</div></td><td class="t-mono">+52 442 555 7788</td><td>Querétaro · Ventas</td><td><span class="badge badge--success"><span class="badge__dot"></span>Connected</span></td><td>4 h</td><td>40 min</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Deployment -->
+  <div class="tab-panel" data-panel="deployment" data-od-id="panel-deployment">
+    <div class="grid grid--2">
+      <div class="card">
+        <h2 class="t-h3" style="margin:0 0 12px">Deployment</h2>
+        <div class="summary-row"><div class="summary-label">Tipo</div><div class="summary-value">Shared</div></div>
+        <div class="summary-row"><div class="summary-label">Versión</div><div class="summary-value">0.1.0-demo · commit a91f2c3</div></div>
+        <div class="summary-row"><div class="summary-label">Última actualización</div><div class="summary-value">2026-08-08 14:00 UTC</div></div>
+        <div class="summary-row"><div class="summary-label">Backup</div><div class="summary-value">Último verificado hoy 03:00 · retención 2</div></div>
+        <div class="summary-row"><div class="summary-label">Almacenamiento</div><div class="summary-value">1.8 GB usados</div></div>
+      </div>
+      <div class="card">
+        <h2 class="t-h3" style="margin:0 0 12px">Estado de servicios</h2>
+        <div class="summary-row"><div class="summary-label">API Gateway</div><div class="summary-value"><span class="badge badge--success"><span class="badge__dot"></span>Healthy</span></div></div>
+        <div class="summary-row"><div class="summary-label">Messaging runner</div><div class="summary-value"><span class="badge badge--success"><span class="badge__dot"></span>Healthy</span></div></div>
+        <div class="summary-row"><div class="summary-label">Job scheduler</div><div class="summary-value"><span class="badge badge--warn"><span class="badge__dot"></span>Degraded · 2 timeouts</span></div></div>
+        <div class="summary-row"><div class="summary-label">Documents generator</div><div class="summary-value"><span class="badge badge--success"><span class="badge__dot"></span>Healthy</span></div></div>
+        <div class="summary-row"><div class="summary-label">Customer Portal</div><div class="summary-value"><span class="badge badge--outline">No disponible para este plan</span></div></div>
+        <div class="summary-row"><div class="summary-label">Alertas abiertas</div><div class="summary-value">1 en uso global · 0 específicas</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Audit -->
+  <div class="tab-panel" data-panel="audit" data-od-id="panel-audit">
+    <div class="card">
+      <h2 class="t-h3" style="margin:0 0 12px">Audit log · últimos 14 días</h2>
+      <div class="audit-row"><span class="audit-row__time">2026-08-12 09:42</span><span><span class="audit-row__actor">Ana López</span> · owner cambió Automation Mode a HUMAN en conversación con María Salcedo.</span></div>
+      <div class="audit-row"><span class="audit-row__time">2026-08-12 09:18</span><span><span class="audit-row__actor">job-scheduler</span> · recordatorio 24h enviado para cita C-2026-0114.</span></div>
+      <div class="audit-row"><span class="audit-row__time">2026-08-12 03:00</span><span><span class="audit-row__actor">system</span> · backup diario verificado OK.</span></div>
+      <div class="audit-row"><span class="audit-row__time">2026-08-11 16:55</span><span><span class="audit-row__actor">Luis Treviño</span> · editó regla "Menú de bienvenida por horario" v3 → v4.</span></div>
+      <div class="audit-row"><span class="audit-row__time">2026-08-11 10:12</span><span><span class="audit-row__actor">Super Admin (Sergio Peña)</span> · ajustó límite de usuarios 8 → 15.</span></div>
+      <div class="audit-row"><span class="audit-row__time">2026-08-10 11:30</span><span><span class="audit-row__actor">system</span> · canal "Soporte — Mesa de ayuda" requiere reauth.</span></div>
+      <div class="audit-row"><span class="audit-row__time">2026-08-08 14:02</span><span><span class="audit-row__actor">Super Admin</span> · deployment actualizado a 0.1.0-demo.</span></div>
+      <div class="audit-row"><span class="audit-row__time">2026-05-12 10:00</span><span><span class="audit-row__actor">Super Admin</span> · tenant creado.</span></div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script src="./assets/app.js"></script>
+<script src="./assets/shell.js"></script>
+<script>
+(function(){
+  'use strict';
+  function esc(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  document.addEventListener('DOMContentLoaded', function(){
+    // Tabs
+    document.querySelectorAll('.tabs__tab').forEach(function(tab){
+      tab.addEventListener('click', function(){
+        const target = tab.getAttribute('data-tab');
+        document.querySelectorAll('.tabs__tab').forEach(t => t.classList.toggle('is-active', t === tab));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('is-active', p.getAttribute('data-panel') === target));
+      });
+    });
+    // Entitlements: tabla desde dataset demo (motor-norte)
+    const body = document.getElementById('ent-body');
+    if (body && window.OD && window.OD.tenants) {
+      const tenant = window.OD.tenants.find(t => t.slug === 'motor-norte');
+      const caps = window.OD.CAPABILITIES || [];
+      if (tenant && tenant.entitlements) {
+        body.innerHTML = caps.map(function(c){
+          const e = tenant.entitlements[c.id];
+          const on = !!(e && e.enabled);
+          const enabled = on
+            ? '<span class="ent-badge ent-on">On</span>'
+            : '<span class="ent-badge ent-off">Off</span>';
+          const limit = (e && e.limit != null) ? e.limit : '—';
+          const source = (e && e.source && e.source !== '—') ? e.source : '—';
+          const validity = (e && e.validity && e.validity !== '—') ? e.validity : '—';
+          const config = on ? '<span class="t-micro t-mono">plan</span>' : '<span class="t-micro">roadmap</span>';
+          return '<tr>' +
+            '<td><div class="row-title">' + esc(c.label) + '</div><div class="row-sub">' + esc(c.desc) + '</div></td>' +
+            '<td>' + enabled + '</td>' +
+            '<td class="t-mono">' + limit + '</td>' +
+            '<td class="row-sub">' + esc(source) + '</td>' +
+            '<td class="row-sub">' + esc(validity) + '</td>' +
+            '<td class="row-sub">' + config + '</td>' +
+            '<td class="row-action"><button class="btn btn--ghost btn--sm" aria-label="Configurar">Config</button></td>' +
+          '</tr>';
+        }).join('');
+      }
+    }
+  });
+})();
+</script>
+</body>
+</html>

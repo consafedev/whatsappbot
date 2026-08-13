@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="es-ES">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inbox · Talleres Motor Norte</title>
+<link rel="stylesheet" href="./assets/styles.css">
+<style>
+  /* Inbox layout — two-pane: lista + detalle */
+  .inbox { display: grid; grid-template-columns: 360px 1fr; height: calc(100vh - 52px - 48px); min-height: 560px; border: 1px solid var(--border); border-radius: var(--r-md); overflow: hidden; background: var(--bg); }
+  .conv-list { border-right: 1px solid var(--border); display: flex; flex-direction: column; background: var(--surface); overflow: hidden; }
+  .conv-list__head { padding: 12px 14px; border-bottom: 1px solid var(--border); background: var(--bg); }
+  .conv-list__scroll { overflow-y: auto; flex: 1; }
+  .conv-item { display: grid; grid-template-columns: 36px 1fr auto; gap: 10px; padding: 11px 14px; cursor: pointer; border-bottom: 1px solid var(--border); align-items: center; }
+  .conv-item:hover { background: var(--bg-subtle); }
+  .conv-item.is-active { background: var(--accent-soft); border-left: 3px solid var(--accent); padding-left: 11px; }
+  .conv-item__avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--bg-subtle); color: var(--fg); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; }
+  .conv-item__name { font-size: 13.5px; font-weight: 500; }
+  .conv-item__prev { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .conv-item__meta { font-size: 11px; text-align: right; color: var(--muted); }
+  .conv-item__unread { background: var(--accent); color: var(--on-accent); border-radius: 10px; padding: 1px 7px; font-size: 10px; font-weight: 600; }
+  .mode-tag { font-size: 9.5px; font-weight: 600; letter-spacing: 0.06em; padding: 1px 5px; border-radius: 4px; }
+  .mode-tag.AUTO { background: var(--accent-soft); color: var(--accent); border: 1px solid oklch(85% 0.07 245); }
+  .mode-tag.HUMAN { background: var(--accent); color: var(--on-accent); }
+  .mode-tag.ASSISTED { background: var(--info-soft); color: oklch(40% 0.10 235); border: 1px solid oklch(86% 0.06 235); }
+  .mode-tag.MONITOR { background: var(--bg-subtle); color: var(--muted); border: 1px solid var(--border); }
+  .conv-panel { display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+  .conv-header { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--border); background: var(--bg); flex-wrap: wrap; }
+  .conv-header__avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-weight: 600; font-size: 14px; display: flex; align-items: center; justify-content: center; }
+  .conv-header__meta { font-size: 12px; color: var(--muted); }
+  .conv-thread { flex: 1; overflow-y: auto; padding: 18px 20px; background: var(--bg); }
+  .bubble { max-width: 78%; padding: 9px 12px; border-radius: var(--r-md); font-size: 13.5px; line-height: 1.5; margin-bottom: 12px; }
+  .bubble__time { display: block; font-size: 10.5px; color: var(--muted); margin-top: 3px; letter-spacing: 0.02em; }
+  .b-in { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md) var(--r-md) var(--r-md) 2px; }
+  .b-out { background: var(--accent-soft); color: oklch(25% 0.03 245); border: 1px solid oklch(88% 0.05 245); margin-left: auto; border-radius: var(--r-md) var(--r-md) 2px var(--r-md); }
+  .b-bot { background: var(--bg-subtle); border: 1px solid var(--border); border-radius: var(--r-md) var(--r-md) var(--r-md) 2px; color: var(--fg); }
+  .b-ai { background: var(--info-soft); border: 1px solid oklch(86% 0.06 235); border-radius: var(--r-md) var(--r-md) var(--r-md) 2px; }
+  .b-note { background: var(--warn-soft); border: 1px solid oklch(86% 0.08 75); color: oklch(40% 0.14 70); border-radius: var(--r-md); max-width: 86%; }
+  .bubble__label { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 4px; }
+  .lbl-bot { color: var(--accent); }
+  .lbl-ai { color: oklch(40% 0.10 235); }
+  .lbl-external { color: var(--warn); }
+  .lbl-note { color: oklch(45% 0.14 70); }
+  .composer { display: flex; gap: 8px; align-items: flex-end; padding: 12px 16px; border-top: 1px solid var(--border); background: var(--bg); }
+  .composer__input { flex: 1; min-height: 40px; padding: 9px 12px; border: 1px solid var(--border-strong); border-radius: var(--r-md); background: var(--bg); font-family: inherit; font-size: 13.5px; resize: none; outline: none; }
+  .composer__input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--focus-ring); }
+  .composer__icon { display: flex; gap: 4px; }
+  .conv-list__filters { display: flex; gap: 6px; padding: 9px 14px; border-bottom: 1px solid var(--border); background: var(--bg); }
+  .mini-filter { padding: 3px 9px; border-radius: 12px; font-size: 11.5px; background: var(--bg); border: 1px solid var(--border-strong); cursor: pointer; color: var(--muted); }
+  .mini-filter:hover { color: var(--fg); }
+  .mini-filter.is-active { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+  .mode-control { display: flex; align-items: center; gap: 10px; }
+  .conv-header__name { font-size: 15px; font-weight: 600; }
+  .panel-state-inbox { display: none; }
+  .panel-state-inbox.is-active { display: flex; }
+  .mode-confirm { display: none; font-size: 11.5px; color: var(--muted); margin-left: 8px; font-style: italic; }
+  .thread-meta { text-align: center; font-size: 11px; color: var(--muted); padding: 6px 0 12px; }
+</style>
+</head>
+<body>
+<div data-shell="tenant" data-active="inbox" data-topbar='<span class="topbar__crumb"><strong>Inbox</strong></span><span class="topbar__spacer"></span><span class="badge badge--success"><span class="badge__dot"></span>1 cuenta conectada</span><span style="width:10px"></span><span class="badge badge--warn"><span class="badge__dot"></span>1 requiere reconexión</span>'>
+<div data-shell-content>
+
+  <div class="page-header" data-od-id="page-header" style="margin-bottom:14px">
+    <div>
+      <h1 class="page-header__title t-h1">Inbox</h1>
+      <p class="page-header__sub t-small">Conversaciones en tiempo real de tus canales conectados. Cambia el Automation Mode por conversación cuando se requiera intervención humana.</p>
+    </div>
+    <div class="page-header__actions">
+      <div class="filterbar" style="margin:0" data-od-id="inbox-states">
+        <span class="chip chip--active" data-st="chat">conversation</span>
+        <span class="chip" data-st="empty">empty</span>
+        <span class="chip" data-st="loading">loading</span>
+        <span class="chip" data-st="degraded">degraded</span>
+        <span class="chip" data-st="permission">permission</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- chat state -->
+  <div class="inbox panel-state-inbox is-active" data-panel="chat" data-od-id="inbox-chat">
+
+    <!-- Conversation list -->
+    <aside class="conv-list" data-od-id="conv-list">
+      <div class="conv-list__head">
+        <div class="flex-between">
+          <strong style="font-size:14px">Conversaciones</strong>
+          <button class="btn btn--ghost btn--icon btn--sm" aria-label="Filtrar">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 5h18l-7 9v6l-4-2v-4z"/></svg>
+          </button>
+        </div>
+        <div class="input" style="margin-top:8px;display:flex;align-items:center;gap:6px;height:32px;width:100%;padding:0 10px;font-size:12.5px;color:var(--muted)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <input type="text" placeholder="Buscar nombre o teléfono" style="border:0;outline:0;background:transparent;width:100%;color:var(--fg);font-size:12.5px">
+        </div>
+      </div>
+      <div class="conv-list__filters">
+        <span class="mini-filter is-active">Todas (48)</span>
+        <span class="mini-filter">No leídas (5)</span>
+        <span class="mini-filter">Asignadas a mí (12)</span>
+        <span class="mini-filter">BOT (31)</span>
+      </div>
+      <div class="conv-list__scroll" id="conv-scroll">
+        <!-- JS inyecta -->
+      </div>
+    </aside>
+
+    <!-- Conversation detail -->
+    <section class="conv-panel" data-od-id="conv-detail">
+      <div class="conv-header" data-od-id="conv-header">
+        <div class="conv-header__avatar">MS</div>
+        <div style="flex:1;min-width:140px">
+          <div class="conv-header__name">María Salcedo</div>
+          <div class="conv-header__meta"><span class="t-mono">+52 477 220 1188</span> · Salcedo Asociados · canal <b>WhatsApp Ventas</b> · asignada a Ana López</div>
+        </div>
+        <div class="mode-control" data-od-id="mode-control">
+          <span class="t-micro">Automation Mode</span>
+          <div class="segmented segmented--auto" id="mode-segmented" data-od-id="mode-segmented">
+            <button data-mode="AUTO">AUTO</button>
+            <button data-mode="ASSISTED">ASSISTED</button>
+            <button data-mode="HUMAN" class="is-active">HUMAN</button>
+            <button data-mode="MONITOR">MONITOR</button>
+          </div>
+          <span class="mode-confirm" id="mode-confirm" data-od-id="mode-confirm">Modo aplicado · confirmado</span>
+        </div>
+        <button class="btn btn--ghost btn--icon btn--sm" data-od-id="btn-conv-menu" aria-label="Más"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></button>
+      </div>
+
+      <div class="conv-thread" id="conv-thread" data-od-id="conv-thread">
+        <div class="thread-meta">Conversación iniciada · hoy 09:38 · canal WhatsApp Ventas</div>
+        <!-- mensajes en JS -->
+      </div>
+
+      <div class="composer" data-od-id="composer">
+        <button class="btn btn--ghost btn--icon" aria-label="Adjuntar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 12l-9 9c-3 3-8-2-5-5l9-9c2-2 5 1 3 3l-9 9"/></svg></button>
+        <textarea class="composer__input" placeholder="Escribe un mensaje o usa / para comandos…" rows="1" data-od-id="composer-input"></textarea>
+        <div class="composer__icon">
+          <button class="btn btn--ghost btn--icon" aria-label="Insertar nota interna"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M5 4h14v16H5z"/><path d="M9 9h6M9 13h6"/></svg></button>
+          <button class="btn btn--primary btn--icon" aria-label="Enviar" data-od-id="btn-send"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 12l16-8-6 16-3-7z"/></svg></button>
+        </div>
+      </div>
+
+    </section>
+  </div>
+
+  <!-- EMPTY state -->
+  <div class="inbox panel-state-inbox" data-panel="empty" data-od-id="inbox-empty">
+    <aside class="conv-list">
+      <div class="conv-list__head"><strong style="font-size:14px">Conversaciones</strong></div>
+      <div class="empty" style="margin:24px auto;padding:32px 16px">
+        <svg class="empty__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 4h16v11H10l-3 3v-3H4z"/></svg>
+        <h3 class="empty__title">Sin conversaciones hoy</h3>
+        <p class="empty__text">Cuando recibas el primer mensaje en tus canales conectados, aparecerá aquí automáticamente.</p>
+      </div>
+    </aside>
+    <section class="conv-panel" style="align-items:center;justify-content:center">
+      <div class="empty" style="margin:auto">
+        <svg class="empty__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8 3h8l4 4v14H8z"/><path d="M12 12v6M9 15h6"/></svg>
+        <h3 class="empty__title">Selecciona una conversación</h3>
+        <p class="empty__text">Pulsa una conversación del listado para ver el hilo, el Automation Mode y el composer.</p>
+      </div>
+    </section>
+  </div>
+
+  <!-- LOADING state -->
+  <div class="inbox panel-state-inbox" data-panel="loading" data-od-id="inbox-loading">
+    <aside class="conv-list">
+      <div class="conv-list__head"><div class="skel skel-line" style="width:60%;height:14px"></div><div class="skel skel-line short" style="margin-top:10px;height:28px"></div></div>
+      <div style="padding:12px 14px">
+        <div class="skel skel-line" style="height:38px;border-radius:8px"></div>
+        <div class="skel skel-line" style="height:38px;border-radius:8px;margin-top:10px"></div>
+        <div class="skel skel-line" style="height:38px;border-radius:8px;margin-top:10px"></div>
+        <div class="skel skel-line" style="height:38px;border-radius:8px;margin-top:10px"></div>
+        <div class="skel skel-line" style="height:38px;border-radius:8px;margin-top:10px"></div>
+      </div>
+    </aside>
+    <section class="conv-panel" style="justify-content:center;align-items:center">
+      <span class="badge badge--info"><span class="badge__dot"></span>Cargando conversaciones…</span>
+    </section>
+  </div>
+
+  <!-- DEGRADED state -->
+  <div class="inbox panel-state-inbox" data-panel="degraded" data-od-id="inbox-degraded">
+    <aside class="conv-list">
+      <div class="conv-list__head"><div class="flex-between"><strong style="font-size:14px">Conversaciones</strong><span class="badge badge--warn"><span class="badge__dot"></span>degradado</span></div></div>
+      <div class="conv-list__scroll">
+        <div class="conv-item">
+          <div class="conv-item__avatar">MS</div>
+          <div><div class="conv-item__name">María Salcedo</div><div class="conv-item__prev">mensaje hace 12 min…</div></div>
+          <div class="conv-item__meta">12m</div>
+        </div>
+        <div class="conv-item">
+          <div class="conv-item__avatar">JM</div>
+          <div><div class="conv-item__name">José Miranda</div><div class="conv-item__prev">mensaje hace 14 min…</div></div>
+          <div class="conv-item__meta">14m</div>
+        </div>
+      </div>
+    </aside>
+    <section class="conv-panel" style="justify-content:center;align-items:center;padding:24px">
+      <div class="alert alert--warn" style="max-width:460px">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+        <div>
+          <div style="font-weight:500;font-size:13.5px">El canal <b>WhatsApp Atención</b> está en modo degradado.</div>
+          <div class="t-small" style="margin-top:4px;color:inherit;opacity:0.85">No se están sincronizando mensajes nuevos. El historial sigue disponible; reconecta el canal para reanudar la recepción en tiempo real.</div>
+          <a class="btn btn--secondary btn--sm" href="add-whatsapp-qr.html?reconnect=atencion" style="margin-top:10px">Reconectar canal</a>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- PERMISSION state -->
+  <div class="inbox panel-state-inbox" data-panel="permission" data-od-id="inbox-permission">
+    <section class="conv-panel" style="justify-content:center;align-items:center;width:100%">
+      <div class="empty" style="margin:auto">
+        <svg class="empty__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="12" cy="8" r="3"/><path d="M5 14c1-3 3-4 7-4s6 1 7 4M4 20c0-2 1-3 3-3h10c2 0 3 1 3 3"/></svg>
+        <h3 class="empty__title">No tienes acceso al Inbox</h3>
+        <p class="empty__text">Tu rol no incluye el permiso <b>conversations.read</b>. Si crees que es un error, contacta al administrador del tenant.</p>
+        <button class="btn btn--secondary">Solicitar acceso</button>
+      </div>
+    </section>
+  </div>
+
+</div>
+</div>
+
+<script src="./assets/app.js"></script>
+<script src="./assets/shell.js"></script>
+<script>
+(function(){
+  'use strict';
+  const CONVERSATIONS = [
+    { name: 'María Salcedo', phone: '+52 477 220 1188', initials: 'MS', preview: 'Buen día, ¿queda confirmada mi cita del jueves?', time: '09:42', unread: 2, mode: 'HUMAN', ch: 0, assignee: 'Ana López', tag: 'Requiere humano' },
+    { name: 'José Miranda',  phone: '+52 477 220 4412', initials: 'JM', preview: 'BOT: ¿Con qué tipo de servicio te puedo apoyar? 1. Cita 2. Cotiz…', time: '09:38', unread: 0, mode: 'AUTO', ch: 1, assignee: '—', tag: 'Menú bot' },
+    { name: 'Comercial PyME', phone: '+52 442 800 1234', initials: 'CP', preview: 'Le confirmo el pedido apenas quede listo.', time: '09:21', unread: 1, mode: 'ASSISTED', ch: 0, assignee: 'Luis Treviño', tag: 'Pedido' },
+    { name: 'Fernando Ruiz', phone: '+52 477 221 9900', initials: 'FR', preview: 'Ok, perfecto. Lo reviso y aviso.', time: '09:05', unread: 0, mode: 'AUTO', ch: 1, assignee: '—', tag: 'Cerrada' },
+    { name: 'Hardware del Bajío', phone: '+52 442 555 7788', initials: 'HB', preview: '¿Tienen en stock el filtro ACE-22?', time: '08:51', unread: 1, mode: 'HUMAN', ch: 0, assignee: 'Ana López', tag: 'Inbound' },
+    { name: 'Patricia Núñez', phone: '+52 477 330 0102', initials: 'PN', preview: 'BOT: Recibimos tu mensaje, te responderemos en breve.', time: '08:30', unread: 0, mode: 'AUTO', ch: 1, assignee: '—', tag: 'Notificación' }
+  ];
+
+  function chName(idx) { return ['WhatsApp Ventas','WhatsApp Atención','WhatsApp Querétaro'][idx] || '—'; }
+  function initials(n) { return n.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase(); }
+
+  function renderList() {
+    const scroll = document.getElementById('conv-scroll'); if (!scroll) return;
+    scroll.innerHTML = CONVERSATIONS.map(function(c, i) {
+      return '<div class="conv-item ' + (i===0 ? 'is-active' : '') + '" data-conv="' + i + '">' +
+        '<div class="conv-item__avatar">' + c.initials + '</div>' +
+        '<div style="min-width:0"><div class="conv-item__name">' + c.name + '</div><div class="conv-item__prev">' + c.preview + '</div></div>' +
+        '<div class="conv-item__meta"><div>' + c.time + '</div>' + (c.unread ? '<span class="conv-item__unread">' + c.unread + '</span>' : '') + '</div>' +
+        '<div style="position:absolute;right:14px;bottom:6px"><span class="mode-tag ' + c.mode + '">' + c.mode + '</span></div>' +
+      '</div>';
+    }).join('');
+  }
+
+  const MESSAGES = [
+    { type: 'in', text: 'Buen día, ¿queda confirmada mi cita del jueves a las 16:00?', time: '09:38', actor: 'Cliente · María Salcedo' },
+    { type: 'bot', text: 'Hola, María. Tu cita del jueves a las 16:00 está confirmada. Si necesitas reagendar, escribe REAGENDAR.', label: { cls: 'lbl-bot', text: 'Regla · Menú por horario' }, time: '09:38', actor: 'BOT · Rule' },
+    { type: 'in', text: 'Ok, perfecto. Lo reviso y aviso.', time: '09:40', actor: 'Cliente · María Salcedo' },
+    { type: 'out', text: 'María, te confirmamos la orden de servicio ORD-2026-0088. Técnico asignado: Carlos M. Dirección: Av. Universidad 442, León. Te avisamos 30 min antes de que el técnico salga.', time: '09:41', actor: 'Humano · App · Ana López', label: { cls: 'lbl-external', text: 'Saliente · vía app' } },
+    { type: 'note', text: 'Revisar historia previa del cliente · cita previa 14/06 · ya 3 recepciones seguidas.', label: { cls: 'lbl-note', text: 'nota interna · sólo equipo' }, time: '09:41', actor: 'Humano · App · Ana López' },
+    { type: 'in', text: 'Genial, gracias. Por cierto, ¿pueden revisar el filtro ACE-22 también?', time: '09:42', actor: 'Cliente · María Salcedo' }
+  ];
+
+  function renderThread() {
+    const t = document.getElementById('conv-thread'); if (!t) return;
+    const html = ['<div class="thread-meta">Conversación iniciada · hoy 09:38 · canal WhatsApp Ventas</div>']
+      .concat(MESSAGES.map(function(m){
+        const cls = m.type==='in'?'b-in':m.type==='out'?'b-out':m.type==='bot'?'b-bot':m.type==='ai'?'b-ai':'b-note';
+        const label = m.label ? '<div class="bubble__label ' + m.label.cls + '">' + m.label.text + '</div>' : '';
+        return '<div class="bubble ' + cls + '">' + label + '<div>' + m.text + '</div><span class="bubble__time">' + m.time + ' · ' + (m.actor||'') + '</span></div>';
+      })).join('');
+    t.innerHTML = html;
+  }
+
+  function setState(s) {
+    document.querySelectorAll('[data-od-id="inbox-states"] .chip').forEach(c => c.classList.toggle('chip--active', c.getAttribute('data-st') === s));
+    document.querySelectorAll('.panel-state-inbox').forEach(p => p.classList.toggle('is-active', p.getAttribute('data-panel') === s));
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    renderList();
+    renderThread();
+    document.querySelectorAll('[data-od-id="inbox-states"] .chip').forEach(function(c){
+      c.addEventListener('click', function(){ setState(c.getAttribute('data-st')); });
+    });
+    // Conv item click: re-render thread target
+    document.getElementById('conv-scroll').addEventListener('click', function(e){
+      const item = e.target.closest('.conv-item'); if (!item) return;
+      document.querySelectorAll('.conv-item').forEach(x => x.classList.remove('is-active'));
+      item.classList.add('is-active');
+      const idx = +item.getAttribute('data-conv');
+      const c = CONVERSATIONS[idx] || CONVERSATIONS[0];
+      const header = document.querySelector('.conv-header__avatar');
+      const name = document.querySelector('.conv-header__name');
+      const meta = document.querySelector('.conv-header__meta');
+      if (header) header.textContent = c.initials;
+      if (name) name.textContent = c.name;
+      if (meta) meta.innerHTML = '<span class="t-mono">' + c.phone + '</span> · canal <b>' + chName(c.ch) + '</b> · asignada a ' + c.assignee;
+      document.querySelectorAll('#mode-segmented button').forEach(b => b.classList.toggle('is-active', b.getAttribute('data-mode') === c.mode));
+    });
+    // Mode segmented
+    document.querySelectorAll('#mode-segmented button').forEach(function(b){
+      b.addEventListener('click', function(){
+        document.querySelectorAll('#mode-segmented button').forEach(x => x.classList.remove('is-active'));
+        b.classList.add('is-active');
+        const cf = document.getElementById('mode-confirm');
+        if (cf) { cf.style.display = 'inline'; setTimeout(function(){ cf.style.display = 'none'; }, 2200); }
+      });
+    });
+    // Composer send (demo)
+    document.querySelector('[data-od-id="btn-send"]').addEventListener('click', function(){
+      const input = document.querySelector('[data-od-id="composer-input"]');
+      if (!input.value.trim()) return;
+      const t = document.getElementById('conv-thread');
+      const b = document.createElement('div');
+      b.className = 'bubble b-out';
+      b.innerHTML = '<div>' + input.value.replace(/</g,'&lt;') + '</div><span class="bubble__time">' + new Date().toLocaleTimeString().slice(0,5) + ' · Humano · App · Ana López</span>';
+      t.appendChild(b);
+      input.value = '';
+      t.scrollTop = t.scrollHeight;
+    });
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="es-ES">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Contactos · Talleres Motor Norte</title>
+<link rel="stylesheet" href="./assets/styles.css">
+<style>
+  .contact-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: inline-flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; flex-shrink: 0; }
+  .contact-detail-grid { display: grid; grid-template-columns: 1fr 320px; gap: 16px; }
+  .contact-head { display: flex; gap: 14px; align-items: center; }
+  .contact-head > .contact-avatar { width: 52px; height: 52px; font-size: 18px; }
+  .field-block { padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--r-sm); background: var(--bg); }
+  .field-block + .field-block { margin-top: 10px; }
+  .field-block__label { font-size: 11px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+  .field-block__value { font-size: 13.5px; margin-top: 3px; }
+  .tab-panel { display: none; }
+  .tab-panel.is-active { display: block; }
+  .timeline-event { display: grid; grid-template-columns: 64px 1fr; gap: 14px; padding-bottom: 16px; position: relative; }
+  .timeline-event::before { content: ''; position: absolute; left: 28px; top: 28px; bottom: -4px; width: 1px; background: var(--border); }
+  .timeline-event:last-child::before { display: none; }
+  .timeline-event__time { font-size: 11px; color: var(--muted); font-family: var(--font-mono); padding-top: 2px; text-align: right; }
+  .timeline-event__icon { position: absolute; left: 22px; top: 4px; width: 14px; height: 14px; border-radius: 50%; background: var(--accent); border: 2px solid var(--bg); z-index: 1; }
+  .timeline-event__title { font-size: 13.5px; font-weight: 500; }
+  .timeline-event__meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .timeline-event__actor { display: inline-block; font-size: 10px; font-weight: 600; letter-spacing: 0.04em; padding: 1px 5px; border-radius: 3px; margin-right: 6px; background: var(--bg-subtle); color: var(--muted); }
+  .actor-customer { background: var(--accent-soft); color: var(--accent); }
+  .actor-human { background: #dfe7ef; color: #274a63; }
+  .actor-bot { background: var(--bg-subtle); color: var(--muted); }
+  .actor-system { background: var(--bg-subtle); color: var(--muted); }
+  .timeline-event__vis { display: inline-block; font-size: 10px; font-weight: 600; letter-spacing: 0.04em; padding: 1px 5px; border-radius: 3px; margin-top: 4px; }
+  .vis-internal { background: var(--bg-subtle); color: var(--muted); }
+  .vis-customer { background: var(--accent-soft); color: var(--accent); }
+  .process-row { display: flex; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .process-row:last-child { border-bottom: none; }
+</style>
+</head>
+<body>
+<div data-shell="tenant" data-active="contacts" data-topbar='<span class="topbar__crumb"><strong>Contactos</strong></span><span class="topbar__spacer"></span><button class="btn btn--secondary btn--sm">Importar</button><span style="width:8px"></span><button class="btn btn--primary btn--sm">Nuevo contacto</button>'>
+<div data-shell-content>
+
+  <div class="page-header" data-od-id="page-header">
+    <div>
+      <h1 class="page-header__title t-h1">Contactos</h1>
+      <p class="page-header__sub t-small">1 247 contactos · 9 activos en conversaciones · vista 360 disponible al abrir un contacto.</p>
+    </div>
+    <div class="page-header__actions">
+      <div class="input" style="display:flex;align-items:center;gap:6px;height:34px;width:260px;padding:0 10px;background:var(--surface);border:1px solid var(--border-strong);font-size:12.5px;color:var(--muted)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input type="text" placeholder="Buscar nombre, teléfono o tag" style="border:0;background:transparent;outline:0;width:100%;color:var(--fg);font-size:12.5px">
+      </div>
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <div class="filterbar" data-od-id="filters">
+    <span class="chip chip--active">Todos (1247)</span>
+    <span class="chip">Activos (9)</span>
+    <span class="chip">Cotización (24)</span>
+    <span class="chip">Distribuidor (8)</span>
+    <span class="chip">Cliente recurrente</span>
+    <span class="spacer"></span>
+    <span class="t-micro">Orden: últimos activos ▾</span>
+  </div>
+
+  <div class="contact-detail-grid" data-od-id="contacts-layout">
+
+    <!-- Lista -->
+    <div class="table-wrap" data-od-id="contacts-table">
+      <table class="data">
+        <thead>
+          <tr><th>Nombre</th><th>Teléfono</th><th>Organización</th><th>Tags</th><th>Procesos</th><th>Actividad</th><th class="row-action"></th></tr>
+        </thead>
+        <tbody id="contacts-body"></tbody>
+      </table>
+    </div>
+
+    <!-- Vista 360 -->
+    <aside class="card" data-od-id="contact-360">
+      <div class="contact-head" style="margin-bottom:14px">
+        <div class="contact-avatar">MS</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:16px;font-weight:600">María Salcedo</div>
+          <div class="t-small" style="margin-top:2px">Salcedo Asociados · León</div>
+        </div>
+        <button class="btn btn--ghost btn--icon btn--sm" aria-label="Más"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></button>
+      </div>
+
+      <div class="flex gap-2" style="margin-bottom:14px">
+        <button class="btn btn--primary btn--sm" style="flex:1">Abrir conversación</button>
+        <button class="btn btn--secondary btn--sm" style="flex:1">Crear proceso</button>
+      </div>
+
+      <div class="tabs" style="margin-bottom:12px">
+        <button class="tabs__tab is-active" data-ctab="about">Ficha</button>
+        <button class="tabs__tab" data-ctab="timeline">Timeline</button>
+        <button class="tabs__tab" data-ctab="processes">Procesos</button>
+      </div>
+
+      <div class="tab-panel is-active" data-cpanel="about">
+        <div class="field-block">
+          <div class="field-block__label">Teléfono</div>
+          <div class="field-block__value t-mono">+52 477 220 1188</div>
+        </div>
+        <div class="field-block">
+          <div class="field-block__label">Correo</div>
+          <div class="field-block__value">maria.salcedo@example.com</div>
+        </div>
+        <div class="field-block">
+          <div class="field-block__label">Tags</div>
+          <div class="field-block__value"><span class="badge badge--accent">Cotización</span> <span class="badge badge--neutral">Cliente recurrente</span></div>
+        </div>
+        <div class="field-block">
+          <div class="field-block__label">Unidad organizativa</div>
+          <div class="field-block__value">León · Ventas</div>
+        </div>
+        <div class="field-block">
+          <div class="field-block__label">Conversaciones</div>
+          <div class="field-block__value">WhatsApp Ventas · activa hoy</div>
+        </div>
+        <div class="field-block">
+          <div class="field-block__label">Última actividad</div>
+          <div class="field-block__value">hoy 09:42 · conversación activa</div>
+        </div>
+        <div class="field-block">
+          <div class="field-block__label">Owner asignado</div>
+          <div class="field-block__value">Ana López</div>
+        </div>
+      </div>
+
+      <div class="tab-panel" data-cpanel="timeline">
+        <div class="timeline-event">
+          <div class="timeline-event__time">09:42</div>
+          <div class="timeline-event__icon"></div>
+          <div>
+            <div class="timeline-event__title">Mensaje recibido en conversación</div>
+            <div class="timeline-event__meta"><span class="timeline-event__actor actor-customer">Cliente</span>Canal WhatsApp Ventas · "Genial, gracias. Por cierto, ¿pueden revisar el filtro ACE-22 también?"</div>
+            <span class="timeline-event__vis vis-customer">visible al cliente</span>
+          </div>
+        </div>
+        <div class="timeline-event">
+          <div class="timeline-event__time">09:41</div>
+          <div class="timeline-event__icon"></div>
+          <div>
+            <div class="timeline-event__title">Nota interna añadida</div>
+            <div class="timeline-event__meta"><span class="timeline-event__actor actor-human">Humano · App · Ana López</span>revisar historia previa · cita previa 14/06</div>
+            <span class="timeline-event__vis vis-internal">sólo equipo</span>
+          </div>
+        </div>
+        <div class="timeline-event">
+          <div class="timeline-event__time">09:38</div>
+          <div class="timeline-event__icon"></div>
+          <div>
+            <div class="timeline-event__title">Cita confirmada por regla de bot</div>
+            <div class="timeline-event__meta"><span class="timeline-event__actor actor-bot">BOT · Rule</span>Regla "Menú por horario" · cita 14:00h jueves 13 ago</div>
+            <span class="timeline-event__vis vis-customer">visible al cliente</span>
+          </div>
+        </div>
+        <div class="timeline-event">
+          <div class="timeline-event__time">08/08</div>
+          <div class="timeline-event__icon"></div>
+          <div>
+            <div class="timeline-event__title">Cotización COT-2026-0108 enviada</div>
+            <div class="timeline-event__meta"><span class="timeline-event__actor actor-bot">Automation</span>5 ítems · total $48 950 MXN · estado enviada</div>
+            <span class="timeline-event__vis vis-customer">visible al cliente</span>
+          </div>
+        </div>
+        <div class="timeline-event">
+          <div class="timeline-event__time">14/06</div>
+          <div class="timeline-event__icon"></div>
+          <div>
+            <div class="timeline-event__title">Cita previa completada</div>
+            <div class="timeline-event__meta"><span class="timeline-event__actor actor-human">Humano · App · Ana López</span>Servicio de frenos · técnico Carlos M.</div>
+            <span class="timeline-event__vis vis-customer">visible al cliente</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-panel" data-cpanel="processes">
+        <div class="process-row">
+          <div class="contact-avatar">COT</div>
+          <div style="flex:1"><div style="font-weight:500">COT-2026-0114 · Cubre ACE-22</div><div class="t-micro">Enviada · esperando respuesta</div></div>
+          <span class="badge badge--warn"><span class="badge__dot"></span>Pending</span>
+        </div>
+        <div class="process-row">
+          <div class="contact-avatar">SVC</div>
+          <div style="flex:1"><div style="font-weight:500">SVC-2026-0088 · Revisión de frenos</div><div class="t-micro">Agendada jueves 13 ago 16:00 · técnico Carlos M.</div></div>
+          <span class="badge badge--accent"><span class="badge__dot"></span>Agendada</span>
+        </div>
+        <div class="process-row">
+          <div class="contact-avatar">COT</div>
+          <div style="flex:1"><div style="font-weight:500">COT-2026-0108 (previa)</div><div class="t-micro">Completada 08/08 · 5 ítems</div></div>
+          <span class="badge badge--success"><span class="badge__dot"></span>Done</span>
+        </div>
+      </div>
+
+    </aside>
+  </div>
+
+</div>
+</div>
+
+<script src="./assets/app.js"></script>
+<script src="./assets/shell.js"></script>
+<script>
+(function(){
+  'use strict';
+  function initials(name){ return name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase(); }
+  const CONTACTS = (window.OD && window.OD.contacts) || [];
+  function row(c) {
+    return '<tr>' +
+      '<td><div class="flex" style="align-items:center;gap:10px"><span class="contact-avatar">' + initials(c.name) + '</span><div><div class="row-title">' + c.name + '</div><div class="row-sub">' + c.email + '</div></div></div></td>' +
+      '<td class="t-mono row-sub">' + c.phone + '</td>' +
+      '<td class="row-sub">' + (c.org || '—') + '</td>' +
+      '<td><span class="badge badge--neutral">' + c.tags + '</span></td>' +
+      '<td>' + (c.activeProcesses ? '<strong>' + c.activeProcesses + '</strong> activo' : '—') + '</td>' +
+      '<td class="row-sub">' + c.lastActivity + '</td>' +
+      '<td class="row-action"><button class="btn btn--ghost btn--icon btn--sm" aria-label="Abrir"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></button></td>' +
+    '</tr>';
+  }
+  document.addEventListener('DOMContentLoaded', function(){
+    const body = document.getElementById('contacts-body');
+    if (body) body.innerHTML = CONTACTS.map(row).join('');
+    // Tabs del panel 360
+    document.querySelectorAll('[data-ctab]').forEach(function(t){
+      t.addEventListener('click', function(){
+        document.querySelectorAll('[data-ctab]').forEach(x => x.classList.toggle('is-active', x === t));
+        const target = t.getAttribute('data-ctab');
+        document.querySelectorAll('[data-cpanel]').forEach(p => p.classList.toggle('is-active', p.getAttribute('data-cpanel') === target));
+      });
+    });
+  });
+})();
+</script>
+</body>
+</html>

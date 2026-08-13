@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="es-ES">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Super Admin · Tenants</title>
+<link rel="stylesheet" href="./assets/styles.css">
+<style>
+  .status-pill { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 500; padding: 2px 8px; border-radius: 11px; border: 1px solid transparent; }
+  .status-pill__dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .st-active { background: var(--success-soft); color: oklch(38% 0.13 150); border-color: oklch(82% 0.08 150); }
+  .st-suspended { background: var(--danger-soft); color: oklch(42% 0.17 27); border-color: oklch(86% 0.07 27); }
+  .st-provisioning { background: var(--info-soft); color: oklch(40% 0.10 235); border-color: oklch(86% 0.06 235); }
+  .health-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .health-healthy { background: oklch(55% 0.13 150); }
+  .health-degraded { background: oklch(62% 0.14 70); }
+  .health-requires { background: oklch(55% 0.18 27); }
+  .health-suspended { background: oklch(55% 0.01 240); }
+  .limit-bar { height: 4px; background: var(--bg-subtle); border-radius: 2px; overflow: hidden; margin-top: 4px; }
+  .limit-bar__fill { height: 100%; background: var(--accent); }
+  .limit-bar__fill.warn { background: var(--warn); }
+  .limit-bar__fill.danger { background: var(--danger); }
+  .limit-meta { font-size: 11px; color: var(--muted); font-family: var(--font-mono); }
+  table.data thead th.sortable { cursor: pointer; }
+  table.data thead th.sortable:hover { color: var(--fg); }
+  .sort-ind { font-size: 10px; color: var(--accent); margin-left: 4px; }
+  .row-suspended { opacity: 0.7; }
+  .row-suspended .row-title { color: var(--muted); }
+</style>
+</head>
+<body class="platform-accent">
+<div data-shell="platform" data-active="sa-tenants" data-topbar='<span class="topbar__crumb"><strong>Platform Control</strong> · Tenants</span><span class="topbar__spacer"></span><div class="input" style="display:flex;align-items:center;gap:6px;height:30px;width:240px;padding:0 10px;background:var(--surface);border:1px solid var(--border-strong);color:var(--muted);font-size:12.5px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><input type="text" placeholder="Buscar tenants…" style="border:0;background:transparent;outline:0;width:100%;color:var(--fg);font-size:12.5px"/></div>'>
+<div data-shell-content>
+
+  <div class="page-header" data-od-id="page-header">
+    <div>
+      <div class="t-kicker" style="color:var(--accent)">Platform Control</div>
+      <h1 class="page-header__title t-h1">Tenants</h1>
+      <p class="page-header__sub t-small">121 cuentas. Estado comercial, salud operativa y uso de canales/usuarios. Sin acceso a contenido sensible.</p>
+    </div>
+    <div class="page-header__actions">
+      <button class="btn btn--secondary btn--sm" data-od-id="btn-export">Exportar CSV</button>
+      <a class="btn btn--primary" href="super-admin-create-tenant.html" data-od-id="btn-create">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        Crear tenant
+      </a>
+    </div>
+  </div>
+
+  <!-- Filter bar -->
+  <div class="filterbar" data-od-id="filter-bar">
+    <span class="chip chip--active" data-filter="all">Todos (121)</span>
+    <span class="chip" data-filter="active">Activos (114)</span>
+    <span class="chip" data-filter="suspended">Suspendidos (7)</span>
+    <span class="chip" data-filter="provisioning">Provisioning (3)</span>
+    <span class="chip" data-filter="degraded">Salud degraded (9)</span>
+    <span class="spacer"></span>
+    <span class="t-micro">Orden: actividad reciente ▾</span>
+  </div>
+
+  <!-- Tenants table -->
+  <div class="table-wrap" data-od-id="tenants-table">
+    <table class="data">
+      <thead>
+        <tr>
+          <th class="sortable">Tenant <span class="sort-ind">▾</span></th>
+          <th>Plan</th>
+          <th>Estado</th>
+          <th>Salud</th>
+          <th>Canales</th>
+          <th>Usuarios</th>
+          <th>Actividad</th>
+          <th class="row-action"></th>
+        </tr>
+      </thead>
+      <tbody id="tenants-body">
+        <!-- rows inyectadas vía JS -->
+      </tbody>
+    </table>
+  </div>
+
+  <div class="flex-between mt-4" data-od-id="pagination">
+    <span class="t-micro">Mostrando 1–10 de 121 tenants</span>
+    <div class="flex gap-2">
+      <button class="btn btn--secondary btn--sm" disabled>Anterior</button>
+      <button class="btn btn--secondary btn--sm">Siguiente</button>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script src="./assets/app.js"></script>
+<script src="./assets/shell.js"></script>
+<script>
+(function(){
+  'use strict';
+  const planLabel = { 'Processes + Quotes': 'Processes + Quotes', 'Documents + Portal': 'Documents + Portal', 'Agenda + Messaging': 'Agenda + Messaging', 'Quotes + CRM Lite': 'Quotes + CRM Lite', 'Messaging Basic': 'Messaging Basic' };
+  const statusLabel = { active: { cls: 'st-active', label: 'Activo' }, suspended: { cls: 'st-suspended', label: 'Suspendido' }, provisioning: { cls: 'st-provisioning', label: 'Provisioning' } };
+  const healthMap = { healthy: { cls: 'health-healthy', label: 'Healthy' }, degraded: { cls: 'health-degraded', label: 'Degraded' }, 'requires-reauth': { cls: 'health-requires', label: 'Requires reauth' } };
+  function limitPerc(a, b) { return Math.min(100, Math.round((a / b) * 100)); }
+  function limitClass(p) { return p >= 90 ? 'danger' : p >= 70 ? 'warn' : ''; }
+  function row(t) {
+    const st = statusLabel[t.status] || statusLabel.active;
+    const hl = t.health in healthMap ? t.health : 'healthy';
+    const hc = healthMap[hl] || healthMap.healthy;
+    const chPerc = limitPerc(t.channels, t.channelsLimit);
+    const usPerc = limitPerc(t.users, t.usersLimit);
+    return '<tr class="' + (t.status === 'suspended' ? 'row-suspended' : '') + '">' +
+      '<td><div class="row-title">' + t.name + '</div><div class="row-sub t-mono">' + t.slug + '</div></td>' +
+      '<td><span class="row-sub">' + (planLabel[t.plan] || t.plan) + '</span></td>' +
+      '<td><span class="status-pill ' + st.cls + '"><span class="status-pill__dot"></span>' + st.label + '</span></td>' +
+      '<td><span class="flex" style="gap:6px;align-items:center"><span class="health-dot ' + hc.cls + '"></span><span class="row-sub">' + hc.label + '</span></span></td>' +
+      '<td style="min-width:96px"><div class="limit-meta">' + t.channels + ' / ' + t.channelsLimit + '</div><div class="limit-bar"><div class="limit-bar__fill ' + limitClass(chPerc) + '" style="width:' + chPerc + '%"></div></div></td>' +
+      '<td style="min-width:96px"><div class="limit-meta">' + t.users + ' / ' + t.usersLimit + '</div><div class="limit-bar"><div class="limit-bar__fill ' + limitClass(usPerc) + '" style="width:' + usPerc + '%"></div></div></td>' +
+      '<td><span class="row-sub">' + t.lastActivity + '</span><div class="row-sub t-micro">desde ' + t.created + '</div></td>' +
+      '<td class="row-action"><a class="btn btn--ghost btn--sm btn--icon" href="super-admin-tenant-detail.html" aria-label="Abrir ' + t.name + '"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></a></td>' +
+    '</tr>';
+  }
+  document.addEventListener('DOMContentLoaded', function(){
+    const body = document.getElementById('tenants-body');
+    if (body && window.OD && window.OD.tenants) body.innerHTML = window.OD.tenants.map(row).join('');
+  });
+})();
+</script>
+</body>
+</html>

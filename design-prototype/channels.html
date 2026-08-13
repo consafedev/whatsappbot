@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="es-ES">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Canales · Talleres Motor Norte</title>
+<link rel="stylesheet" href="./assets/styles.css">
+<style>
+  .ch-card { display: flex; gap: 14px; align-items: flex-start; padding: 16px; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--bg); }
+  .ch-card + .ch-card { margin-top: 12px; }
+  .ch-card.is-degraded { border-color: oklch(86% 0.08 75); background: linear-gradient(0deg, var(--warn-soft), var(--bg) 35%); }
+  .ch-card__icon { flex-shrink: 0; width: 44px; height: 44px; border-radius: var(--r-md); background: var(--accent-soft); color: var(--accent); display: flex; align-items: center; justify-content: center; }
+  .ch-card.is-degraded .ch-card__icon { background: var(--warn-soft); color: oklch(45% 0.14 70); }
+  .ch-card__title { font-size: 14px; font-weight: 600; margin: 0; }
+  .ch-card__sub { font-size: 12px; color: var(--muted); margin: 2px 0 0; }
+  .ch-meta { display: flex; gap: 14px; margin-top: 8px; font-size: 12px; color: var(--muted); flex-wrap: wrap; }
+  .ch-meta b { color: var(--fg); font-weight: 500; }
+  .ch-actions { display: flex; gap: 6px; align-self: center; margin-left: auto; }
+  .state-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+  .state-tabs .chip { height: 28px; }
+  .panel-state { display: none; }
+  .panel-state.is-active { display: block; }
+  .skel-card { padding: 16px; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--bg); display: flex; gap: 14px; }
+  .skel-card + .skel-card { margin-top: 12px; }
+  .skel-block { background: linear-gradient(90deg, var(--bg-subtle) 0%, var(--surface) 50%, var(--bg-subtle) 100%); background-size: 200% 100%; animation: shimmer 1400ms infinite; border-radius: var(--r-sm); }
+  .limit-ring { position: relative; width: 130px; height: 130px; flex-shrink: 0; }
+  .limit-ring svg { transform: rotate(-90deg); }
+  .limit-ring__label { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .limit-ring__value { font-size: 26px; font-weight: 600; letter-spacing: -0.02em; }
+  .limit-ring__hint { font-size: 10px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; }
+</style>
+</head>
+<body>
+<div data-shell="tenant" data-active="channels" data-topbar='<span class="topbar__crumb"><strong>Canales</strong></span><span class="topbar__spacer"></span><span class="badge badge--outline">2 / 3 cuentas utilizadas</span>'>
+<div data-shell-content>
+
+  <div class="page-header" data-od-id="page-header">
+    <div>
+      <h1 class="page-header__title t-h1">Canales</h1>
+      <p class="page-header__sub t-small">Cuentas WhatsApp conectadas vía Baileys. El estado depende de la sesión local del canal; la plataforma nunca accede a tus credenciales de WhatsApp.</p>
+    </div>
+    <div class="page-header__actions">
+      <button class="btn btn--secondary btn--sm" data-od-id="btn-refresh">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 4v6h-6M4 20v-6h6"/><path d="M20 10A9 9 0 0 0 7 4M4 14a9 9 0 0 0 13 6"/></svg>
+        Actualizar
+      </button>
+      <a class="btn btn--primary" href="add-whatsapp-qr.html" data-od-id="btn-add-channel">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        Agregar cuenta
+      </a>
+    </div>
+  </div>
+
+  <!-- State switcher (para mostrar todos los estados descritos en UI_FLOWS) -->
+  <div class="filterbar" data-od-id="state-switcher">
+    <span class="t-micro" style="margin-right:4px">Estado de demo:</span>
+    <span class="chip chip--active" data-state="normal">Normal (2)</span>
+    <span class="chip" data-state="empty">Vacío</span>
+    <span class="chip" data-state="loading">Cargando</span>
+    <span class="chip" data-state="degraded">Degradado</span>
+    <span class="chip" data-state="limit">Límite alcanzado</span>
+    <span class="chip" data-state="permission">Sin permiso</span>
+  </div>
+
+  <!-- NORMAL -->
+  <div class="panel-state is-active" data-panel="normal" data-od-id="panel-normal">
+    <div class="ch-card" data-od-id="ch-card-1">
+      <div class="ch-card__icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 7c5-3 9-3 14 0M5 11c5-2 9-2 14 0M5 15c5-1 9-1 14 0"/></svg></div>
+      <div style="flex:1;min-width:0">
+        <h2 class="ch-card__title">WhatsApp Ventas</h2>
+        <p class="ch-card__sub t-mono">+52 477 123 4567 · WhatsApp · León · Ventas</p>
+        <div class="ch-meta">
+          <span><b>Conectado</b> · sesión activa</span>
+          <span>Proveedor <b>Baileys</b></span>
+          <span>Último inbound <b>3 min</b></span>
+          <span>Último outbound <b>5 min</b></span>
+        </div>
+      </div>
+      <div class="ch-actions">
+        <span class="badge badge--success"><span class="badge__dot"></span>Conectado</span>
+        <button class="btn btn--secondary btn--sm">Editar</button>
+        <button class="btn btn--ghost btn--icon btn--sm" aria-label="Más opciones">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="ch-card is-degraded" data-od-id="ch-card-2">
+      <div class="ch-card__icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 7c5-3 9-3 14 0M5 11c5-2 9-2 14 0M5 15c5-1 9-1 14 0"/></svg></div>
+      <div style="flex:1;min-width:0">
+        <h2 class="ch-card__title">WhatsApp Atención</h2>
+        <p class="ch-card__sub t-mono">+52 477 987 6543 · WhatsApp · León · Atención</p>
+        <div class="ch-meta">
+          <span><b>Requiere reconexión</b> · sesión degradada</span>
+          <span>Proveedor <b>Baileys</b></span>
+          <span>Última conexión <b>2 h</b></span>
+          <span>Último inbound <b>15 min</b></span>
+        </div>
+      </div>
+      <div class="ch-actions">
+        <span class="badge badge--warn"><span class="badge__dot"></span>Requiere reconexión</span>
+        <a class="btn btn--primary btn--sm" href="add-whatsapp-qr.html?reconnect=atencion">Reconectar</a>
+        <button class="btn btn--ghost btn--icon btn--sm" aria-label="Más opciones">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- EMPTY -->
+  <div class="panel-state" data-panel="empty" data-od-id="panel-empty">
+    <div class="card">
+      <div class="empty" data-od-id="empty-state">
+        <svg class="empty__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M5 7c5-3 9-3 14 0M5 11c5-2 9-2 14 0M5 15c5-1 9-1 14 0"/></svg>
+        <h3 class="empty__title">Todavía no conectas una cuenta de WhatsApp</h3>
+        <p class="empty__text">Conecta tu primera línea de WhatsApp con un QR para empezar a recibir mensajes. La sesión se aloja en tu workspace y la plataforma nunca accede a tus credenciales.</p>
+        <a class="btn btn--primary" href="add-whatsapp-qr.html" data-od-id="btn-empty-add">
+          Conectar cuenta
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOADING -->
+  <div class="panel-state" data-panel="loading" data-od-id="panel-loading">
+    <div class="skel-card">
+      <div class="skel-block" style="width:44px;height:44px;border-radius:8px"></div>
+      <div style="flex:1">
+        <div class="skel-block skel-line" style="width:42%;height:14px"></div>
+        <div class="skel-block skel-line short" style="height:10px;margin-top:10px"></div>
+        <div class="skel-block skel-line" style="width:30%;height:10px;margin-top:14px"></div>
+      </div>
+      <div class="skel-block" style="width:88px;height:22px;border-radius:11px"></div>
+    </div>
+    <div class="skel-card">
+      <div class="skel-block" style="width:44px;height:44px;border-radius:8px"></div>
+      <div style="flex:1">
+        <div class="skel-block skel-line" style="width:50%;height:14px"></div>
+        <div class="skel-block skel-line short" style="height:10px;margin-top:10px"></div>
+        <div class="skel-block skel-line" style="width:35%;height:10px;margin-top:14px"></div>
+      </div>
+      <div class="skel-block" style="width:88px;height:22px;border-radius:11px"></div>
+    </div>
+    <div class="flex" style="gap:8px;margin-top:18px;justify-content:center">
+      <span class="badge badge--info"><span class="badge__dot"></span>Cargando canales…</span>
+    </div>
+  </div>
+
+  <!-- DEGRADED (todas en estado requiere reconexión) -->
+  <div class="panel-state" data-panel="degraded" data-od-id="panel-degraded">
+    <div class="alert alert--warn" style="margin-bottom:14px">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+      <span><strong>2 cuentas requieren reconexión.</strong> WhatsApp marca las sesiones como expiradas por inactividad o por cambios en el dispositivo. Reconecta cuanto antes para recuperar la automaticidad.</span>
+    </div>
+    <div class="ch-card is-degraded">
+      <div class="ch-card__icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 7c5-3 9-3 14 0M5 11c5-2 9-2 14 0M5 15c5-1 9-1 14 0"/></svg></div>
+      <div style="flex:1;min-width:0">
+        <h2 class="ch-card__title">WhatsApp Ventas</h2>
+        <p class="ch-card__sub t-mono">+52 477 123 4567 · último inbound hace 1 h</p>
+      </div>
+      <div class="ch-actions"><span class="badge badge--warn"><span class="badge__dot"></span>Requiere reconexión</span><a class="btn btn--primary btn--sm" href="add-whatsapp-qr.html">Reconectar</a></div>
+    </div>
+    <div class="ch-card is-degraded">
+      <div class="ch-card__icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 7c5-3 9-3 14 0M5 11c5-2 9-2 14 0M5 15c5-1 9-1 14 0"/></svg></div>
+      <div style="flex:1;min-width:0">
+        <h2 class="ch-card__title">WhatsApp Atención</h2>
+        <p class="ch-card__sub t-mono">+52 477 987 6543 · último inbound hace 2 h</p>
+      </div>
+      <div class="ch-actions"><span class="badge badge--warn"><span class="badge__dot"></span>Requiere reconexión</span><a class="btn btn--primary btn--sm" href="add-whatsapp-qr.html">Reconectar</a></div>
+    </div>
+  </div>
+
+  <!-- LIMIT -->
+  <div class="panel-state" data-panel="limit" data-od-id="panel-limit">
+    <div class="grid grid--2" style="gap:18px">
+      <div class="card">
+        <div class="flex-between" style="margin-bottom:14px">
+          <h2 class="t-h3" style="margin:0">Límite de planes</h2>
+          <span class="badge badge--warn"><span class="badge__dot"></span>Al límite</span>
+        </div>
+        <div class="flex gap-4" style="gap:20px;align-items:center">
+          <div class="limit-ring">
+            <svg width="130" height="130" viewBox="0 0 130 130">
+              <circle cx="65" cy="65" r="56" fill="none" stroke="var(--bg-subtle)" stroke-width="10"/>
+              <circle cx="65" cy="65" r="56" fill="none" stroke="var(--warn)" stroke-width="10" stroke-dasharray="351.86" stroke-dashoffset="0" stroke-linecap="round"/>
+            </svg>
+            <div class="limit-ring__label"><span class="limit-ring__value">3/3</span><span class="limit-ring__hint">Cuentas</span></div>
+          </div>
+          <div style="flex:1">
+            <p class="t-small" style="margin:0 0 14px;color:var(--fg)">Tu plan incluye hasta <b>3 cuentas WhatsApp</b>. Has alcanzado el límite. Para conectar más cuentas contacta al administrador comercial o cambia de plan.</p>
+            <button class="btn btn--secondary btn--sm">Solicitar upgrade de plan</button>
+          </div>
+        </div>
+      </div>
+      <div class="card-stack">
+        <div class="ch-card">
+          <div class="ch-card__icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 7c5-3 9-3 14 0M5 11c5-2 9-2 14 0M5 15c5-1 9-1 14 0"/></svg></div>
+          <div style="flex:1;min-width:0">
+            <h2 class="ch-card__title">WhatsApp Ventas</h2>
+            <p class="ch-card__sub t-mono">+52 477 123 4567 · Conectado</p>
+          </div>
+          <span class="badge badge--success"><span class="badge__dot"></span>Conectado</span>
+        </div>
+        <div class="ch-card">
+          <div class="ch-card__icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 7c5-3 9-3 14 0M5 11c5-2 9-2 14 0M5 15c5-1 9-1 14 0"/></svg></div>
+          <div style="flex:1;min-width:0">
+            <h2 class="ch-card__title">WhatsApp Atención</h2>
+            <p class="ch-card__sub t-mono">+52 477 987 6543 · Conectado</p>
+          </div>
+          <span class="badge badge--success"><span class="badge__dot"></span>Conectado</span>
+        </div>
+        <div class="ch-card">
+          <div class="ch-card__icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 7c5-3 9-3 14 0M5 11c5-2 9-2 14 0M5 15c5-1 9-1 14 0"/></svg></div>
+          <div style="flex:1;min-width:0">
+            <h2 class="ch-card__title">WhatsApp Querétaro</h2>
+            <p class="ch-card__sub t-mono">+52 442 555 7788 · Conectado</p>
+          </div>
+          <span class="badge badge--success"><span class="badge__dot"></span>Conectado</span>
+        </div>
+      </div>
+    </div>
+    <div class="alert alert--info" style="margin-top:14px">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+      <span>El botón "Agregar cuenta" está deshabilitado cuando se alcanza el límite del plan. Puedes liberar espacio desconectando una cuenta existente.</span>
+    </div>
+  </div>
+
+  <!-- PERMISSION -->
+  <div class="panel-state" data-panel="permission" data-od-id="panel-permission">
+    <div class="card">
+      <div class="empty" data-od-id="permission-state">
+        <svg class="empty__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="12" cy="8" r="3"/><path d="M5 14c1-3 3-4 7-4s6 1 7 4M4 20c0-2 1-3 3-3h10c2 0 3 1 3 3M12 2v2"/></svg>
+        <h3 class="empty__title">No tienes permiso para ver canales</h3>
+        <p class="empty__text">Tu rol <b>Agente</b> en la unidad León no incluye el permiso <b>channels.read</b>. Contacta al administrador del tenant si crees que es un error.</p>
+        <button class="btn btn--secondary">Solicitar acceso al admin</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script src="./assets/app.js"></script>
+<script src="./assets/shell.js"></script>
+<script>
+(function(){
+  'use strict';
+  document.addEventListener('DOMContentLoaded', function(){
+    const chips = document.querySelectorAll('.state-switcher .chip');
+    const panels = document.querySelectorAll('.panel-state');
+    const addBtn = document.querySelector('[data-od-id="btn-add-channel"]');
+    function setState(s) {
+      chips.forEach(c => c.classList.toggle('chip--active', c.getAttribute('data-state') === s));
+      panels.forEach(p => p.classList.toggle('is-active', p.getAttribute('data-panel') === s));
+      if (addBtn) addBtn.classList.toggle('btn--disabled', s === 'limit' || s === 'permission');
+    }
+    chips.forEach(c => c.addEventListener('click', function(){ setState(c.getAttribute('data-state')); }));
+  });
+})();
+</script>
+</body>
+</html>

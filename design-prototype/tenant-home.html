@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="es-ES">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inicio · Talleres Motor Norte</title>
+<link rel="stylesheet" href="./assets/styles.css">
+<style>
+  .welcome { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+  .modules-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .module-card { padding: 16px; }
+  .module-card__icon { width: 32px; height: 32px; border-radius: var(--r-sm); background: var(--accent-soft); color: var(--accent); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 12px; }
+  .module-card__title { font-size: 14px; font-weight: 600; margin: 0 0 4px; }
+  .module-card__meta { font-size: 12px; color: var(--muted); margin: 0 0 10px; }
+  .module-card__cta { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; font-weight: 500; color: var(--accent); text-decoration: none; }
+  .module-card__cta:hover { text-decoration: underline; }
+  .module-card--off { opacity: 0.55; }
+  .module-card--off .module-card__icon { background: var(--bg-subtle); color: var(--border-strong); }
+  .activity-row { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .activity-row:last-child { border-bottom: none; }
+  .activity-row__time { color: var(--muted); font-family: var(--font-mono); width: 62px; flex-shrink: 0; }
+  .activity-row__actor { font-weight: 500; }
+  .queue-card { padding: 14px 16px; border-left: 3px solid var(--accent); }
+  .queue-card--overdue { border-left-color: var(--danger); }
+  .queue-card__title { font-size: 13px; font-weight: 500; }
+  .queue-card__meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+</style>
+</head>
+<body>
+<div data-shell="tenant" data-active="home" data-topbar='<span class="topbar__crumb"><strong>Inicio</strong></span><span class="topbar__spacer"></span><span class="badge badge--success"><span class="badge__dot"></span>1 cuenta conectada · 1 requiere reconexión</span>'>
+<div data-shell-content>
+
+  <div class="page-header" data-od-id="page-header">
+    <div>
+      <div class="welcome">
+        <h1 class="page-header__title t-h1" data-greeting>Buenos días, Ana</h1>
+        <span class="t-small" style="padding-bottom:2px">miércoles 12 de agosto · 9:42</span>
+      </div>
+      <p class="page-header__sub t-small" style="margin-top:8px">Resumen de operación de Talleres Motor Norte. Módulos activos según tu plan <strong>Messaging Basic + Automation Basic + CRM Lite</strong>.</p>
+    </div>
+    <div class="page-header__actions">
+      <button class="btn btn--secondary btn--sm">Ver reporte completo</button>
+      <a class="btn btn--primary" href="inbox.html" data-od-id="btn-go-inbox">
+        Abrir Inbox
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+    </div>
+  </div>
+
+  <!-- Métricas clave -->
+  <div class="grid grid--metrics" data-od-id="metrics">
+    <div class="card metric-card"><div class="metric-card__label">Conversaciones hoy</div><div class="metric-card__value">48</div><div class="metric-card__delta badge badge--success"><span class="badge__dot"></span>5 sin leer</div></div>
+    <div class="card metric-card"><div class="metric-card__label">Contactos nuevos hoy</div><div class="metric-card__value">12</div><div class="metric-card__delta muted">1 247 totales</div></div>
+    <div class="card metric-card"><div class="metric-card__label">Reglas activas</div><div class="metric-card__value">4</div><div class="metric-card__delta muted">1 pausada</div></div>
+    <div class="card metric-card"><div class="metric-card__label">Mensajes automatizados (7d)</div><div class="metric-card__value">186</div><div class="metric-card__delta muted">42 con BOT</div></div>
+  </div>
+
+  <!-- Módulos -->
+  <h2 class="t-h3" style="margin:24px 0 12px">Módulos</h2>
+  <div class="modules-grid" data-od-id="modules-grid">
+    <a class="card module-card" href="inbox.html" data-od-id="mod-inbox">
+      <div class="module-card__icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 4h16v11H10l-3 3v-3H4z"/></svg></div>
+      <h3 class="module-card__title">Inbox</h3>
+      <p class="module-card__meta">48 conversaciones · 2 cuentas conectadas</p>
+      <span class="module-card__cta">Abrir conversaciones →</span>
+    </a>
+    <a class="card module-card" href="contacts.html" data-od-id="mod-contacts">
+      <div class="module-card__icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg></div>
+      <h3 class="module-card__title">Contactos</h3>
+      <p class="module-card__meta">1 247 contactos · 9 activos</p>
+      <span class="module-card__cta">Ver contactos →</span>
+    </a>
+    <a class="card module-card" href="rules.html" data-od-id="mod-rules">
+      <div class="module-card__icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/><circle cx="12" cy="12" r="4"/></svg></div>
+      <h3 class="module-card__title">Automatizaciones</h3>
+      <p class="module-card__meta">4 reglas activas · 1 pausada</p>
+      <span class="module-card__cta">Gestionar reglas →</span>
+    </a>
+  </div>
+
+  <!-- Canal state + cola de acciones -->
+  <div class="grid grid--2 mt-6" style="margin-top:24px">
+    <div class="card" data-od-id="channels-state">
+      <div class="flex-between" style="margin-bottom:14px">
+        <h2 class="t-h3" style="margin:0">Canales conectados</h2>
+        <a class="btn btn--ghost btn--sm" href="channels.html">Gestionar →</a>
+      </div>
+      <div class="row" style="margin-bottom:10px">
+        <span class="ch-indicator"></span>
+        <div style="flex:1"><div style="font-size:13.5px;font-weight:500">WhatsApp Ventas</div><div class="t-micro t-mono">+52 477 123 4567 · León · Ventas</div></div>
+        <span class="badge badge--success"><span class="badge__dot"></span>Conectado · Mensaje 3 min</span>
+      </div>
+      <div class="row" style="margin-bottom:10px">
+        <span class="ch-indicator" style="background:var(--warn-soft);border-color:oklch(86% 0.08 75)"></span>
+        <div style="flex:1"><div style="font-size:13.5px;font-weight:500">WhatsApp Atención</div><div class="t-micro t-mono">+52 477 987 6543 · León · Atención</div></div>
+        <span class="badge badge--warn"><span class="badge__dot"></span>Requiere reconexión · hace 2h</span>
+      </div>
+      <div class="alert alert--warn" style="margin-top:14px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+        <span><strong>WhatsApp Atención</strong> requiere re-escanear el QR. Recibirás notificaciones cuando el canal se desconecte por completo.</span>
+      </div>
+    </div>
+
+    <div class="card" data-od-id="action-queue">
+      <div class="flex-between" style="margin-bottom:14px">
+        <h2 class="t-h3" style="margin:0">Acciones que requieren tu atención</h2>
+      </div>
+      <div class="queue-card" style="border-left-width:3px;padding-left:14px;border-color:var(--warn)">
+        <div class="queue-card__title"><strong>Revisar fallo de regla "Menú de bienvenida por horario" v4</strong></div>
+        <div class="queue-card__meta">Sistema · 11 fallos en 1 h · vence hoy</div>
+      </div>
+      <div class="queue-card" style="border-left-width:3px;padding-left:14px;margin-top:10px;border-color:var(--info)">
+        <div class="queue-card__title"><strong>Reautenticar canal "WhatsApp Atención"</strong></div>
+        <div class="queue-card__meta">Sistema · degradado hace 2 h · sin SLA</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Actividad reciente -->
+  <div class="card mt-6" style="margin-top:24px" data-od-id="recent-activity">
+    <div class="flex-between" style="margin-bottom:10px">
+      <h2 class="t-h3" style="margin:0">Actividad reciente</h2>
+      <span class="t-micro">Hoy · 9:00 → ahora</span>
+    </div>
+    <div class="activity-row"><span class="activity-row__time">09:42</span><span><span class="activity-row__actor">Cliente</span> · María Salcedo responde sobre su orden de servicio · canal WhatsApp Ventas · mode HUMAN (Ana López).</span></div>
+    <div class="activity-row"><span class="activity-row__time">09:38</span><span><span class="activity-row__actor">BOT · Rule</span> · menú de bienvenida a José Miranda · canal WhatsApp Atención · chat LIVE sin reasignar.</span></div>
+    <div class="activity-row"><span class="activity-row__time">09:21</span><span><span class="activity-row__actor">BOT · Rule</span> · respuesta de disponibilidad a Hardware del Bajío · regla "Precios de refacciones" · 3 mensajes.</span></div>
+    <div class="activity-row"><span class="activity-row__time">09:05</span><span><span class="activity-row__actor">BOT · Rule</span> · conversación de Fernando Ruiz cerrada · tag Cerrada.</span></div>
+    <div class="activity-row"><span class="activity-row__time">08:51</span><span><span class="activity-row__actor">Cliente</span> · Hardware del Bajío pregunta disponibilidad de filtro ACE-22 · asignado a Ana.</span></div>
+    <div class="activity-row"><span class="activity-row__time">08:00</span><span><span class="activity-row__actor">Sistema</span> · notificación de horario de atención enviada a 2 contactos · 0 fallos.</span></div>
+  </div>
+
+</div>
+</div>
+<script src="./assets/app.js"></script>
+<script src="./assets/shell.js"></script>
+<script>
+(function(){
+  'use strict';
+  document.addEventListener('DOMContentLoaded', function(){
+    const h = new Date().getHours();
+    const g = h < 12 ? 'Buenos días, Ana' : h < 19 ? 'Buenas tardes, Ana' : 'Buenas noches, Ana';
+    const el = document.querySelector('[data-greeting]'); if (el) el.textContent = g;
+  });
+})();
+</script>
+</body>
+</html>
