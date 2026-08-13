@@ -1,6 +1,6 @@
 # ADR-0015 — Platform Admin authentication and server-side sessions
 
-**Status:** Accepted  
+**Status:** Accepted
 **Date:** 2026-08-13
 
 ## Context

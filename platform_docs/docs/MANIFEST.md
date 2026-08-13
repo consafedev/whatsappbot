@@ -31,7 +31,7 @@
 | `platform_docs/docs/adr/0012-uuidv7-and-timestamp-conventions.md` | 3609 | 493 | `976e8471e5018a1f8a6c219c951162d417dba261995585d6c1095f3c888cfc85` |
 | `platform_docs/docs/adr/0013-transactional-outbox.md` | 2723 | 359 | `ae4bd9f1d18a1c1cdd14cb70a028eefab1f87a20a713cc57ea0acbd8040ddc9f` |
 | `platform_docs/docs/adr/0014-append-only-audit-boundaries.md` | 3315 | 431 | `465615a1f85bbced51b70c10cefa09b34af0d775e2c9b31bf1be5c594b37c125` |
-| `platform_docs/docs/adr/0015-platform-admin-auth-sessions.md` | 3455 | 484 | `ab39f519c01da2d12b6ccfafb59bf62822ed1cb8bca36b8dc023f236e3aaa562` |
+| `platform_docs/docs/adr/0015-platform-admin-auth-sessions.md` | 3453 | 484 | `0f656b1aa2d0bc01ee557292d575413f15d37ca8050d5b4d42878996b359f1dc` |
 | `platform_docs/docs/INDEX.md` | 12437 | 1687 | `d692e50c9f969e6ee096a14daf674281f585d3e2a2841211822734dbedd6c5f8` |
 | `platform_docs/PRD.md` | 90479 | 13033 | `81426bd8cabd9b4d5408ff0741c1cfa6aa1741986f2355d4294c6faa7bfdb380` |
 | `platform_docs/README.md` | 1953 | 242 | `31b67b6ef55a2adb4b2840cbe5993156c4fa0421f8752b2d130c97ceb84e880a` |
