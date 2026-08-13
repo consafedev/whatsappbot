@@ -2,7 +2,7 @@
 
 **Actualizado:** 2026-08-13
 **Versión de producto:** `0.0.0`  
-**Estado:** E01-S04 — PASS; **Epic 01 — IN PROGRESS**.
+**Estado:** E01-S05 — PASS; **Epic 01 — PASS / COMPLETE**.
 
 ## Current milestone
 
@@ -18,15 +18,24 @@ Estado por historia:
 - E01-S02 — ID/timestamp conventions: **PASS**.
 - E01-S03 — Tenant-aware repository utilities: **PASS**.
 - E01-S04 — Outbox foundation: **PASS**.
-- E01-S05 — Audit foundation: no iniciada.
+- E01-S05 — Audit foundation: **PASS**.
 
 ## Completed
 
 - Epic 00 — Repository Foundation: **PASS / COMPLETE**.
+- Epic 01 — Database Foundation: **PASS / COMPLETE**.
 - E01-S01 — Prisma/schema baseline: **PASS**.
 - E01-S02 — ID/timestamp conventions: **PASS**, documentada por ADR-0012.
 - E01-S03 — Tenant-aware repository utilities: **PASS**.
 - E01-S04 — Outbox foundation: **PASS**, documentada por ADR-0013.
+- E01-S05 — Audit foundation: **PASS**, documentada por ADR-0014.
+- `AuditLog` lógicamente append-only con UUIDv7, tenant nullable para plataforma, summaries/IP metadata JSONB y request ID obligatorio.
+- `tenantData.audit.append(...)` deriva siempre tenant desde `TenantContext`; no acepta `tenantId`, `id` ni `occurredAt`.
+- `createPlatformAuditWriter(...)` está disponible sólo en `@whatsapp-platform/database/platform` para audit puro o tenant-related privilegiado.
+- FK compuesta `(tenant_id, organization_unit_id)` impide asociar OrganizationUnit cross-tenant; audit platform puro no admite OrganizationUnit.
+- Domain mutation + AuditLog + Outbox comparten el mismo `TransactionClient` dentro de `withTenantTransaction`.
+- Nueve pruebas Audit sobre PostgreSQL 18.4 cubren esquema físico, actores, JSONB, tenant/platform paths, aislamiento y atomicidad.
+- Cuarta migration `20260813170000_append_only_audit_foundation`, append-only y sin cambios a las tres migrations históricas.
 - `DomainEventOutbox` tenant-owned con UUIDv7 DB-side, payload JSONB y bookkeeping de publicación pendiente.
 - `outbox.append(...)` inyecta `tenant_id` desde `TenantContext` y no expone IDs ni campos de publicación al caller.
 - `withTenantTransaction(context, database, callback)` entrega el facade tenant-scoped sobre el mismo `TransactionClient`, sin Prisma raw.
@@ -38,7 +47,7 @@ Estado por historia:
 - Reads y updates por ID combinan `id` + `tenant_id` en la misma query; acceso cross-tenant se comporta como not found.
 - Inputs planos de create/update no aceptan `tenantId`, relación `tenant` ni cambio de `id`; el tenant se inyecta internamente.
 - Root `@whatsapp-platform/database` es el camino tenant-safe; `@whatsapp-platform/database/platform` es el escape hatch Prisma explícitamente privilegiado.
-- Repositories compatibles con Prisma Client normal y `TransactionClient`, sin UnitOfWork ni Outbox.
+- Repositories, AuditLog y Outbox compatibles con Prisma Client normal y `TransactionClient`, sin UnitOfWork.
 - Nueve pruebas tenant-aware sobre PostgreSQL real cubren dos tenants, aislamiento, updates, creación, jerarquía y transacción.
 - Schema Prisma y las dos migrations permanecen sin cambios y sin drift.
 - PK UUID surrogate canónicas como UUIDv7 con tipo físico PostgreSQL UUID y default nativo `uuidv7()`.
@@ -78,15 +87,15 @@ Estado por historia:
 
 ## In progress
 
-Epic 01 permanece en progreso. No se inició E01-S05.
+Ninguna historia de Epic 01 permanece en progreso.
 
 ## Blocked
 
-Ningún bloqueo para E01-S04.
+Ningún bloqueo para E01-S05.
 
 ## Next story
 
-`E01-S05 — Audit foundation`
+`E02-S01 — Platform Admin auth`
 
 No implementarla sin una instrucción separada.
 
@@ -159,8 +168,26 @@ No implementarla sin una instrucción separada.
 - `docker compose config --quiet` — PASS con variables locales efímeras.
 - `git diff --check` — PASS.
 - Limpieza de fixtures/DB temporal — PASS; cero eventos/tenants E01-S04 residuales y contenedor temporal eliminado.
+- `pnpm install --frozen-lockfile` — PASS; 17 workspaces, lockfile reproducible para E01-S05.
+- `pnpm db:validate` / `pnpm db:generate` — PASS; `AuditLog` generado con Prisma 7.9.1.
+- `pnpm db:migrate:deploy` desde PostgreSQL 18.4 limpio — PASS; migrations E01-S01 a E01-S05 aplicadas en orden.
+- `prisma migrate status` — PASS; cuatro migrations, database schema up to date.
+- `prisma migrate diff --from-config-datasource --to-schema ... --exit-code` — PASS; sin drift.
+- Migration E01-S05 SHA-256 — `d6a4ea91628719e6272abefd5cc94e633c2ef106f7aecc996904ea8c1a33a375`.
+- Migrations históricas E01-S01/E01-S02/E01-S04 — PASS; objetos Git del working tree coinciden con `HEAD`.
+- `pnpm test:integration:database` — PASS; 4 archivos, 36 pruebas contra PostgreSQL 18.4, incluidas 9 de Audit.
+- Atomicidad Audit — PASS; commit/rollback domain + Audit + Outbox y rollback de dominio ante Audit inválido.
+- Seguridad Audit — PASS; tenant injection, writer platform privilegiado, FK OU tenant-aware, root sin writer platform y cero términos de secrets en fixtures.
+- `pnpm lint` — PASS; 72 archivos, sin warnings.
+- `pnpm typecheck` — PASS; raíz y 16 workspaces, incluido Prisma generate.
+- `pnpm test` — PASS; 2 archivos, 9 pruebas unitarias.
+- `pnpm build` — PASS; 16 workspaces y build Next.js de producción.
+- `pnpm format:check` — PASS; 72 archivos.
+- `docker compose config --quiet` — PASS con variables locales efímeras.
+- `git diff --check` — PASS.
+- Limpieza E01-S05 — PASS; cero audit/outbox/tenants residuales y contenedor PostgreSQL temporal eliminado.
 
 ## Known issues
 
 - El proveedor CI permanece deliberadamente sin seleccionar hasta que exista un remote o una decisión documental explícita.
-- RLS, publisher/dispatcher Outbox, AuditLog, autenticación/middleware y todas las entidades de epics posteriores permanecen fuera de alcance.
+- RLS, publisher/dispatcher Outbox, TimelineEvent, autenticación/middleware y todas las entidades de epics posteriores permanecen fuera de alcance.

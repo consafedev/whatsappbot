@@ -1,6 +1,29 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 import { type DatabaseConfig, loadDatabaseConfig } from "@whatsapp-platform/config";
+import {
+  type AuditDatabaseClient,
+  type AuditEntryInput,
+  type AuditWriter,
+  auditCreateData,
+} from "./audit";
 import { PrismaClient } from "./generated/prisma/client";
+
+export type PlatformAuditEntryInput = Readonly<
+  AuditEntryInput & {
+    tenantId?: string | null;
+  }
+>;
+
+export interface PlatformAuditWriter extends Omit<AuditWriter, "append"> {
+  append(entry: PlatformAuditEntryInput): ReturnType<AuditWriter["append"]>;
+}
+
+export function createPlatformAuditWriter(database: AuditDatabaseClient): PlatformAuditWriter {
+  return Object.freeze({
+    append: (entry: PlatformAuditEntryInput) =>
+      database.auditLog.create({ data: auditCreateData(entry, entry.tenantId ?? null) }),
+  });
+}
 
 let sharedClient: PrismaClient | undefined;
 

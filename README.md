@@ -87,7 +87,9 @@ pnpm test:integration:database
 
 Database integration tests require a disposable PostgreSQL database with the committed migrations already applied. Do not use `prisma db push` as a replacement for migrations.
 
-Tenant-owned access uses the safe root entrypoint: create a validated `TenantContext`, then call `createTenantDataAccess(context, client)` to obtain scoped repositories and the write-only `outbox.append(...)` API. Use `withTenantTransaction(context, client, callback)` when a domain write and its Outbox event must commit or roll back together; the callback receives the tenant-scoped facade, never raw Prisma. The raw Prisma client is intentionally available only through the privileged `@whatsapp-platform/database/platform` subpath for authorized platform code, migrations, and infrastructure tests.
+Tenant-owned access uses the safe root entrypoint: create a validated `TenantContext`, then call `createTenantDataAccess(context, client)` to obtain scoped repositories plus the append-only `audit.append(...)` and `outbox.append(...)` APIs. Use `withTenantTransaction(context, client, callback)` when domain, audit, and Outbox writes must commit or roll back together; the callback receives the tenant-scoped facade, never raw Prisma. Audit summaries and IP metadata must be explicit, minimal, and already sanitized by the caller.
+
+The raw Prisma client and `createPlatformAuditWriter(...)` are intentionally available only through the privileged `@whatsapp-platform/database/platform` subpath for authorized platform/control-plane code, migrations, and infrastructure tests. Platform audit can use a nullable tenant; tenant code cannot.
 
 ## Repository map
 

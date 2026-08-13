@@ -108,10 +108,34 @@ model Tenant {
   entitlements      TenantEntitlement[]
   organizationUnits OrganizationUnit[]
   domainEvents      DomainEventOutbox[]
+  auditLogs         AuditLog[]
 
   @@index([status], map: "tenant_status_idx")
   @@index([deploymentId], map: "tenant_deployment_id_idx")
   @@map("tenant")
+}
+
+model AuditLog {
+  id                 String            @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  tenantId           String?           @map("tenant_id") @db.Uuid
+  actorType          String            @map("actor_type")
+  actorId            String?           @map("actor_id")
+  action             String
+  entityType         String            @map("entity_type")
+  entityId           String            @map("entity_id")
+  organizationUnitId String?           @map("organization_unit_id") @db.Uuid
+  beforeSummary      Json?             @map("before_summary") @db.JsonB
+  afterSummary       Json?             @map("after_summary") @db.JsonB
+  requestId          String            @map("request_id")
+  ipMetadata         Json?             @map("ip_metadata") @db.JsonB
+  occurredAt         DateTime          @default(now()) @map("occurred_at") @db.Timestamptz(3)
+  tenant             Tenant?           @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  organizationUnit   OrganizationUnit? @relation(fields: [tenantId, organizationUnitId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([tenantId, occurredAt], map: "audit_log_tenant_occurred_at_idx")
+  @@index([entityType, entityId, occurredAt], map: "audit_log_entity_occurred_at_idx")
+  @@index([requestId], map: "audit_log_request_id_idx")
+  @@map("audit_log")
 }
 
 model DomainEventOutbox {
@@ -179,6 +203,7 @@ model OrganizationUnit {
   tenant          Tenant               @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   parent          OrganizationUnit?    @relation("OrganizationUnitHierarchy", fields: [tenantId, parentId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade)
   children        OrganizationUnit[]   @relation("OrganizationUnitHierarchy")
+  auditLogs       AuditLog[]
 
   @@unique([tenantId, id], map: "organization_unit_tenant_id_id_key")
   @@index([tenantId], map: "organization_unit_tenant_id_idx")

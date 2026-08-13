@@ -1,3 +1,5 @@
+import type { AuditEntryInput, AuditWriter } from "./audit";
+import type * as TenantSafeDatabase from "./index";
 import type {
   DomainEventInput,
   OrganizationUnitCreateData,
@@ -10,6 +12,12 @@ type Assert<T extends true> = T;
 type Excludes<T, Key extends PropertyKey> = Key extends keyof T ? false : true;
 
 export type TenantDataAccessInputAssertions = [
+  Assert<Excludes<AuditEntryInput, "id">>,
+  Assert<Excludes<AuditEntryInput, "tenantId">>,
+  Assert<Excludes<AuditEntryInput, "occurredAt">>,
+  Assert<Excludes<AuditWriter, "update">>,
+  Assert<Excludes<AuditWriter, "delete">>,
+  Assert<Excludes<typeof TenantSafeDatabase, "createPlatformAuditWriter">>,
   Assert<Excludes<DomainEventInput, "id">>,
   Assert<Excludes<DomainEventInput, "tenantId">>,
   Assert<Excludes<DomainEventInput, "publishedAt">>,

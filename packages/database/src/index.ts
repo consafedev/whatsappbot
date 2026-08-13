@@ -1,4 +1,6 @@
+export type { AuditEntryInput, AuditWriter } from "./audit";
 export type {
+  AuditLog,
   DomainEventOutbox,
   OrganizationUnit,
   TenantEntitlement,

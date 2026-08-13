@@ -1,3 +1,4 @@
+import { type AuditEntryInput, type AuditWriter, auditCreateData } from "./audit";
 import {
   type DomainEventOutbox,
   type OrganizationUnit,
@@ -9,7 +10,7 @@ import { createTenantContext, type TenantContext } from "./tenant-context";
 
 type TenantDatabaseClient = Pick<
   Prisma.TransactionClient,
-  "domainEventOutbox" | "organizationUnit" | "tenantEntitlement"
+  "auditLog" | "domainEventOutbox" | "organizationUnit" | "tenantEntitlement"
 >;
 
 type JsonInput = Prisma.InputJsonValue;
@@ -88,6 +89,7 @@ export interface TenantOutboxWriter {
 }
 
 export type TenantDataAccess = Readonly<{
+  audit: AuditWriter;
   entitlements: TenantEntitlementRepository;
   organizationUnits: OrganizationUnitRepository;
   outbox: TenantOutboxWriter;
@@ -293,6 +295,16 @@ function createTenantOutboxWriter(
   });
 }
 
+function createTenantAuditWriter(
+  context: TenantContext,
+  database: TenantDatabaseClient,
+): AuditWriter {
+  return Object.freeze({
+    append: (entry: AuditEntryInput) =>
+      database.auditLog.create({ data: auditCreateData(entry, context.tenantId) }),
+  });
+}
+
 export function createTenantDataAccess(
   context: TenantContext,
   database: TenantDatabaseClient,
@@ -300,6 +312,7 @@ export function createTenantDataAccess(
   const validatedContext = createTenantContext(context.tenantId);
 
   return Object.freeze({
+    audit: createTenantAuditWriter(validatedContext, database),
     entitlements: createTenantEntitlementRepository(validatedContext, database),
     organizationUnits: createOrganizationUnitRepository(validatedContext, database),
     outbox: createTenantOutboxWriter(validatedContext, database),
