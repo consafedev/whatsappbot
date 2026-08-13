@@ -18,6 +18,7 @@ export {
   type OrganizationUnitRepository,
   type OrganizationUnitUpdateData,
   type TenantDataAccess,
+  type TenantDataAccessDatabase,
   type TenantEntitlementCreateData,
   type TenantEntitlementRepository,
   type TenantEntitlementUpdateData,

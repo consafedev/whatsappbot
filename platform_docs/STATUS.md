@@ -2,7 +2,7 @@
 
 **Actualizado:** 2026-08-13
 **Versión de producto:** `0.0.0`  
-**Estado:** E02-S02 — PASS; **Epic 02 — IN PROGRESS**.
+**Estado:** E02-S03 — PASS; **Epic 02 — IN PROGRESS**.
 
 ## Current milestone
 
@@ -16,7 +16,7 @@ Estado por historia:
 
 - E02-S01 — Platform Admin auth: **PASS**, documentada por ADR-0015.
 - E02-S02 — Tenant user auth: **PASS**, documentada por ADR-0016.
-- E02-S03 — Tenant context middleware: **NOT STARTED**.
+- E02-S03 — Tenant context middleware: **PASS**.
 - E02-S04 — Tenant isolation tests: **NOT STARTED**.
 - E02-S05 — RBAC base: **NOT STARTED**.
 
@@ -30,6 +30,13 @@ Epic anterior:
 
 ## Completed
 
+- E02-S03 — Tenant context middleware: **PASS**; no requirió migration ni ADR nuevo.
+- Pipeline Nest explícito `TenantUserSessionGuard` → `TenantContextGuard` → controller/service; guards ejecutados en ese orden y sin middleware pre-auth.
+- `TenantSessionIdentity` expone `sessionId`, `userId` y `tenantId` persistidos; la request autenticada recibe `auth` y `tenantContext` como propiedades readonly/no reasignables.
+- `TenantContextGuard` deriva contexto únicamente de `auth.tenantId`, reutiliza `createTenantContext(...)` y falla 401 sin identidad tenant válida.
+- `@TenantAuthenticated()`, `@CurrentTenantContext()` y `@CurrentTenantIdentity()` ofrecen composición/extracción tipada sin headers, body, query, route tenant ID ni slug post-auth.
+- `TenantDataAccessFactory` reutiliza el cliente singleton y conecta explícitamente `TenantContext` con `createTenantDataAccess(...)`; no crea Prisma request-scoped ni estado ambiental.
+- Ocho pruebas verticales sobre Nest/PostgreSQL real cubren contextos A/B, body/query/headers/route hostiles, ausencia de sesión, cookie Platform, sesión revocada/expirada, user disabled, tenant suspended, read/write scoped y concurrencia A/B.
 - E02-S02 — Tenant user auth: **PASS**, documentada por ADR-0016.
 - `User`, `UserSession` y `UserPasswordResetToken` tenant-owned y separados de Platform Admin, con `tenant_id NOT NULL`.
 - Email normalizado unique por tenant; misma dirección verificada en dos tenants con passwords distintos.
@@ -115,20 +122,33 @@ Epic anterior:
 
 ## In progress
 
-Epic 02 continúa con E02-S03 pendiente.
+Epic 02 continúa con E02-S04 pendiente.
 
 ## Blocked
 
-Ningún bloqueo de código para E02-S02. Password recovery requiere un adapter de delivery antes de habilitarse operativamente.
+Ningún bloqueo de código para E02-S03. Password recovery requiere un adapter de delivery antes de habilitarse operativamente.
 
 ## Next story
 
-`E02-S03 — Tenant context middleware`
+`E02-S04 — Tenant isolation tests`
 
 No implementarla sin una instrucción separada.
 
 ## Last verified commands
 
+- `pnpm install --frozen-lockfile` — PASS; 17 workspaces y lockfile reproducible para E02-S03.
+- `pnpm db:validate` / `pnpm db:generate` — PASS; schema sin cambios y Prisma Client 7.9.1 generado.
+- `pnpm db:migrate:deploy` desde PostgreSQL 18 limpio — PASS; las seis migrations existentes aplicadas, ninguna nueva.
+- `prisma migrate status` / `prisma migrate diff --exit-code` — PASS; schema actualizado y sin drift.
+- `pnpm test:integration:database` — PASS; 4 archivos, 36 pruebas PostgreSQL sin regresión.
+- `pnpm test:integration:auth` — PASS; 3 archivos, 25 pruebas: 8 tenant-context, 10 Tenant User/reset y 7 Platform Admin.
+- Pipeline E02-S03 — PASS; context A/B, request sources hostiles, no-session/platform-cookie, revocación/expiración/status, read/write scoped y concurrencia.
+- `pnpm lint` / `pnpm typecheck` / `pnpm test` / `pnpm build` / `pnpm format:check` — PASS.
+- `docker compose config --quiet` — PASS con variables locales efímeras.
+- `docker compose build api` — PASS; imagen Node 24/Alpine recompilada con E02-S03. El pipeline `/auth/me` + sesión real se verificó en la suite Nest/PostgreSQL.
+- Schema/migrations — PASS; `schema.prisma` y migrations 1–6 sin cambios frente a `HEAD` de inicio.
+- Static import review — PASS; imports privilegiados limitados a bootstrap/auth/infraestructura y fixtures; ningún endpoint tenant-owned nuevo usa Prisma raw.
+- `git diff --check` y secret scan — PASS; contenedores temporales retirados y named volumes preservados.
 - `pnpm install` — PASS; 17 workspaces, lockfile generado, pnpm 11.21.0.
 - `pnpm lint` — PASS; 60 archivos, sin warnings después de corregir la configuración.
 - `pnpm typecheck` — PASS; raíz y 16 workspaces.
@@ -251,4 +271,4 @@ No implementarla sin una instrucción separada.
 - El rate limiter E02-S01 es local a cada proceso; coordinación distribuida queda para una historia operativa futura si la topología escala horizontalmente.
 - Los limiters E02-S02 también son locales a proceso y deben distribuirse antes de horizontal scaling.
 - `PasswordResetDelivery` no tiene adapter SMTP/provider operativo; la API conserva respuesta genérica y nunca devuelve el token, pero recovery real debe permanecer deshabilitado hasta configurarlo.
-- Tenant context middleware, RBAC, MFA, RLS, publisher/dispatcher Outbox, TimelineEvent y entidades posteriores permanecen fuera de alcance.
+- RBAC, MFA, RLS, publisher/dispatcher Outbox, TimelineEvent y entidades posteriores permanecen fuera de alcance.

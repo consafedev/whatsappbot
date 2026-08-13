@@ -34,6 +34,11 @@ import {
   TenantUserSessionGuard,
   UnavailablePasswordResetDelivery,
 } from "./tenant-auth";
+import {
+  TENANT_DATA_ACCESS_DATABASE,
+  TenantContextGuard,
+  TenantDataAccessFactory,
+} from "./tenant-context";
 
 @Controller()
 class HealthController {
@@ -68,6 +73,8 @@ export async function createApiApplication(
       TenantOriginGuard,
       TenantUserSessionGuard,
       TenantLogoutGuard,
+      TenantContextGuard,
+      TenantDataAccessFactory,
       {
         provide: PLATFORM_AUTH_REPOSITORY,
         useFactory: (): PlatformAuthRepository =>
@@ -80,6 +87,7 @@ export async function createApiApplication(
           createTenantAuthRepository(getPlatformDatabaseClient()),
       },
       { provide: TENANT_AUTH_OPTIONS, useValue: tenantOptions },
+      { provide: TENANT_DATA_ACCESS_DATABASE, useFactory: getPlatformDatabaseClient },
       {
         provide: PASSWORD_RESET_DELIVERY,
         useValue: dependencies.passwordResetDelivery ?? new UnavailablePasswordResetDelivery(),

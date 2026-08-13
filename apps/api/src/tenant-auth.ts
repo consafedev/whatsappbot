@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import {
+  applyDecorators,
   BadRequestException,
   Body,
   type CanActivate,
@@ -36,12 +37,19 @@ import {
   TENANT_SESSION_TOUCH_INTERVAL_MS,
   type TenantCookieConfig,
 } from "@whatsapp-platform/auth";
+import type { TenantContext } from "@whatsapp-platform/database";
 import type {
   TenantAuthRepository,
   TenantAuthTenant,
   TenantSessionIdentity,
   TenantUserProfile,
 } from "@whatsapp-platform/database/platform";
+import {
+  CurrentTenantContext,
+  CurrentTenantIdentity,
+  type TenantAuthenticationRequest,
+  TenantContextGuard,
+} from "./tenant-context";
 
 export const TENANT_AUTH_REPOSITORY = Symbol("TENANT_AUTH_REPOSITORY");
 export const TENANT_AUTH_OPTIONS = Symbol("TENANT_AUTH_OPTIONS");
@@ -71,25 +79,19 @@ export class UnavailablePasswordResetDelivery implements PasswordResetDelivery {
   }
 }
 
-type TenantRequest = {
-  headers: Record<string, string | string[] | undefined>;
-  ip?: string;
-  tenantIdentity?: TenantSessionIdentity;
-};
-
 type ApiResponse = { setHeader(name: string, value: string): void };
 
-function header(request: TenantRequest, name: string): string | undefined {
+function header(request: TenantAuthenticationRequest, name: string): string | undefined {
   const value = request.headers[name];
   return Array.isArray(value) ? value[0] : value;
 }
 
-function requestId(request: TenantRequest): string {
+function requestId(request: TenantAuthenticationRequest): string {
   const value = header(request, "x-request-id");
   return value !== undefined && /^[A-Za-z0-9._:-]{1,128}$/.test(value) ? value : randomUUID();
 }
 
-function requireJson(request: TenantRequest): void {
+function requireJson(request: TenantAuthenticationRequest): void {
   if (!(header(request, "content-type") ?? "").toLowerCase().startsWith("application/json")) {
     throw new UnsupportedMediaTypeException("Content-Type must be application/json");
   }
@@ -140,7 +142,7 @@ export class TenantOriginGuard implements CanActivate {
   constructor(@Inject(TENANT_AUTH_OPTIONS) private readonly options: TenantAuthOptions) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const request = context.switchToHttp().getRequest<TenantRequest>();
+    const request = context.switchToHttp().getRequest<TenantAuthenticationRequest>();
     if (header(request, "origin") !== this.options.webOrigin) {
       throw new ForbiddenException("Invalid request origin");
     }
@@ -175,7 +177,7 @@ export class TenantUserSessionGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest<TenantRequest>();
+    const request = context.switchToHttp().getRequest<TenantAuthenticationRequest>();
     const token = readCookie(header(request, "cookie"), this.options.cookie.name);
     if (token === null) throw new UnauthorizedException("Authentication required");
     const identity = await this.repository.findSessionByTokenHash(hashOpaqueToken(token));
@@ -193,9 +195,18 @@ export class TenantUserSessionGuard implements CanActivate {
     if (now.getTime() - identity.lastSeenAt.getTime() >= TENANT_SESSION_TOUCH_INTERVAL_MS) {
       await this.repository.touchSession(identity.sessionId, now);
     }
-    request.tenantIdentity = identity;
+    Object.defineProperty(request, "auth", {
+      configurable: false,
+      enumerable: false,
+      value: identity,
+      writable: false,
+    });
     return true;
   }
+}
+
+export function TenantAuthenticated(): MethodDecorator & ClassDecorator {
+  return applyDecorators(UseGuards(TenantUserSessionGuard, TenantContextGuard));
 }
 
 @Injectable()
@@ -206,12 +217,17 @@ export class TenantLogoutGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest<TenantRequest>();
+    const request = context.switchToHttp().getRequest<TenantAuthenticationRequest>();
     const token = readCookie(header(request, "cookie"), this.options.cookie.name);
     if (token === null) throw new UnauthorizedException("Authentication required");
     const identity = await this.repository.findSessionByTokenHash(hashOpaqueToken(token));
     if (identity === null) throw new UnauthorizedException("Authentication required");
-    request.tenantIdentity = identity;
+    Object.defineProperty(request, "auth", {
+      configurable: false,
+      enumerable: false,
+      value: identity,
+      writable: false,
+    });
     return true;
   }
 }
@@ -342,7 +358,7 @@ export class TenantAuthController {
   async login(
     @Param("tenantSlug") rawSlug: string,
     @Body() rawBody: unknown,
-    @Req() request: TenantRequest,
+    @Req() request: TenantAuthenticationRequest,
     @Res({ passthrough: true }) response: ApiResponse,
   ): Promise<{ tenant: TenantAuthTenant; user: TenantUserProfile }> {
     requireJson(request);
@@ -362,10 +378,11 @@ export class TenantAuthController {
   }
 
   @Get("me")
-  @UseGuards(TenantUserSessionGuard)
-  me(@Req() request: TenantRequest): { tenant: TenantAuthTenant; user: TenantUserProfile } {
-    const identity = request.tenantIdentity;
-    if (identity === undefined) throw new UnauthorizedException();
+  @TenantAuthenticated()
+  me(
+    @CurrentTenantContext() _tenantContext: TenantContext,
+    @CurrentTenantIdentity() identity: TenantSessionIdentity,
+  ): { tenant: TenantAuthTenant; user: TenantUserProfile } {
     return { tenant: identity.tenant, user: identity.user };
   }
 
@@ -373,10 +390,10 @@ export class TenantAuthController {
   @HttpCode(204)
   @UseGuards(TenantOriginGuard, TenantLogoutGuard)
   async logout(
-    @Req() request: TenantRequest,
+    @Req() request: TenantAuthenticationRequest,
     @Res({ passthrough: true }) response: ApiResponse,
   ): Promise<void> {
-    const identity = request.tenantIdentity;
+    const identity = request.auth;
     if (identity === undefined) throw new UnauthorizedException();
     if (identity.revokedAt === null)
       await this.repository.revokeSession(identity, requestId(request));
@@ -385,12 +402,12 @@ export class TenantAuthController {
 
   @Post("sessions/revoke-all")
   @HttpCode(204)
-  @UseGuards(TenantOriginGuard, TenantUserSessionGuard)
+  @UseGuards(TenantOriginGuard, TenantUserSessionGuard, TenantContextGuard)
   async revokeAll(
-    @Req() request: TenantRequest,
+    @Req() request: TenantAuthenticationRequest,
     @Res({ passthrough: true }) response: ApiResponse,
   ): Promise<void> {
-    const identity = request.tenantIdentity;
+    const identity = request.auth;
     if (identity === undefined) throw new UnauthorizedException();
     await this.repository.revokeAllSessions(identity, requestId(request));
     response.setHeader("Set-Cookie", serializeClearedTenantSessionCookie(this.options.cookie));
@@ -402,7 +419,7 @@ export class TenantAuthController {
   async requestReset(
     @Param("tenantSlug") rawSlug: string,
     @Body() rawBody: unknown,
-    @Req() request: TenantRequest,
+    @Req() request: TenantAuthenticationRequest,
   ): Promise<{ message: string }> {
     requireJson(request);
     const value = plainObject(rawBody);
@@ -420,7 +437,7 @@ export class TenantAuthController {
   async confirmReset(
     @Param("tenantSlug") rawSlug: string,
     @Body() rawBody: unknown,
-    @Req() request: TenantRequest,
+    @Req() request: TenantAuthenticationRequest,
   ): Promise<void> {
     requireJson(request);
     const value = plainObject(rawBody);

@@ -8,7 +8,7 @@ import {
 import type { OrganizationUnitType, TenantEntitlementSource } from "./generated/prisma/enums";
 import { createTenantContext, type TenantContext } from "./tenant-context";
 
-type TenantDatabaseClient = Pick<
+export type TenantDataAccessDatabase = Pick<
   Prisma.TransactionClient,
   "auditLog" | "domainEventOutbox" | "organizationUnit" | "tenantEntitlement"
 >;
@@ -195,7 +195,7 @@ function organizationUnitUpdateData(
 
 function createTenantEntitlementRepository(
   context: TenantContext,
-  database: TenantDatabaseClient,
+  database: TenantDataAccessDatabase,
 ): TenantEntitlementRepository {
   const repository: TenantEntitlementRepository = {
     list: () =>
@@ -235,7 +235,7 @@ function createTenantEntitlementRepository(
 
 function createOrganizationUnitRepository(
   context: TenantContext,
-  database: TenantDatabaseClient,
+  database: TenantDataAccessDatabase,
 ): OrganizationUnitRepository {
   const repository: OrganizationUnitRepository = {
     list: () =>
@@ -279,7 +279,7 @@ function createOrganizationUnitRepository(
 
 function createTenantOutboxWriter(
   context: TenantContext,
-  database: TenantDatabaseClient,
+  database: TenantDataAccessDatabase,
 ): TenantOutboxWriter {
   return Object.freeze({
     append: (event: DomainEventInput) =>
@@ -297,7 +297,7 @@ function createTenantOutboxWriter(
 
 function createTenantAuditWriter(
   context: TenantContext,
-  database: TenantDatabaseClient,
+  database: TenantDataAccessDatabase,
 ): AuditWriter {
   return Object.freeze({
     append: (entry: AuditEntryInput) =>
@@ -307,7 +307,7 @@ function createTenantAuditWriter(
 
 export function createTenantDataAccess(
   context: TenantContext,
-  database: TenantDatabaseClient,
+  database: TenantDataAccessDatabase,
 ): TenantDataAccess {
   const validatedContext = createTenantContext(context.tenantId);
 

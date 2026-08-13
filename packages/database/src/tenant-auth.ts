@@ -24,6 +24,8 @@ export type TenantLoginRecord = Readonly<{
 
 export type TenantSessionIdentity = Readonly<{
   sessionId: string;
+  tenantId: string;
+  userId: string;
   tenant: TenantAuthTenant;
   tenantStatus: TenantStatus;
   user: TenantUserProfile;
@@ -186,8 +188,10 @@ export function createTenantAuthRepository(database: TenantAuthDatabase): Tenant
           id: true,
           lastSeenAt: true,
           revokedAt: true,
+          tenantId: true,
           tenant: { select: { ...safeTenantSelect, status: true } },
           user: { select: { ...safeUserSelect, status: true } },
+          userId: true,
         },
         where: { tokenHash: binary(tokenHash) },
       });
