@@ -59,3 +59,9 @@ export {
   tenantEntitlementEffective,
   tenantEntitlementStatus,
 } from "./tenant-entitlements";
+export {
+  assertTenantOperational,
+  TenantNotOperationalError,
+  type TenantOperationalReadDatabase,
+  tenantIsOperational,
+} from "./tenant-operational";

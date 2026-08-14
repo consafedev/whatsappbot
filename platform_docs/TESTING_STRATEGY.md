@@ -120,7 +120,23 @@ Los limits se administran en esta historia, pero su enforcement de usage queda e
 
 ---
 
-# 6. RBAC/scopes
+# 6. Tenant suspension lifecycle
+
+`pnpm test:integration:tenant-status` ejecuta tres pruebas database y cuatro API contra PostgreSQL 18.4/Nest reales. Cubre:
+
+- transiciones exclusivas `active → suspended` y `suspended → active`, estados no administrables 409, `suspendedAt` UTC, re-suspend posterior e idempotencia sin eventos duplicados;
+- Tenant status + Audit + Outbox en una transacción y rollback cuando falla Outbox, incluida concurrencia sin una segunda transición real;
+- misma cookie válida antes de suspensión, 401 durante suspensión y 200 tras reactivar sin crear ni revocar la sesión;
+- login y password reset con respuestas públicas genéricas durante suspensión; sesiones expired, revoked o de User disabled no reviven;
+- barrera status antes de RBAC/entitlement, request/body/query hostiles y aislamiento A/B;
+- Platform list/detail/users/audit y mutations de entitlements disponibles mientras el tenant está suspended;
+- snapshots de sessions, roles, permissions, entitlements, limits y config sin mutación durante suspend/reactivate.
+
+Los workers/jobs futuros deben revalidar `assertTenantOperational(...)` justo antes de un side effect externo o costoso, y luego `assertTenantModuleEntitled(...)` si aplica. No confiarán en el estado capturado al encolar; E03-S05 no cancela jobs ni modifica providers.
+
+---
+
+# 7. RBAC/scopes
 
 Matriz mínima:
 

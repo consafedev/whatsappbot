@@ -64,6 +64,15 @@ export {
   type PlatformTenantQueryService,
 } from "./platform-tenant-query";
 export {
+  createPlatformTenantStatusWriter,
+  type PlatformTenantStatusDatabase,
+  type PlatformTenantStatusMutationMetadata,
+  type PlatformTenantStatusMutationResult,
+  PlatformTenantStatusNotFoundError,
+  PlatformTenantStatusTransitionError,
+  type PlatformTenantStatusWriter,
+} from "./platform-tenant-status";
+export {
   type PermissionCatalogDatabase,
   syncPermissionCatalog,
 } from "./rbac-permissions";

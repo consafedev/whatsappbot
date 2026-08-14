@@ -15,6 +15,7 @@ import {
   TENANT_DETAIL_TABS,
   type TenantDetailState,
 } from "./tenant-detail-view-model";
+import { TenantStatusControls } from "./tenant-status-controls";
 
 type Tab = (typeof TENANT_DETAIL_TABS)[number];
 type DetailLoadState = "loading" | TenantDetailState;
@@ -191,6 +192,12 @@ export function TenantDetailClient({
                   {detail.general.status}
                 </span>
               </div>
+              <TenantStatusControls
+                apiBaseUrl={apiBaseUrl}
+                onRefresh={() => loadDetail()}
+                status={detail.general.status}
+                tenantId={tenantId}
+              />
               <div className="detail-tabs" role="tablist" aria-label="Detalle del tenant">
                 {TENANT_DETAIL_TABS.map((name) => (
                   <button

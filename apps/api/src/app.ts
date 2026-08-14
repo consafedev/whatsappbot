@@ -8,6 +8,7 @@ import {
   createPlatformTenantEntitlementAdminRepository,
   createPlatformTenantProvisioningRepository,
   createPlatformTenantQueryService,
+  createPlatformTenantStatusWriter,
   createTenantAuthRepository,
   getPlatformDatabaseClient,
   type PlatformAuthRepository,
@@ -33,6 +34,10 @@ import {
   PLATFORM_TENANT_PROVISIONING_REPOSITORY,
   PlatformTenantProvisioningService,
 } from "./platform-tenant-provisioning";
+import {
+  PLATFORM_TENANT_STATUS_WRITER,
+  PlatformTenantStatusService,
+} from "./platform-tenant-status";
 import {
   PLATFORM_TENANT_DETAIL_QUERY,
   PLATFORM_TENANT_QUERY,
@@ -92,6 +97,7 @@ export async function createApiApplication(
       PlatformAuthService,
       PlatformTenantProvisioningService,
       PlatformTenantEntitlementService,
+      PlatformTenantStatusService,
       PlatformLoginRateLimiter,
       PlatformOriginGuard,
       PlatformAdminSessionGuard,
@@ -109,6 +115,10 @@ export async function createApiApplication(
         provide: PLATFORM_TENANT_ENTITLEMENT_ADMIN,
         useFactory: () =>
           createPlatformTenantEntitlementAdminRepository(getPlatformDatabaseClient()),
+      },
+      {
+        provide: PLATFORM_TENANT_STATUS_WRITER,
+        useFactory: () => createPlatformTenantStatusWriter(getPlatformDatabaseClient()),
       },
       {
         provide: PLATFORM_AUTH_REPOSITORY,

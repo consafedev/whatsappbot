@@ -1,8 +1,8 @@
 # STATUS.md — Estado operativo actual del proyecto
 
-**Actualizado:** 2026-08-13
+**Actualizado:** 2026-08-14
 **Versión de producto:** `0.0.0`  
-**Estado:** E03-S04 — PASS; **Epic 03 — IN PROGRESS**.
+**Estado:** E03-S05 — PASS; **Epic 03 — PASS / COMPLETE**.
 
 ## Current milestone
 
@@ -18,7 +18,7 @@ Estado por historia:
 - E03-S02 — Create tenant: **PASS**.
 - E03-S03 — Tenant detail: **PASS**.
 - E03-S04 — Module activation: **PASS**.
-- E03-S05 — Suspend/reactivate tenant: **NOT STARTED**.
+- E03-S05 — Suspend/reactivate tenant: **PASS**.
 
 Epic anterior:
 
@@ -31,6 +31,17 @@ Epic anterior:
 
 ## Completed
 
+- E03-S05 — Suspend/reactivate tenant: **PASS**; **Epic 03 — PASS / COMPLETE**.
+- `POST /platform/tenants/:tenantId/suspend` y `/reactivate` usan exclusivamente `PlatformAdminSessionGuard`, UUID de route validado y body vacío; devuelven 200 con `{ tenant: { id, status, suspendedAt }, changed }`.
+- Sólo se permiten `active → suspended` y `suspended → active`; provisioning, offboarding y archived devuelven 409. Reintentos al estado actual devuelven `changed: false`, preservan `suspendedAt` y no crean Audit/Outbox adicionales.
+- `createPlatformTenantStatusWriter(...)` se exporta sólo desde `@whatsapp-platform/database/platform`; aplica update condicional, status/suspendedAt, Audit y Outbox en una transaction. No hay Prisma raw en controller ni writer tenant-safe.
+- `TenantUserSessionGuard` ya revalida `Tenant.status === active` desde PostgreSQL en cada request antes de TenantContext, RBAC y Entitlement. Suspender bloquea sesión existente y login con 401 genérico; reactivar permite de nuevo la misma sesión válida sin recrearla ni revocar sesiones.
+- `assertTenantOperational(...)` es la primitive tenant-safe reutilizable para workers/jobs futuros. Antes de side effect costoso deberán revalidar tenant active y entitlement aplicable; no se cancela job, desconecta provider ni se modifican módulos durante suspensión.
+- Suspend/reactivate no muta User, Role, Permission, UserRole, UserSession, TenantEntitlement, config, limits, OUs, settings, branding ni deployment. Platform Control y mutations de entitlements continúan operativos sobre tenant suspended.
+- Audit/Outbox usan `tenant.suspended` y `tenant.reactivated`, aggregate `Tenant`, actor Platform Admin y payload/summaries mínimos sin secretos.
+- UI `/platform/tenants/[tenantId]` muestra acción Suspend/Reactivar sólo en estados administrables, confirmación explícita, errores 401/404/409 y refetch real de detail después de éxito.
+- Suite dedicada `pnpm test:integration:tenant-status`: 2 archivos y 7 pruebas PostgreSQL 18.4/Nest para session same-cookie, login/reset, status spoofing, A/B, Platform control, idempotencia, `suspendedAt`, concurrencia y rollback atómico.
+- E03-S05 no cambió `schema.prisma`, conserva siete migrations, no creó migration 8, no implementó E04-S01 y no requirió ADR.
 - E03-S04 — Module activation: **PASS**; Epic 03 permanece **IN PROGRESS**.
 - Catálogo canónico y tipado de exactamente 14 `ModuleEntitlementKey` y cinco `LimitEntitlementKey`, compartido por provisioning, detalle, administración y enforcement sin listas divergentes.
 - La semántica efectiva única exige row existente, `enabled = true`, `startsAt <= now` y `endsAt > now`; ausencia, disabled, inicio futuro y expiración fallan cerrados.
@@ -187,20 +198,25 @@ Epic anterior:
 
 ## In progress
 
-Epic 03 — Super Admin continúa con E03-S05 pendiente.
+Epic 03 — Super Admin está **PASS / COMPLETE**.
 
 ## Blocked
 
-Ningún bloqueo de código para E03-S04. Password recovery requiere un adapter de delivery antes de habilitarse operativamente.
+Ningún bloqueo de código para E03-S05. Password recovery requiere un adapter de delivery antes de habilitarse operativamente.
 
 ## Next story
 
-`E03-S05 — Suspend/reactivate tenant`
+`E04-S01 — App shell`
 
 No implementarla sin una instrucción separada.
 
 ## Last verified commands
 
+- `pnpm install --frozen-lockfile` / `pnpm db:validate` / `pnpm db:generate` / `pnpm db:migrate:deploy` / `prisma migrate status` / `prisma migrate diff --exit-code` — PASS; PostgreSQL 18.4 con siete migrations, sin pendientes ni drift.
+- `pnpm format` / `pnpm lint` / `pnpm typecheck` / `pnpm test` / `pnpm build` / `pnpm format:check` — PASS; 153 archivos Biome y suite raíz 8 archivos/30 pruebas.
+- `docker compose config --quiet` / `docker compose build api web` / `docker compose up -d` / `docker compose ps` / `GET http://127.0.0.1:3001/health` / `GET http://127.0.0.1:3000/` / `docker compose down` — PASS; postgres, redis, api, web, worker-jobs y worker-whatsapp `healthy`, API 200 `{\"service\":\"api\",\"status\":\"ok\"}`, web 200; volumes preservados.
+- `pnpm test:integration:tenant-status` — PASS; 3 pruebas database y 4 pruebas API contra PostgreSQL 18.4/Nest reales.
+- `pnpm test:integration:platform-tenants` / `pnpm test:integration:tenant-provisioning` / `pnpm test:integration:platform-tenant-detail` / `pnpm test:integration:entitlements` — PASS; regresiones E03-S01 a E03-S04.
 - `pnpm test:integration:entitlements` — PASS; 3 pruebas database y 5 pruebas API contra PostgreSQL 18.4/Nest reales.
 - `pnpm test:integration:platform-tenant-detail` / `pnpm test:integration:platform-tenants` / `pnpm test:integration:tenant-provisioning` — PASS; regresiones E03-S01 a E03-S03.
 - `pnpm test:integration:database` — PASS; 10 archivos y 71 pruebas PostgreSQL.

@@ -3,6 +3,7 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
   Inject,
   NotFoundException,
   Param,
@@ -36,6 +37,7 @@ import {
   platformProvisioningRequestId,
   requirePlatformProvisioningJson,
 } from "./platform-tenant-provisioning";
+import { PlatformTenantStatusService } from "./platform-tenant-status";
 
 export const PLATFORM_TENANT_QUERY = Symbol("PLATFORM_TENANT_QUERY");
 export const PLATFORM_TENANT_DETAIL_QUERY = Symbol("PLATFORM_TENANT_DETAIL_QUERY");
@@ -104,6 +106,18 @@ function parseTenantPageQuery(query: TenantListHttpQuery) {
   return { page, pageSize };
 }
 
+function requireEmptyStatusMutationBody(body: unknown): void {
+  if (body === undefined) return;
+  if (
+    body === null ||
+    typeof body !== "object" ||
+    Array.isArray(body) ||
+    Object.keys(body as Record<string, unknown>).length > 0
+  ) {
+    throw new BadRequestException("Tenant status mutation does not accept a body");
+  }
+}
+
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function parseTenantId(value: string): string {
@@ -133,6 +147,8 @@ export class PlatformTenantsController {
     private readonly provisioningService: PlatformTenantProvisioningService,
     @Inject(PlatformTenantEntitlementService)
     private readonly entitlementService: PlatformTenantEntitlementService,
+    @Inject(PlatformTenantStatusService)
+    private readonly statusService: PlatformTenantStatusService,
   ) {}
 
   @Get()
@@ -208,6 +224,40 @@ export class PlatformTenantsController {
       parsePlatformLimitEntitlementPatch(body),
       identity,
       platformProvisioningRequestId(request),
+    );
+  }
+
+  @Post(":tenantId/suspend")
+  @HttpCode(200)
+  suspend(
+    @Param("tenantId") tenantId: string,
+    @Body() body: unknown,
+    @Req() request: Parameters<typeof requirePlatformProvisioningJson>[0],
+  ) {
+    requireEmptyStatusMutationBody(body);
+    const identity = request.platformIdentity;
+    if (identity === undefined) throw new Error("Platform identity was not resolved");
+    return this.statusService.suspend(
+      identity,
+      platformProvisioningRequestId(request),
+      parseTenantId(tenantId),
+    );
+  }
+
+  @Post(":tenantId/reactivate")
+  @HttpCode(200)
+  reactivate(
+    @Param("tenantId") tenantId: string,
+    @Body() body: unknown,
+    @Req() request: Parameters<typeof requirePlatformProvisioningJson>[0],
+  ) {
+    requireEmptyStatusMutationBody(body);
+    const identity = request.platformIdentity;
+    if (identity === undefined) throw new Error("Platform identity was not resolved");
+    return this.statusService.reactivate(
+      identity,
+      platformProvisioningRequestId(request),
+      parseTenantId(tenantId),
     );
   }
 

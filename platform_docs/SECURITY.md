@@ -147,6 +147,15 @@ Baseline Entitlements E03-S04:
 - disable conserva row/config/datos; no dispara borrados, desconexiones ni side effects externos;
 - entitlement, Audit y Outbox se escriben atómicamente; futuros workers deben revalidar antes de acciones costosas o riesgosas.
 
+Baseline Tenant lifecycle E03-S05:
+
+- sólo `Tenant.status === active` autoriza actividad Tenant; la guard session consulta PostgreSQL en cada request antes de contexto, RBAC y entitlement;
+- suspensión no revoca, extiende ni recrea `UserSession`; sesiones revoked/expired y Users disabled continúan fallando cerrados después de reactivación;
+- login/reset de tenant suspended preservan respuestas públicas genéricas, sin exponer el estado ni crear una sesión operativa;
+- sólo Platform Admin puede suspender/reactivar y los endpoints rechazan status/body/tenantId controlados por caller;
+- cambios reales registran Audit/Outbox atómicos y no borran/alteran módulos, config, RBAC, usuarios o datos;
+- workers futuros revalidan tenant operational y entitlement antes de side effect. No hay cache Redis ni snapshot de estado de tenant en sesión.
+
 Ver ADR-0017.
 
 ---

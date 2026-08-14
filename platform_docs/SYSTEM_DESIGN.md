@@ -462,6 +462,14 @@ Baseline E03-S04:
 - config es un objeto JSON opaco, no secreto, reemplazado por completo y no interpretado por el guard genérico;
 - cada mutation Platform persiste entitlement, Audit y Outbox en una sola transacción.
 
+Baseline E03-S05:
+
+- `active` es el único estado operacional Tenant; `suspended`, `provisioning`, `offboarding` y `archived` fallan cerrados para actividad Tenant;
+- sólo Platform Control puede ejecutar `active ↔ suspended`; la mutation es idempotente, preserva `suspendedAt` en retries y no realiza transiciones genéricas;
+- suspensión bloquea uso de sesiones Tenant existentes por revalidación PostgreSQL, pero no las revoca ni altera identidad, roles, módulos o datos;
+- Platform queries y administración de entitlements no dependen de que el Tenant esté active;
+- status, Audit y Outbox se confirman en una transacción. Jobs/workers futuros revalidarán estado operacional y entitlement justo antes de side effects, sin confiar en el estado que tenían al encolarse.
+
 ---
 
 # 9. Organización jerárquica
