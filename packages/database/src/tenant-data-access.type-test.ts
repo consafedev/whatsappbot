@@ -6,8 +6,6 @@ import type {
   OrganizationUnitCreateData,
   OrganizationUnitUpdateData,
   TenantDataAccess,
-  TenantEntitlementCreateData,
-  TenantEntitlementUpdateData,
   UserRoleAssignmentData,
 } from "./tenant-data-access";
 
@@ -34,11 +32,9 @@ export type TenantDataAccessInputAssertions = [
   Assert<Excludes<TenantDataAccess["outbox"], "markPublished">>,
   Assert<Excludes<TenantDataAccess["outbox"], "recordFailure">>,
   Assert<Excludes<TenantDataAccess["outbox"], "listAllTenants">>,
-  Assert<Excludes<TenantEntitlementCreateData, "tenantId">>,
-  Assert<Excludes<TenantEntitlementCreateData, "tenant">>,
-  Assert<Excludes<TenantEntitlementUpdateData, "id">>,
-  Assert<Excludes<TenantEntitlementUpdateData, "tenantId">>,
-  Assert<Excludes<TenantEntitlementUpdateData, "tenant">>,
+  Assert<Excludes<TenantDataAccess["entitlements"], "create">>,
+  Assert<Excludes<TenantDataAccess["entitlements"], "update">>,
+  Assert<Excludes<typeof TenantSafeDatabase, "createTenantEntitlementWriter">>,
   Assert<Excludes<OrganizationUnitCreateData, "tenantId">>,
   Assert<Excludes<OrganizationUnitCreateData, "tenant">>,
   Assert<Excludes<OrganizationUnitUpdateData, "id">>,

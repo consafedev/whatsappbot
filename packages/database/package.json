@@ -30,6 +30,7 @@
     "test:integration:platform-tenants": "pnpm --filter @whatsapp-platform/config build && vitest run --config vitest.platform-tenants.config.mts",
     "test:integration:platform-tenant-detail": "pnpm --filter @whatsapp-platform/config build && vitest run --config vitest.platform-tenant-detail.config.mts",
     "test:integration:tenant-provisioning": "pnpm --filter @whatsapp-platform/config build && vitest run --config vitest.tenant-provisioning.config.mts",
+    "test:integration:entitlements": "pnpm --filter @whatsapp-platform/config build && vitest run --config vitest.entitlements.config.mts",
     "test:security:tenant-isolation": "pnpm --filter @whatsapp-platform/config build && pnpm --filter @whatsapp-platform/rbac build && vitest run --config vitest.tenant-isolation.config.mts",
     "typecheck": "pnpm db:generate && tsc -p tsconfig.json --noEmit"
   },

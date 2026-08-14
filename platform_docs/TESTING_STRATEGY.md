@@ -81,7 +81,7 @@ Añadir test por cada nuevo repository tenant-owned.
 
 La matriz dedicada se ejecuta con `pnpm test:security:tenant-isolation` contra PostgreSQL 18 con las migrations aplicadas. En la baseline actual cubre:
 
-- `TenantEntitlement` y `OrganizationUnit`: reads, create/update, IDs ajenos, inputs hostiles, jerarquía y FK compuesta;
+- `TenantEntitlement` y `OrganizationUnit`: reads tenant-scoped, mutation de entitlements sólo desde Platform, IDs ajenos, inputs hostiles, jerarquía y FK compuesta;
 - `AuditLog` y `DomainEventOutbox`: tenant inyectado, separación A/B, atomicidad commit/rollback y acceso privilegiado no exportado por el facade tenant;
 - `User`, `UserSession` y `UserPasswordResetToken`: mismo email en tenants distintos, credenciales/sesiones/reset cross-tenant, revocación, expiración y FKs compuestas;
 - `/auth/me`, `/auth/logout` y `/auth/sessions/revoke-all`: el contexto deriva sólo de la sesión autenticada y no de body, query, header, route param ni cookie de plataforma;
@@ -101,6 +101,22 @@ Probar:
 - channel limit enforced under concurrency;
 - worker rechecks entitlement para side effect;
 - manual override expiry.
+
+## Matriz ejecutable actual (E03-S04)
+
+`pnpm test:integration:entitlements` ejecuta tres pruebas database y cinco pruebas API contra PostgreSQL 18.4/Nest reales. Cubre:
+
+- boundaries exactos `startsAt <= now` y `endsAt > now`, además de ausencia, disabled, scheduled y expired;
+- resolver read-only y assertion reusable tenant-scoped, sin input `tenantId` controlado por caller;
+- una misma sesión válida antes y después de disable/enable, con consulta PostgreSQL por request;
+- Permission presente + módulo disabled, módulo enabled + Permission ausente y ambos presentes;
+- múltiples requirements con semántica ALL y 403 `ENTITLEMENT_REQUIRED` estable;
+- aislamiento A/B, body/query/header hostiles y rechazo de mutations desde identidad Tenant;
+- catálogos cerrados, type-tests y rechazo 400 de keys desconocidas/DTOs abiertos;
+- config object-only con replace total, 16 KiB/profundidad 10, fechas resultantes válidas y Decimal exacto mayor que `Number.MAX_SAFE_INTEGER`;
+- unique `(tenant_id, entitlement_key)`, upsert concurrente y atomicidad entitlement + Audit + Outbox, incluido rollback forzado.
+
+Los limits se administran en esta historia, pero su enforcement de usage queda en la historia propietaria de cada operación. Los workers futuros deben invocar `assertTenantModuleEntitled(...)` inmediatamente antes de una acción costosa o con side effects; no existe cache Redis ni snapshot de entitlement en sesión.
 
 ---
 

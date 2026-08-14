@@ -7,6 +7,10 @@ import {
   TenantScopedRecordNotFoundError,
 } from "./index";
 import { createPlatformDatabaseClient, type PrismaClient } from "./platform";
+import {
+  createTenantEntitlementWriter,
+  type TenantEntitlementWriter,
+} from "./tenant-entitlement-writer";
 
 const slugs = {
   tenantA: "e01-s03-tenant-a",
@@ -16,6 +20,8 @@ const slugs = {
 let prisma: PrismaClient;
 let tenantA: TenantDataAccess;
 let tenantB: TenantDataAccess;
+let entitlementWriterA: TenantEntitlementWriter;
+let entitlementWriterB: TenantEntitlementWriter;
 let tenantAId: string;
 let tenantBId: string;
 let entitlementAId: string;
@@ -74,14 +80,16 @@ describe.sequential("tenant-aware data access integration", () => {
     tenantBId = createdTenantB.id;
     tenantA = createTenantDataAccess(createTenantContext(tenantAId), prisma);
     tenantB = createTenantDataAccess(createTenantContext(tenantBId), prisma);
+    entitlementWriterA = createTenantEntitlementWriter(createTenantContext(tenantAId), prisma);
+    entitlementWriterB = createTenantEntitlementWriter(createTenantContext(tenantBId), prisma);
 
     const [entitlementA, entitlementB, unitA, unitB] = await Promise.all([
-      tenantA.entitlements.create({
+      entitlementWriterA.create({
         enabled: true,
         entitlementKey: "module.tenant-a-only",
         source: "contract",
       }),
-      tenantB.entitlements.create({
+      entitlementWriterB.create({
         enabled: true,
         entitlementKey: "module.tenant-b-only",
         source: "contract",
@@ -125,9 +133,11 @@ describe.sequential("tenant-aware data access integration", () => {
   });
 
   it("rejects a cross-tenant entitlement update without revealing ownership", async () => {
-    await expect(tenantA.entitlements.update(entitlementBId, { enabled: false })).rejects.toEqual(
-      new TenantScopedRecordNotFoundError("TenantEntitlement"),
-    );
+    await expect(
+      entitlementWriterA.update(entitlementBId, { enabled: false }),
+    ).rejects.toMatchObject({
+      code: "P2025",
+    });
 
     await expect(tenantB.entitlements.findById(entitlementBId)).resolves.toMatchObject({
       enabled: true,
@@ -136,7 +146,7 @@ describe.sequential("tenant-aware data access integration", () => {
   });
 
   it("injects the entitlement tenant from context", async () => {
-    const created = await tenantA.entitlements.create({
+    const created = await entitlementWriterA.create({
       enabled: false,
       entitlementKey: "module.context-injected",
       source: "manual_override",
@@ -201,12 +211,7 @@ describe.sequential("tenant-aware data access integration", () => {
 
   it("works with a Prisma TransactionClient", async () => {
     const created = await prisma.$transaction(async (transaction) => {
-      const transactionalTenantA = createTenantDataAccess(
-        createTenantContext(tenantAId),
-        transaction,
-      );
-
-      return transactionalTenantA.entitlements.create({
+      return createTenantEntitlementWriter(createTenantContext(tenantAId), transaction).create({
         enabled: true,
         entitlementKey: "module.transaction-compatible",
         source: "contract",

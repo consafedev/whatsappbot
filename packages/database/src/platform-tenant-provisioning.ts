@@ -1,24 +1,9 @@
 import { INITIAL_TENANT_ROLES, PERMISSION_CATALOG } from "@whatsapp-platform/rbac";
+import { MODULE_ENTITLEMENT_KEYS, type ModuleEntitlementKey } from "./entitlement-catalog";
 import type { PrismaClient } from "./generated/prisma/client";
 
-export const PLATFORM_TENANT_MODULE_KEYS = [
-  "module.messaging.basic",
-  "module.automation.basic",
-  "module.automation.advanced",
-  "module.crm_lite",
-  "module.processes",
-  "module.action_requests",
-  "module.appointments",
-  "module.catalog",
-  "module.quotes",
-  "module.documents",
-  "module.customer_portal",
-  "module.ai",
-  "module.integrations",
-  "module.white_label",
-] as const;
-
-export type PlatformTenantModuleKey = (typeof PLATFORM_TENANT_MODULE_KEYS)[number];
+export const PLATFORM_TENANT_MODULE_KEYS = MODULE_ENTITLEMENT_KEYS;
+export type PlatformTenantModuleKey = ModuleEntitlementKey;
 
 export type PlatformTenantInitialLimits = Readonly<{
   channelAccounts: number;

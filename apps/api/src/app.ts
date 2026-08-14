@@ -5,6 +5,7 @@ import type { NonSecretConfig } from "@whatsapp-platform/config";
 import {
   createPlatformAuthRepository,
   createPlatformTenantDetailQueryService,
+  createPlatformTenantEntitlementAdminRepository,
   createPlatformTenantProvisioningRepository,
   createPlatformTenantQueryService,
   createTenantAuthRepository,
@@ -12,6 +13,7 @@ import {
   type PlatformAuthRepository,
   type TenantAuthRepository,
 } from "@whatsapp-platform/database/platform";
+import { EntitlementTestProbeController } from "./entitlement-test-probe";
 import {
   PLATFORM_AUTH_OPTIONS,
   PLATFORM_AUTH_REPOSITORY,
@@ -23,6 +25,10 @@ import {
   PlatformLoginRateLimiter,
   PlatformOriginGuard,
 } from "./platform-auth";
+import {
+  PLATFORM_TENANT_ENTITLEMENT_ADMIN,
+  PlatformTenantEntitlementService,
+} from "./platform-tenant-entitlements";
 import {
   PLATFORM_TENANT_PROVISIONING_REPOSITORY,
   PlatformTenantProvisioningService,
@@ -51,6 +57,7 @@ import {
   TenantContextGuard,
   TenantDataAccessFactory,
 } from "./tenant-context";
+import { TenantEntitlementGuard } from "./tenant-entitlements";
 import { TenantPermissionGuard } from "./tenant-rbac";
 
 @Controller()
@@ -79,10 +86,12 @@ export async function createApiApplication(
       PlatformAuthController,
       PlatformTenantsController,
       TenantAuthController,
+      ...(config.environment === "test" ? [EntitlementTestProbeController] : []),
     ],
     providers: [
       PlatformAuthService,
       PlatformTenantProvisioningService,
+      PlatformTenantEntitlementService,
       PlatformLoginRateLimiter,
       PlatformOriginGuard,
       PlatformAdminSessionGuard,
@@ -94,7 +103,13 @@ export async function createApiApplication(
       TenantLogoutGuard,
       TenantContextGuard,
       TenantPermissionGuard,
+      TenantEntitlementGuard,
       TenantDataAccessFactory,
+      {
+        provide: PLATFORM_TENANT_ENTITLEMENT_ADMIN,
+        useFactory: () =>
+          createPlatformTenantEntitlementAdminRepository(getPlatformDatabaseClient()),
+      },
       {
         provide: PLATFORM_AUTH_REPOSITORY,
         useFactory: (): PlatformAuthRepository =>

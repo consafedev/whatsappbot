@@ -1,4 +1,12 @@
 export type { AuditEntryInput, AuditWriter } from "./audit";
+export {
+  isLimitEntitlementKey,
+  isModuleEntitlementKey,
+  LIMIT_ENTITLEMENT_KEYS,
+  type LimitEntitlementKey,
+  MODULE_ENTITLEMENT_KEYS,
+  type ModuleEntitlementKey,
+} from "./entitlement-catalog";
 export type {
   AuditLog,
   DomainEventOutbox,
@@ -29,9 +37,6 @@ export {
   type RolePermissionGrantOptions,
   type TenantDataAccess,
   type TenantDataAccessDatabase,
-  type TenantEntitlementCreateData,
-  type TenantEntitlementRepository,
-  type TenantEntitlementUpdateData,
   type TenantOutboxWriter,
   type TenantPermissionResolver,
   type TenantRolePermissionRepository,
@@ -42,3 +47,15 @@ export {
   type UserRoleAssignmentData,
   withTenantTransaction,
 } from "./tenant-data-access";
+export {
+  assertTenantModuleEntitled,
+  createTenantEntitlementResolver,
+  effectiveTenantEntitlementWhere,
+  type TemporalEntitlement,
+  type TenantEntitlementReadDatabase,
+  type TenantEntitlementResolver,
+  type TenantEntitlementStatus,
+  TenantModuleEntitlementRequiredError,
+  tenantEntitlementEffective,
+  tenantEntitlementStatus,
+} from "./tenant-entitlements";

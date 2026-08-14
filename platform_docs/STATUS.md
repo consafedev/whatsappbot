@@ -2,7 +2,7 @@
 
 **Actualizado:** 2026-08-13
 **Versión de producto:** `0.0.0`  
-**Estado:** E03-S03 — PASS; **Epic 03 — IN PROGRESS**.
+**Estado:** E03-S04 — PASS; **Epic 03 — IN PROGRESS**.
 
 ## Current milestone
 
@@ -17,7 +17,7 @@ Estado por historia:
 - E03-S01 — Tenant list: **PASS**.
 - E03-S02 — Create tenant: **PASS**.
 - E03-S03 — Tenant detail: **PASS**.
-- E03-S04 — Module activation: **NOT STARTED**.
+- E03-S04 — Module activation: **PASS**.
 - E03-S05 — Suspend/reactivate tenant: **NOT STARTED**.
 
 Epic anterior:
@@ -31,6 +31,18 @@ Epic anterior:
 
 ## Completed
 
+- E03-S04 — Module activation: **PASS**; Epic 03 permanece **IN PROGRESS**.
+- Catálogo canónico y tipado de exactamente 14 `ModuleEntitlementKey` y cinco `LimitEntitlementKey`, compartido por provisioning, detalle, administración y enforcement sin listas divergentes.
+- La semántica efectiva única exige row existente, `enabled = true`, `startsAt <= now` y `endsAt > now`; ausencia, disabled, inicio futuro y expiración fallan cerrados.
+- `createTenantEntitlementResolver(...)` expone sólo lectura tenant-scoped y `assertTenantModuleEntitled(...)` proporciona la revalidación reusable no-Nest para futuros services, jobs y workers; no existe mutation tenant-safe ni cache/snapshot en sesión.
+- `@RequireEntitlements(...)` y `TenantEntitlementGuard` aplican ALL después de sesión/contexto y, cuando corresponde, RBAC; devuelven 403 `ENTITLEMENT_REQUIRED` desde PostgreSQL en cada request sin confiar en UI ni datos del request.
+- `PATCH /platform/tenants/:tenantId/entitlements/modules/:moduleKey`, `PATCH /platform/tenants/:tenantId/entitlements/limits/:limitKey` y el GET diferido de config usan exclusivamente `PlatformAdminSessionGuard`, catálogos cerrados y DTOs fail-closed.
+- Los overrides son `manual_override`; config es objeto JSON opaco con reemplazo total, máximo 16 KiB/profundidad 10 y sin secretos por contrato. Disable conserva row/config/datos y re-enable recupera la configuración.
+- Cada mutation ejecuta upsert + Audit `tenant.entitlement.changed` + Outbox homónimo en una única transacción; summaries/payloads no contienen config completo. La unique existente `(tenant_id, entitlement_key)` evita duplicados concurrentes.
+- Limits conservan exactitud `Decimal(20,4)` sin conversión innecesaria a Number; no se anticipó enforcement de uso de módulos futuros.
+- `/platform/tenants/[tenantId]` permite administrar los 14 módulos y cinco limits, muestra estado efectivo/scheduled/expired/disabled, solicita confirmación al deshabilitar y carga config avanzada sólo al abrirla.
+- Suite dedicada `pnpm test:integration:entitlements`: 2 archivos y 8 pruebas PostgreSQL 18.4/Nest, incluidos misma sesión disable→enable, Permission + Entitlement, ausente/futuro/expirado, A/B, input hostil, Decimal exacto, concurrencia y rollback atómico.
+- E03-S04 no cambió `schema.prisma`, conserva siete migrations, no creó migration 8, no modificó prototype, no implementó E03-S05 y no requirió ADR.
 - E03-S03 — Tenant detail: **PASS**; Epic 03 permanece **IN PROGRESS**.
 - `GET /platform/tenants/:tenantId`, `/users` y `/audit` usan exclusivamente `PlatformAdminSessionGuard`; ausencia de sesión, cookie Tenant User, sesión revocada y Platform Admin disabled reciben 401, UUID inválido recibe 400 y UUID válido inexistente recibe 404.
 - `createPlatformTenantDetailQueryService` es una consulta cross-tenant privilegiada exportada sólo desde `@whatsapp-platform/database/platform`; el controller no usa Prisma raw y el root tenant-safe no expone esta capacidad.
@@ -175,20 +187,31 @@ Epic anterior:
 
 ## In progress
 
-Epic 03 — Super Admin continúa con E03-S04 pendiente.
+Epic 03 — Super Admin continúa con E03-S05 pendiente.
 
 ## Blocked
 
-Ningún bloqueo de código para E03-S03. Password recovery requiere un adapter de delivery antes de habilitarse operativamente.
+Ningún bloqueo de código para E03-S04. Password recovery requiere un adapter de delivery antes de habilitarse operativamente.
 
 ## Next story
 
-`E03-S04 — Module activation`
+`E03-S05 — Suspend/reactivate tenant`
 
 No implementarla sin una instrucción separada.
 
 ## Last verified commands
 
+- `pnpm test:integration:entitlements` — PASS; 3 pruebas database y 5 pruebas API contra PostgreSQL 18.4/Nest reales.
+- `pnpm test:integration:platform-tenant-detail` / `pnpm test:integration:platform-tenants` / `pnpm test:integration:tenant-provisioning` — PASS; regresiones E03-S01 a E03-S03.
+- `pnpm test:integration:database` — PASS; 10 archivos y 71 pruebas PostgreSQL.
+- `pnpm test:integration:auth` — PASS; 9 archivos y 57 pruebas API/auth.
+- `pnpm test:integration:rbac` — PASS; 11 pruebas database y 11 pruebas API.
+- `pnpm test:security:tenant-isolation` — PASS; 9 pruebas database y 37 pruebas API/arquitectura.
+- `pnpm install --frozen-lockfile` / `pnpm rbac:sync-permissions` — PASS; instalación reproducible y 29 permisos sincronizados.
+- `pnpm db:validate` / `pnpm db:generate` / `pnpm db:migrate:deploy` / `prisma migrate status` / `prisma migrate diff --exit-code` — PASS contra PostgreSQL 18.4 limpio; siete migrations y cero drift.
+- `pnpm lint` / `pnpm typecheck` / `pnpm test` / `pnpm build` / `pnpm format:check` / `git diff --check` — PASS; 8 archivos y 30 pruebas unitarias/frontend.
+- `docker compose config --quiet` / `docker compose build api web` — PASS; imagen Linux de API/web reconstruida.
+- Runtime Compose E03-S04 — PASS; PostgreSQL, Redis, API y web healthy; API `/health` 200 y web tenant detail 200; `docker compose down` ejecutado sin borrar named volumes.
 - `pnpm test:integration:platform-tenant-detail` — PASS; 2 archivos y 8 pruebas contra PostgreSQL 18.4/Nest reales.
 - `pnpm test:integration:platform-tenants` / `pnpm test:integration:tenant-provisioning` — PASS; regresiones E03-S01/E03-S02.
 - `pnpm test:integration:database` / `pnpm test:integration:auth` / `pnpm test:integration:rbac` / `pnpm test:security:tenant-isolation` — PASS.

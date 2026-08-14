@@ -1,6 +1,6 @@
 # WhatsApp Automation Platform
 
-Multi-tenant B2B WhatsApp automation platform. Epics 00, 01, and 02 are complete; Epic 03 is in progress with Platform tenant listing and atomic tenant provisioning available.
+Multi-tenant B2B WhatsApp automation platform. Epics 00, 01, and 02 are complete; Epic 03 is in progress with Platform tenant listing, provisioning, detail and module activation available.
 
 `design-prototype/` is an approved visual reference. It is not production architecture and is not used as application source code.
 
@@ -101,9 +101,11 @@ After applying migrations, synchronize the code-versioned global permission cata
 pnpm rbac:sync-permissions
 ```
 
-Tenant authorization uses `PermissionKey` grants, not role names. Global role templates, OU-scoped assignments, and constrained grants do not authorize generic tenant-wide endpoints. Default role provisioning and its permission matrix remain deferred to E03-S02.
+Tenant authorization uses `PermissionKey` grants, not role names. Global role templates, OU-scoped assignments, and constrained grants do not authorize generic tenant-wide endpoints. Tenant provisioning creates the six baseline roles; Owner receives all current grants while the other five roles intentionally start without grants until their product permission matrix is defined.
 
 Tenant-owned access uses the safe root entrypoint: create a validated `TenantContext`, then call `createTenantDataAccess(context, client)` to obtain scoped repositories plus the append-only `audit.append(...)` and `outbox.append(...)` APIs. Use `withTenantTransaction(context, client, callback)` when domain, audit, and Outbox writes must commit or roll back together; the callback receives the tenant-scoped facade, never raw Prisma. Audit summaries and IP metadata must be explicit, minimal, and already sanitized by the caller.
+
+Tenant entitlement access from the safe root is read-only: `createTenantEntitlementResolver(...)` / `tenantData.entitlements` resolve modules and limits only for the authenticated `TenantContext`. Tenant APIs combine `@RequirePermissions(...)` and `@RequireEntitlements(...)` when both controls apply; the entitlement guard reads PostgreSQL on every request. Future workers must call `assertTenantModuleEntitled(...)` before cost/risk side effects. Only the privileged Platform subpath may mutate entitlements, and config overrides are opaque non-secret JSON objects replaced as a whole.
 
 The raw Prisma client and `createPlatformAuditWriter(...)` are intentionally available only through the privileged `@whatsapp-platform/database/platform` subpath for authorized platform/control-plane code, migrations, and infrastructure tests. Platform audit can use a nullable tenant; tenant code cannot.
 

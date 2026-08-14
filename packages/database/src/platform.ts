@@ -31,6 +31,17 @@ export {
   type PlatformTenantUserPage,
 } from "./platform-tenant-detail-query";
 export {
+  createPlatformTenantEntitlementAdminRepository,
+  PlatformEntitlementDateRangeError,
+  PlatformEntitlementTenantNotFoundError,
+  type PlatformLimitEntitlementPatch,
+  type PlatformLimitEntitlementResult,
+  type PlatformModuleEntitlementPatch,
+  type PlatformModuleEntitlementResult,
+  type PlatformTenantEntitlementAdminDatabase,
+  type PlatformTenantEntitlementAdminRepository,
+} from "./platform-tenant-entitlement-admin";
+export {
   createPlatformTenantProvisioningRepository,
   PLATFORM_TENANT_MODULE_KEYS,
   PlatformTenantDeploymentNotFoundError,

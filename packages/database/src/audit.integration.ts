@@ -292,33 +292,28 @@ describe.sequential("append-only audit integration", () => {
       createTenantContext(tenantAId),
       prisma,
       async (data) => {
-        const entitlement = await data.entitlements.create({
-          entitlementKey: "module.audit-commit",
-          source: "contract",
-        });
+        const unit = await data.organizationUnits.create({ name: "Audit commit", type: "team" });
         const audit = await data.audit.append({
-          action: "tenant.entitlement.created",
+          action: "tenant.organization_unit.created",
           actorType: "system",
           afterSummary: { enabled: false },
-          entityId: entitlement.id,
-          entityType: "TenantEntitlement",
+          entityId: unit.id,
+          entityType: "OrganizationUnit",
           requestId: "e01-s05-transaction-commit",
         });
         const event = await data.outbox.append({
-          aggregateId: entitlement.id,
-          aggregateType: "TenantEntitlement",
-          eventType: "tenant.entitlement.created",
+          aggregateId: unit.id,
+          aggregateType: "OrganizationUnit",
+          eventType: "tenant.organization_unit.created",
           payload: { enabled: false },
         });
-        return { audit, entitlement, event };
+        return { audit, event, unit };
       },
     );
 
-    expect(result.audit).toMatchObject({ entityId: result.entitlement.id, tenantId: tenantAId });
-    expect(result.event).toMatchObject({ aggregateId: result.entitlement.id, tenantId: tenantAId });
-    await expect(
-      prisma.tenantEntitlement.count({ where: { id: result.entitlement.id } }),
-    ).resolves.toBe(1);
+    expect(result.audit).toMatchObject({ entityId: result.unit.id, tenantId: tenantAId });
+    expect(result.event).toMatchObject({ aggregateId: result.unit.id, tenantId: tenantAId });
+    await expect(prisma.organizationUnit.count({ where: { id: result.unit.id } })).resolves.toBe(1);
     await expect(
       prisma.auditLog.count({ where: { requestId: "e01-s05-transaction-commit" } }),
     ).resolves.toBe(1);
@@ -328,50 +323,50 @@ describe.sequential("append-only audit integration", () => {
   });
 
   it("rolls back domain, audit, and outbox when the transaction callback fails", async () => {
-    const entitlementKey = "module.audit-forced-rollback";
+    const unitName = "Audit forced rollback";
     await expect(
       withTenantTransaction(createTenantContext(tenantAId), prisma, async (data) => {
-        const entitlement = await data.entitlements.create({ entitlementKey, source: "contract" });
+        const unit = await data.organizationUnits.create({ name: unitName, type: "team" });
         await data.audit.append({
-          action: "tenant.entitlement.created.rollback",
+          action: "tenant.organization_unit.created.rollback",
           actorType: "system",
-          entityId: entitlement.id,
-          entityType: "TenantEntitlement",
+          entityId: unit.id,
+          entityType: "OrganizationUnit",
           requestId: "e01-s05-transaction-rollback",
         });
         await data.outbox.append({
-          aggregateId: entitlement.id,
-          aggregateType: "TenantEntitlement",
-          eventType: "tenant.entitlement.created.rollback",
-          payload: { entitlementKey },
+          aggregateId: unit.id,
+          aggregateType: "OrganizationUnit",
+          eventType: "tenant.organization_unit.created.rollback",
+          payload: { unitName },
         });
         throw new Error("intentional audit transaction rollback");
       }),
     ).rejects.toThrow("intentional audit transaction rollback");
 
     await expect(
-      prisma.tenantEntitlement.count({ where: { entitlementKey, tenantId: tenantAId } }),
+      prisma.organizationUnit.count({ where: { name: unitName, tenantId: tenantAId } }),
     ).resolves.toBe(0);
     await expect(
       prisma.auditLog.count({ where: { requestId: "e01-s05-transaction-rollback" } }),
     ).resolves.toBe(0);
     await expect(
       prisma.domainEventOutbox.count({
-        where: { eventType: "tenant.entitlement.created.rollback", tenantId: tenantAId },
+        where: { eventType: "tenant.organization_unit.created.rollback", tenantId: tenantAId },
       }),
     ).resolves.toBe(0);
   });
 
   it("rolls back the domain change when audit persistence fails", async () => {
-    const entitlementKey = "module.audit-invalid-entry";
+    const unitName = "Audit invalid entry";
     await expect(
       withTenantTransaction(createTenantContext(tenantAId), prisma, async (data) => {
-        const entitlement = await data.entitlements.create({ entitlementKey, source: "contract" });
+        const unit = await data.organizationUnits.create({ name: unitName, type: "team" });
         await data.audit.append({
-          action: "tenant.entitlement.invalid",
+          action: "tenant.organization_unit.invalid",
           actorType: "system",
-          entityId: entitlement.id,
-          entityType: "TenantEntitlement",
+          entityId: unit.id,
+          entityType: "OrganizationUnit",
           organizationUnitId: "not-a-uuid",
           requestId: "e01-s05-audit-failure",
         });
@@ -379,7 +374,7 @@ describe.sequential("append-only audit integration", () => {
     ).rejects.toThrow();
 
     await expect(
-      prisma.tenantEntitlement.count({ where: { entitlementKey, tenantId: tenantAId } }),
+      prisma.organizationUnit.count({ where: { name: unitName, tenantId: tenantAId } }),
     ).resolves.toBe(0);
     await expect(
       prisma.auditLog.count({ where: { requestId: "e01-s05-audit-failure" } }),

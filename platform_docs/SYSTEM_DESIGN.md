@@ -431,7 +431,7 @@ Ejemplos:
 module.messaging.basic
 module.automation.basic
 module.automation.advanced
-module.crm
+module.crm_lite
 module.processes
 module.action_requests
 module.appointments
@@ -446,9 +446,21 @@ limit.channel_accounts
 limit.users
 limit.organization_units
 limit.storage_bytes
+limit.monthly_ai_budget
 ```
 
 Desactivar un módulo no borra datos. Se preservan para reactivación o export/offboarding.
+
+Baseline E03-S04:
+
+- los catálogos TypeScript cerrados contienen exactamente 14 módulos y cinco limits y son la única fuente usada por provisioning, detalle, administración y enforcement;
+- un entitlement es efectivo sólo si la row existe, está enabled, `startsAt <= now` y `endsAt > now`;
+- el facade tenant expone resolución read-only; sólo el boundary Platform puede ejecutar upsert `manual_override`;
+- API revalida PostgreSQL en cada request mediante `TenantEntitlementGuard`; no hay snapshot en sesión/JWT/contexto ni cache Redis;
+- `assertTenantModuleEntitled(...)` es el contrato reusable no-Nest para que futuros workers revaliden antes de costo o side effects;
+- disable preserva row, config y datos; re-enable reutiliza esa configuración;
+- config es un objeto JSON opaco, no secreto, reemplazado por completo y no interpretado por el guard genérico;
+- cada mutation Platform persiste entitlement, Audit y Outbox en una sola transacción.
 
 ---
 
@@ -1195,14 +1207,15 @@ Ejemplo:
 
 No codificar sólo `role === admin`.
 
-Baseline E02-S05:
+Baseline E02-S05/E03-S04:
 
 - `PermissionKey` deriva del catálogo global versionado en `packages/rbac`; roles agrupan grants explícitos y sus nombres no son autoridad.
 - Los roles asignables son tenant-owned. Roles template con `tenant_id = NULL` no se asignan directamente a `User`.
-- El flujo protegido es `TenantUserSessionGuard` → `TenantContextGuard` → `TenantPermissionGuard`; RBAC consume el contexto autenticado y nunca lo reconstruye desde request.
+- El flujo protegido es `TenantUserSessionGuard` → `TenantContextGuard` → `TenantPermissionGuard` cuando aplica → `TenantEntitlementGuard` cuando existe metadata; ambos controles consumen el contexto autenticado y nunca lo reconstruyen desde request.
 - El resolver tenant-wide ignora assignments con Organization Unit y grants con constraints; ambas variantes fallan cerradas hasta existir resolución resource-aware.
 - Múltiples permisos requeridos usan ALL y múltiples roles válidos producen una unión allow-set sin deny ni jerarquía.
 - Los permisos se consultan en PostgreSQL por request y no se embeben en sesión ni se cachean en Redis.
+- Permission y entitlement son controles independientes con semántica ALL: uno nunca concede el otro. Los entitlements también se consultan en PostgreSQL por request y una revocación afecta la siguiente request de la misma sesión.
 
 Decisión completa en ADR-0017.
 

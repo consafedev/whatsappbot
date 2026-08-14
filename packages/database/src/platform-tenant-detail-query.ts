@@ -1,3 +1,4 @@
+import { LIMIT_ENTITLEMENT_KEYS, type LimitEntitlementKey } from "./entitlement-catalog";
 import type { Prisma } from "./generated/prisma/client";
 import type {
   DeploymentEnvironment,
@@ -15,16 +16,10 @@ import {
   PLATFORM_TENANT_MODULE_KEYS,
   type PlatformTenantModuleKey,
 } from "./platform-tenant-provisioning";
+import { tenantEntitlementStatus } from "./tenant-entitlements";
 
-export const PLATFORM_TENANT_LIMIT_KEYS = [
-  "limit.channel_accounts",
-  "limit.users",
-  "limit.organization_units",
-  "limit.storage_bytes",
-  "limit.monthly_ai_budget",
-] as const;
-
-export type PlatformTenantLimitKey = (typeof PLATFORM_TENANT_LIMIT_KEYS)[number];
+export const PLATFORM_TENANT_LIMIT_KEYS = LIMIT_ENTITLEMENT_KEYS;
+export type PlatformTenantLimitKey = LimitEntitlementKey;
 
 export class PlatformTenantNotFoundError extends Error {
   override readonly name = "PlatformTenantNotFoundError";
@@ -58,6 +53,7 @@ export type PlatformTenantDetail = Readonly<{
     key: PlatformTenantModuleKey;
     enabled: boolean;
     effective: boolean;
+    status: "effective" | "scheduled" | "expired" | "disabled";
     source: TenantEntitlementSource | null;
     startsAt: Date | null;
     endsAt: Date | null;
@@ -255,6 +251,7 @@ export function createPlatformTenantDetailQueryService(
             enabled: row?.enabled ?? false,
             effective: row === undefined ? false : platformEntitlementEffective(row, observedAt),
             source: row?.source ?? null,
+            status: row === undefined ? "disabled" : tenantEntitlementStatus(row, observedAt),
             startsAt: row?.startsAt ?? null,
             endsAt: row?.endsAt ?? null,
             configPresent: nonEmptyJson(row?.config),

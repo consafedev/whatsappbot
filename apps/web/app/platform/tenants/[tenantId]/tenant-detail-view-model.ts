@@ -40,6 +40,7 @@ export type PlatformTenantDetail = Readonly<{
     key: string;
     enabled: boolean;
     effective: boolean;
+    status: "effective" | "scheduled" | "expired" | "disabled";
     source: string | null;
     startsAt: string | null;
     endsAt: string | null;

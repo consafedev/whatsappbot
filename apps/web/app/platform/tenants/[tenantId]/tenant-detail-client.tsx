@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { EntitlementControls } from "./entitlement-controls";
 import {
   type DeferredState,
   deferredStateForStatus,
@@ -75,24 +76,31 @@ export function TenantDetailClient({
   const [auditState, setAuditState] = useState<DeferredState>("idle");
   const [auditPage, setAuditPage] = useState(1);
 
+  const loadDetail = useCallback(
+    async (signal?: AbortSignal): Promise<void> => {
+      const response = await fetch(
+        `${apiBaseUrl}/platform/tenants/${encodeURIComponent(tenantId)}`,
+        {
+          credentials: "include",
+          headers: { accept: "application/json" },
+          ...(signal === undefined ? {} : { signal }),
+        },
+      );
+      const next = detailStateForStatus(response.status);
+      setState(next);
+      setDetail(next === "loaded" ? ((await response.json()) as PlatformTenantDetail) : null);
+    },
+    [apiBaseUrl, tenantId],
+  );
+
   useEffect(() => {
     const controller = new AbortController();
     setState("loading");
-    void fetch(`${apiBaseUrl}/platform/tenants/${encodeURIComponent(tenantId)}`, {
-      credentials: "include",
-      headers: { accept: "application/json" },
-      signal: controller.signal,
-    })
-      .then(async (response) => {
-        const next = detailStateForStatus(response.status);
-        setState(next);
-        setDetail(next === "loaded" ? ((await response.json()) as PlatformTenantDetail) : null);
-      })
-      .catch((error: unknown) => {
-        if (!(error instanceof DOMException && error.name === "AbortError")) setState("error");
-      });
+    void loadDetail(controller.signal).catch((error: unknown) => {
+      if (!(error instanceof DOMException && error.name === "AbortError")) setState("error");
+    });
     return () => controller.abort();
-  }, [apiBaseUrl, tenantId]);
+  }, [loadDetail]);
 
   useEffect(() => {
     if (tab !== "Usuarios") return;
@@ -249,66 +257,13 @@ export function TenantDetailClient({
                   </>
                 )}
                 {tab === "Módulos" && (
-                  <>
-                    <h2>Entitlements de módulos</h2>
-                    <div className="tenant-table-wrap">
-                      <table className="tenant-table detail-table">
-                        <thead>
-                          <tr>
-                            <th>Módulo</th>
-                            <th>Configurado</th>
-                            <th>Efectivo</th>
-                            <th>Origen</th>
-                            <th>Inicio</th>
-                            <th>Fin</th>
-                            <th>Config</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {detail.modules.map((module) => (
-                            <tr key={module.key}>
-                              <td>
-                                <code>{module.key}</code>
-                              </td>
-                              <td>{module.enabled ? "Sí" : "No"}</td>
-                              <td>{module.effective ? "Sí" : "No"}</td>
-                              <td>{module.source ?? "—"}</td>
-                              <td>{displayDate(module.startsAt)}</td>
-                              <td>{displayDate(module.endsAt)}</td>
-                              <td>{module.configPresent ? "Presente" : "Vacía"}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                    <h2>Límites</h2>
-                    <div className="tenant-table-wrap">
-                      <table className="tenant-table detail-table">
-                        <thead>
-                          <tr>
-                            <th>Clave</th>
-                            <th>Valor</th>
-                            <th>Origen</th>
-                            <th>Inicio</th>
-                            <th>Fin</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {detail.limits.map((limit) => (
-                            <tr key={limit.key}>
-                              <td>
-                                <code>{limit.key}</code>
-                              </td>
-                              <td>{displayLimit(limit.limitValue)}</td>
-                              <td>{limit.source ?? "—"}</td>
-                              <td>{displayDate(limit.startsAt)}</td>
-                              <td>{displayDate(limit.endsAt)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </>
+                  <EntitlementControls
+                    apiBaseUrl={apiBaseUrl}
+                    limits={detail.limits}
+                    modules={detail.modules}
+                    onRefresh={() => loadDetail()}
+                    tenantId={tenantId}
+                  />
                 )}
                 {tab === "Usuarios" &&
                   (usersState === "loading" || usersState === "idle" ? (

@@ -147,15 +147,11 @@ describe.sequential("transactional outbox integration", () => {
       createTenantContext(tenantAId),
       prisma,
       async (data) => {
-        const entitlement = await data.entitlements.create({
-          enabled: true,
-          entitlementKey: "module.outbox-commit",
-          source: "contract",
-        });
+        const unit = await data.organizationUnits.create({ name: "Outbox commit", type: "team" });
         const event = await data.outbox.append({
-          aggregateId: entitlement.id,
-          aggregateType: "TenantEntitlement",
-          eventType: "tenant.entitlement.created",
+          aggregateId: unit.id,
+          aggregateType: "OrganizationUnit",
+          eventType: "tenant.organization_unit.created",
           payload: {
             enabled: true,
             metadata: { origin: "integration-test", tags: ["foundation", "outbox"] },
@@ -163,20 +159,20 @@ describe.sequential("transactional outbox integration", () => {
             priority: 1,
           },
         });
-        return { entitlement, event };
+        return { event, unit };
       },
     );
 
     await expect(
-      prisma.tenantEntitlement.findUnique({ where: { id: result.entitlement.id } }),
+      prisma.organizationUnit.findUnique({ where: { id: result.unit.id } }),
     ).resolves.toBeTruthy();
     await expect(
       prisma.domainEventOutbox.findUnique({ where: { id: result.event.id } }),
     ).resolves.toMatchObject({
-      aggregateId: result.entitlement.id,
-      aggregateType: "TenantEntitlement",
+      aggregateId: result.unit.id,
+      aggregateType: "OrganizationUnit",
       attempts: 0,
-      eventType: "tenant.entitlement.created",
+      eventType: "tenant.organization_unit.created",
       lastError: null,
       payload: {
         enabled: true,
@@ -195,55 +191,52 @@ describe.sequential("transactional outbox integration", () => {
   });
 
   it("rolls back both writes when the callback fails before commit", async () => {
-    const entitlementKey = "module.outbox-forced-rollback";
+    const unitName = "Outbox forced rollback";
 
     await expect(
       withTenantTransaction(createTenantContext(tenantAId), prisma, async (data) => {
-        const entitlement = await data.entitlements.create({
-          entitlementKey,
-          source: "contract",
-        });
+        const unit = await data.organizationUnits.create({ name: unitName, type: "team" });
         await data.outbox.append({
-          aggregateId: entitlement.id,
-          aggregateType: "TenantEntitlement",
-          eventType: "tenant.entitlement.created.rollback",
-          payload: { entitlementKey },
+          aggregateId: unit.id,
+          aggregateType: "OrganizationUnit",
+          eventType: "tenant.organization_unit.created.rollback",
+          payload: { unitName },
         });
         throw new Error("intentional rollback");
       }),
     ).rejects.toThrow("intentional rollback");
 
     await expect(
-      prisma.tenantEntitlement.findFirst({ where: { entitlementKey, tenantId: tenantAId } }),
+      prisma.organizationUnit.findFirst({ where: { name: unitName, tenantId: tenantAId } }),
     ).resolves.toBeNull();
     await expect(
       prisma.domainEventOutbox.findFirst({
-        where: { eventType: "tenant.entitlement.created.rollback", tenantId: tenantAId },
+        where: { eventType: "tenant.organization_unit.created.rollback", tenantId: tenantAId },
       }),
     ).resolves.toBeNull();
   });
 
   it("rolls back the domain write when the outbox insert fails", async () => {
-    const entitlementKey = "module.outbox-invalid-event";
+    const unitName = "Outbox invalid event";
 
     await expect(
       withTenantTransaction(createTenantContext(tenantAId), prisma, async (data) => {
-        await data.entitlements.create({ entitlementKey, source: "contract" });
+        await data.organizationUnits.create({ name: unitName, type: "team" });
         await data.outbox.append({
           aggregateId: "not-a-uuid",
-          aggregateType: "TenantEntitlement",
-          eventType: "tenant.entitlement.created.invalid",
-          payload: { entitlementKey },
+          aggregateType: "OrganizationUnit",
+          eventType: "tenant.organization_unit.created.invalid",
+          payload: { unitName },
         });
       }),
     ).rejects.toThrow();
 
     await expect(
-      prisma.tenantEntitlement.findFirst({ where: { entitlementKey, tenantId: tenantAId } }),
+      prisma.organizationUnit.findFirst({ where: { name: unitName, tenantId: tenantAId } }),
     ).resolves.toBeNull();
     await expect(
       prisma.domainEventOutbox.findFirst({
-        where: { eventType: "tenant.entitlement.created.invalid", tenantId: tenantAId },
+        where: { eventType: "tenant.organization_unit.created.invalid", tenantId: tenantAId },
       }),
     ).resolves.toBeNull();
   });

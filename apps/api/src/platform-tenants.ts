@@ -6,6 +6,7 @@ import {
   Inject,
   NotFoundException,
   Param,
+  Patch,
   Post,
   Query,
   Req,
@@ -22,6 +23,13 @@ import type {
 } from "@whatsapp-platform/database/platform";
 import { PlatformTenantNotFoundError } from "@whatsapp-platform/database/platform";
 import { PlatformAdminSessionGuard } from "./platform-auth";
+import {
+  PlatformTenantEntitlementService,
+  parseLimitEntitlementKey,
+  parseModuleEntitlementKey,
+  parsePlatformLimitEntitlementPatch,
+  parsePlatformModuleEntitlementPatch,
+} from "./platform-tenant-entitlements";
 import {
   PlatformTenantProvisioningService,
   parsePlatformTenantProvisioning,
@@ -123,6 +131,8 @@ export class PlatformTenantsController {
     private readonly detailQueryService: PlatformTenantDetailQueryService,
     @Inject(PlatformTenantProvisioningService)
     private readonly provisioningService: PlatformTenantProvisioningService,
+    @Inject(PlatformTenantEntitlementService)
+    private readonly entitlementService: PlatformTenantEntitlementService,
   ) {}
 
   @Get()
@@ -152,6 +162,52 @@ export class PlatformTenantsController {
   ): Promise<PlatformTenantAuditPage> {
     return tenantResult(
       this.detailQueryService.audit(parseTenantId(tenantId), parseTenantPageQuery(query)),
+    );
+  }
+
+  @Get(":tenantId/entitlements/modules/:moduleKey/config")
+  moduleConfig(@Param("tenantId") tenantId: string, @Param("moduleKey") moduleKey: string) {
+    return this.entitlementService.config(
+      parseTenantId(tenantId),
+      parseModuleEntitlementKey(moduleKey),
+    );
+  }
+
+  @Patch(":tenantId/entitlements/modules/:moduleKey")
+  patchModule(
+    @Param("tenantId") tenantId: string,
+    @Param("moduleKey") moduleKey: string,
+    @Body() body: unknown,
+    @Req() request: Parameters<typeof requirePlatformProvisioningJson>[0],
+  ) {
+    requirePlatformProvisioningJson(request);
+    const identity = request.platformIdentity;
+    if (identity === undefined) throw new Error("Platform identity was not resolved");
+    return this.entitlementService.patchModule(
+      parseTenantId(tenantId),
+      parseModuleEntitlementKey(moduleKey),
+      parsePlatformModuleEntitlementPatch(body),
+      identity,
+      platformProvisioningRequestId(request),
+    );
+  }
+
+  @Patch(":tenantId/entitlements/limits/:limitKey")
+  patchLimit(
+    @Param("tenantId") tenantId: string,
+    @Param("limitKey") limitKey: string,
+    @Body() body: unknown,
+    @Req() request: Parameters<typeof requirePlatformProvisioningJson>[0],
+  ) {
+    requirePlatformProvisioningJson(request);
+    const identity = request.platformIdentity;
+    if (identity === undefined) throw new Error("Platform identity was not resolved");
+    return this.entitlementService.patchLimit(
+      parseTenantId(tenantId),
+      parseLimitEntitlementKey(limitKey),
+      parsePlatformLimitEntitlementPatch(body),
+      identity,
+      platformProvisioningRequestId(request),
     );
   }
 

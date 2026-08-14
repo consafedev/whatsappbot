@@ -1,11 +1,6 @@
 import { type AuditEntryInput, type AuditWriter, auditCreateData } from "./audit";
-import {
-  type DomainEventOutbox,
-  type OrganizationUnit,
-  Prisma,
-  type TenantEntitlement,
-} from "./generated/prisma/client";
-import type { OrganizationUnitType, TenantEntitlementSource } from "./generated/prisma/enums";
+import { type DomainEventOutbox, type OrganizationUnit, Prisma } from "./generated/prisma/client";
+import type { OrganizationUnitType } from "./generated/prisma/enums";
 import {
   type CustomRoleCreateData,
   createTenantRbacDataAccess,
@@ -18,6 +13,10 @@ import {
   type UserRoleAssignmentData,
 } from "./rbac-data-access";
 import { createTenantContext, type TenantContext } from "./tenant-context";
+import {
+  createTenantEntitlementResolver,
+  type TenantEntitlementResolver,
+} from "./tenant-entitlements";
 
 export type TenantDataAccessDatabase = Pick<
   Prisma.TransactionClient,
@@ -33,28 +32,6 @@ export type TenantDataAccessDatabase = Pick<
 >;
 
 type JsonInput = Prisma.InputJsonValue;
-type DecimalInput = Prisma.Decimal | Prisma.DecimalJsLike | number | string;
-
-export type TenantEntitlementCreateData = Readonly<{
-  entitlementKey: string;
-  enabled?: boolean;
-  limitValue?: DecimalInput | null;
-  config?: JsonInput;
-  startsAt?: Date | string | null;
-  endsAt?: Date | string | null;
-  source: TenantEntitlementSource;
-}>;
-
-export type TenantEntitlementUpdateData = Readonly<{
-  entitlementKey?: string;
-  enabled?: boolean;
-  limitValue?: DecimalInput | null;
-  config?: JsonInput;
-  startsAt?: Date | string | null;
-  endsAt?: Date | string | null;
-  source?: TenantEntitlementSource;
-}>;
-
 export type OrganizationUnitCreateData = Readonly<{
   parentId?: string | null;
   type: OrganizationUnitType;
@@ -86,14 +63,6 @@ export type DomainEventInput = Readonly<{
   payload: JsonInput;
 }>;
 
-export interface TenantEntitlementRepository {
-  list(): Promise<TenantEntitlement[]>;
-  findById(id: string): Promise<TenantEntitlement | null>;
-  findByKey(entitlementKey: string): Promise<TenantEntitlement | null>;
-  create(data: TenantEntitlementCreateData): Promise<TenantEntitlement>;
-  update(id: string, data: TenantEntitlementUpdateData): Promise<TenantEntitlement>;
-}
-
 export interface OrganizationUnitRepository {
   list(): Promise<OrganizationUnit[]>;
   listRoots(): Promise<OrganizationUnit[]>;
@@ -109,7 +78,7 @@ export interface TenantOutboxWriter {
 
 export type TenantDataAccess = Readonly<{
   audit: AuditWriter;
-  entitlements: TenantEntitlementRepository;
+  entitlements: TenantEntitlementResolver;
   organizationUnits: OrganizationUnitRepository;
   outbox: TenantOutboxWriter;
 }> &
@@ -122,7 +91,7 @@ export interface TenantTransactionDatabase {
 }
 
 export class TenantScopedRecordNotFoundError extends Error {
-  constructor(resource: "TenantEntitlement" | "OrganizationUnit") {
+  constructor(resource: "OrganizationUnit") {
     super(`Tenant-scoped ${resource} was not found`);
     this.name = "TenantScopedRecordNotFoundError";
   }
@@ -135,41 +104,6 @@ function isPrismaNotFound(error: unknown): boolean {
     "code" in error &&
     (error as { code?: unknown }).code === "P2025"
   );
-}
-
-function entitlementCreateData(
-  context: TenantContext,
-  input: TenantEntitlementCreateData,
-): Prisma.TenantEntitlementUncheckedCreateInput {
-  const data: Prisma.TenantEntitlementUncheckedCreateInput = {
-    tenantId: context.tenantId,
-    entitlementKey: input.entitlementKey,
-    source: input.source,
-  };
-
-  if (input.enabled !== undefined) data.enabled = input.enabled;
-  if (input.limitValue !== undefined) data.limitValue = input.limitValue;
-  if (input.config !== undefined) data.config = input.config;
-  if (input.startsAt !== undefined) data.startsAt = input.startsAt;
-  if (input.endsAt !== undefined) data.endsAt = input.endsAt;
-
-  return data;
-}
-
-function entitlementUpdateData(
-  input: TenantEntitlementUpdateData,
-): Prisma.TenantEntitlementUncheckedUpdateInput {
-  const data: Prisma.TenantEntitlementUncheckedUpdateInput = {};
-
-  if (input.entitlementKey !== undefined) data.entitlementKey = input.entitlementKey;
-  if (input.enabled !== undefined) data.enabled = input.enabled;
-  if (input.limitValue !== undefined) data.limitValue = input.limitValue;
-  if (input.config !== undefined) data.config = input.config;
-  if (input.startsAt !== undefined) data.startsAt = input.startsAt;
-  if (input.endsAt !== undefined) data.endsAt = input.endsAt;
-  if (input.source !== undefined) data.source = input.source;
-
-  return data;
 }
 
 function organizationUnitCreateData(
@@ -211,46 +145,6 @@ function organizationUnitUpdateData(
   if (input.active !== undefined) data.active = input.active;
 
   return data;
-}
-
-function createTenantEntitlementRepository(
-  context: TenantContext,
-  database: TenantDataAccessDatabase,
-): TenantEntitlementRepository {
-  const repository: TenantEntitlementRepository = {
-    list: () =>
-      database.tenantEntitlement.findMany({
-        orderBy: { entitlementKey: "asc" },
-        where: { tenantId: context.tenantId },
-      }),
-    findById: (id: string) =>
-      database.tenantEntitlement.findUnique({
-        where: { id, tenantId: context.tenantId },
-      }),
-    findByKey: (entitlementKey: string) =>
-      database.tenantEntitlement.findUnique({
-        where: {
-          tenantId_entitlementKey: { tenantId: context.tenantId, entitlementKey },
-        },
-      }),
-    create: (data: TenantEntitlementCreateData) =>
-      database.tenantEntitlement.create({ data: entitlementCreateData(context, data) }),
-    update: async (id: string, data: TenantEntitlementUpdateData) => {
-      try {
-        return await database.tenantEntitlement.update({
-          data: entitlementUpdateData(data),
-          where: { id, tenantId: context.tenantId },
-        });
-      } catch (error) {
-        if (isPrismaNotFound(error)) {
-          throw new TenantScopedRecordNotFoundError("TenantEntitlement");
-        }
-        throw error;
-      }
-    },
-  };
-
-  return Object.freeze(repository);
 }
 
 function createOrganizationUnitRepository(
@@ -333,7 +227,7 @@ export function createTenantDataAccess(
 
   return Object.freeze({
     audit: createTenantAuditWriter(validatedContext, database),
-    entitlements: createTenantEntitlementRepository(validatedContext, database),
+    entitlements: createTenantEntitlementResolver(validatedContext, database),
     organizationUnits: createOrganizationUnitRepository(validatedContext, database),
     outbox: createTenantOutboxWriter(validatedContext, database),
     ...createTenantRbacDataAccess(validatedContext, database),

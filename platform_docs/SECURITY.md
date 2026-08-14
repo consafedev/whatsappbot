@@ -136,6 +136,17 @@ Baseline Tenant RBAC E02-S05:
 - revocaciones se leen desde PostgreSQL en la siguiente request, sin snapshot en `UserSession` ni cache Redis;
 - Platform Admin no utiliza Tenant RBAC.
 
+Baseline Entitlements E03-S04:
+
+- Permission y entitlement son controles independientes; cuando una operación exige ambos, cualquiera ausente produce deny;
+- `TenantEntitlementGuard` usa exclusivamente el `TenantContext` autenticado, nunca `tenantId`, slug, body, query o headers del caller;
+- la vigencia se lee desde PostgreSQL en cada request, sin snapshot en sesión/JWT/contexto ni cache Redis;
+- sólo `PlatformAdminSessionGuard` protege mutations de entitlements; Tenant Owner/User no dispone de writer tenant-safe;
+- unknown module/limit keys y DTO fields adicionales fallan cerrados;
+- config overrides son objetos JSON opacos no secretos, con límites de tamaño/profundidad, reemplazo total y sin contenido completo en Audit/Outbox;
+- disable conserva row/config/datos; no dispara borrados, desconexiones ni side effects externos;
+- entitlement, Audit y Outbox se escriben atómicamente; futuros workers deben revalidar antes de acciones costosas o riesgosas.
+
 Ver ADR-0017.
 
 ---

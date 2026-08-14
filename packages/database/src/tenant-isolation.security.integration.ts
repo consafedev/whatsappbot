@@ -7,7 +7,6 @@ import {
   createTenantDataAccess,
   type OrganizationUnitCreateData,
   type TenantDataAccess,
-  type TenantEntitlementCreateData,
   TenantScopedRecordNotFoundError,
   withTenantTransaction,
 } from "./index";
@@ -17,12 +16,18 @@ import {
   type PrismaClient,
   syncPermissionCatalog,
 } from "./platform";
+import {
+  createTenantEntitlementWriter,
+  type TenantEntitlementWriter,
+} from "./tenant-entitlement-writer";
 
 const slugs = { a: "e02-s04-security-a", b: "e02-s04-security-b" } as const;
 const platformRequestPrefix = "e02-s04-platform-";
 let prisma: PrismaClient;
 let tenantA: TenantDataAccess;
 let tenantB: TenantDataAccess;
+let entitlementWriterA: TenantEntitlementWriter;
+let entitlementWriterB: TenantEntitlementWriter;
 let tenantAId: string;
 let tenantBId: string;
 let entitlementAId: string;
@@ -84,14 +89,16 @@ describe.sequential("E02-S04 tenant isolation security matrix", () => {
     tenantBId = createdB.id;
     tenantA = createTenantDataAccess(createTenantContext(tenantAId), prisma);
     tenantB = createTenantDataAccess(createTenantContext(tenantBId), prisma);
+    entitlementWriterA = createTenantEntitlementWriter(createTenantContext(tenantAId), prisma);
+    entitlementWriterB = createTenantEntitlementWriter(createTenantContext(tenantBId), prisma);
 
     const [entitlementA, entitlementB, rootA, rootB, userA, userB] = await Promise.all([
-      tenantA.entitlements.create({
+      entitlementWriterA.create({
         enabled: true,
         entitlementKey: "module.security-a",
         source: "contract",
       }),
-      tenantB.entitlements.create({
+      entitlementWriterB.create({
         enabled: true,
         entitlementKey: "module.security-b",
         source: "contract",
@@ -150,7 +157,7 @@ describe.sequential("E02-S04 tenant isolation security matrix", () => {
     expect("listAllTenants" in tenantA.outbox).toBe(false);
   });
 
-  it("isolates TenantEntitlement reads, updates, creates, and hostile extra properties", async () => {
+  it("exposes tenant-scoped entitlement reads without a tenant mutation writer", async () => {
     const [listA, byId, byKey] = await Promise.all([
       tenantA.entitlements.list(),
       tenantA.entitlements.findById(entitlementBId),
@@ -160,20 +167,9 @@ describe.sequential("E02-S04 tenant isolation security matrix", () => {
     expect(listA.map(({ id }) => id)).not.toContain(entitlementBId);
     expect(byId).toBeNull();
     expect(byKey).toBeNull();
-    await expect(tenantA.entitlements.update(entitlementBId, { enabled: false })).rejects.toEqual(
-      new TenantScopedRecordNotFoundError("TenantEntitlement"),
-    );
     expect((await tenantB.entitlements.findById(entitlementBId))?.enabled).toBe(true);
-
-    const hostile = {
-      enabled: true,
-      entitlementKey: "module.hostile-extra",
-      source: "contract",
-      tenant: { connect: { id: tenantBId } },
-      tenantId: tenantBId,
-    } as TenantEntitlementCreateData & { tenant: unknown; tenantId: string };
-    const created = await tenantA.entitlements.create(hostile);
-    expect(created.tenantId).toBe(tenantAId);
+    expect("create" in tenantA.entitlements).toBe(false);
+    expect("update" in tenantA.entitlements).toBe(false);
   });
 
   it("isolates OrganizationUnit lists, hierarchy, updates, creates, and cross-parent attempts", async () => {
@@ -264,10 +260,6 @@ describe.sequential("E02-S04 tenant isolation security matrix", () => {
   it("commits domain, organization unit, audit, and outbox with isolated parallel contexts", async () => {
     const commit = (tenantId: string, marker: string) =>
       withTenantTransaction(createTenantContext(tenantId), prisma, async (data) => {
-        const entitlement = await data.entitlements.create({
-          entitlementKey: `module.transaction-${marker}`,
-          source: "contract",
-        });
         const unit = await data.organizationUnits.create({
           name: `Transaction unit ${marker}`,
           type: "team",
@@ -275,18 +267,18 @@ describe.sequential("E02-S04 tenant isolation security matrix", () => {
         const audit = await data.audit.append({
           action: "tenant.security.transaction",
           actorType: "system",
-          entityId: entitlement.id,
-          entityType: "TenantEntitlement",
+          entityId: unit.id,
+          entityType: "OrganizationUnit",
           organizationUnitId: unit.id,
           requestId: `e02-s04-transaction-${marker}`,
         });
         const event = await data.outbox.append({
-          aggregateId: entitlement.id,
-          aggregateType: "TenantEntitlement",
+          aggregateId: unit.id,
+          aggregateType: "OrganizationUnit",
           eventType: "tenant.security.transaction",
           payload: { marker },
         });
-        return { audit, entitlement, event, unit };
+        return { audit, event, unit };
       });
     const [resultA, resultB] = await Promise.all([commit(tenantAId, "a"), commit(tenantBId, "b")]);
     expect(Object.values(resultA).every(({ tenantId }) => tenantId === tenantAId)).toBe(true);
@@ -294,39 +286,33 @@ describe.sequential("E02-S04 tenant isolation security matrix", () => {
   });
 
   it("rolls back every tenant-scoped component without affecting the other tenant", async () => {
-    const key = "module.security-rollback-a";
-    const beforeB = await prisma.tenantEntitlement.count({ where: { tenantId: tenantBId } });
+    const beforeB = await prisma.organizationUnit.count({ where: { tenantId: tenantBId } });
     await expect(
       withTenantTransaction(createTenantContext(tenantAId), prisma, async (data) => {
-        const entitlement = await data.entitlements.create({
-          entitlementKey: key,
-          source: "trial",
-        });
         const unit = await data.organizationUnits.create({ name: "Rollback unit A", type: "team" });
         await data.audit.append({
           action: "tenant.security.rollback",
           actorType: "system",
-          entityId: entitlement.id,
-          entityType: "TenantEntitlement",
+          entityId: unit.id,
+          entityType: "OrganizationUnit",
           organizationUnitId: unit.id,
           requestId: "e02-s04-rollback-a",
         });
         await data.outbox.append({
-          aggregateId: entitlement.id,
-          aggregateType: "TenantEntitlement",
+          aggregateId: unit.id,
+          aggregateType: "OrganizationUnit",
           eventType: "tenant.security.rollback",
           payload: {},
         });
         throw new Error("intentional tenant isolation rollback");
       }),
     ).rejects.toThrow("intentional tenant isolation rollback");
-    expect(await prisma.tenantEntitlement.count({ where: { entitlementKey: key } })).toBe(0);
     expect(await prisma.organizationUnit.count({ where: { name: "Rollback unit A" } })).toBe(0);
     expect(await prisma.auditLog.count({ where: { requestId: "e02-s04-rollback-a" } })).toBe(0);
     expect(
       await prisma.domainEventOutbox.count({ where: { eventType: "tenant.security.rollback" } }),
     ).toBe(0);
-    expect(await prisma.tenantEntitlement.count({ where: { tenantId: tenantBId } })).toBe(beforeB);
+    expect(await prisma.organizationUnit.count({ where: { tenantId: tenantBId } })).toBe(beforeB);
   });
 
   it("enforces every existing composite tenant foreign key", async () => {

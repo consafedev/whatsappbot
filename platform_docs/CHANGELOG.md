@@ -59,6 +59,9 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 - Detalle least-data con General, unidad raíz, 14 módulos efectivos, cinco limits Decimal, uso real/parcial, deployment seguro y estados explícitos no disponibles para canales y backup.
 - Pantalla productiva `/platform/tenants/[tenantId]` con ocho tabs, enlace desde el listado, carga diferida/paginada de Users/Audit y estados loading/empty/401/404/error sin fixtures ni mutaciones futuras.
 - Suites PostgreSQL 18.4/Nest para aislamiento A/B, auth Platform, temporalidad, Decimal, paginación y ausencia de hashes, JSON privado, metadata deployment o payload sensible de Audit.
+- E03-S04 con catálogo canónico cerrado de 14 módulos/cinco limits, resolver tenant-safe read-only, assertion reusable, `@RequireEntitlements` y guard PostgreSQL por request con error 403 estable.
+- Mutations Platform-only para modules, limits y config opaca, con validación cerrada, Decimal exacto, disable no destructivo y upsert + Audit + Outbox atómicos.
+- Controles productivos en la tab Módulos y suite vertical PostgreSQL/Nest para vigencia, misma sesión, RBAC + entitlement, aislamiento, concurrencia y rollback.
 
 ### Changed
 
@@ -77,6 +80,7 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 - E03-S01 — Tenant list queda PASS; Epic 03 — Super Admin permanece IN PROGRESS.
 - E03-S02 — Create tenant queda PASS; Epic 03 — Super Admin permanece IN PROGRESS.
 - E03-S03 — Tenant detail queda PASS; Epic 03 — Super Admin permanece IN PROGRESS y E03-S04 es la siguiente historia.
+- E03-S04 — Module activation queda PASS; Epic 03 — Super Admin permanece IN PROGRESS y E03-S05 es la siguiente historia.
 
 ### Fixed
 

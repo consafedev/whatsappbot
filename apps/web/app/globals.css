@@ -657,6 +657,106 @@ select:focus-visible {
   color: var(--muted);
   font-size: 13px;
 }
+.entitlement-grid,
+.limit-editor-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.entitlement-card,
+.limit-card,
+.entitlement-editor {
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: #fff;
+}
+.entitlement-card > div:first-child,
+.editor-heading,
+.entitlement-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.entitlement-card small {
+  display: block;
+  margin: 9px 0 14px;
+  color: var(--muted);
+}
+.entitlement-status {
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: #eef1f4;
+  color: #4f5d69;
+  font-size: 11px;
+  font-weight: 700;
+}
+.entitlement-effective {
+  background: #e8f6ee;
+  color: #216b42;
+}
+.entitlement-scheduled {
+  background: #eef4fb;
+  color: #315f91;
+}
+.entitlement-expired {
+  background: #fff1df;
+  color: #8b5613;
+}
+.entitlement-actions button,
+.entitlement-editor button,
+.limit-card button {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: var(--accent);
+  color: white;
+  cursor: pointer;
+}
+.entitlement-actions .button-secondary,
+.entitlement-editor .button-secondary {
+  background: white;
+  color: var(--accent);
+}
+.entitlement-editor {
+  margin-top: 16px;
+  background: #fafbfd;
+}
+.editor-heading h3 {
+  margin: 0 0 4px;
+}
+.config-field {
+  margin-top: 16px;
+}
+.config-field textarea {
+  min-height: 180px;
+  padding: 10px;
+  border: 1px solid #bac4ce;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  resize: vertical;
+}
+.config-warning,
+.entitlement-feedback {
+  color: #7a5114;
+  font-size: 12px;
+}
+.limit-card {
+  display: grid;
+  gap: 14px;
+}
+.limit-card .form-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.entitlement-feedback {
+  position: sticky;
+  bottom: 16px;
+  padding: 10px 12px;
+  border: 1px solid #d8c18c;
+  border-radius: 6px;
+  background: #fff9e9;
+}
 
 @media (max-width: 820px) {
   .platform-shell {
@@ -702,7 +802,10 @@ select:focus-visible {
     grid-template-columns: 1fr;
   }
   .detail-grid,
-  .usage-grid {
+  .usage-grid,
+  .entitlement-grid,
+  .limit-editor-grid,
+  .limit-card .form-grid {
     grid-template-columns: 1fr;
   }
 }
