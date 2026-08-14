@@ -1,3 +1,4 @@
+import { type ResolvedTenantTheme, resolveTenantTheme } from "@whatsapp-platform/themes";
 import { isModuleEntitlementKey } from "./entitlement-catalog";
 import type { Prisma } from "./generated/prisma/client";
 import { createTenantContext, type TenantContext } from "./tenant-context";
@@ -8,7 +9,7 @@ export type TenantAppBootstrapDatabase = TenantDataAccessDatabase &
   Pick<Prisma.TransactionClient, "tenant">;
 
 export type TenantAppBootstrap = Readonly<{
-  branding: Readonly<{ mode: "platform_default" }>;
+  branding: ResolvedTenantTheme;
   effectiveModules: readonly string[];
   effectivePermissions: readonly string[];
   tenant: Readonly<{
@@ -46,6 +47,7 @@ export async function createTenantAppBootstrap(
   const [tenant, user, entitlements, permissions] = await Promise.all([
     database.tenant.findUnique({
       select: {
+        brandingConfig: true,
         defaultLocale: true,
         defaultTimezone: true,
         displayName: true,
@@ -72,7 +74,7 @@ export async function createTenantAppBootstrap(
   if (tenant === null || user === null) throw new TenantAppBootstrapNotFoundError();
 
   return Object.freeze({
-    branding: Object.freeze({ mode: "platform_default" as const }),
+    branding: resolveTenantTheme(tenant.brandingConfig),
     effectiveModules: Object.freeze(
       entitlements
         .filter(
@@ -84,7 +86,13 @@ export async function createTenantAppBootstrap(
         .sort(),
     ),
     effectivePermissions: Object.freeze([...permissions].sort()),
-    tenant: Object.freeze(tenant),
+    tenant: Object.freeze({
+      defaultLocale: tenant.defaultLocale,
+      defaultTimezone: tenant.defaultTimezone,
+      displayName: tenant.displayName,
+      id: tenant.id,
+      slug: tenant.slug,
+    }),
     user: Object.freeze({ ...user, mfaState: user.mfaState }),
   });
 }

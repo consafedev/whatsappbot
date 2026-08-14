@@ -15,6 +15,8 @@ import {
 } from "@whatsapp-platform/database";
 import type { TenantSessionIdentity } from "@whatsapp-platform/database/platform";
 
+export type { TenantSessionIdentity } from "@whatsapp-platform/database/platform";
+
 export const TENANT_DATA_ACCESS_DATABASE = Symbol("TENANT_DATA_ACCESS_DATABASE");
 
 export type TenantAuthenticationRequest = {

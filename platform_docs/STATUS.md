@@ -2,7 +2,7 @@
 
 **Actualizado:** 2026-08-14
 **Versión de producto:** `0.0.0`  
-**Estado:** E04-S01 — PASS; **Epic 04 — Tenant Dashboard Shell — IN PROGRESS**.
+**Estado:** E04-S02 — PASS; **Epic 04 — Tenant Dashboard Shell — IN PROGRESS**.
 
 ## Current milestone
 
@@ -15,7 +15,7 @@ Tenant Dashboard Shell.
 Estado por historia:
 
 - E04-S01 — App shell: **PASS**.
-- E04-S02 — Theme Engine minimal: **NOT STARTED**.
+- E04-S02 — Theme Engine minimal: **PASS**.
 
 Epic anterior:
 
@@ -33,6 +33,15 @@ Epic anterior:
 - `GET /app/bootstrap` está protegido por `TenantUserSessionGuard` y `TenantContextGuard`; deriva tenant/user solamente de la sesión, consulta módulos efectivos y permisos efectivos desde PostgreSQL y no expone config, settings, hashes, sesiones ni metadata privilegiada.
 - La navegación centralizada usa módulos/permisos sólo como UX; APIs futuras conservan guards. Inicio es el único link existente y capacidades efectivas futuras aparecen como `Próximamente` no clicable, sin `href="#"` ni rutas vacías.
 - No hay cache persistente de auth/permissions/entitlements, migration, schema change ni Theme Engine; `brandingConfig` no se interpreta y el modo es `platform_default`.
+- E04-S02 — Theme Engine minimal: **PASS**; Epic 04 permanece **IN PROGRESS**.
+- `packages/themes` (`@whatsapp-platform/themes`) con schema canónico estricto: `version: 1`, preset de cinco profesionales + `custom`, `colorMode` light/dark, colores `#RRGGBB` con contraste vs blanco ≥ 3.0, logo HTTPS público sin credenciales ni hosts internos (`localhost`, `.local`, `.internal`, RFC1918, loopback, `::1`), y `{}` o config inválida resuelve al default `corporate-blue` light.
+- Presets light/dark explícitos con tokens derivados (`primary`, `primaryDark`, `onPrimary`, softs, accent y `accentText` con contraste ≥ 4.5) para display; `resolveTenantTheme(...)` es fail-soft y nunca falla el bootstrap ni el editor ante config dañada.
+- `GET /app/theme` y `PATCH /app/theme` requieren `tenant.settings.manage`; PATCH con body `{}` restablece el default, body inválido devuelve 400 y la presencia de `logo` (incluido `null`) exige el módulo `module.white_label` con 403 `ENTITLEMENT_REQUIRED`.
+- `createTenantThemeRepository(...)` valida, persiste `brandingConfig`, escribe Audit `tenant.theme.updated` y Outbox homónimo en una transacción; summaries/payloads contienen `preset`/`colorMode`/`logoKind` sin la URL del logo y `requestId` saneado desde `x-request-id`.
+- `/app/bootstrap` expone `branding` resuelto (tokens display-only) sin el `brandingConfig` raw; el shell aplica variables CSS scoped `--tenant-*` en `.tenant-app-shell`, `globals.css` usa los tokens y el CSS de plataforma (`:root`) permanece intacto.
+- Editor en `/app/settings/theme` con preset, modo claro/oscuro, colores custom con preview y logo (sólo con White label); guarda, restablece y refresca bootstrap sin reload. El logo se renderiza con `referrerPolicy="no-referrer"` y queda fuera del pipeline de optimización de Next.
+- Sin cambios de schema (siete migrations), sin migration 8 y sin ADR nuevo; `prisma.config.ts` sólo añade `shadowDatabaseUrl` desde `SHADOW_DATABASE_URL` para el diff de migrations.
+- Suites E04-S02: `pnpm test:integration:theme-engine` (7 database + 9 API), regresión `pnpm test:integration:auth` (12 archivos/75 pruebas), `pnpm test:integration:tenant-app-bootstrap` (5) y `pnpm test:security:tenant-isolation` (9 + 37) contra PostgreSQL 18.4/Nest reales.
 - E03-S05 — Suspend/reactivate tenant: **PASS**; **Epic 03 — PASS / COMPLETE**.
 - `POST /platform/tenants/:tenantId/suspend` y `/reactivate` usan exclusivamente `PlatformAdminSessionGuard`, UUID de route validado y body vacío; devuelven 200 con `{ tenant: { id, status, suspendedAt }, changed }`.
 - Sólo se permiten `active → suspended` y `suspended → active`; provisioning, offboarding y archived devuelven 409. Reintentos al estado actual devuelven `changed: false`, preservan `suspendedAt` y no crean Audit/Outbox adicionales.
@@ -200,20 +209,28 @@ Epic anterior:
 
 ## In progress
 
-Epic 04 — Tenant Dashboard Shell continúa con E04-S02 pendiente.
+Epic 04 — Tenant Dashboard Shell continúa con E04-S03 pendiente.
 
 ## Blocked
 
-Ningún bloqueo de código para E04-S01. Password recovery requiere un adapter de delivery antes de habilitarse operativamente.
+Ningún bloqueo de código para E04-S02. Password recovery requiere un adapter de delivery antes de habilitarse operativamente.
 
 ## Next story
 
-`E04-S02 — Theme Engine minimal`
+`E04-S03 — Organization Units management`
 
 No implementarla sin una instrucción separada.
 
 ## Last verified commands
 
+- `pnpm test:integration:theme-engine` — PASS; 7 pruebas database y 9 pruebas API contra PostgreSQL 18.4/Nest reales (E04-S02 Theme Engine).
+- `pnpm test:integration:auth` — PASS; 12 archivos y 75 pruebas API/auth, incluidas las regresiones E04-S01/E04-S02.
+- `pnpm test:integration:tenant-app-bootstrap` / `pnpm test:security:tenant-isolation` — PASS; 5 pruebas bootstrap y 9 + 37 pruebas de aislamiento/arquitectura (boundary de imports privilegiados conservado).
+- `pnpm install --frozen-lockfile` / `pnpm rbac:sync-permissions` — PASS; instalación reproducible y 29 permisos sincronizados.
+- `pnpm db:validate` / `pnpm db:generate` / `pnpm db:migrate:deploy` / `prisma migrate status` / `prisma migrate diff --exit-code` — PASS; siete migrations y cero drift, shadow DB vía `SHADOW_DATABASE_URL`.
+- `pnpm lint` / `pnpm typecheck` / `pnpm test` / `pnpm build` / `pnpm format:check` / `git diff --check` — PASS; 184 archivos Biome, 13 archivos y 60 pruebas unitarias, 18 workspaces y ruta Next `/app/settings/theme` compilada.
+- `docker compose config --quiet` / `docker compose build api web` — PASS; imagen Linux con instalación frozen y build completo en el contenedor.
+- Runtime Compose E04-S02 — PASS; PostgreSQL, Redis, API y web healthy; API `/health` 200, web `/` y `/app` 200.
 - `pnpm install --frozen-lockfile` / `pnpm db:validate` / `pnpm db:generate` / `pnpm db:migrate:deploy` / `prisma migrate status` / `prisma migrate diff --exit-code` — PASS; PostgreSQL 18.4 con siete migrations, sin pendientes ni drift.
 - `pnpm format` / `pnpm lint` / `pnpm typecheck` / `pnpm test` / `pnpm build` / `pnpm format:check` — PASS; 153 archivos Biome y suite raíz 8 archivos/30 pruebas.
 - `docker compose config --quiet` / `docker compose build api web` / `docker compose up -d` / `docker compose ps` / `GET http://127.0.0.1:3001/health` / `GET http://127.0.0.1:3000/` / `docker compose down` — PASS; postgres, redis, api, web, worker-jobs y worker-whatsapp `healthy`, API 200 `{\"service\":\"api\",\"status\":\"ok\"}`, web 200; volumes preservados.

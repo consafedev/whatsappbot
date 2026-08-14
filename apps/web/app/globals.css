@@ -38,6 +38,7 @@ select:focus-visible {
   display: grid;
   min-height: 100vh;
   grid-template-columns: 248px minmax(0, 1fr);
+  background: var(--tenant-canvas);
 }
 .tenant-app-sidebar {
   position: sticky;
@@ -46,8 +47,8 @@ select:focus-visible {
   display: flex;
   height: 100vh;
   flex-direction: column;
-  border-right: 1px solid var(--border);
-  background: var(--surface);
+  border-right: 1px solid var(--tenant-border);
+  background: var(--tenant-surface);
 }
 .tenant-app-brand,
 .tenant-app-user-trigger {
@@ -58,7 +59,7 @@ select:focus-visible {
 }
 .tenant-app-brand {
   padding: 18px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--tenant-border);
 }
 .tenant-app-mark,
 .tenant-app-avatar {
@@ -68,10 +69,18 @@ select:focus-visible {
   flex: 0 0 30px;
   place-items: center;
   border-radius: 7px;
-  background: #e9f0f8;
-  color: var(--accent);
+  background: var(--tenant-primary-soft);
+  color: var(--tenant-primary);
   font-size: 12px;
   font-weight: 700;
+}
+.tenant-app-logo {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  border-radius: 7px;
+  object-fit: contain;
+  background: transparent;
 }
 .tenant-app-brand strong,
 .tenant-app-user strong,
@@ -85,7 +94,7 @@ select:focus-visible {
 .tenant-app-brand small,
 .tenant-app-user small {
   margin-top: 2px;
-  color: var(--muted);
+  color: var(--tenant-muted);
   font-size: 11px;
 }
 .tenant-app-sidebar nav {
@@ -99,7 +108,7 @@ select:focus-visible {
 .tenant-app-nav-group h2 {
   margin: 0;
   padding: 4px 10px 7px;
-  color: var(--muted);
+  color: var(--tenant-muted);
   font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -112,30 +121,30 @@ select:focus-visible {
   justify-content: space-between;
   padding: 7px 10px;
   border-radius: 6px;
-  color: #273542;
+  color: var(--tenant-text);
   font-size: 13px;
   text-decoration: none;
 }
 .tenant-app-nav-link:hover,
 .tenant-app-nav-link[aria-current="page"] {
-  background: #edf3f9;
-  color: var(--accent);
+  background: var(--tenant-primary-soft);
+  color: var(--tenant-primary);
   text-decoration: none;
 }
 .tenant-app-nav-link[aria-current="page"] {
   font-weight: 600;
 }
 .tenant-app-nav-placeholder {
-  color: #697783;
+  color: var(--tenant-muted);
 }
 .tenant-app-nav-placeholder small {
-  color: #87929c;
+  color: var(--tenant-muted);
   font-size: 10px;
 }
 .tenant-app-user {
   position: relative;
   padding: 10px 8px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--tenant-border);
 }
 .tenant-app-user-trigger {
   width: 100%;
@@ -147,7 +156,7 @@ select:focus-visible {
 }
 .tenant-app-user-trigger:hover {
   border-radius: 6px;
-  background: #f2f5f8;
+  background: var(--tenant-canvas);
 }
 .tenant-app-user-menu {
   position: absolute;
@@ -155,9 +164,9 @@ select:focus-visible {
   bottom: 58px;
   width: 190px;
   padding: 6px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--tenant-border);
   border-radius: 7px;
-  background: white;
+  background: var(--tenant-surface);
   box-shadow: 0 6px 18px rgb(31 41 51 / 14%);
 }
 .tenant-app-user-menu button {
@@ -183,13 +192,13 @@ select:focus-visible {
   align-items: center;
   gap: 8px;
   padding: 0 28px;
-  border-bottom: 1px solid var(--border);
-  background: #fafbfd;
-  color: var(--muted);
+  border-bottom: 1px solid var(--tenant-border);
+  background: var(--tenant-canvas);
+  color: var(--tenant-muted);
   font-size: 13px;
 }
 .tenant-app-topbar strong {
-  color: #2b3946;
+  color: var(--tenant-text);
 }
 .tenant-app-content {
   width: min(100%, 1200px);
@@ -202,14 +211,268 @@ select:focus-visible {
 }
 .tenant-app-home > p:not(.kicker) {
   margin: 0;
-  color: var(--muted);
+  color: var(--tenant-muted);
+}
+.tenant-app-theme-editor {
+  max-width: 860px;
+}
+.tenant-app-theme-editor h1 {
+  margin: 4px 0 8px;
+  font-size: 28px;
+}
+.tenant-app-theme-subtitle {
+  margin: 0;
+  color: var(--tenant-muted);
+  font-size: 13px;
+}
+.tenant-app-theme-preview-shell {
+  display: grid;
+  overflow: hidden;
+  margin-top: 22px;
+  border: 1px solid var(--tenant-border);
+  border-radius: 9px;
+  grid-template-columns: 190px minmax(0, 1fr);
+  background: var(--tenant-canvas);
+}
+.tenant-app-theme-preview-shell .tenant-app-sidebar {
+  position: static;
+  height: auto;
+  border: 0;
+}
+.tenant-app-theme-preview-nav {
+  display: grid;
+  gap: 2px;
+  padding: 14px 8px;
+}
+.tenant-app-theme-preview-nav span {
+  padding: 7px 10px;
+  border-radius: 6px;
+  color: var(--tenant-text);
+  font-size: 13px;
+}
+.tenant-app-theme-preview-nav span:last-child {
+  background: var(--tenant-primary-soft);
+  color: var(--tenant-primary);
+  font-weight: 600;
+}
+.tenant-app-theme-preview-main {
+  min-width: 0;
+}
+.tenant-app-theme-preview-card {
+  display: grid;
+  min-height: 170px;
+  place-items: center;
+  padding: 20px;
+}
+.tenant-app-theme-preview-chip {
+  padding: 6px 12px;
+  border: 1px solid var(--tenant-border);
+  border-radius: 999px;
+  background: var(--tenant-primary-soft);
+  color: var(--tenant-text);
+  font-size: 12px;
+}
+.tenant-app-theme-section {
+  margin-top: 26px;
+  padding: 20px;
+  border: 1px solid var(--tenant-border);
+  border-radius: 8px;
+  background: var(--tenant-surface);
+}
+.tenant-app-theme-section h2 {
+  margin: 0 0 14px;
+  font-size: 16px;
+}
+.tenant-app-theme-presets {
+  display: grid;
+  gap: 9px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.tenant-app-theme-preset {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--tenant-border);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--tenant-text);
+  cursor: pointer;
+  text-align: left;
+}
+.tenant-app-theme-preset.is-selected {
+  border-color: var(--tenant-primary);
+  box-shadow: 0 0 0 2px var(--tenant-accent-soft);
+}
+.tenant-app-theme-preset-swatch {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  place-items: center;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.tenant-app-theme-preset strong,
+.tenant-app-theme-preset small {
+  display: block;
+}
+.tenant-app-theme-preset small {
+  margin-top: 2px;
+  color: var(--tenant-muted);
+  font-size: 11px;
+}
+.tenant-app-theme-modes {
+  display: inline-flex;
+  gap: 6px;
+  padding: 4px;
+  border: 1px solid var(--tenant-border);
+  border-radius: 8px;
+  background: var(--tenant-canvas);
+}
+.tenant-app-theme-mode {
+  min-height: 32px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--tenant-muted);
+  cursor: pointer;
+}
+.tenant-app-theme-mode.is-selected {
+  background: var(--tenant-primary);
+  color: var(--tenant-on-primary);
+  font-weight: 600;
+}
+.tenant-app-theme-help {
+  margin: -6px 0 12px;
+  color: var(--tenant-muted);
+  font-size: 12px;
+}
+.tenant-app-theme-colors {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.tenant-app-theme-color {
+  display: grid;
+  gap: 6px;
+  color: var(--tenant-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+.tenant-app-theme-color-input {
+  display: flex;
+  gap: 6px;
+}
+.tenant-app-theme-color-input input[type="text"],
+.tenant-app-theme-color-input input:not([type]) {
+  width: 100%;
+  min-width: 0;
+  height: 36px;
+  padding: 0 9px;
+  border: 1px solid var(--tenant-border);
+  background: var(--tenant-surface);
+  color: var(--tenant-text);
+  font-family: ui-monospace, Consolas, monospace;
+}
+.tenant-app-theme-color-picker {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  padding: 2px;
+  border: 1px solid var(--tenant-border);
+  background: var(--tenant-surface);
+  cursor: pointer;
+}
+.tenant-app-theme-logo {
+  display: grid;
+  gap: 6px;
+  color: var(--tenant-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+.tenant-app-theme-logo input {
+  width: 100%;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--tenant-border);
+  background: var(--tenant-surface);
+  color: var(--tenant-text);
+}
+.tenant-app-theme-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 20px;
+}
+.tenant-app-theme-save,
+.tenant-app-theme-reset {
+  min-height: 38px;
+  padding: 0 16px;
+  border: 1px solid var(--tenant-primary);
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.tenant-app-theme-save {
+  background: var(--tenant-primary);
+  color: var(--tenant-on-primary);
+}
+.tenant-app-theme-reset {
+  background: var(--tenant-surface);
+  color: var(--tenant-primary);
+}
+.tenant-app-theme-save:disabled,
+.tenant-app-theme-reset:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+.tenant-app-theme-feedback {
+  margin: 14px 0 0;
+  color: var(--tenant-secondary);
+  font-size: 13px;
+  font-weight: 600;
+}
+.tenant-app-theme-error {
+  margin: 14px 0 0;
+  padding: 10px 12px;
+  border: 1px solid #ecc0c0;
+  border-radius: 6px;
+  background: #fff1f1;
+  color: #8c2929;
+  font-size: 13px;
+}
+.tenant-app-theme-note {
+  padding: 18px;
+  border: 1px dashed var(--tenant-border);
+  border-radius: 8px;
+  background: var(--tenant-surface);
+  color: var(--tenant-muted);
+}
+.tenant-app-theme-note button {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--tenant-primary);
+  border-radius: 6px;
+  background: var(--tenant-primary);
+  color: var(--tenant-on-primary);
+  cursor: pointer;
+}
+
+@media (max-width: 900px) {
+  .tenant-app-theme-presets,
+  .tenant-app-theme-colors {
+    grid-template-columns: 1fr;
+  }
 }
 .tenant-app-modules {
   margin-top: 28px;
   padding: 18px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--tenant-border);
   border-radius: 8px;
-  background: white;
+  background: var(--tenant-surface);
 }
 .tenant-app-modules h2 {
   margin: 0 0 12px;
@@ -225,10 +488,10 @@ select:focus-visible {
 }
 .tenant-app-modules li {
   padding: 4px 8px;
-  border: 1px solid #d6e0eb;
+  border: 1px solid var(--tenant-border);
   border-radius: 999px;
-  background: #f5f8fb;
-  color: #405363;
+  background: var(--tenant-primary-soft);
+  color: var(--tenant-text);
   font-size: 12px;
 }
 .tenant-app-state {
@@ -237,16 +500,16 @@ select:focus-visible {
   place-content: center;
   gap: 12px;
   padding: 24px;
-  color: var(--muted);
+  color: var(--tenant-muted);
   text-align: center;
 }
 .tenant-app-state button {
   min-height: 36px;
   padding: 0 14px;
-  border: 1px solid var(--accent);
+  border: 1px solid var(--tenant-primary);
   border-radius: 6px;
-  background: var(--accent);
-  color: white;
+  background: var(--tenant-primary);
+  color: var(--tenant-on-primary);
   cursor: pointer;
 }
 .tenant-app-menu-toggle,
@@ -277,10 +540,10 @@ select:focus-visible {
     width: 32px;
     height: 32px;
     place-items: center;
-    border: 1px solid var(--border);
+    border: 1px solid var(--tenant-border);
     border-radius: 6px;
-    background: white;
-    color: var(--accent);
+    background: var(--tenant-surface);
+    color: var(--tenant-primary);
     cursor: pointer;
   }
   .tenant-app-backdrop {
@@ -408,6 +671,9 @@ select:focus-visible {
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
+}
+.tenant-app-home .kicker {
+  color: var(--tenant-accent-text);
 }
 .tenant-subtitle {
   margin: 0;

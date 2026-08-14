@@ -9,6 +9,12 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 ### Added
 
 - E04-S01 con `/app` tenant-authenticated, bootstrap tenant-safe, shell reutilizable responsive, navegación centralizada module/permission-aware, Home honesta y logout funcional sin datos demo ni caché persistente.
+- E04-S02 con `packages/themes` (`@whatsapp-platform/themes`): schema canónico estricto de branding (version 1, cinco presets + custom, light/dark, colores `#RRGGBB` con contraste ≥ 3.0, logo HTTPS público sin hosts internos), presets de tokens light/dark y resolver fail-soft hacia el default `corporate-blue`.
+- `GET /app/theme` y `PATCH /app/theme` con `tenant.settings.manage`, restablecimiento por `{}`, validación fail-closed 400 y logo (incluido null) condicionado al módulo `module.white_label` (403 `ENTITLEMENT_REQUIRED`).
+- Repository tenant-scoped que persiste `brandingConfig` y escribe Audit `tenant.theme.updated` + Outbox homónimo en una transacción, sin URL de logo en summaries/payloads y con `requestId` saneado.
+- Bootstrap `/app/bootstrap` con `branding` resuelto (tokens display-only, sin `brandingConfig` raw), shell con variables CSS scoped `--tenant-*`, `globals.css` migrado a tokens y CSS de plataforma intacto.
+- Editor productivo `/app/settings/theme` con preset, modo claro/oscuro, colores custom con preview y logo (con White label); refresca bootstrap sin reload y el logo usa `referrerPolicy="no-referrer"` fuera del pipeline de optimización de Next.
+- Suites dedicadas `pnpm test:integration:theme-engine` (7 database + 9 API) y regresiones auth (12 archivos/75 pruebas), bootstrap (5) y seguridad (9 + 37) contra PostgreSQL 18.4/Nest reales.
 
 - Agent Skill canónica en `.agents/skills/whatsapp-platform-engineering/SKILL.md`.
 - `AGENTS.md` raíz con instrucciones breves para cualquier agente.
@@ -88,6 +94,7 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 - E03-S04 — Module activation queda PASS; Epic 03 — Super Admin permanece IN PROGRESS y E03-S05 es la siguiente historia.
 - E03-S05 — Suspend/reactivate tenant queda PASS; Epic 03 — Super Admin queda PASS / COMPLETE y E04-S01 es la siguiente historia.
 - E04-S01 — App shell queda PASS; Epic 04 — Tenant Dashboard Shell permanece IN PROGRESS y E04-S02 es la siguiente historia.
+- E04-S02 — Theme Engine minimal queda PASS; Epic 04 — Tenant Dashboard Shell permanece IN PROGRESS y E04-S03 es la siguiente historia.
 
 ### Fixed
 

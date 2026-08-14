@@ -71,3 +71,11 @@ export {
   type TenantOperationalReadDatabase,
   tenantIsOperational,
 } from "./tenant-operational";
+export {
+  createTenantThemeRepository,
+  type TenantTheme,
+  type TenantThemeDatabase,
+  type TenantThemeMutationMetadata,
+  TenantThemeNotFoundError,
+  type TenantThemeRepository,
+} from "./tenant-theme";

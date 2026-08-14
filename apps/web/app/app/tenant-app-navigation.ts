@@ -113,7 +113,7 @@ const navigation: readonly TenantAppNavigationGroup[] = Object.freeze([
         requiredPermission: "tenant.users.manage",
       },
       {
-        href: null,
+        href: "/app/settings/theme",
         id: "settings",
         label: "Configuración",
         requiredPermission: "tenant.settings.manage",

@@ -1,12 +1,14 @@
 "use client";
 
+import type { ResolvedTenantTheme } from "@whatsapp-platform/themes";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useState } from "react";
 import { resolveTenantNavigation } from "./tenant-app-navigation";
+import { tenantShellStyle } from "./tenant-app-theme-style";
 
 export type TenantAppBootstrap = Readonly<{
-  branding: Readonly<{ mode: "platform_default" }>;
+  branding: ResolvedTenantTheme;
   effectiveModules: readonly string[];
   effectivePermissions: readonly string[];
   tenant: Readonly<{
@@ -26,12 +28,23 @@ export type TenantAppBootstrap = Readonly<{
   }>;
 }>;
 
-const TenantBootstrapContext = createContext<TenantAppBootstrap | null>(null);
+type TenantBootstrapContextValue = Readonly<{
+  bootstrap: TenantAppBootstrap;
+  refresh: () => Promise<void>;
+}>;
+
+const TenantBootstrapContext = createContext<TenantBootstrapContextValue | null>(null);
 
 export function useTenantAppBootstrap(): TenantAppBootstrap {
-  const bootstrap = useContext(TenantBootstrapContext);
-  if (bootstrap === null) throw new Error("Tenant app bootstrap is unavailable");
-  return bootstrap;
+  const value = useContext(TenantBootstrapContext);
+  if (value === null) throw new Error("Tenant app bootstrap is unavailable");
+  return value.bootstrap;
+}
+
+export function useTenantAppBootstrapRefresh(): () => Promise<void> {
+  const value = useContext(TenantBootstrapContext);
+  if (value === null) throw new Error("Tenant app bootstrap is unavailable");
+  return value.refresh;
 }
 
 function initials(name: string): string {
@@ -122,8 +135,8 @@ export function TenantAppShell({
   };
 
   return (
-    <TenantBootstrapContext.Provider value={bootstrap}>
-      <div className="tenant-app-shell">
+    <TenantBootstrapContext.Provider value={{ bootstrap, refresh: load }}>
+      <div className="tenant-app-shell" style={tenantShellStyle(bootstrap.branding)}>
         <button
           aria-controls="tenant-app-sidebar"
           aria-expanded={drawerOpen}
@@ -147,9 +160,19 @@ export function TenantAppShell({
           id="tenant-app-sidebar"
         >
           <div className="tenant-app-brand">
-            <span aria-hidden="true" className="tenant-app-mark">
-              W
-            </span>
+            {bootstrap.branding.logo === null ? (
+              <span aria-hidden="true" className="tenant-app-mark">
+                W
+              </span>
+            ) : (
+              // biome-ignore lint/performance/noImgElement: arbitrary external logo URL; must not enter the Next image optimization pipeline
+              <img
+                alt=""
+                className="tenant-app-logo"
+                referrerPolicy="no-referrer"
+                src={bootstrap.branding.logo.url}
+              />
+            )}
             <span>
               <strong>{bootstrap.tenant.displayName}</strong>
               <small>Workspace</small>

@@ -5,9 +5,12 @@ import type {
   TenantContext,
 } from "@whatsapp-platform/database";
 import { createTenantAppBootstrap } from "@whatsapp-platform/database";
-import type { TenantSessionIdentity } from "@whatsapp-platform/database/platform";
 import { TenantAuthenticated } from "./tenant-auth";
-import { CurrentTenantContext, CurrentTenantIdentity } from "./tenant-context";
+import {
+  CurrentTenantContext,
+  CurrentTenantIdentity,
+  type TenantSessionIdentity,
+} from "./tenant-context";
 
 export const TENANT_APP_BOOTSTRAP_DATABASE = Symbol("TENANT_APP_BOOTSTRAP_DATABASE");
 

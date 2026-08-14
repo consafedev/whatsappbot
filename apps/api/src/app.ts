@@ -2,6 +2,7 @@ import { Controller, Get, Module } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { platformCookieConfig, tenantCookieConfig } from "@whatsapp-platform/auth";
 import type { NonSecretConfig } from "@whatsapp-platform/config";
+import { createTenantThemeRepository } from "@whatsapp-platform/database";
 import {
   createPlatformAuthRepository,
   createPlatformTenantDetailQueryService,
@@ -69,6 +70,7 @@ import {
 } from "./tenant-context";
 import { TenantEntitlementGuard } from "./tenant-entitlements";
 import { TenantPermissionGuard } from "./tenant-rbac";
+import { TENANT_THEME_REPOSITORY, TenantThemeController, TenantThemeService } from "./tenant-theme";
 
 @Controller()
 class HealthController {
@@ -97,6 +99,7 @@ export async function createApiApplication(
       PlatformTenantsController,
       TenantAuthController,
       TenantAppBootstrapController,
+      TenantThemeController,
       ...(config.environment === "test" ? [EntitlementTestProbeController] : []),
     ],
     providers: [
@@ -118,6 +121,11 @@ export async function createApiApplication(
       TenantEntitlementGuard,
       TenantDataAccessFactory,
       TenantAppBootstrapService,
+      TenantThemeService,
+      {
+        provide: TENANT_THEME_REPOSITORY,
+        useFactory: () => createTenantThemeRepository(getPlatformDatabaseClient()),
+      },
       {
         provide: PLATFORM_TENANT_ENTITLEMENT_ADMIN,
         useFactory: () =>

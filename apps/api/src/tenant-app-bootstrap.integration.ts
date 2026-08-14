@@ -156,7 +156,12 @@ describe.sequential("E04-S01 tenant app bootstrap", () => {
     expect(response.status).toBe(200);
     const body = (await response.json()) as Record<string, unknown>;
     expect(body).toMatchObject({
-      branding: { mode: "platform_default" },
+      branding: {
+        colorMode: "light",
+        logo: null,
+        preset: "corporate-blue",
+        tokens: { primary: "#294f7c", surface: "#ffffff" },
+      },
       effectiveModules: ["module.messaging.basic", "module.quotes"],
       effectivePermissions: ["channels.read", "quotes.read"],
       tenant: { displayName: "Shell a", id: tenantAId, slug: `${prefix}-a` },
@@ -223,5 +228,30 @@ describe.sequential("E04-S01 tenant app bootstrap", () => {
     });
     expect(response.status).toBe(204);
     expect((await bootstrap(activeCookie)).status).toBe(401);
+  });
+
+  it("resolves the tenant theme from brandingConfig without leaking raw configuration", async () => {
+    await prisma.tenant.update({
+      data: {
+        brandingConfig: {
+          version: 1,
+          preset: "premium-minimal",
+          colorMode: "dark",
+          logo: { kind: "url", url: "https://cdn.example.com/logo.png" },
+        },
+      },
+      where: { id: tenantAId },
+    });
+    const response = await bootstrap();
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as Record<string, unknown>;
+    expect(body.branding).toMatchObject({
+      colorMode: "dark",
+      logo: { kind: "url", url: "https://cdn.example.com/logo.png" },
+      preset: "premium-minimal",
+      tokens: { primary: "#e8e4da", surface: "#1a1a1a" },
+    });
+    await prisma.tenant.update({ data: { brandingConfig: {} }, where: { id: tenantAId } });
+    expect((await bootstrap()).status).toBe(200);
   });
 });

@@ -44,6 +44,9 @@ importers:
       '@whatsapp-platform/rbac':
         specifier: workspace:*
         version: link:../../packages/rbac
+      '@whatsapp-platform/themes':
+        specifier: workspace:*
+        version: link:../../packages/themes
       reflect-metadata:
         specifier: 0.2.2
         version: 0.2.2
@@ -55,6 +58,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@whatsapp-platform/themes':
+        specifier: workspace:*
+        version: link:../../packages/themes
       next:
         specifier: 16.3.0
         version: 16.3.0(@types/node@24.13.3)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -110,6 +116,9 @@ importers:
       '@whatsapp-platform/rbac':
         specifier: workspace:*
         version: link:../rbac
+      '@whatsapp-platform/themes':
+        specifier: workspace:*
+        version: link:../themes
     devDependencies:
       prisma:
         specifier: 7.9.1
@@ -124,6 +133,12 @@ importers:
   packages/rbac: {}
 
   packages/tenancy: {}
+
+  packages/themes:
+    dependencies:
+      zod:
+        specifier: 4.4.3
+        version: 4.4.3
 
   packages/ui: {}
 

@@ -16,4 +16,14 @@ describe("tenant app navigation", () => {
     );
     expect(items.map((item) => item.id)).toEqual(["home"]);
   });
+
+  it("exposes the theme settings route only with the settings permission", () => {
+    const without = resolveTenantNavigation([], []).flatMap((group) => group.items);
+    expect(without.some((item) => item.id === "settings")).toBe(false);
+
+    const withPermission = resolveTenantNavigation([], ["tenant.settings.manage"]).flatMap(
+      (group) => group.items,
+    );
+    expect(withPermission.find((item) => item.id === "settings")?.href).toBe("/app/settings/theme");
+  });
 });

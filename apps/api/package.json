@@ -8,7 +8,8 @@
     "build": "tsc -p tsconfig.json",
     "platform-admin:create": "node dist/platform-admin-create.js",
     "start": "node dist/main.js",
-    "test:integration": "pnpm --filter @whatsapp-platform/auth build && pnpm --filter @whatsapp-platform/config build && pnpm --filter @whatsapp-platform/rbac build && pnpm --filter @whatsapp-platform/database build && vitest run --config vitest.integration.config.mts",
+    "test:integration": "pnpm --filter @whatsapp-platform/auth build && pnpm --filter @whatsapp-platform/config build && pnpm --filter @whatsapp-platform/rbac build && pnpm --filter @whatsapp-platform/themes build && pnpm --filter @whatsapp-platform/database build && vitest run --config vitest.integration.config.mts",
+    "test:integration:theme-engine": "pnpm --filter @whatsapp-platform/auth build && pnpm --filter @whatsapp-platform/config build && pnpm --filter @whatsapp-platform/rbac build && pnpm --filter @whatsapp-platform/themes build && pnpm --filter @whatsapp-platform/database build && vitest run --config vitest.theme-engine.config.mts",
     "test:integration:rbac": "pnpm --filter @whatsapp-platform/auth build && pnpm --filter @whatsapp-platform/config build && pnpm --filter @whatsapp-platform/rbac build && pnpm --filter @whatsapp-platform/database build && vitest run --config vitest.rbac.config.mts",
     "test:integration:platform-tenants": "pnpm --filter @whatsapp-platform/auth build && pnpm --filter @whatsapp-platform/config build && pnpm --filter @whatsapp-platform/database build && vitest run --config vitest.platform-tenants.config.mts",
     "test:integration:platform-tenant-detail": "pnpm --filter @whatsapp-platform/auth build && pnpm --filter @whatsapp-platform/config build && pnpm --filter @whatsapp-platform/database build && vitest run --config vitest.platform-tenant-detail.config.mts",
@@ -27,6 +28,7 @@
     "@whatsapp-platform/config": "workspace:*",
     "@whatsapp-platform/database": "workspace:*",
     "@whatsapp-platform/rbac": "workspace:*",
+    "@whatsapp-platform/themes": "workspace:*",
     "reflect-metadata": "0.2.2",
     "rxjs": "7.8.2"
   }
