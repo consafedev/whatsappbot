@@ -385,4 +385,97 @@ describe.sequential("E04-S02 tenant theme API", () => {
     expect(b.config).toMatchObject({ preset: "custom", colorMode: "light" });
     await patch(tenantACookie, {}, `${prefix}-hostile-cleanup`);
   });
+
+  it("hides the stored logo in bootstrap while white label is not effective and restores it on re-enable", async () => {
+    const logoUrl = "https://cdn.example.com/logo.png";
+    const configured = {
+      version: 1,
+      preset: "custom",
+      colorMode: "light",
+      colors: { primary: "#0b5394", secondary: "#1e8449", accent: "#7b3fa0" },
+      logo: { kind: "url", url: logoUrl },
+    };
+    expect((await patch(tenantACookie, configured, `${prefix}-wl-cycle`)).status).toBe(200);
+
+    const enabled = (await (await bootstrap()).json()) as {
+      branding: { logo: unknown };
+      effectiveModules: string[];
+    };
+    expect(enabled.effectiveModules).toContain("module.white_label");
+    expect(enabled.branding.logo).toEqual({ kind: "url", url: logoUrl });
+
+    await prisma.tenantEntitlement.update({
+      data: { enabled: false },
+      where: {
+        tenantId_entitlementKey: { entitlementKey: "module.white_label", tenantId: tenantAId },
+      },
+    });
+
+    const disabled = (await (await bootstrap()).json()) as {
+      branding: { logo: unknown };
+      effectiveModules: string[];
+    };
+    expect(disabled.effectiveModules).not.toContain("module.white_label");
+    expect(disabled.branding.logo).toBeNull();
+
+    const stored = (await (await get(tenantACookie)).json()) as { config: { logo?: unknown } };
+    expect(stored.config.logo).toEqual({ kind: "url", url: logoUrl });
+
+    await prisma.tenantEntitlement.update({
+      data: { enabled: true },
+      where: {
+        tenantId_entitlementKey: { entitlementKey: "module.white_label", tenantId: tenantAId },
+      },
+    });
+
+    const reEnabled = (await (await bootstrap()).json()) as { branding: { logo: unknown } };
+    expect(reEnabled.branding.logo).toEqual({ kind: "url", url: logoUrl });
+
+    await patch(tenantACookie, {}, `${prefix}-wl-cycle-cleanup`);
+  });
+
+  it("keeps the logo hidden for scheduled or expired white label entitlements", async () => {
+    const logoUrl = "https://cdn.example.com/logo.png";
+    const configured = {
+      version: 1,
+      preset: "corporate-blue",
+      colorMode: "light",
+      logo: { kind: "url", url: logoUrl },
+    };
+    expect((await patch(tenantACookie, configured, `${prefix}-wl-temporal`)).status).toBe(200);
+
+    await prisma.tenantEntitlement.update({
+      data: { enabled: true, endsAt: null, startsAt: new Date(Date.now() + 3_600_000) },
+      where: {
+        tenantId_entitlementKey: { entitlementKey: "module.white_label", tenantId: tenantAId },
+      },
+    });
+    const scheduled = (await (await bootstrap()).json()) as {
+      branding: { logo: unknown };
+      effectiveModules: string[];
+    };
+    expect(scheduled.effectiveModules).not.toContain("module.white_label");
+    expect(scheduled.branding.logo).toBeNull();
+
+    await prisma.tenantEntitlement.update({
+      data: { enabled: true, endsAt: new Date(Date.now() - 1000), startsAt: null },
+      where: {
+        tenantId_entitlementKey: { entitlementKey: "module.white_label", tenantId: tenantAId },
+      },
+    });
+    const expired = (await (await bootstrap()).json()) as {
+      branding: { logo: unknown };
+      effectiveModules: string[];
+    };
+    expect(expired.effectiveModules).not.toContain("module.white_label");
+    expect(expired.branding.logo).toBeNull();
+
+    await prisma.tenantEntitlement.update({
+      data: { enabled: true, endsAt: null, startsAt: null },
+      where: {
+        tenantId_entitlementKey: { entitlementKey: "module.white_label", tenantId: tenantAId },
+      },
+    });
+    await patch(tenantACookie, {}, `${prefix}-wl-temporal-cleanup`);
+  });
 });

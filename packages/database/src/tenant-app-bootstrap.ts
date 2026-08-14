@@ -73,18 +73,24 @@ export async function createTenantAppBootstrap(
 
   if (tenant === null || user === null) throw new TenantAppBootstrapNotFoundError();
 
+  const branding = resolveTenantTheme(tenant.brandingConfig);
+  const effectiveModules = Object.freeze(
+    entitlements
+      .filter(
+        (entitlement) =>
+          isModuleEntitlementKey(entitlement.entitlementKey) &&
+          tenantEntitlementEffective(entitlement, now),
+      )
+      .map((entitlement) => entitlement.entitlementKey)
+      .sort(),
+  );
+
   return Object.freeze({
-    branding: resolveTenantTheme(tenant.brandingConfig),
-    effectiveModules: Object.freeze(
-      entitlements
-        .filter(
-          (entitlement) =>
-            isModuleEntitlementKey(entitlement.entitlementKey) &&
-            tenantEntitlementEffective(entitlement, now),
-        )
-        .map((entitlement) => entitlement.entitlementKey)
-        .sort(),
-    ),
+    branding: Object.freeze({
+      ...branding,
+      logo: effectiveModules.includes("module.white_label") ? branding.logo : null,
+    }),
+    effectiveModules,
     effectivePermissions: Object.freeze([...permissions].sort()),
     tenant: Object.freeze({
       defaultLocale: tenant.defaultLocale,

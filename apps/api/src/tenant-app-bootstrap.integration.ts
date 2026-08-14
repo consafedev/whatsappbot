@@ -247,10 +247,34 @@ describe.sequential("E04-S01 tenant app bootstrap", () => {
     const body = (await response.json()) as Record<string, unknown>;
     expect(body.branding).toMatchObject({
       colorMode: "dark",
-      logo: { kind: "url", url: "https://cdn.example.com/logo.png" },
       preset: "premium-minimal",
       tokens: { primary: "#e8e4da", surface: "#1a1a1a" },
     });
+    await prisma.tenant.update({ data: { brandingConfig: {} }, where: { id: tenantAId } });
+    expect((await bootstrap()).status).toBe(200);
+  });
+
+  it("hides the stored logo in bootstrap while module.white_label is not effective", async () => {
+    await prisma.tenant.update({
+      data: {
+        brandingConfig: {
+          version: 1,
+          preset: "corporate-blue",
+          colorMode: "light",
+          logo: { kind: "url", url: "https://cdn.example.com/logo.png" },
+        },
+      },
+      where: { id: tenantAId },
+    });
+    const response = await bootstrap();
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as Record<string, unknown>;
+    expect(body.branding).toMatchObject({
+      colorMode: "light",
+      logo: null,
+      preset: "corporate-blue",
+    });
+    expect(JSON.stringify(body)).not.toMatch(/https:\/\/cdn\.example\.com\/logo\.png/);
     await prisma.tenant.update({ data: { brandingConfig: {} }, where: { id: tenantAId } });
     expect((await bootstrap()).status).toBe(200);
   });
