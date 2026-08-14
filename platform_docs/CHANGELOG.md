@@ -8,6 +8,8 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Added
 
+- E04-S01 con `/app` tenant-authenticated, bootstrap tenant-safe, shell reutilizable responsive, navegación centralizada module/permission-aware, Home honesta y logout funcional sin datos demo ni caché persistente.
+
 - Agent Skill canónica en `.agents/skills/whatsapp-platform-engineering/SKILL.md`.
 - `AGENTS.md` raíz con instrucciones breves para cualquier agente.
 - Adaptador Antigravity en `.agents/agents.md`.
@@ -85,6 +87,7 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 - E03-S03 — Tenant detail queda PASS; Epic 03 — Super Admin permanece IN PROGRESS y E03-S04 es la siguiente historia.
 - E03-S04 — Module activation queda PASS; Epic 03 — Super Admin permanece IN PROGRESS y E03-S05 es la siguiente historia.
 - E03-S05 — Suspend/reactivate tenant queda PASS; Epic 03 — Super Admin queda PASS / COMPLETE y E04-S01 es la siguiente historia.
+- E04-S01 — App shell queda PASS; Epic 04 — Tenant Dashboard Shell permanece IN PROGRESS y E04-S02 es la siguiente historia.
 
 ### Fixed
 

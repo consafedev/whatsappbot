@@ -23,6 +23,12 @@ export {
   UnknownPermissionKeyError,
 } from "./rbac-data-access";
 export {
+  createTenantAppBootstrap,
+  type TenantAppBootstrap,
+  type TenantAppBootstrapDatabase,
+  TenantAppBootstrapNotFoundError,
+} from "./tenant-app-bootstrap";
+export {
   createTenantContext,
   type TenantContext,
   type TenantId,

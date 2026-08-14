@@ -15,6 +15,7 @@
     "test:integration:tenant-provisioning": "pnpm --filter @whatsapp-platform/auth build && pnpm --filter @whatsapp-platform/config build && pnpm --filter @whatsapp-platform/database build && vitest run --config vitest.tenant-provisioning.config.mts",
     "test:integration:entitlements": "pnpm --filter @whatsapp-platform/auth build && pnpm --filter @whatsapp-platform/config build && pnpm --filter @whatsapp-platform/rbac build && pnpm --filter @whatsapp-platform/database build && vitest run --config vitest.entitlements.config.mts",
     "test:integration:tenant-status": "pnpm --filter @whatsapp-platform/auth build && pnpm --filter @whatsapp-platform/config build && pnpm --filter @whatsapp-platform/rbac build && pnpm --filter @whatsapp-platform/database build && vitest run --config vitest.tenant-status.config.mts",
+    "test:integration:tenant-app-bootstrap": "pnpm --filter @whatsapp-platform/auth build && pnpm --filter @whatsapp-platform/config build && pnpm --filter @whatsapp-platform/rbac build && pnpm --filter @whatsapp-platform/database build && vitest run --config vitest.tenant-app-bootstrap.config.mts",
     "test:security:tenant-isolation": "pnpm --filter @whatsapp-platform/auth build && pnpm --filter @whatsapp-platform/config build && pnpm --filter @whatsapp-platform/rbac build && pnpm --filter @whatsapp-platform/database build && vitest run --config vitest.tenant-isolation.config.mts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },

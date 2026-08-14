@@ -138,6 +138,10 @@ Los workers/jobs futuros deben revalidar `assertTenantOperational(...)` justo an
 
 # 7. RBAC/scopes
 
+## App shell bootstrap (E04-S01)
+
+`pnpm test:integration:tenant-app-bootstrap` usa PostgreSQL 18.4/Nest real para comprobar identidad derivada de sesión, respuesta least-data, módulos/permissions efectivos, cambios con misma sesión, logout, suspensión y estados inválidos. La navegación tiene pruebas puras para gating compuesto y ausencia de `href="#"`; su visibilidad es UX y no reemplaza guards API.
+
 Matriz mínima:
 
 - owner/admin/supervisor/agent/viewer;

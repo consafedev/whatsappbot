@@ -44,6 +44,11 @@ import {
   PlatformTenantsController,
 } from "./platform-tenants";
 import {
+  TENANT_APP_BOOTSTRAP_DATABASE,
+  TenantAppBootstrapController,
+  TenantAppBootstrapService,
+} from "./tenant-app-bootstrap";
+import {
   PASSWORD_RESET_DELIVERY,
   type PasswordResetDelivery,
   TENANT_AUTH_OPTIONS,
@@ -91,6 +96,7 @@ export async function createApiApplication(
       PlatformAuthController,
       PlatformTenantsController,
       TenantAuthController,
+      TenantAppBootstrapController,
       ...(config.environment === "test" ? [EntitlementTestProbeController] : []),
     ],
     providers: [
@@ -111,6 +117,7 @@ export async function createApiApplication(
       TenantPermissionGuard,
       TenantEntitlementGuard,
       TenantDataAccessFactory,
+      TenantAppBootstrapService,
       {
         provide: PLATFORM_TENANT_ENTITLEMENT_ADMIN,
         useFactory: () =>
@@ -145,6 +152,7 @@ export async function createApiApplication(
       },
       { provide: TENANT_AUTH_OPTIONS, useValue: tenantOptions },
       { provide: TENANT_DATA_ACCESS_DATABASE, useFactory: getPlatformDatabaseClient },
+      { provide: TENANT_APP_BOOTSTRAP_DATABASE, useFactory: getPlatformDatabaseClient },
       {
         provide: PASSWORD_RESET_DELIVERY,
         useValue: dependencies.passwordResetDelivery ?? new UnavailablePasswordResetDelivery(),

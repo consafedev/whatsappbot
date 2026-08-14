@@ -2,23 +2,20 @@
 
 **Actualizado:** 2026-08-14
 **Versión de producto:** `0.0.0`  
-**Estado:** E03-S05 — PASS; **Epic 03 — PASS / COMPLETE**.
+**Estado:** E04-S01 — PASS; **Epic 04 — Tenant Dashboard Shell — IN PROGRESS**.
 
 ## Current milestone
 
-Super Admin.
+Tenant Dashboard Shell.
 
 ## Current epic
 
-**Epic 03 — Super Admin**
+**Epic 04 — Tenant Dashboard Shell**
 
 Estado por historia:
 
-- E03-S01 — Tenant list: **PASS**.
-- E03-S02 — Create tenant: **PASS**.
-- E03-S03 — Tenant detail: **PASS**.
-- E03-S04 — Module activation: **PASS**.
-- E03-S05 — Suspend/reactivate tenant: **PASS**.
+- E04-S01 — App shell: **PASS**.
+- E04-S02 — Theme Engine minimal: **NOT STARTED**.
 
 Epic anterior:
 
@@ -31,6 +28,11 @@ Epic anterior:
 
 ## Completed
 
+- E04-S01 — App shell: **PASS**; Epic 04 permanece **IN PROGRESS**.
+- `/app` usa un layout Next.js reusable, sidebar desktop-first, drawer móvil accesible, identidad real del Tenant/User y logout por `POST /auth/logout`.
+- `GET /app/bootstrap` está protegido por `TenantUserSessionGuard` y `TenantContextGuard`; deriva tenant/user solamente de la sesión, consulta módulos efectivos y permisos efectivos desde PostgreSQL y no expone config, settings, hashes, sesiones ni metadata privilegiada.
+- La navegación centralizada usa módulos/permisos sólo como UX; APIs futuras conservan guards. Inicio es el único link existente y capacidades efectivas futuras aparecen como `Próximamente` no clicable, sin `href="#"` ni rutas vacías.
+- No hay cache persistente de auth/permissions/entitlements, migration, schema change ni Theme Engine; `brandingConfig` no se interpreta y el modo es `platform_default`.
 - E03-S05 — Suspend/reactivate tenant: **PASS**; **Epic 03 — PASS / COMPLETE**.
 - `POST /platform/tenants/:tenantId/suspend` y `/reactivate` usan exclusivamente `PlatformAdminSessionGuard`, UUID de route validado y body vacío; devuelven 200 con `{ tenant: { id, status, suspendedAt }, changed }`.
 - Sólo se permiten `active → suspended` y `suspended → active`; provisioning, offboarding y archived devuelven 409. Reintentos al estado actual devuelven `changed: false`, preservan `suspendedAt` y no crean Audit/Outbox adicionales.
@@ -198,15 +200,15 @@ Epic anterior:
 
 ## In progress
 
-Epic 03 — Super Admin está **PASS / COMPLETE**.
+Epic 04 — Tenant Dashboard Shell continúa con E04-S02 pendiente.
 
 ## Blocked
 
-Ningún bloqueo de código para E03-S05. Password recovery requiere un adapter de delivery antes de habilitarse operativamente.
+Ningún bloqueo de código para E04-S01. Password recovery requiere un adapter de delivery antes de habilitarse operativamente.
 
 ## Next story
 
-`E04-S01 — App shell`
+`E04-S02 — Theme Engine minimal`
 
 No implementarla sin una instrucción separada.
 
