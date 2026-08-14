@@ -2,7 +2,7 @@
 
 **Actualizado:** 2026-08-13
 **Versión de producto:** `0.0.0`  
-**Estado:** E03-S02 — PASS; **Epic 03 — IN PROGRESS**.
+**Estado:** E03-S03 — PASS; **Epic 03 — IN PROGRESS**.
 
 ## Current milestone
 
@@ -16,7 +16,7 @@ Estado por historia:
 
 - E03-S01 — Tenant list: **PASS**.
 - E03-S02 — Create tenant: **PASS**.
-- E03-S03 — Tenant detail: **NOT STARTED**.
+- E03-S03 — Tenant detail: **PASS**.
 - E03-S04 — Module activation: **NOT STARTED**.
 - E03-S05 — Suspend/reactivate tenant: **NOT STARTED**.
 
@@ -31,6 +31,17 @@ Epic anterior:
 
 ## Completed
 
+- E03-S03 — Tenant detail: **PASS**; Epic 03 permanece **IN PROGRESS**.
+- `GET /platform/tenants/:tenantId`, `/users` y `/audit` usan exclusivamente `PlatformAdminSessionGuard`; ausencia de sesión, cookie Tenant User, sesión revocada y Platform Admin disabled reciben 401, UUID inválido recibe 400 y UUID válido inexistente recibe 404.
+- `createPlatformTenantDetailQueryService` es una consulta cross-tenant privilegiada exportada sólo desde `@whatsapp-platform/database/platform`; el controller no usa Prisma raw y el root tenant-safe no expone esta capacidad.
+- El detalle devuelve identidad/configuración general segura, derivaciones de theme/branding, unidad raíz mínima, catálogo completo de 14 módulos, cinco limits Decimal serializados canónicamente, uso observado, deployment least-data y placeholders explícitos para canales/backup.
+- La vigencia de entitlements comparte una única regla con E03-S01: enabled, `startsAt <= now` y `endsAt > now`; módulos ausentes se muestran disabled/no efectivos sin crear filas.
+- Uso real disponible: conteos de Users y Organization Units. Channels, storage y AI usados permanecen `null`; nunca se inventa cero ni actividad/capacidad inexistente.
+- Users y Audit son paginados (25 default, 100 máximo), tienen orden estable y filtro obligatorio por `tenantId`; roles incluyen sólo nombre/key y OU mínima, mientras Audit omite summaries e `ipMetadata`.
+- `/platform/tenants/[tenantId]` implementa las ocho tabs General, Módulos, Usuarios, Canales, Deployment, Uso, Auditoría y Backup; usa APIs reales, carga diferida para Users/Audit y estados loading/empty/401/404/error sin fixtures ni mutaciones futuras.
+- El listado E03-S01 enlaza el nombre del tenant al detalle; canales y backup se declaran honestamente no disponibles hasta sus historias propietarias.
+- Suite dedicada `pnpm test:integration:platform-tenant-detail`: 2 archivos y 8 pruebas PostgreSQL 18.4/Nest, con aislamiento A/B, temporalidad, Decimal, auth, paginación, 404 y proyecciones sin campos sensibles.
+- E03-S03 no cambió `schema.prisma`, conserva siete migrations, no creó migration 8, no modificó prototype, no implementó E03-S04/E03-S05 y no requirió ADR.
 - E03-S02 — Create tenant: **PASS**; Epic 03 permanece **IN PROGRESS**.
 - `POST /platform/tenants` devuelve 201 y usa exclusivamente identidad `PlatformAdminSessionGuard`; no acepta identidad tenant ni Platform sessions revocadas/disabled.
 - `PlatformTenantProvisioningService` valida y normaliza input, reutiliza email/password policy Argon2id de Tenant auth y calcula el hash antes de abrir la transacción.
@@ -164,20 +175,27 @@ Epic anterior:
 
 ## In progress
 
-Epic 03 — Super Admin continúa con E03-S03 pendiente.
+Epic 03 — Super Admin continúa con E03-S04 pendiente.
 
 ## Blocked
 
-Ningún bloqueo de código para E03-S02. Password recovery requiere un adapter de delivery antes de habilitarse operativamente.
+Ningún bloqueo de código para E03-S03. Password recovery requiere un adapter de delivery antes de habilitarse operativamente.
 
 ## Next story
 
-`E03-S03 — Tenant detail`
+`E03-S04 — Module activation`
 
 No implementarla sin una instrucción separada.
 
 ## Last verified commands
 
+- `pnpm test:integration:platform-tenant-detail` — PASS; 2 archivos y 8 pruebas contra PostgreSQL 18.4/Nest reales.
+- `pnpm test:integration:platform-tenants` / `pnpm test:integration:tenant-provisioning` — PASS; regresiones E03-S01/E03-S02.
+- `pnpm test:integration:database` / `pnpm test:integration:auth` / `pnpm test:integration:rbac` / `pnpm test:security:tenant-isolation` — PASS.
+- `pnpm db:validate` / `pnpm db:generate` / `pnpm db:migrate:deploy` / `prisma migrate status` / `prisma migrate diff --exit-code` — PASS contra PostgreSQL 18.4; siete migrations y cero drift.
+- `pnpm lint` / `pnpm typecheck` / `pnpm test` / `pnpm build` / `pnpm format:check` / `git diff --check` — PASS; 7 archivos y 27 pruebas unitarias, 16 workspaces y ruta Next `/platform/tenants/[tenantId]` compilada.
+- `docker compose config --quiet` / `docker compose build api web` — PASS; layers, manifest e imagen `whatsapp-platform-dev:epic00` exportados y desempaquetados sin errores containerd.
+- Runtime Compose — PASS; PostgreSQL, Redis, API, Web, worker-jobs y worker-whatsapp healthy; API `/health` 200, Web tenant detail 200 y API detail sin sesión 401.
 - `pnpm test:integration:tenant-provisioning` — PASS; 2 archivos y 10 pruebas PostgreSQL/Nest dedicadas.
 - `pnpm test:integration:platform-tenants` — PASS; 2 archivos y 9 pruebas de regresión E03-S01.
 - `pnpm test:integration:database` — PASS; 8 archivos y 64 pruebas PostgreSQL.

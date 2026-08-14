@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { type FormEvent, useEffect, useState } from "react";
 import {
   channelCountLabel,
@@ -210,7 +211,11 @@ export function TenantListClient({
                     {data.items.map((tenant) => (
                       <tr key={tenant.id}>
                         <td>
-                          <strong>{tenant.displayName}</strong>
+                          <strong>
+                            <Link href={`/platform/tenants/${tenant.id}`}>
+                              {tenant.displayName}
+                            </Link>
+                          </strong>
                           <span className="cell-meta">{tenant.legalName}</span>
                           <code>{tenant.slug}</code>
                         </td>

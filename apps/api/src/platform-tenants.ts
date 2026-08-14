@@ -4,6 +4,8 @@ import {
   Controller,
   Get,
   Inject,
+  NotFoundException,
+  Param,
   Post,
   Query,
   Req,
@@ -11,9 +13,14 @@ import {
 } from "@nestjs/common";
 import type { TenantStatus } from "@whatsapp-platform/database";
 import type {
+  PlatformTenantAuditPage,
+  PlatformTenantDetail,
+  PlatformTenantDetailQueryService,
   PlatformTenantListResult,
   PlatformTenantQueryService,
+  PlatformTenantUserPage,
 } from "@whatsapp-platform/database/platform";
+import { PlatformTenantNotFoundError } from "@whatsapp-platform/database/platform";
 import { PlatformAdminSessionGuard } from "./platform-auth";
 import {
   PlatformTenantProvisioningService,
@@ -23,6 +30,7 @@ import {
 } from "./platform-tenant-provisioning";
 
 export const PLATFORM_TENANT_QUERY = Symbol("PLATFORM_TENANT_QUERY");
+export const PLATFORM_TENANT_DETAIL_QUERY = Symbol("PLATFORM_TENANT_DETAIL_QUERY");
 
 type QueryValue = string | string[] | undefined;
 type TenantListHttpQuery = Record<string, QueryValue>;
@@ -77,12 +85,42 @@ function parseTenantListQuery(query: TenantListHttpQuery) {
   };
 }
 
+function parseTenantPageQuery(query: TenantListHttpQuery) {
+  const allowed = new Set(["page", "pageSize"]);
+  if (Object.keys(query).some((key) => !allowed.has(key))) {
+    throw new BadRequestException("Invalid tenant detail query");
+  }
+  const page = positiveInteger(query.page, "page", 1);
+  const pageSize = positiveInteger(query.pageSize, "pageSize", 25);
+  if (pageSize > 100) throw new BadRequestException("Invalid pageSize");
+  return { page, pageSize };
+}
+
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function parseTenantId(value: string): string {
+  if (!uuidPattern.test(value)) throw new BadRequestException("Invalid tenantId");
+  return value;
+}
+
+async function tenantResult<T>(operation: Promise<T>): Promise<T> {
+  try {
+    return await operation;
+  } catch (error) {
+    if (error instanceof PlatformTenantNotFoundError)
+      throw new NotFoundException("Tenant not found");
+    throw error;
+  }
+}
+
 @Controller("platform/tenants")
 @UseGuards(PlatformAdminSessionGuard)
 export class PlatformTenantsController {
   constructor(
     @Inject(PLATFORM_TENANT_QUERY)
     private readonly queryService: PlatformTenantQueryService,
+    @Inject(PLATFORM_TENANT_DETAIL_QUERY)
+    private readonly detailQueryService: PlatformTenantDetailQueryService,
     @Inject(PlatformTenantProvisioningService)
     private readonly provisioningService: PlatformTenantProvisioningService,
   ) {}
@@ -90,6 +128,31 @@ export class PlatformTenantsController {
   @Get()
   list(@Query() query: TenantListHttpQuery): Promise<PlatformTenantListResult> {
     return this.queryService.list(parseTenantListQuery(query));
+  }
+
+  @Get(":tenantId")
+  detail(@Param("tenantId") tenantId: string): Promise<PlatformTenantDetail> {
+    return tenantResult(this.detailQueryService.detail(parseTenantId(tenantId)));
+  }
+
+  @Get(":tenantId/users")
+  users(
+    @Param("tenantId") tenantId: string,
+    @Query() query: TenantListHttpQuery,
+  ): Promise<PlatformTenantUserPage> {
+    return tenantResult(
+      this.detailQueryService.users(parseTenantId(tenantId), parseTenantPageQuery(query)),
+    );
+  }
+
+  @Get(":tenantId/audit")
+  audit(
+    @Param("tenantId") tenantId: string,
+    @Query() query: TenantListHttpQuery,
+  ): Promise<PlatformTenantAuditPage> {
+    return tenantResult(
+      this.detailQueryService.audit(parseTenantId(tenantId), parseTenantPageQuery(query)),
+    );
   }
 
   @Post()

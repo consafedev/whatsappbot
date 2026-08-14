@@ -23,6 +23,7 @@ export type TenantDataAccessInputAssertions = [
   Assert<Excludes<AuditEntryInput, "tenant">>,
   Assert<Excludes<typeof TenantSafeDatabase, "createPlatformAuditWriter">>,
   Assert<Excludes<typeof TenantSafeDatabase, "createPlatformTenantQueryService">>,
+  Assert<Excludes<typeof TenantSafeDatabase, "createPlatformTenantDetailQueryService">>,
   Assert<Excludes<typeof TenantSafeDatabase, "createPlatformTenantProvisioningRepository">>,
   Assert<Excludes<DomainEventInput, "id">>,
   Assert<Excludes<DomainEventInput, "tenantId">>,

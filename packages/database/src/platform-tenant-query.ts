@@ -5,6 +5,7 @@ import type {
   PlatformDeploymentStatus,
   TenantStatus,
 } from "./generated/prisma/enums";
+import { effectivePlatformEntitlementWhere } from "./platform-tenant-entitlements";
 
 export type PlatformTenantListOptions = Readonly<{
   page: number;
@@ -103,12 +104,8 @@ export function createPlatformTenantQueryService(
               orderBy: { entitlementKey: "asc" },
               select: { entitlementKey: true },
               where: {
-                enabled: true,
                 entitlementKey: { startsWith: "module." },
-                AND: [
-                  { OR: [{ startsAt: null }, { startsAt: { lte: now } }] },
-                  { OR: [{ endsAt: null }, { endsAt: { gt: now } }] },
-                ],
+                ...effectivePlatformEntitlementWhere(now),
               },
             },
             id: true,

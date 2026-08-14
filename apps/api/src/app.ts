@@ -4,6 +4,7 @@ import { platformCookieConfig, tenantCookieConfig } from "@whatsapp-platform/aut
 import type { NonSecretConfig } from "@whatsapp-platform/config";
 import {
   createPlatformAuthRepository,
+  createPlatformTenantDetailQueryService,
   createPlatformTenantProvisioningRepository,
   createPlatformTenantQueryService,
   createTenantAuthRepository,
@@ -26,7 +27,11 @@ import {
   PLATFORM_TENANT_PROVISIONING_REPOSITORY,
   PlatformTenantProvisioningService,
 } from "./platform-tenant-provisioning";
-import { PLATFORM_TENANT_QUERY, PlatformTenantsController } from "./platform-tenants";
+import {
+  PLATFORM_TENANT_DETAIL_QUERY,
+  PLATFORM_TENANT_QUERY,
+  PlatformTenantsController,
+} from "./platform-tenants";
 import {
   PASSWORD_RESET_DELIVERY,
   type PasswordResetDelivery,
@@ -99,6 +104,10 @@ export async function createApiApplication(
       {
         provide: PLATFORM_TENANT_QUERY,
         useFactory: () => createPlatformTenantQueryService(getPlatformDatabaseClient()),
+      },
+      {
+        provide: PLATFORM_TENANT_DETAIL_QUERY,
+        useFactory: () => createPlatformTenantDetailQueryService(getPlatformDatabaseClient()),
       },
       {
         provide: PLATFORM_TENANT_PROVISIONING_REPOSITORY,
