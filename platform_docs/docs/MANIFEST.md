@@ -1,7 +1,7 @@
 # docs/MANIFEST.md — Baseline documental verificada
 
 **Fecha:** 2026-08-13
-**Estado:** documentación sincronizada con E02-S05 — PASS; Epic 02 — PASS / COMPLETE.
+**Estado:** documentación sincronizada con E03-S01 — PASS; Epic 03 — IN PROGRESS.
 **Propósito:** comprobar integridad y composición del conjunto de documentos que permite continuar el proyecto sin depender de memoria conversacional.
 
 > Las rutas son relativas a la raíz del repositorio. Los hashes cambian si se edita un archivo. Después de cambios intencionales, regenerar este manifest.
@@ -9,10 +9,10 @@
 | Archivo | Bytes | Palabras | SHA-256 |
 |---|---:|---:|---|
 | `AGENTS.md` | 924 | 113 | `b97dac3ea20e30b8f42e5d82f13a58e32b06dab89a0d919bc2b8a9110b6661a2` |
-| `README.md` | 6110 | 740 | `284cce1300ed78bb25d2d9f1b1bce5aafda0de2e403c0ef212ee17552e6c74e2` |
+| `README.md` | 6376 | 770 | `66e6ad7cf0c0d9b20453b855a173f223ed8c579335d857985a4a742f10d709f5` |
 | `.agents/agents.md` | 388 | 41 | `d52b02af7fdab6d2ecbf7af4dd2f311d5d244f153817498ff9e542427e9e1675` |
 | `.agents/skills/whatsapp-platform-engineering/SKILL.md` | 19764 | 2747 | `8597b90ddbb55ccb4dbcb5b1d98b100b264759be2357f772ec5c997a1a0ff23b` |
-| `platform_docs/CHANGELOG.md` | 8752 | 1149 | `6197373bd64ee3ddb340e89cc3a0265a145d6cdb752c1f5e3917dad97fc9d538` |
+| `platform_docs/CHANGELOG.md` | 9366 | 1224 | `522b28d1041a12c3cb9e43b5d7538f6ef52fc5af10ee5d9a08ebfbbeaa0c48cb` |
 | `platform_docs/DATA_MODEL_ERD_MVP_BACKLOG.md` | 71997 | 9710 | `fa826abb9921511f566c874cdce0ba1f963941a90e55b0138d6e86827feba4f6` |
 | `platform_docs/DEMO_AND_SALES.md` | 8689 | 1253 | `28944d7c37827e10f72d6cdac811eb8bda92fbc9da96fa4947f09ef42eb5b9f4` |
 | `platform_docs/DEPLOYMENT.md` | 5766 | 811 | `665319a6f0a460d4cd509c062af9e5879416c795f2227f63287d076f1c3d7293` |
@@ -41,9 +41,9 @@
 | `platform_docs/RUNBOOK_BACKUP_RESTORE.md` | 4857 | 666 | `27e324b4cea0cd3a2514f44eeee4ce31db80a3a4701f0ba528ffb36afcebb3ff` |
 | `platform_docs/RUNBOOK_OPERATIONS.md` | 5777 | 796 | `23d4c537dd3bbcf4b8f08b39b4a948c42c10e3a458594c25ccf2b65937376252` |
 | `platform_docs/SECURITY.md` | 12760 | 1842 | `6a597fd7c431dbe736a988075631f2934ce21639b527984da27ce7cc6ca36eec` |
-| `platform_docs/STATUS.md` | 29839 | 3911 | `0675c307a1bee5557b739222d841fc2675ad5adb90b053bb5d953809fcee6029` |
+| `platform_docs/STATUS.md` | 32475 | 4273 | `54f1de139da033d1453c6b3b9b9b859527e271383e84899ff0902b94fda70b5b` |
 | `platform_docs/SYSTEM_DESIGN.md` | 40641 | 5458 | `6bf730d9b491a9015053b098ea3ff8a3f655893e615cfbac6db2d5922095d178` |
-| `platform_docs/TESTING_STRATEGY.md` | 8616 | 1218 | `a0317547f19d1adba500b763b5110c6c8f613c80ce95785c909274206915a720` |
+| `platform_docs/TESTING_STRATEGY.md` | 9768 | 1371 | `ccd36749e017caca8ef09f12e76c7a6ea3d5e0482229c02ddd2040d1e87b7b80` |
 | `platform_docs/UI_FLOWS.md` | 21742 | 3143 | `b62156f9570904f2dabba110221763c4dd0b3a06e8ef9fd1ed1800eafda6edac` |
 
 ## Uso

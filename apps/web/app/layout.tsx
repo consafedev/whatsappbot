@@ -4,12 +4,12 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "WhatsApp Automation Platform",
-  description: "Repository foundation bootstrap",
+  description: "Multi-tenant WhatsApp automation platform",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang="en">
+    <html lang="es-MX">
       <body>{children}</body>
     </html>
   );

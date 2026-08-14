@@ -10,6 +10,7 @@
     "start": "node dist/main.js",
     "test:integration": "pnpm --filter @whatsapp-platform/auth build && pnpm --filter @whatsapp-platform/config build && pnpm --filter @whatsapp-platform/rbac build && pnpm --filter @whatsapp-platform/database build && vitest run --config vitest.integration.config.mts",
     "test:integration:rbac": "pnpm --filter @whatsapp-platform/auth build && pnpm --filter @whatsapp-platform/config build && pnpm --filter @whatsapp-platform/rbac build && pnpm --filter @whatsapp-platform/database build && vitest run --config vitest.rbac.config.mts",
+    "test:integration:platform-tenants": "pnpm --filter @whatsapp-platform/auth build && pnpm --filter @whatsapp-platform/config build && pnpm --filter @whatsapp-platform/database build && vitest run --config vitest.platform-tenants.config.mts",
     "test:security:tenant-isolation": "pnpm --filter @whatsapp-platform/auth build && pnpm --filter @whatsapp-platform/config build && pnpm --filter @whatsapp-platform/rbac build && pnpm --filter @whatsapp-platform/database build && vitest run --config vitest.tenant-isolation.config.mts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },

@@ -132,6 +132,23 @@ La suite `pnpm test:security:tenant-isolation` incorpora además `Role`, `UserRo
 
 ---
 
+# 6.1 Platform tenant list (E03-S01)
+
+`pnpm test:integration:platform-tenants` ejecuta una suite dedicada sobre PostgreSQL 18 y Nest real:
+
+- sesiones Platform válidas, ausentes, revocadas y con admin disabled; una cookie Tenant User real nunca autoriza el control plane;
+- proyección segura sin hashes, sessions, JSONB privado, base URL ni metadata de deployment;
+- tres tenants con status, deployment/health, módulos efectivos por vigencia, conteo real de users y actividad observada;
+- `lastActivityAt` toma el máximo entre `UserSession.lastSeenAt` y `AuditLog.occurredAt`, o `null` si no existe actividad;
+- `channelCount` permanece `null` hasta que Messaging implemente `ChannelAccount`;
+- búsqueda case-insensitive, filtro de status canónico, paginación estable y validación 400;
+- estados web loaded/empty/error/401, labels explícitos de módulos y em dash para datos no disponibles;
+- el query cross-tenant sólo se exporta desde `@whatsapp-platform/database/platform`.
+
+La query usa dos operaciones Prisma de nivel superior por página (`count` y `findMany` con agregados/relations), sin operaciones por tenant ni caché Redis.
+
+---
+
 # 7. Messaging contract tests
 
 Cada adapter debe aprobar:

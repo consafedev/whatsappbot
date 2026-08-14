@@ -2,26 +2,27 @@
 
 **Actualizado:** 2026-08-13
 **Versión de producto:** `0.0.0`  
-**Estado:** E02-S05 — PASS; **Epic 02 — PASS / COMPLETE**.
+**Estado:** E03-S01 — PASS; **Epic 03 — IN PROGRESS**.
 
 ## Current milestone
 
-Authentication and Tenancy.
+Super Admin.
 
 ## Current epic
 
-**Epic 02 — Authentication and Tenancy**
+**Epic 03 — Super Admin**
 
 Estado por historia:
 
-- E02-S01 — Platform Admin auth: **PASS**, documentada por ADR-0015.
-- E02-S02 — Tenant user auth: **PASS**, documentada por ADR-0016.
-- E02-S03 — Tenant context middleware: **PASS**.
-- E02-S04 — Tenant isolation tests: **PASS**.
-- E02-S05 — RBAC base: **PASS**, documentada por ADR-0017.
+- E03-S01 — Tenant list: **PASS**.
+- E03-S02 — Create tenant: **NOT STARTED**.
+- E03-S03 — Tenant detail: **NOT STARTED**.
+- E03-S04 — Module activation: **NOT STARTED**.
+- E03-S05 — Suspend/reactivate tenant: **NOT STARTED**.
 
 Epic anterior:
 
+- Epic 02 — Authentication and Tenancy: **PASS / COMPLETE**.
 - E01-S01 — Prisma/schema baseline: **PASS**.
 - E01-S02 — ID/timestamp conventions: **PASS**.
 - E01-S03 — Tenant-aware repository utilities: **PASS**.
@@ -30,6 +31,16 @@ Epic anterior:
 
 ## Completed
 
+- E03-S01 — Tenant list: **PASS**; Epic 03 permanece **IN PROGRESS**.
+- `GET /platform/tenants` usa exclusivamente `PlatformAdminSessionGuard`; cookies tenant, sesiones revocadas y Platform Admin disabled reciben 401.
+- Query cross-tenant explícita disponible sólo desde `@whatsapp-platform/database/platform`; controller sin Prisma raw y root tenant-safe sin acceso Platform.
+- Response least-data con identidad/status, deployment seguro, módulos efectivos, `userCount`, `channelCount: null` y `lastActivityAt`; excluye JSONB privados, hashes, sessions y audit payloads.
+- Módulos se filtran por prefix `module.`, `enabled = true`, `startsAt <= now` y `endsAt > now`; limits y permission keys se excluyen.
+- Actividad representa la última observación entre `UserSession.lastSeenAt` y `AuditLog.occurredAt`; no usa `Tenant.updatedAt` ni persiste una derivación.
+- `channelCount` queda **NULL / DEFERRED UNTIL CHANNELACCOUNT**; la web muestra em dash y no inventa cero.
+- Query estable y sin N+1: dos operaciones Prisma de nivel superior por página (`count` + `findMany` con agregados/relations), independientes del número de tenants.
+- `/platform/tenants` en Next.js implementa tabla Platform Control responsive, búsqueda, status filter, paginación y estados loading/empty/error/loaded sin fixtures ni enlaces a historias futuras.
+- E03-S01 no cambió `schema.prisma`, no creó migration 8 y no requirió ADR.
 - Epic 02 — Authentication and Tenancy: **PASS / COMPLETE** con E02-S01 a E02-S05 verificadas.
 - E02-S05 — RBAC base: **PASS**, documentada por ADR-0017.
 - Séptima migration añade exclusivamente `Role`, `Permission`, `UserRole` y `RolePermission`, con UUIDv7, `TIMESTAMPTZ(3)`, FKs compuestas tenant-aware e índices de assignment.
@@ -139,20 +150,32 @@ Epic anterior:
 
 ## In progress
 
-Ninguna historia en progreso; Epic 02 está completo.
+Epic 03 — Super Admin continúa con E03-S02 pendiente.
 
 ## Blocked
 
-Ningún bloqueo de código para E02-S05. Password recovery requiere un adapter de delivery antes de habilitarse operativamente.
+Ningún bloqueo de código para E03-S01. Password recovery requiere un adapter de delivery antes de habilitarse operativamente.
 
 ## Next story
 
-`E03-S01 — Tenant list`
+`E03-S02 — Create tenant`
 
 No implementarla sin una instrucción separada.
 
 ## Last verified commands
 
+- `pnpm test:integration:platform-tenants` — PASS; 2 archivos y 9 pruebas PostgreSQL/Nest dedicadas.
+- `pnpm test:integration:database` — PASS; 7 archivos y 60 pruebas PostgreSQL.
+- `pnpm test:integration:auth` — PASS; 6 archivos y 42 pruebas API/auth.
+- `pnpm test:integration:rbac` — PASS; 2 archivos y 22 pruebas.
+- `pnpm test:security:tenant-isolation` — PASS; 6 archivos y 46 pruebas.
+- `pnpm test` — PASS; 5 archivos y 20 pruebas unitarias/frontend.
+- `pnpm lint` / `pnpm typecheck` / `pnpm build` / `pnpm format:check` — PASS; 110 archivos y 16 workspaces, incluida ruta Next dinámica `/platform/tenants`.
+- `pnpm install --frozen-lockfile` / `pnpm db:validate` / `pnpm db:generate` — PASS.
+- `pnpm db:migrate:deploy` / `prisma migrate status` / `prisma migrate diff --exit-code` — PASS contra PostgreSQL 18.4; siete migrations existentes y cero drift.
+- `docker compose config --quiet` / `docker compose build api web` — PASS; imagen Linux compartida reconstruida con instalación frozen.
+- Runtime Compose — PASS; PostgreSQL, Redis, API y web healthy; API health 200, tenant list sin sesión 401 y web `/platform/tenants` 200.
+- Limpieza E03-S01 — PASS; cero tenants, Platform Admins y audits fixture residuales.
 - `pnpm rbac:sync-permissions` ejecutado dos veces — PASS; 29 permissions sincronizadas en cada ejecución, sin duplicados ni borrado de fila extra.
 - `pnpm test:integration:rbac` — PASS; 2 archivos y 22 pruebas PostgreSQL/Nest dedicadas.
 - `pnpm test:integration:database` — PASS; 6 archivos y 56 pruebas contra PostgreSQL 18.4.
@@ -307,4 +330,4 @@ No implementarla sin una instrucción separada.
 - El rate limiter E02-S01 es local a cada proceso; coordinación distribuida queda para una historia operativa futura si la topología escala horizontalmente.
 - Los limiters E02-S02 también son locales a proceso y deben distribuirse antes de horizontal scaling.
 - `PasswordResetDelivery` no tiene adapter SMTP/provider operativo; la API conserva respuesta genérica y nunca devuelve el token, pero recovery real debe permanecer deshabilitado hasta configurarlo.
-- RBAC, MFA, RLS, publisher/dispatcher Outbox, TimelineEvent y entidades posteriores permanecen fuera de alcance.
+- MFA, RLS, publisher/dispatcher Outbox, TimelineEvent y entidades posteriores permanecen fuera de alcance.

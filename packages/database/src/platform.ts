@@ -19,6 +19,15 @@ export {
   type PlatformSessionIdentity,
 } from "./platform-auth";
 export {
+  createPlatformTenantQueryService,
+  type PlatformTenantDeploymentSummary,
+  type PlatformTenantListItem,
+  type PlatformTenantListOptions,
+  type PlatformTenantListResult,
+  type PlatformTenantQueryDatabase,
+  type PlatformTenantQueryService,
+} from "./platform-tenant-query";
+export {
   type PermissionCatalogDatabase,
   syncPermissionCatalog,
 } from "./rbac-permissions";

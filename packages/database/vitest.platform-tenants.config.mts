@@ -3,6 +3,8 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     environment: "node",
-    include: ["packages/**/*.test.ts", "apps/web/**/*.test.ts"],
+    hookTimeout: 30_000,
+    include: ["src/platform-tenant-query.integration.ts"],
+    testTimeout: 30_000,
   },
 });
