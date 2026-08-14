@@ -1,10 +1,26 @@
-import { BadRequestException, Controller, Get, Inject, Query, UseGuards } from "@nestjs/common";
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  Inject,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from "@nestjs/common";
 import type { TenantStatus } from "@whatsapp-platform/database";
 import type {
   PlatformTenantListResult,
   PlatformTenantQueryService,
 } from "@whatsapp-platform/database/platform";
 import { PlatformAdminSessionGuard } from "./platform-auth";
+import {
+  PlatformTenantProvisioningService,
+  parsePlatformTenantProvisioning,
+  platformProvisioningRequestId,
+  requirePlatformProvisioningJson,
+} from "./platform-tenant-provisioning";
 
 export const PLATFORM_TENANT_QUERY = Symbol("PLATFORM_TENANT_QUERY");
 
@@ -67,10 +83,28 @@ export class PlatformTenantsController {
   constructor(
     @Inject(PLATFORM_TENANT_QUERY)
     private readonly queryService: PlatformTenantQueryService,
+    @Inject(PlatformTenantProvisioningService)
+    private readonly provisioningService: PlatformTenantProvisioningService,
   ) {}
 
   @Get()
   list(@Query() query: TenantListHttpQuery): Promise<PlatformTenantListResult> {
     return this.queryService.list(parseTenantListQuery(query));
+  }
+
+  @Post()
+  create(
+    @Body() body: unknown,
+    @Req()
+    request: Parameters<typeof requirePlatformProvisioningJson>[0],
+  ) {
+    requirePlatformProvisioningJson(request);
+    const identity = request.platformIdentity;
+    if (identity === undefined) throw new Error("Platform identity was not resolved");
+    return this.provisioningService.provision(
+      parsePlatformTenantProvisioning(body),
+      identity,
+      platformProvisioningRequestId(request),
+    );
   }
 }

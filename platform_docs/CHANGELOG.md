@@ -52,6 +52,9 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 - E03-S01 con `GET /platform/tenants`, protegido sólo por sesión Platform Admin, query cross-tenant privilegiada y proyección administrativa least-data.
 - Tenant list productiva en Next.js con búsqueda, filtro de estado, paginación, tabla responsive y estados loading/empty/error/loaded.
 - Suite PostgreSQL/API/frontend para deployments, módulos efectivos, users reales, actividad observada, auth Platform y `channelCount = null` hasta existir `ChannelAccount`.
+- E03-S02 con `POST /platform/tenants`, servicio de aplicación y repository privilegiado para provisionar Tenant, Owner, seis roles, grants Owner, root OU, entitlements, limits, Audit y Outbox en una transacción.
+- Wizard productivo `/platform/tenants/new` con empresa, capacidades, Owner, revisión, errores seguros y retorno al listado con confirmación.
+- Catálogo cerrado de 14 module entitlement keys y suites PostgreSQL/Nest/frontend que cubren commit, rollback real, login inmediato, RBAC, aislamiento, auth Platform y validación fail-closed.
 
 ### Changed
 
@@ -68,6 +71,7 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 - E02-S04 — Tenant isolation tests queda PASS; Epic 02 permanece IN PROGRESS y E02-S05 es la siguiente historia.
 - E02-S05 — RBAC base queda PASS; Epic 02 — Authentication and Tenancy queda PASS / COMPLETE.
 - E03-S01 — Tenant list queda PASS; Epic 03 — Super Admin permanece IN PROGRESS.
+- E03-S02 — Create tenant queda PASS; Epic 03 — Super Admin permanece IN PROGRESS.
 
 ### Fixed
 
@@ -86,7 +90,7 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Not yet implemented
 
-- Create tenant/detail, module activation, suspend/reactivate, MFA, delivery real de password reset, tenant provisioning/default role matrix, providers WhatsApp, contactos/conversaciones, Rules Engine, agenda, cotizaciones, documentos, IA funcional y backups reales.
+- Tenant detail, module activation, suspend/reactivate, matriz de grants para roles distintos de Owner, MFA, delivery real de password reset, providers WhatsApp, contactos/conversaciones, Rules Engine, agenda, cotizaciones, documentos, IA funcional y backups reales.
 
 ## [0.0.0-preimplementation] - 2026-08-12
 

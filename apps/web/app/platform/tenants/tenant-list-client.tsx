@@ -28,7 +28,10 @@ const deploymentStatusLabels = {
 
 type LoadState = "loading" | TenantListRequestState;
 
-export function TenantListClient({ apiBaseUrl }: Readonly<{ apiBaseUrl: string }>) {
+export function TenantListClient({
+  apiBaseUrl,
+  createdSlug,
+}: Readonly<{ apiBaseUrl: string; createdSlug: string | null }>) {
   const [data, setData] = useState<PlatformTenantListResponse | null>(null);
   const [state, setState] = useState<LoadState>("loading");
   const [page, setPage] = useState(1);
@@ -115,7 +118,16 @@ export function TenantListClient({ apiBaseUrl }: Readonly<{ apiBaseUrl: string }
                 Estado operativo y uso real, sin exponer contenido sensible.
               </p>
             </div>
+            <a className="button-primary" href="/platform/tenants/new">
+              Crear tenant
+            </a>
           </div>
+
+          {createdSlug !== null && (
+            <div className="success-banner" role="status">
+              Tenant creado: <code>{createdSlug}</code>
+            </div>
+          )}
 
           <div className="tenant-toolbar">
             <form className="tenant-search" onSubmit={submitSearch}>

@@ -149,6 +149,25 @@ La query usa dos operaciones Prisma de nivel superior por página (`count` y `fi
 
 ---
 
+# 6.2 Atomic tenant provisioning (E03-S02)
+
+`pnpm test:integration:tenant-provisioning` ejecuta suites dedicadas sobre PostgreSQL 18 y Nest real:
+
+- commit de Tenant activo, Owner, seis roles system tenant-owned, 29 grants Owner, assignment tenant-wide, root OU, módulos, cinco limits, Audit y Outbox;
+- rollback físico de todas esas filas ante un error PostgreSQL controlado durante la creación de roles, sin cleanup compensatorio;
+- catálogo de permisos incompleto falla cerrado antes de crear Tenant; el sync sigue siendo prerequisite explícito, no trabajo oculto de cada request;
+- mismo email Owner en tenants distintos, IDs/assignments/roots/entitlements aislados y permissions globales compartidas;
+- Platform Admin válido, ausente, revocado y disabled; cookie Tenant User nunca autoriza provisioning;
+- login Owner inmediato, `/auth/me`, resolución de los 29 permissions y acceso a un endpoint de prueba protegido;
+- slug conflict, module key desconocida, limits inválidos, campos extra y deployment inexistente sin recursos parciales;
+- response, Audit y Outbox sin password ni hash, y Argon2id verificable en el User persistido;
+- E03-S01 sigue mostrando el tenant creado con status, users, módulos, activity, deployment y channels diferidos correctos;
+- frontend cubre módulos default, mapping del request y feedback 401/409 sin almacenamiento browser de contraseña.
+
+El hash Argon2id se calcula antes de abrir la transacción. Dentro de `BEGIN/COMMIT` sólo ocurre persistencia PostgreSQL; no hay HTTP, email, filesystem, BullMQ ni otros side effects.
+
+---
+
 # 7. Messaging contract tests
 
 Cada adapter debe aprobar:

@@ -1,6 +1,6 @@
 # WhatsApp Automation Platform
 
-Multi-tenant B2B WhatsApp automation platform. Epics 00, 01, and 02 are complete; Epic 03 is in progress with the Platform tenant list available.
+Multi-tenant B2B WhatsApp automation platform. Epics 00, 01, and 02 are complete; Epic 03 is in progress with Platform tenant listing and atomic tenant provisioning available.
 
 `design-prototype/` is an approved visual reference. It is not production architecture and is not used as application source code.
 
@@ -57,7 +57,9 @@ pnpm --filter @whatsapp-platform/worker-jobs start
 pnpm --filter @whatsapp-platform/worker-whatsapp start
 ```
 
-The API exposes the superficial bootstrap check at `GET /health`. An authenticated Platform Admin can query the paginated tenant inventory at `GET /platform/tenants`; the productive web view is `/platform/tenants` and uses `NEXT_PUBLIC_API_BASE_URL` from the environment.
+The API exposes the superficial bootstrap check at `GET /health`. An authenticated Platform Admin can query the paginated inventory with `GET /platform/tenants` and atomically provision a tenant with `POST /platform/tenants`. The productive web routes are `/platform/tenants` and `/platform/tenants/new`; both use `NEXT_PUBLIC_API_BASE_URL` from the environment.
+
+`pnpm rbac:sync-permissions` is a deployment prerequisite before tenant provisioning. It synchronizes the 29 canonical permission rows; the create endpoint fails closed if that catalog is incomplete.
 
 ## Docker Compose
 
@@ -85,6 +87,7 @@ pnpm db:migrate:deploy
 pnpm test:integration:database
 pnpm test:integration:rbac
 pnpm test:integration:platform-tenants
+pnpm test:integration:tenant-provisioning
 pnpm test:security:tenant-isolation
 ```
 

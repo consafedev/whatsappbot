@@ -11,6 +11,7 @@ describe("tenant privileged import architecture", () => {
       ["platform-admin-create.ts", "platform bootstrap"],
       ["platform-auth.ts", "platform authentication infrastructure"],
       ["platform-tenants.ts", "platform control tenant listing"],
+      ["platform-tenant-provisioning.ts", "platform tenant provisioning application service"],
       ["tenant-auth.ts", "tenant pre-auth and session infrastructure"],
       ["tenant-context.ts", "authenticated session identity type only"],
     ]);

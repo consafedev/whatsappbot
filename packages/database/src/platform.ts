@@ -19,6 +19,19 @@ export {
   type PlatformSessionIdentity,
 } from "./platform-auth";
 export {
+  createPlatformTenantProvisioningRepository,
+  PLATFORM_TENANT_MODULE_KEYS,
+  PlatformTenantDeploymentNotFoundError,
+  type PlatformTenantInitialLimits,
+  type PlatformTenantModuleKey,
+  PlatformTenantPermissionCatalogError,
+  type PlatformTenantProvisioningDatabase,
+  type PlatformTenantProvisioningInput,
+  type PlatformTenantProvisioningRepository,
+  type PlatformTenantProvisioningResult,
+  PlatformTenantSlugConflictError,
+} from "./platform-tenant-provisioning";
+export {
   createPlatformTenantQueryService,
   type PlatformTenantDeploymentSummary,
   type PlatformTenantListItem,

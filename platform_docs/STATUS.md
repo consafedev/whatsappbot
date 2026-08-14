@@ -2,7 +2,7 @@
 
 **Actualizado:** 2026-08-13
 **Versión de producto:** `0.0.0`  
-**Estado:** E03-S01 — PASS; **Epic 03 — IN PROGRESS**.
+**Estado:** E03-S02 — PASS; **Epic 03 — IN PROGRESS**.
 
 ## Current milestone
 
@@ -15,7 +15,7 @@ Super Admin.
 Estado por historia:
 
 - E03-S01 — Tenant list: **PASS**.
-- E03-S02 — Create tenant: **NOT STARTED**.
+- E03-S02 — Create tenant: **PASS**.
 - E03-S03 — Tenant detail: **NOT STARTED**.
 - E03-S04 — Module activation: **NOT STARTED**.
 - E03-S05 — Suspend/reactivate tenant: **NOT STARTED**.
@@ -31,6 +31,20 @@ Epic anterior:
 
 ## Completed
 
+- E03-S02 — Create tenant: **PASS**; Epic 03 permanece **IN PROGRESS**.
+- `POST /platform/tenants` devuelve 201 y usa exclusivamente identidad `PlatformAdminSessionGuard`; no acepta identidad tenant ni Platform sessions revocadas/disabled.
+- `PlatformTenantProvisioningService` valida y normaliza input, reutiliza email/password policy Argon2id de Tenant auth y calcula el hash antes de abrir la transacción.
+- `createPlatformTenantProvisioningRepository` se exporta sólo desde `@whatsapp-platform/database/platform` y persiste en un único transaction callback Tenant, Owner, roles, grants, assignment, root OU, entitlements, Audit y Outbox.
+- Tenant nace `active`, con `brandingConfig = {}` como herencia del theme default y `settings = {}`; no existe worker/provisioning pendiente.
+- Owner nace active/MFA disabled, queda asignado tenant-wide al role system `owner` y puede iniciar sesión inmediatamente; nunca se persiste o devuelve plaintext.
+- Roles exactos: Owner, Administrator, Supervisor, Agent, Operator y Viewer, todos tenant-owned e `isSystem = true`; Owner recibe los 29 PermissionKey, los otros cinco comienzan deliberadamente con cero grants.
+- `pnpm rbac:sync-permissions` es prerequisite operacional; provisioning verifica las 29 rows y falla cerrado con 503 si faltan, sin ejecutar sync por request.
+- Root OU único: `company`, nombre del Tenant, sin parent/code/timezone y settings vacíos; timezone null hereda el default del Tenant.
+- Catálogo cerrado de 14 módulos; sólo los seleccionados crean rows enabled/manual_override sin vigencia. Los cinco limits explícitos usan los valores administrativos del request en `Decimal(20,4)`.
+- Deployment es opcional, nunca se selecciona implícitamente y un UUID inexistente devuelve 422.
+- Audit `tenant.created` usa actor Platform Admin y summary mínimo; Outbox `tenant.created` queda unpublished/attempts 0. Ninguno contiene password/hash.
+- `/platform/tenants/new` implementa wizard responsive Empresa/Capacidades/Owner/Confirmación, POST real, prevención de double submit, limpieza de password en error y redirect al listado con feedback.
+- E03-S02 no cambió schema/migrations, no creó migration 8, no modificó prototype y no requirió ADR.
 - E03-S01 — Tenant list: **PASS**; Epic 03 permanece **IN PROGRESS**.
 - `GET /platform/tenants` usa exclusivamente `PlatformAdminSessionGuard`; cookies tenant, sesiones revocadas y Platform Admin disabled reciben 401.
 - Query cross-tenant explícita disponible sólo desde `@whatsapp-platform/database/platform`; controller sin Prisma raw y root tenant-safe sin acceso Platform.
@@ -150,32 +164,33 @@ Epic anterior:
 
 ## In progress
 
-Epic 03 — Super Admin continúa con E03-S02 pendiente.
+Epic 03 — Super Admin continúa con E03-S03 pendiente.
 
 ## Blocked
 
-Ningún bloqueo de código para E03-S01. Password recovery requiere un adapter de delivery antes de habilitarse operativamente.
+Ningún bloqueo de código para E03-S02. Password recovery requiere un adapter de delivery antes de habilitarse operativamente.
 
 ## Next story
 
-`E03-S02 — Create tenant`
+`E03-S03 — Tenant detail`
 
 No implementarla sin una instrucción separada.
 
 ## Last verified commands
 
-- `pnpm test:integration:platform-tenants` — PASS; 2 archivos y 9 pruebas PostgreSQL/Nest dedicadas.
-- `pnpm test:integration:database` — PASS; 7 archivos y 60 pruebas PostgreSQL.
-- `pnpm test:integration:auth` — PASS; 6 archivos y 42 pruebas API/auth.
+- `pnpm test:integration:tenant-provisioning` — PASS; 2 archivos y 10 pruebas PostgreSQL/Nest dedicadas.
+- `pnpm test:integration:platform-tenants` — PASS; 2 archivos y 9 pruebas de regresión E03-S01.
+- `pnpm test:integration:database` — PASS; 8 archivos y 64 pruebas PostgreSQL.
+- `pnpm test:integration:auth` — PASS; 7 archivos y 48 pruebas API/auth.
 - `pnpm test:integration:rbac` — PASS; 2 archivos y 22 pruebas.
 - `pnpm test:security:tenant-isolation` — PASS; 6 archivos y 46 pruebas.
-- `pnpm test` — PASS; 5 archivos y 20 pruebas unitarias/frontend.
-- `pnpm lint` / `pnpm typecheck` / `pnpm build` / `pnpm format:check` — PASS; 110 archivos y 16 workspaces, incluida ruta Next dinámica `/platform/tenants`.
-- `pnpm install --frozen-lockfile` / `pnpm db:validate` / `pnpm db:generate` — PASS.
+- `pnpm test` — PASS; 6 archivos y 23 pruebas unitarias/frontend.
+- `pnpm lint` / `pnpm typecheck` / `pnpm build` / `pnpm format:check` — PASS; 120 archivos y 16 workspaces, incluidas rutas Next dinámicas `/platform/tenants` y `/platform/tenants/new`.
+- `pnpm install --frozen-lockfile` / `pnpm rbac:sync-permissions` / `pnpm db:validate` / `pnpm db:generate` — PASS; 29 permisos sincronizados.
 - `pnpm db:migrate:deploy` / `prisma migrate status` / `prisma migrate diff --exit-code` — PASS contra PostgreSQL 18.4; siete migrations existentes y cero drift.
-- `docker compose config --quiet` / `docker compose build api web` — PASS; imagen Linux compartida reconstruida con instalación frozen.
-- Runtime Compose — PASS; PostgreSQL, Redis, API y web healthy; API health 200, tenant list sin sesión 401 y web `/platform/tenants` 200.
-- Limpieza E03-S01 — PASS; cero tenants, Platform Admins y audits fixture residuales.
+- Atomicidad E03-S02 — PASS; commit completo y rollback real por trigger PostgreSQL temporal retirado después de la prueba.
+- `docker compose config --quiet` / `docker compose build api web` — PASS; imagen Linux reconstruida con instalación frozen y las dos rutas Platform.
+- Runtime Compose E03-S02 — PASS; PostgreSQL, Redis, API y web healthy; API health 200, control plane sin sesión 401 y `/platform/tenants/new` 200.
 - `pnpm rbac:sync-permissions` ejecutado dos veces — PASS; 29 permissions sincronizadas en cada ejecución, sin duplicados ni borrado de fila extra.
 - `pnpm test:integration:rbac` — PASS; 2 archivos y 22 pruebas PostgreSQL/Nest dedicadas.
 - `pnpm test:integration:database` — PASS; 6 archivos y 56 pruebas contra PostgreSQL 18.4.
