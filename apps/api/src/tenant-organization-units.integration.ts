@@ -19,14 +19,17 @@ let app: Awaited<ReturnType<typeof createApiApplication>>;
 let baseUrl = "";
 let tenantAId = "";
 let tenantBId = "";
+let tenantCId = "";
 let userAId = "";
 let userBId = "";
 let userCId = "";
 let tenantACookie = "";
 let tenantBCookie = "";
 let userCCookie = "";
+let tenantCCookie = "";
 let rootAId = "";
 let rootBId = "";
+let rootCId = "";
 
 function binary(value: Buffer): Uint8Array<ArrayBuffer> {
   return new Uint8Array(value);
@@ -136,8 +139,8 @@ describe.sequential("E04-S03 tenant organization units API", () => {
     prisma = createPlatformDatabaseClient({ databaseUrl });
     await cleanup();
     await syncPermissionCatalog(prisma);
-    const [tenantA, tenantB] = await Promise.all(
-      ["a", "b"].map((marker) =>
+    const [tenantA, tenantB, tenantC] = await Promise.all(
+      ["a", "b", "c"].map((marker) =>
         prisma.tenant.create({
           data: {
             defaultCurrency: "MXN",
@@ -151,19 +154,26 @@ describe.sequential("E04-S03 tenant organization units API", () => {
         }),
       ),
     );
-    if (tenantA === undefined || tenantB === undefined) throw new Error("Tenant fixtures failed");
+    if (tenantA === undefined || tenantB === undefined || tenantC === undefined) {
+      throw new Error("Tenant fixtures failed");
+    }
     tenantAId = tenantA.id;
     tenantBId = tenantB.id;
+    tenantCId = tenantC.id;
     rootAId = await createRoot(tenantAId, "Root A");
     rootBId = await createRoot(tenantBId, "Root B");
+    rootCId = await createRoot(tenantCId, "Root C");
     const roleA = await roleWithSettings(tenantAId);
     const roleB = await roleWithSettings(tenantBId);
+    const roleC = await roleWithSettings(tenantCId);
     userAId = await createUser(tenantAId, "a", roleA);
     userBId = await createUser(tenantBId, "b", roleB);
     userCId = await createUser(tenantAId, "c", "");
+    const userC2Id = await createUser(tenantCId, "c2", roleC);
     tenantACookie = (await session(tenantAId, userAId)).cookie;
     tenantBCookie = (await session(tenantBId, userBId)).cookie;
     userCCookie = (await session(tenantAId, userCId)).cookie;
+    tenantCCookie = (await session(tenantCId, userC2Id)).cookie;
     app = await createApiApplication(loadNonSecretConfig());
     await app.listen(0, "127.0.0.1");
     baseUrl = await app.getUrl();
@@ -495,5 +505,142 @@ describe.sequential("E04-S03 tenant organization units API", () => {
     expect(a.items.some(({ name }) => name === "Propia")).toBe(true);
     const b = (await (await get(tenantBCookie)).json()) as { items: Array<{ name: string }> };
     expect(b.items.some(({ name }) => name === "Propia")).toBe(false);
+  });
+
+  it("rejects moving a subtree whose deepest descendant would exceed the maximum depth", async () => {
+    await prisma.auditLog.deleteMany({
+      where: { tenantId: tenantCId, organizationUnitId: { not: rootCId } },
+    });
+    await prisma.organizationUnit.deleteMany({
+      where: { tenantId: tenantCId, id: { not: rootCId } },
+    });
+    let deepParent = rootCId;
+    for (let depth = 1; depth <= 8; depth += 1) {
+      const unit = await prisma.organizationUnit.create({
+        data: {
+          name: `Subtree API Chain ${depth}`,
+          parentId: deepParent,
+          tenantId: tenantCId,
+          type: "department",
+        },
+      });
+      deepParent = unit.id;
+    }
+    const s = (await (
+      await post(tenantCCookie, { name: "Subtree API S", parentId: rootCId, type: "branch" })
+    ).json()) as { id: string };
+    const c = (await (
+      await post(tenantCCookie, { name: "Subtree API C", parentId: s.id, type: "branch" })
+    ).json()) as { id: string };
+    await post(tenantCCookie, { name: "Subtree API G", parentId: c.id, type: "branch" });
+
+    const response = await patch(
+      tenantCCookie,
+      s.id,
+      { parentId: deepParent },
+      `${prefix}-subtree-depth`,
+    );
+    expect(response.status).toBe(409);
+    const body = (await response.json()) as { code?: unknown };
+    expect(body.code).toBe("ORGANIZATION_UNIT_DEPTH_EXCEEDED");
+
+    const tree = (await (await get(tenantCCookie)).json()) as {
+      items: Array<{ id: string; parentId: string | null }>;
+    };
+    const stored = new Map(tree.items.map(({ id, parentId }) => [id, parentId]));
+    expect(stored.get(s.id)).toBe(rootCId);
+    expect(stored.get(c.id)).toBe(s.id);
+    expect(
+      await prisma.auditLog.count({
+        where: { tenantId: tenantCId, action: "organization_unit.updated", entityId: s.id },
+      }),
+    ).toBe(0);
+    expect(
+      await prisma.domainEventOutbox.count({
+        where: {
+          aggregateId: s.id,
+          eventType: "organization_unit.updated",
+          tenantId: tenantCId,
+        },
+      }),
+    ).toBe(0);
+  });
+
+  it("allows moving a subtree whose deepest descendant lands exactly at the maximum depth", async () => {
+    await prisma.auditLog.deleteMany({
+      where: { tenantId: tenantCId, organizationUnitId: { not: rootCId } },
+    });
+    await prisma.organizationUnit.deleteMany({
+      where: { tenantId: tenantCId, id: { not: rootCId } },
+    });
+    let deepParent = rootCId;
+    for (let depth = 1; depth <= 8; depth += 1) {
+      const unit = await prisma.organizationUnit.create({
+        data: {
+          name: `Boundary API Chain ${depth}`,
+          parentId: deepParent,
+          tenantId: tenantCId,
+          type: "department",
+        },
+      });
+      deepParent = unit.id;
+    }
+    const s = (await (
+      await post(tenantCCookie, { name: "Boundary API S", parentId: rootCId, type: "branch" })
+    ).json()) as { id: string };
+    const c = (await (
+      await post(tenantCCookie, { name: "Boundary API C", parentId: s.id, type: "branch" })
+    ).json()) as { id: string };
+
+    const response = await patch(
+      tenantCCookie,
+      s.id,
+      { parentId: deepParent },
+      `${prefix}-boundary-depth`,
+    );
+    expect(response.status).toBe(200);
+    const tree = (await (await get(tenantCCookie)).json()) as {
+      items: Array<{ id: string; parentId: string | null }>;
+    };
+    const stored = new Map(tree.items.map(({ id, parentId }) => [id, parentId]));
+    expect(stored.get(s.id)).toBe(deepParent);
+    expect(stored.get(c.id)).toBe(s.id);
+  });
+
+  it("rejects the next unit when the effective limit is fractional", async () => {
+    await prisma.auditLog.deleteMany({
+      where: { tenantId: tenantCId, organizationUnitId: { not: rootCId } },
+    });
+    await prisma.organizationUnit.deleteMany({
+      where: { tenantId: tenantCId, id: { not: rootCId } },
+    });
+    await prisma.tenantEntitlement.create({
+      data: {
+        enabled: true,
+        entitlementKey: "limit.organization_units",
+        limitValue: 3.5,
+        source: "contract",
+        tenantId: tenantCId,
+      },
+    });
+    expect(
+      (await post(tenantCCookie, { name: "Half One", parentId: rootCId, type: "branch" })).status,
+    ).toBe(201);
+    expect(
+      (await post(tenantCCookie, { name: "Half Two", parentId: rootCId, type: "branch" })).status,
+    ).toBe(201);
+    const denied = await post(
+      tenantCCookie,
+      { name: "Half Three", parentId: rootCId, type: "branch" },
+      `${prefix}-half-limit`,
+    );
+    expect(denied.status).toBe(409);
+    const body = (await denied.json()) as { code?: unknown };
+    expect(body.code).toBe("ORGANIZATION_UNIT_LIMIT_REACHED");
+
+    const tree = (await (await get(tenantCCookie)).json()) as {
+      usage: { used: number; limit: string | null };
+    };
+    expect(tree.usage).toEqual({ used: 3, limit: "3.5" });
   });
 });

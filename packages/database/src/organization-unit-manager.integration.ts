@@ -20,8 +20,10 @@ const prefix = "e04-s03-ou";
 let prisma: PrismaClient;
 let tenantAId = "";
 let tenantBId = "";
+let tenantCId = "";
 let rootAId = "";
 let rootBId = "";
+let rootCId = "";
 let manager: OrganizationUnitManager;
 
 const metadata = { actorUserId: "user-e04-s03", requestId: `${prefix}-op` };
@@ -89,8 +91,8 @@ describe.sequential("Organization unit manager", () => {
     prisma = createPlatformDatabaseClient(loadDatabaseConfig());
     await prisma.$connect();
     await cleanup();
-    const [tenantA, tenantB] = await Promise.all(
-      ["a", "b"].map((marker) =>
+    const [tenantA, tenantB, tenantC] = await Promise.all(
+      ["a", "b", "c"].map((marker) =>
         prisma.tenant.create({
           data: {
             defaultCurrency: "MXN",
@@ -104,11 +106,15 @@ describe.sequential("Organization unit manager", () => {
         }),
       ),
     );
-    if (tenantA === undefined || tenantB === undefined) throw new Error("Fixture failure");
+    if (tenantA === undefined || tenantB === undefined || tenantC === undefined) {
+      throw new Error("Fixture failure");
+    }
     tenantAId = tenantA.id;
     tenantBId = tenantB.id;
+    tenantCId = tenantC.id;
     rootAId = await createRoot(tenantAId, "Tenant A Company");
     rootBId = await createRoot(tenantBId, "Tenant B Company");
+    rootCId = await createRoot(tenantCId, "Tenant C Company");
     manager = createOrganizationUnitManager(prisma);
   });
 
@@ -322,6 +328,85 @@ describe.sequential("Organization unit manager", () => {
     ).rejects.toBeInstanceOf(OrganizationUnitDepthError);
   });
 
+  it("rejects moving a subtree whose deepest descendant would exceed the maximum depth", async () => {
+    const context = createTenantContext(tenantCId);
+    await clearNonRootUnits(tenantCId, rootCId);
+    let deepParent = rootCId;
+    for (let depth = 1; depth <= ORGANIZATION_UNIT_MAX_DEPTH - 2; depth += 1) {
+      const unit = await manager.create(
+        context,
+        { name: `Subtree Chain ${depth}`, parentId: deepParent, type: "department" },
+        metadata,
+      );
+      deepParent = unit.id;
+    }
+    const s = await manager.create(
+      context,
+      { name: "Subtree S", parentId: rootCId, type: "branch" },
+      metadata,
+    );
+    const c = await manager.create(
+      context,
+      { name: "Subtree C", parentId: s.id, type: "branch" },
+      metadata,
+    );
+    const g = await manager.create(
+      context,
+      { name: "Subtree G", parentId: c.id, type: "branch" },
+      metadata,
+    );
+    await expect(
+      manager.update(context, s.id, { parentId: deepParent }, metadata),
+    ).rejects.toBeInstanceOf(OrganizationUnitDepthError);
+
+    const storedS = await prisma.organizationUnit.findUnique({ where: { id: s.id } });
+    const storedC = await prisma.organizationUnit.findUnique({ where: { id: c.id } });
+    const storedG = await prisma.organizationUnit.findUnique({ where: { id: g.id } });
+    expect(storedS?.parentId).toBe(rootCId);
+    expect(storedC?.parentId).toBe(s.id);
+    expect(storedG?.parentId).toBe(c.id);
+    expect(
+      await prisma.auditLog.count({
+        where: { tenantId: tenantCId, action: "organization_unit.updated", entityId: s.id },
+      }),
+    ).toBe(0);
+    expect(
+      await prisma.domainEventOutbox.count({
+        where: { tenantId: tenantCId, eventType: "organization_unit.updated", aggregateId: s.id },
+      }),
+    ).toBe(0);
+  });
+
+  it("allows moving a subtree whose deepest descendant lands exactly at the maximum depth", async () => {
+    const context = createTenantContext(tenantCId);
+    await clearNonRootUnits(tenantCId, rootCId);
+    let deepParent = rootCId;
+    for (let depth = 1; depth <= ORGANIZATION_UNIT_MAX_DEPTH - 2; depth += 1) {
+      const unit = await manager.create(
+        context,
+        { name: `Boundary Chain ${depth}`, parentId: deepParent, type: "department" },
+        metadata,
+      );
+      deepParent = unit.id;
+    }
+    const s = await manager.create(
+      context,
+      { name: "Boundary S", parentId: rootCId, type: "branch" },
+      metadata,
+    );
+    const c = await manager.create(
+      context,
+      { name: "Boundary C", parentId: s.id, type: "branch" },
+      metadata,
+    );
+    const moved = await manager.update(context, s.id, { parentId: deepParent }, metadata);
+    expect(moved.parentId).toBe(deepParent);
+    const storedS = await prisma.organizationUnit.findUnique({ where: { id: s.id } });
+    const storedC = await prisma.organizationUnit.findUnique({ where: { id: c.id } });
+    expect(storedS?.parentId).toBe(deepParent);
+    expect(storedC?.parentId).toBe(s.id);
+  });
+
   it("enforces an effective organization unit limit counting the root", async () => {
     const context = createTenantContext(tenantBId);
     await clearNonRootUnits(tenantBId, rootBId);
@@ -370,6 +455,34 @@ describe.sequential("Organization unit manager", () => {
     expect(afterDisable.name).toBe("After Disable");
     expect(first.name).toBe("Limited One");
     expect(second.name).toBe("Limited Two");
+  });
+
+  it("rejects the next unit when the effective limit is fractional", async () => {
+    const context = createTenantContext(tenantBId);
+    await clearNonRootUnits(tenantBId, rootBId);
+    await prisma.tenantEntitlement.update({
+      data: { enabled: true, limitValue: new Prisma.Decimal("3.5") },
+      where: {
+        tenantId_entitlementKey: {
+          entitlementKey: "limit.organization_units",
+          tenantId: tenantBId,
+        },
+      },
+    });
+    await manager.create(
+      context,
+      { name: "Half One", parentId: rootBId, type: "branch" },
+      metadata,
+    );
+    await manager.create(
+      context,
+      { name: "Half Two", parentId: rootBId, type: "branch" },
+      metadata,
+    );
+    expect((await manager.list(context)).usage).toEqual({ used: 3, limit: "3.5" });
+    await expect(
+      manager.create(context, { name: "Half Three", parentId: rootBId, type: "branch" }, metadata),
+    ).rejects.toBeInstanceOf(OrganizationUnitLimitReachedError);
   });
 
   it("keeps units strictly isolated between tenants", async () => {

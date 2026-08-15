@@ -1,7 +1,8 @@
-import type { OrganizationUnit, Prisma, TenantEntitlement } from "./generated/prisma/client";
+import { type OrganizationUnit, Prisma, type TenantEntitlement } from "./generated/prisma/client";
 import type { OrganizationUnitType } from "./generated/prisma/enums";
 import { createTenantContext, type TenantContext } from "./tenant-context";
 import { createTenantDataAccess, type TenantTransactionDatabase } from "./tenant-data-access";
+import { tenantEntitlementEffective } from "./tenant-entitlements";
 
 /**
  * MVP safety cap for the documented "profundidad razonable configurable".
@@ -145,13 +146,7 @@ function effectiveOrganizationUnitLimit(
   entitlement: TenantEntitlement | null,
   now: Date,
 ): Prisma.Decimal | null {
-  if (entitlement === null || !entitlement.enabled || entitlement.limitValue === null) {
-    return null;
-  }
-  if (entitlement.startsAt !== null && entitlement.startsAt.getTime() > now.getTime()) {
-    return null;
-  }
-  if (entitlement.endsAt !== null && entitlement.endsAt.getTime() <= now.getTime()) {
+  if (entitlement === null || !tenantEntitlementEffective(entitlement, now)) {
     return null;
   }
   return entitlement.limitValue;
@@ -211,6 +206,39 @@ async function assertParentIsNotDescendant(
   }
 }
 
+/**
+ * Maximum distance from the given unit to any of its descendants, counting
+ * edges. Only tenant-local units participate: every child maps to a parent of
+ * the same tenant, so the adjacency built from the passed units cannot reach
+ * another tenant. The defensive visited set turns corrupted cyclic data into
+ * an explicit cycle error instead of an infinite loop.
+ */
+function organizationUnitSubtreeHeight(units: readonly OrganizationUnit[], unitId: string): number {
+  const childrenByParent = new Map<string, string[]>();
+  for (const unit of units) {
+    if (unit.parentId === null) continue;
+    const children = childrenByParent.get(unit.parentId);
+    if (children === undefined) {
+      childrenByParent.set(unit.parentId, [unit.id]);
+    } else {
+      children.push(unit.id);
+    }
+  }
+  const visited = new Set<string>();
+  const heightFrom = (nodeId: string): number => {
+    if (visited.has(nodeId)) {
+      throw new OrganizationUnitCycleError();
+    }
+    visited.add(nodeId);
+    let height = 0;
+    for (const child of childrenByParent.get(nodeId) ?? []) {
+      height = Math.max(height, 1 + heightFrom(child));
+    }
+    return height;
+  };
+  return heightFrom(unitId);
+}
+
 async function assertOrganizationUnitLimit(
   transaction: Prisma.TransactionClient,
   tenantId: string,
@@ -222,7 +250,8 @@ async function assertOrganizationUnitLimit(
   const limit = effectiveOrganizationUnitLimit(row, now);
   if (limit === null) return;
   const used = await transaction.organizationUnit.count({ where: { tenantId } });
-  if (limit.lte(used)) {
+  const nextUsed = new Prisma.Decimal(used).plus(1);
+  if (limit.lt(nextUsed)) {
     throw new OrganizationUnitLimitReachedError();
   }
 }
@@ -354,10 +383,12 @@ export function createOrganizationUnitManager(
             parent,
             tenantContext.tenantId,
           );
-          if (
-            (await unitDepth(transaction, parent, tenantContext.tenantId)) + 1 >
-            ORGANIZATION_UNIT_MAX_DEPTH
-          ) {
+          const units = await transaction.organizationUnit.findMany({
+            where: { tenantId: tenantContext.tenantId },
+          });
+          const newDepth = (await unitDepth(transaction, parent, tenantContext.tenantId)) + 1;
+          const height = organizationUnitSubtreeHeight(units, current.id);
+          if (newDepth + height > ORGANIZATION_UNIT_MAX_DEPTH) {
             throw new OrganizationUnitDepthError();
           }
         }
