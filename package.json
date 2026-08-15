@@ -31,6 +31,7 @@
     "test:integration:tenant-app-bootstrap": "pnpm --filter @whatsapp-platform/api test:integration:tenant-app-bootstrap",
     "test:integration:theme-engine": "pnpm --filter @whatsapp-platform/database test:integration:theme-engine && pnpm --filter @whatsapp-platform/api test:integration:theme-engine",
     "test:integration:organization-units": "pnpm --filter @whatsapp-platform/database test:integration:organization-units && pnpm --filter @whatsapp-platform/api test:integration:organization-units",
+    "test:integration:user-management": "pnpm --filter @whatsapp-platform/database test:integration:user-management && pnpm --filter @whatsapp-platform/api test:integration:user-management",
     "test:security:tenant-isolation": "pnpm --filter @whatsapp-platform/database test:security:tenant-isolation && pnpm --filter @whatsapp-platform/api test:security:tenant-isolation",
     "format": "biome format --write .",
     "format:check": "biome check --formatter-enabled=true --linter-enabled=false ."

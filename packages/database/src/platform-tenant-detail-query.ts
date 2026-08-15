@@ -160,7 +160,7 @@ export function createPlatformTenantDetailQueryService(
       const tenant = await database.tenant.findUnique({
         where: { id: tenantId },
         select: {
-          _count: { select: { organizationUnits: true, users: true } },
+          _count: { select: { organizationUnits: true } },
           brandingConfig: true,
           createdAt: true,
           defaultCurrency: true,
@@ -213,6 +213,12 @@ export function createPlatformTenantDetailQueryService(
       });
       if (tenant === null) throw new PlatformTenantNotFoundError();
 
+      // limit.users represents active seats: disabled users must not count
+      // towards usage so the projection matches enforcement semantics.
+      const activeUsers = await database.user.count({
+        where: { status: "active", tenantId },
+      });
+
       const byKey = new Map(tenant.entitlements.map((row) => [row.entitlementKey, row]));
       const limits = PLATFORM_TENANT_LIMIT_KEYS.map((key) => {
         const row = byKey.get(key);
@@ -259,7 +265,7 @@ export function createPlatformTenantDetailQueryService(
         }),
         limits,
         usage: {
-          users: { used: tenant._count.users, limit: limit("limit.users") },
+          users: { used: activeUsers, limit: limit("limit.users") },
           organizationUnits: {
             used: tenant._count.organizationUnits,
             limit: limit("limit.organization_units"),

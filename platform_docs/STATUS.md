@@ -1,8 +1,8 @@
 # STATUS.md — Estado operativo actual del proyecto
 
-**Actualizado:** 2026-08-14
+**Actualizado:** 2026-08-15
 **Versión de producto:** `0.0.0`  
-**Estado:** E04-S03 — PASS; **Epic 04 — Tenant Dashboard Shell — IN PROGRESS**.
+**Estado:** E04-S04 — PASS; **Epic 04 — Tenant Dashboard Shell — PASS / COMPLETE**.
 
 ## Current milestone
 
@@ -17,6 +17,7 @@ Estado por historia:
 - E04-S01 — App shell: **PASS**.
 - E04-S02 — Theme Engine minimal: **PASS**.
 - E04-S03 — Organization Units management: **PASS**.
+- E04-S04 — User management: **PASS**.
 
 Epic anterior:
 
@@ -58,6 +59,13 @@ Epic anterior:
 - Límites fraccionales: `PATCH /platform/tenants/:tenantId/entitlements/limits/...` acepta `"3.5"` (regex `decimalValue` con hasta 4 decimales) para `limit.organization_units`; el manager compara el próximo conteo exacto `limit.lt(used + 1)` con `Prisma.Decimal` (sin conversión a Number), rechazando `limit = 3.5` con `used = 3` → `ORGANIZATION_UNIT_LIMIT_REACHED` (API 409), en vez del `limit.lte(used)` anterior que permitía el 4.º.
 - La semántica efectiva del límite reutiliza `tenantEntitlementEffective(...)` de `packages/database/src/tenant-entitlements.ts` (helper hoja tenant-safe, sin ciclo de imports con el manager): efectivo sólo con fila `enabled` vigente (`startsAt <= now < endsAt`) y `limitValue != null`.
 - Fix verificado con 14 pruebas database + 15 API en `pnpm test:integration:organization-units`; regresiones `test:integration:database` (13 archivos/95), `test:integration:auth` (13/93, incluye org-units API), `test:security:tenant-isolation` (9+37), `test:integration:tenant-app-bootstrap` (6), `test:integration:theme-engine` (7+11), `test:integration:entitlements` (3+5), `test:integration:tenant-status` (3+4) y `test:integration:rbac` (11+11) contra PostgreSQL 18.4/Nest reales.
+- E04-S04 — User management: **PASS**; **Epic 04 — Tenant Dashboard Shell — PASS / COMPLETE**.
+- `createTenantUserManagementManager(...)` es tenant-scoped y fail-closed: usuarios, roles, OUs, sesiones y tokens se resuelven desde el contexto de sesión/tenant; IDs cross-tenant devuelven 404. La creación normaliza email y valida contraseña; `PlatformPasswordHasher` Argon2id se ejecuta fuera de la transacción y nunca se persiste plaintext.
+- Límite `limit.users`: sólo cuenta usuarios activos, usa `Prisma.Decimal` exacto y advisory lock transaccional por tenant; crear/reactivar consume asiento y desactivar lo libera. Desactivar es lógico, revoca sesiones/tokens en la misma transacción y es idempotente; se conserva el último Owner tenant-wide activo y un Owner sólo OU no satisface esa invariante.
+- Asignaciones de roles son reemplazo total atómico, rechazan duplicados semánticos y exigen roles/OUs del mismo tenant; cada mutación escribe Audit + Outbox en la misma transacción. Roles integrados exponen el catálogo canónico de 29 permisos, Owner es sólo lectura, se preservan `scopeConstraints` y no se añadió constructor de roles custom.
+- API real: `GET/POST /app/users`, `PATCH /app/users/:userId/status`, `PUT /app/users/:userId/role-assignments`, `GET /app/users/options` y `GET/PUT /app/roles`, con permisos efectivos separados para usuarios y roles.
+- UI real en `/app/users`, navegación con `href` no nulo y visibilidad por `tenant.users.manage` o `tenant.roles.manage`; incluye alta con contraseña inicial, activar/desactivar, reemplazo de asignaciones, grupos del catálogo canónico y confirmación explícita para ampliaciones de permisos.
+- Sin cambio de schema ni migration: las siete migrations permanecen intactas. Verificación E04-S04: TypeScript directo y Biome PASS; Vitest raíz 16 archivos/76 pruebas; build Docker `api web` PASS con ruta Next `/app/users`; integración real database 23/23 y API 12/12 para user management, más regresiones Organization Units database 14/14, API 15/15, tenant detail database 5/5 y API 4/4 contra PostgreSQL 18.4/Nest reales.
 - E03-S05 — Suspend/reactivate tenant: **PASS**; **Epic 03 — PASS / COMPLETE**.
 - `POST /platform/tenants/:tenantId/suspend` y `/reactivate` usan exclusivamente `PlatformAdminSessionGuard`, UUID de route validado y body vacío; devuelven 200 con `{ tenant: { id, status, suspendedAt }, changed }`.
 - Sólo se permiten `active → suspended` y `suspended → active`; provisioning, offboarding y archived devuelven 409. Reintentos al estado actual devuelven `changed: false`, preservan `suspendedAt` y no crean Audit/Outbox adicionales.
@@ -225,20 +233,23 @@ Epic anterior:
 
 ## In progress
 
-Epic 04 — Tenant Dashboard Shell continúa con E04-S04 pendiente.
+No hay historias abiertas en Epic 04.
 
 ## Blocked
 
-Ningún bloqueo de código para E04-S03. Password recovery requiere un adapter de delivery antes de habilitarse operativamente.
+Ningún bloqueo de código para E04-S04. Password recovery requiere un adapter de delivery antes de habilitarse operativamente.
 
 ## Next story
 
-`E04-S04 — User management [L]`
-
-No implementarla sin una instrucción separada.
+`E05-S01 — Messaging contracts`
 
 ## Last verified commands
 
+- E04-S04 user management — PASS; 23 pruebas database y 12 pruebas API contra PostgreSQL 18.4/Nest reales.
+- E04-S04 regresiones — PASS; Organization Units database 14/14 y API 15/15, tenant detail database 5/5 y API 4/4.
+- `tsc -p tsconfig.json --noEmit` / `biome check --formatter-enabled=true --linter-enabled=true .` — PASS; 207 archivos Biome y TypeScript strict.
+- `vitest run` — PASS; 16 archivos y 76 pruebas unitarias.
+- `docker compose build api web` / runtime — PASS; build completo con ruta Next `/app/users`, API `/health` 200, web `/app/users` 200 y seis servicios healthy.
 - `pnpm test:integration:organization-units` — PASS; 14 pruebas database y 15 pruebas API contra PostgreSQL 18.4/Nest reales (E04-S03 Organization Units, incluye fix de subárbol y límite fraccional).
 - Regresión completa E04-S03 — PASS; `test:integration:database` (13 archivos/95), `test:integration:auth` (13/93), `test:integration:rbac` (11+11), `test:integration:platform-tenants` (4+5), `test:integration:platform-tenant-detail` (4+4), `test:integration:tenant-provisioning` (4+6), `test:integration:entitlements` (3+5), `test:integration:tenant-status` (3+4), `test:integration:tenant-app-bootstrap` (6), `test:integration:theme-engine` (7+11) y `test:security:tenant-isolation` (9+37) contra PostgreSQL 18.4/Nest reales.
 - `pnpm install --frozen-lockfile` / `pnpm rbac:sync-permissions` — PASS; instalación reproducible y 29 permisos sincronizados.

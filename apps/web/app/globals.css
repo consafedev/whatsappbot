@@ -594,6 +594,267 @@ select:focus-visible {
   height: 18px;
   accent-color: var(--tenant-primary);
 }
+.tenant-app-users {
+  max-width: 1180px;
+}
+.tenant-app-users h1 {
+  margin: 4px 0 8px;
+  font-size: 28px;
+}
+.tenant-app-users-subtitle {
+  margin: 0;
+  color: var(--tenant-muted);
+  font-size: 13px;
+}
+.tenant-app-users-tabs {
+  display: flex;
+  gap: 6px;
+  margin: 24px 0 18px;
+  border-bottom: 1px solid var(--tenant-border);
+}
+.tenant-app-users-tabs button,
+.tenant-app-users-actions button,
+.tenant-app-users-assignment-row button,
+.tenant-app-users-note button {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--tenant-border);
+  background: var(--tenant-surface);
+  color: var(--tenant-text);
+  cursor: pointer;
+}
+.tenant-app-users-tabs button {
+  border-bottom: 0;
+  border-radius: 6px 6px 0 0;
+  color: var(--tenant-muted);
+  font-weight: 600;
+}
+.tenant-app-users-tabs button.is-active {
+  border-color: var(--tenant-primary);
+  background: var(--tenant-primary-soft);
+  color: var(--tenant-primary);
+}
+.tenant-app-users-toolbar,
+.tenant-app-users-actions,
+.tenant-app-users-assignment-row,
+.tenant-app-users-role-picker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.tenant-app-users-toolbar {
+  justify-content: space-between;
+  margin-bottom: 14px;
+  color: var(--tenant-muted);
+  font-size: 13px;
+}
+.tenant-app-users-toolbar strong {
+  color: var(--tenant-primary);
+  font-size: 18px;
+}
+.tenant-app-users-primary {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--tenant-primary);
+  border-radius: 6px;
+  background: var(--tenant-primary);
+  color: var(--tenant-on-primary);
+  cursor: pointer;
+  font-weight: 600;
+}
+.tenant-app-users-primary:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.tenant-app-users-card {
+  margin-bottom: 18px;
+  padding: 20px;
+  border: 1px solid var(--tenant-border);
+  border-radius: 8px;
+  background: var(--tenant-surface);
+}
+.tenant-app-users-card h2 {
+  margin: 0 0 16px;
+  font-size: 17px;
+}
+.tenant-app-users-form-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.tenant-app-users-form label,
+.tenant-app-users-assignment-row label,
+.tenant-app-users-role-picker label {
+  display: grid;
+  gap: 6px;
+  color: var(--tenant-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+.tenant-app-users-form input,
+.tenant-app-users-form select,
+.tenant-app-users-assignment-row select,
+.tenant-app-users-role-picker select {
+  min-width: 0;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--tenant-border);
+  background: var(--tenant-surface);
+  color: var(--tenant-text);
+}
+.tenant-app-users-assignments {
+  display: grid;
+  gap: 12px;
+  margin: 18px 0;
+  padding: 14px;
+  border: 1px solid var(--tenant-border);
+  border-radius: 6px;
+}
+.tenant-app-users-assignments legend {
+  padding: 0 6px;
+  color: var(--tenant-text);
+  font-size: 13px;
+  font-weight: 700;
+}
+.tenant-app-users-assignment-row {
+  align-items: end;
+}
+.tenant-app-users-assignment-row label:first-child {
+  min-width: 190px;
+}
+.tenant-app-users-assignment-row label:nth-child(2) {
+  min-width: 240px;
+}
+.tenant-app-users-assignment-list,
+.tenant-app-users-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.tenant-app-users-assignment-list li,
+.tenant-app-users-chips span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 8px;
+  border: 1px solid var(--tenant-border);
+  border-radius: 999px;
+  background: var(--tenant-primary-soft);
+  color: var(--tenant-text);
+  font-size: 12px;
+}
+.tenant-app-users-assignment-list button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--tenant-primary);
+  cursor: pointer;
+  font-size: 11px;
+}
+.tenant-app-users-assignments > small,
+.tenant-app-users-table small,
+.tenant-app-users-permission-group small {
+  display: block;
+  color: var(--tenant-muted);
+  font-size: 11px;
+}
+.tenant-app-users-table-wrap {
+  overflow-x: auto;
+}
+.tenant-app-users-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.tenant-app-users-table th,
+.tenant-app-users-table td {
+  padding: 11px 9px;
+  border-top: 1px solid var(--tenant-border);
+  text-align: left;
+  vertical-align: top;
+}
+.tenant-app-users-table th {
+  color: var(--tenant-muted);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.tenant-app-users-status {
+  display: inline-block;
+  padding: 4px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.tenant-app-users-status.is-active {
+  background: #e6f4eb;
+  color: #23643b;
+}
+.tenant-app-users-status.is-disabled {
+  background: #f2e9e9;
+  color: #842d2d;
+}
+.tenant-app-users-error,
+.tenant-app-users-feedback,
+.tenant-app-users-note {
+  padding: 11px 13px;
+  border-radius: 6px;
+  background: var(--tenant-surface);
+  color: var(--tenant-muted);
+  font-size: 13px;
+}
+.tenant-app-users-error {
+  border: 1px solid #ecc0c0;
+  background: #fff1f1;
+  color: #8c2929;
+}
+.tenant-app-users-feedback {
+  border: 1px solid #bbddc5;
+  background: #f0faf2;
+  color: #23643b;
+}
+.tenant-app-roles-card {
+  max-width: 900px;
+}
+.tenant-app-users-role-picker {
+  justify-content: space-between;
+  align-items: end;
+}
+.tenant-app-users-role-picker label {
+  min-width: 260px;
+}
+.tenant-app-users-permission-group {
+  display: grid;
+  gap: 8px;
+  margin: 18px 0;
+  padding: 14px;
+  border: 1px solid var(--tenant-border);
+  border-radius: 6px;
+}
+.tenant-app-users-permission-group legend {
+  padding: 0 6px;
+  color: var(--tenant-text);
+  font-size: 13px;
+  font-weight: 700;
+}
+.tenant-app-users-permission-group label {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 5px;
+  color: var(--tenant-text);
+  cursor: pointer;
+  font-size: 13px;
+}
+.tenant-app-users-permission-group input {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 17px;
+  accent-color: var(--tenant-primary);
+}
 .tenant-app-modules {
   margin-top: 28px;
   padding: 18px;
@@ -686,6 +947,27 @@ select:focus-visible {
   }
   .tenant-app-content {
     padding: 24px 18px;
+  }
+  .tenant-app-users-form-grid {
+    grid-template-columns: 1fr;
+  }
+  .tenant-app-users-toolbar,
+  .tenant-app-users-role-picker,
+  .tenant-app-users-assignment-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .tenant-app-users-assignment-row label,
+  .tenant-app-users-role-picker label {
+    width: 100%;
+    min-width: 0;
+  }
+  .tenant-app-users-assignment-row button,
+  .tenant-app-users-actions {
+    width: 100%;
+  }
+  .tenant-app-users-actions {
+    flex-wrap: wrap;
   }
 }
 

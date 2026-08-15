@@ -5,6 +5,7 @@ import type { NonSecretConfig } from "@whatsapp-platform/config";
 import {
   createOrganizationUnitManager,
   createTenantThemeRepository,
+  createUserManagementManager,
 } from "@whatsapp-platform/database";
 import {
   createPlatformAuthRepository,
@@ -79,6 +80,11 @@ import {
 } from "./tenant-organization-units";
 import { TenantPermissionGuard } from "./tenant-rbac";
 import { TENANT_THEME_REPOSITORY, TenantThemeController, TenantThemeService } from "./tenant-theme";
+import {
+  TenantUserManagementController,
+  TenantUserManagementService,
+  USER_MANAGEMENT_MANAGER,
+} from "./tenant-user-management";
 
 @Controller()
 class HealthController {
@@ -109,6 +115,7 @@ export async function createApiApplication(
       TenantAppBootstrapController,
       TenantThemeController,
       TenantOrganizationUnitsController,
+      TenantUserManagementController,
       ...(config.environment === "test" ? [EntitlementTestProbeController] : []),
     ],
     providers: [
@@ -132,9 +139,14 @@ export async function createApiApplication(
       TenantAppBootstrapService,
       TenantThemeService,
       TenantOrganizationUnitsService,
+      TenantUserManagementService,
       {
         provide: ORGANIZATION_UNIT_MANAGER,
         useFactory: () => createOrganizationUnitManager(getPlatformDatabaseClient()),
+      },
+      {
+        provide: USER_MANAGEMENT_MANAGER,
+        useFactory: () => createUserManagementManager(getPlatformDatabaseClient()),
       },
       {
         provide: TENANT_THEME_REPOSITORY,

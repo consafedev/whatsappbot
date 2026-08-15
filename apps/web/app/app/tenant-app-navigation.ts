@@ -4,6 +4,7 @@ export type TenantAppNavigationItem = Readonly<{
   label: string;
   requiredModule?: string;
   requiredPermission?: string;
+  requiredAnyPermissions?: readonly string[];
 }>;
 
 export type TenantAppNavigationGroup = Readonly<{
@@ -107,10 +108,10 @@ const navigation: readonly TenantAppNavigationGroup[] = Object.freeze([
       },
       { href: null, id: "reports", label: "Reportes", requiredPermission: "reports.read" },
       {
-        href: null,
+        href: "/app/users",
         id: "users",
         label: "Usuarios y organización",
-        requiredPermission: "tenant.users.manage",
+        requiredAnyPermissions: ["tenant.users.manage", "tenant.roles.manage"],
       },
       {
         href: "/app/settings/theme",
@@ -138,7 +139,9 @@ export function resolveTenantNavigation(
       items: group.items.filter(
         (item) =>
           (item.requiredModule === undefined || modules.has(item.requiredModule)) &&
-          (item.requiredPermission === undefined || permissions.has(item.requiredPermission)),
+          (item.requiredPermission === undefined || permissions.has(item.requiredPermission)) &&
+          (item.requiredAnyPermissions === undefined ||
+            item.requiredAnyPermissions.some((permission) => permissions.has(permission))),
       ),
     }))
     .filter((group) => group.items.length > 0);

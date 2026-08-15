@@ -289,6 +289,26 @@ describe.sequential("Platform tenant detail query integration", () => {
     expect(JSON.stringify(page)).not.toMatch(/Beta User|passwordHash|private-alpha-hash/);
   });
 
+  it("counts only active users towards usage.users", async () => {
+    const query = createPlatformTenantDetailQueryService(prisma);
+    const disabled = await prisma.user.create({
+      data: {
+        displayName: "Disabled Alpha",
+        email: `${prefix}-disabled@example.invalid`,
+        locale: "es-MX",
+        passwordHash: "not-used-by-query-test",
+        status: "disabled",
+        tenantId: tenantAId,
+        timezone: "America/Mexico_City",
+      },
+    });
+    const detail = await query.detail(tenantAId, observedAt);
+    expect(detail.usage.users).toEqual({ used: 1, limit: "15.0000" });
+    const page = await query.users(tenantAId, { page: 1, pageSize: 25 });
+    expect(page.total).toBe(2);
+    await prisma.user.delete({ where: { id: disabled.id } });
+  });
+
   it("isolates audit rows and omits summaries and IP metadata", async () => {
     const page = await createPlatformTenantDetailQueryService(prisma).audit(tenantAId, {
       page: 1,

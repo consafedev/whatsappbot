@@ -26,4 +26,19 @@ describe("tenant app navigation", () => {
     );
     expect(withPermission.find((item) => item.id === "settings")?.href).toBe("/app/settings/theme");
   });
+
+  it("exposes user management when either user or role administration is granted", () => {
+    const without = resolveTenantNavigation([], []).flatMap((group) => group.items);
+    expect(without.some((item) => item.id === "users")).toBe(false);
+
+    const users = resolveTenantNavigation([], ["tenant.users.manage"]).flatMap(
+      (group) => group.items,
+    );
+    expect(users.find((item) => item.id === "users")?.href).toBe("/app/users");
+
+    const roles = resolveTenantNavigation([], ["tenant.roles.manage"]).flatMap(
+      (group) => group.items,
+    );
+    expect(roles.find((item) => item.id === "users")?.href).toBe("/app/users");
+  });
 });
