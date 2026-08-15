@@ -1,13 +1,13 @@
 import { TenantAppSettingsNav } from "../../tenant-app-settings-nav";
-import { TenantAppThemeEditor } from "./tenant-app-theme-editor";
+import { TenantAppOrganizationUnits } from "./tenant-app-organization-units";
 
 export const dynamic = "force-dynamic";
 
-export default function TenantAppThemePage() {
+export default function TenantAppOrganizationUnitsPage() {
   return (
     <>
       <TenantAppSettingsNav />
-      <TenantAppThemeEditor />
+      <TenantAppOrganizationUnits />
     </>
   );
 }

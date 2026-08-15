@@ -15,6 +15,12 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 - Bootstrap `/app/bootstrap` con `branding` resuelto (tokens display-only, sin `brandingConfig` raw), shell con variables CSS scoped `--tenant-*`, `globals.css` migrado a tokens y CSS de plataforma intacto.
 - Editor productivo `/app/settings/theme` con preset, modo claro/oscuro, colores custom con preview y logo (con White label); refresca bootstrap sin reload y el logo usa `referrerPolicy="no-referrer"` fuera del pipeline de optimización de Next.
 - Suites dedicadas `pnpm test:integration:theme-engine` (7 database + 9 API) y regresiones auth (12 archivos/75 pruebas), bootstrap (5) y seguridad (9 + 37) contra PostgreSQL 18.4/Nest reales.
+- E04-S03 con `createOrganizationUnitManager(...)` tenant-safe en `packages/database`: list/create/update con árbol tenant-consistent, invariante de root estructural inmutable (rename sí), prohibición de ciclos, tope de profundidad `ORGANIZATION_UNIT_MAX_DEPTH = 10` (constante de código documentada) y enforcement del límite efectivo `limit.organization_units`.
+- Concurrencia del límite vía advisory lock PostgreSQL por tenant (`SELECT 1 FROM pg_advisory_xact_lock(hashtextextended(...))`) dentro de cada transacción, con rechazo `Prisma.Decimal` exacto y `usage { used, limit }` en `list()`.
+- Audit/outbox atómicos `organization_unit.created|updated` con summaries mínimos, actor `tenant_user`, rollback verificado si el outbox falla y sin cambio de schema (siete migrations intactas, sin migration 8).
+- API `GET/POST/PATCH /app/organization-units` con `tenant.settings.manage`, DTO cerrado, respuestas least-data, 404 cross-tenant sin revelar existencia y errores 409 con códigos `ORGANIZATION_UNIT_ROOT_INVARIANT`/`ORGANIZATION_UNIT_CYCLE`/`ORGANIZATION_UNIT_DEPTH_EXCEEDED`/`ORGANIZATION_UNIT_LIMIT_REACHED`.
+- UI productiva `/app/settings/organization-units` con árbol por niveles, creación/edición inline, conflictos en español y refetch tras mutaciones, más navegación secundaria de settings compartida (Apariencia/Organización).
+- Suites dedicadas `pnpm test:integration:organization-units` (11 database + 12 API) y regresión completa (database 13/92, auth 13/90, rbac, platform-tenants, detail, provisioning, entitlements, tenant-status, bootstrap, theme-engine e isolation) contra PostgreSQL 18.4/Nest reales.
 
 - Agent Skill canónica en `.agents/skills/whatsapp-platform-engineering/SKILL.md`.
 - `AGENTS.md` raíz con instrucciones breves para cualquier agente.

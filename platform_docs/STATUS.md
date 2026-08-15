@@ -2,7 +2,7 @@
 
 **Actualizado:** 2026-08-14
 **Versión de producto:** `0.0.0`  
-**Estado:** E04-S02 — PASS; **Epic 04 — Tenant Dashboard Shell — IN PROGRESS**.
+**Estado:** E04-S03 — PASS; **Epic 04 — Tenant Dashboard Shell — IN PROGRESS**.
 
 ## Current milestone
 
@@ -16,6 +16,7 @@ Estado por historia:
 
 - E04-S01 — App shell: **PASS**.
 - E04-S02 — Theme Engine minimal: **PASS**.
+- E04-S03 — Organization Units management: **PASS**.
 
 Epic anterior:
 
@@ -43,6 +44,15 @@ Epic anterior:
 - El logo remoto es honesto: no hay fetch server-side ni riesgo SSRF (la API sólo valida y persiste la URL HTTPS pública); el navegador hace una request normal al host del logo con el Referer suprimido. Upload/almacenamiento gestionado del logo queda como hardening futuro y no rediseña storage.
 - Sin cambios de schema (siete migrations), sin migration 8 y sin ADR nuevo; `prisma.config.ts` sólo añade `shadowDatabaseUrl` desde `SHADOW_DATABASE_URL` (documentado en `.env.example`) para el diff de migrations.
 - Suites E04-S02: `pnpm test:integration:theme-engine` (7 database + 11 API), regresión `pnpm test:integration:auth` (12 archivos/75 pruebas), `pnpm test:integration:tenant-app-bootstrap` (6) y `pnpm test:security:tenant-isolation` (9 + 37) contra PostgreSQL 18.4/Nest reales.
+- E04-S03 — Organization Units management: **PASS**; Epic 04 permanece **IN PROGRESS**.
+- `createOrganizationUnitManager(...)` en `packages/database` (tenant-safe, nunca por `/platform`): `list/create/update` con contexto de tenant obligatorio, árbol tenant-consistent, invariante de root estructural (parent null + type company inmutable en move/deactivate/retype, rename sí), prohibición de ciclos (self y descendientes), tope de profundidad `ORGANIZATION_UNIT_MAX_DEPTH = 10` como constante de código documentada para configurabilidad futura y resolución del límite efectivo `limit.organization_units`.
+- Semántica del límite: efectivo sólo con fila `enabled` vigente (`startsAt <= now < endsAt`) y `limitValue != null`; el rechazo usa `Prisma.Decimal` sin conversión numérica; el recuento incluye root e inactivos; `list()` devuelve `usage: { used, limit }` con `limit` en string o `null`.
+- Concurrencia: cada create/update es una transacción que toma un advisory lock PostgreSQL por tenant (`SELECT 1 FROM pg_advisory_xact_lock(hashtextextended(${tenantId}::text, 0::bigint))`), sin locks globales ni cambios de framework; el límite se respeta exactamente bajo concurrencia (verificado con 8 creates paralelos, 4 aceptados/4 rechazados y `used = limit`).
+- Auditoría/outbox atómicos: `organization_unit.created|updated`, actor `tenant_user`, summaries `{name,type,parentId,code,timezone,active}` sin datos sensibles, `entityId`/`organizationUnitId` = id de la unidad y outbox homónimo con payload mínimo; fallo del outbox revierte unidad y audit (rollback verificado).
+- API `GET/POST/PATCH /app/organization-units` con `tenant.settings.manage`, 401/403 fail-closed, cabeceras hostiles ignoradas (el tenant deriva sólo de la sesión), respuestas least-data sin `tenantId`/settings/address, DTO cerrado con claves exactas (UUIDv7, name ≤120, code ≤40, timezone IANA ≤100, active booleano, PATCH vacío 400) y errores 400/404/409 con códigos `ORGANIZATION_UNIT_ROOT_INVARIANT`, `ORGANIZATION_UNIT_CYCLE`, `ORGANIZATION_UNIT_DEPTH_EXCEEDED` y `ORGANIZATION_UNIT_LIMIT_REACHED`.
+- IDs de otros tenants devuelven 404 sin revelar existencia; `company` está reservado al root (400); sin delete ni endpoint privilegiado nuevo; el import de la API boundary sigue limitado a `@whatsapp-platform/database` (nunca `/platform`).
+- UI real en `/app/settings/organization-units` (force-dynamic): árbol por niveles con root visible, creación/edición inline, mensajes de conflicto en español (ciclo, profundidad, límite, root inmutable), refetch tras mutaciones, accesibilidad (labels, `aria-expanded`) y navegación secundaria de settings compartida (Apariencia/Organización) sin tocar la navegación principal.
+- Sin cambio de schema: siete migrations intactas, sin migration 8 y sin ADR nuevo; helpers de árbol/form puros con pruebas unitarias (6 + 7) y suites dedicadas `pnpm test:integration:organization-units` (11 database + 12 API) contra PostgreSQL 18.4/Nest reales.
 - E03-S05 — Suspend/reactivate tenant: **PASS**; **Epic 03 — PASS / COMPLETE**.
 - `POST /platform/tenants/:tenantId/suspend` y `/reactivate` usan exclusivamente `PlatformAdminSessionGuard`, UUID de route validado y body vacío; devuelven 200 con `{ tenant: { id, status, suspendedAt }, changed }`.
 - Sólo se permiten `active → suspended` y `suspended → active`; provisioning, offboarding y archived devuelven 409. Reintentos al estado actual devuelven `changed: false`, preservan `suspendedAt` y no crean Audit/Outbox adicionales.
@@ -210,20 +220,27 @@ Epic anterior:
 
 ## In progress
 
-Epic 04 — Tenant Dashboard Shell continúa con E04-S03 pendiente.
+Epic 04 — Tenant Dashboard Shell continúa con E04-S04 pendiente.
 
 ## Blocked
 
-Ningún bloqueo de código para E04-S02. Password recovery requiere un adapter de delivery antes de habilitarse operativamente.
+Ningún bloqueo de código para E04-S03. Password recovery requiere un adapter de delivery antes de habilitarse operativamente.
 
 ## Next story
 
-`E04-S03 — Organization Units management`
+`E04-S04 — User management [L]`
 
 No implementarla sin una instrucción separada.
 
 ## Last verified commands
 
+- `pnpm test:integration:organization-units` — PASS; 11 pruebas database y 12 pruebas API contra PostgreSQL 18.4/Nest reales (E04-S03 Organization Units).
+- Regresión completa E04-S03 — PASS; `test:integration:database` (13 archivos/92), `test:integration:auth` (13/90), `test:integration:rbac` (11+11), `test:integration:platform-tenants` (4+5), `test:integration:platform-tenant-detail` (4+4), `test:integration:tenant-provisioning` (4+6), `test:integration:entitlements` (3+5), `test:integration:tenant-status` (3+4), `test:integration:tenant-app-bootstrap` (6), `test:integration:theme-engine` (7+11) y `test:security:tenant-isolation` (9+37) contra PostgreSQL 18.4/Nest reales.
+- `pnpm install --frozen-lockfile` / `pnpm rbac:sync-permissions` — PASS; instalación reproducible y 29 permisos sincronizados.
+- `pnpm db:validate` / `pnpm db:generate` / `pnpm db:migrate:deploy` / `prisma migrate status` / `prisma migrate diff --exit-code` — PASS; siete migrations y cero drift, shadow DB vía `SHADOW_DATABASE_URL`.
+- `pnpm lint` / `pnpm typecheck` / `pnpm test` / `pnpm build` / `pnpm format:check` / `git diff --check` — PASS; 197 archivos Biome, 15 archivos y 73 pruebas unitarias, 18 workspaces y ruta Next `/app/settings/organization-units` compilada.
+- `docker compose config --quiet` / `docker compose build api web` — PASS; imagen Linux con instalación frozen y build completo en el contenedor.
+- Runtime Compose E04-S03 — PASS; PostgreSQL, Redis, API, web y workers healthy; API `/health` 200, web `/`, `/app` y `/app/settings/organization-units` 200.
 - `pnpm test:integration:theme-engine` — PASS; 7 pruebas database y 9 pruebas API contra PostgreSQL 18.4/Nest reales (E04-S02 Theme Engine).
 - `pnpm test:integration:auth` — PASS; 12 archivos y 75 pruebas API/auth, incluidas las regresiones E04-S01/E04-S02.
 - `pnpm test:integration:tenant-app-bootstrap` / `pnpm test:security:tenant-isolation` — PASS; 5 pruebas bootstrap y 9 + 37 pruebas de aislamiento/arquitectura (boundary de imports privilegiados conservado).

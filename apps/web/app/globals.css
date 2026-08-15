@@ -467,6 +467,133 @@ select:focus-visible {
     grid-template-columns: 1fr;
   }
 }
+.tenant-app-settings-nav {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 26px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--tenant-border);
+}
+.tenant-app-settings-nav-link {
+  padding: 7px 14px;
+  border: 1px solid var(--tenant-border);
+  border-radius: 6px;
+  background: var(--tenant-surface);
+  color: var(--tenant-muted);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.tenant-app-settings-nav-link:hover {
+  color: var(--tenant-primary);
+}
+.tenant-app-settings-nav-link.is-active {
+  border-color: var(--tenant-primary);
+  background: var(--tenant-primary-soft);
+  color: var(--tenant-primary);
+}
+.tenant-app-ou-editor {
+  max-width: 860px;
+}
+.tenant-app-ou-editor h1 {
+  margin: 4px 0 8px;
+  font-size: 28px;
+}
+.tenant-app-ou-usage {
+  margin: 12px 0 0;
+  color: var(--tenant-secondary);
+  font-size: 13px;
+  font-weight: 600;
+}
+.tenant-app-ou-tree,
+.tenant-app-ou-children {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.tenant-app-ou-children {
+  margin-left: 22px;
+  padding-left: 12px;
+  border-left: 1px solid var(--tenant-border);
+}
+.tenant-app-ou-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 40px;
+}
+.tenant-app-ou-toggle {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  border: 0;
+  background: transparent;
+  color: var(--tenant-muted);
+  cursor: pointer;
+  font-size: 12px;
+}
+.tenant-app-ou-toggle-empty {
+  cursor: default;
+}
+.tenant-app-ou-name {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  padding: 7px 10px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--tenant-text);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+}
+.tenant-app-ou-name:hover {
+  border-color: var(--tenant-border);
+  background: var(--tenant-surface);
+}
+.tenant-app-ou-name[aria-pressed="true"] {
+  border-color: var(--tenant-primary);
+  background: var(--tenant-primary-soft);
+  color: var(--tenant-primary);
+}
+.tenant-app-ou-name small {
+  color: var(--tenant-muted);
+  font-size: 11px;
+  font-weight: 500;
+}
+.tenant-app-ou-kind {
+  margin-left: auto;
+  white-space: nowrap;
+}
+.tenant-app-ou-form {
+  display: grid;
+  gap: 12px;
+}
+.tenant-app-ou-form select,
+.tenant-app-ou-form input[type="text"],
+.tenant-app-ou-form input:not([type="checkbox"]) {
+  width: 100%;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--tenant-border);
+  background: var(--tenant-surface);
+  color: var(--tenant-text);
+}
+.tenant-app-ou-form label {
+  display: grid;
+  gap: 6px;
+  color: var(--tenant-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+.tenant-app-ou-form label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--tenant-primary);
+}
 .tenant-app-modules {
   margin-top: 28px;
   padding: 18px;

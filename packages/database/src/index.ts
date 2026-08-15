@@ -19,6 +19,25 @@ export type {
 } from "./generated/prisma/client";
 export * from "./generated/prisma/enums";
 export {
+  createOrganizationUnitManager,
+  ORGANIZATION_UNIT_MAX_DEPTH,
+  OrganizationUnitCompanyTypeReservedError,
+  type OrganizationUnitCreateInput,
+  OrganizationUnitCycleError,
+  OrganizationUnitDepthError,
+  type OrganizationUnitItem,
+  OrganizationUnitLimitReachedError,
+  type OrganizationUnitManager,
+  type OrganizationUnitManagerDatabase,
+  type OrganizationUnitMutationMetadata,
+  OrganizationUnitNotFoundError,
+  OrganizationUnitParentNotFoundError,
+  OrganizationUnitRootInvariantError,
+  type OrganizationUnitTreePage,
+  type OrganizationUnitUpdateInput,
+  type OrganizationUnitUsage,
+} from "./organization-unit-manager";
+export {
   TenantRbacRecordNotFoundError,
   UnknownPermissionKeyError,
 } from "./rbac-data-access";

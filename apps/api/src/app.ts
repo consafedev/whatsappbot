@@ -2,7 +2,10 @@ import { Controller, Get, Module } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { platformCookieConfig, tenantCookieConfig } from "@whatsapp-platform/auth";
 import type { NonSecretConfig } from "@whatsapp-platform/config";
-import { createTenantThemeRepository } from "@whatsapp-platform/database";
+import {
+  createOrganizationUnitManager,
+  createTenantThemeRepository,
+} from "@whatsapp-platform/database";
 import {
   createPlatformAuthRepository,
   createPlatformTenantDetailQueryService,
@@ -69,6 +72,11 @@ import {
   TenantDataAccessFactory,
 } from "./tenant-context";
 import { TenantEntitlementGuard } from "./tenant-entitlements";
+import {
+  ORGANIZATION_UNIT_MANAGER,
+  TenantOrganizationUnitsController,
+  TenantOrganizationUnitsService,
+} from "./tenant-organization-units";
 import { TenantPermissionGuard } from "./tenant-rbac";
 import { TENANT_THEME_REPOSITORY, TenantThemeController, TenantThemeService } from "./tenant-theme";
 
@@ -100,6 +108,7 @@ export async function createApiApplication(
       TenantAuthController,
       TenantAppBootstrapController,
       TenantThemeController,
+      TenantOrganizationUnitsController,
       ...(config.environment === "test" ? [EntitlementTestProbeController] : []),
     ],
     providers: [
@@ -122,6 +131,11 @@ export async function createApiApplication(
       TenantDataAccessFactory,
       TenantAppBootstrapService,
       TenantThemeService,
+      TenantOrganizationUnitsService,
+      {
+        provide: ORGANIZATION_UNIT_MANAGER,
+        useFactory: () => createOrganizationUnitManager(getPlatformDatabaseClient()),
+      },
       {
         provide: TENANT_THEME_REPOSITORY,
         useFactory: () => createTenantThemeRepository(getPlatformDatabaseClient()),
