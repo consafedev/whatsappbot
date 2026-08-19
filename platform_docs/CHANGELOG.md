@@ -8,6 +8,12 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Added
 
+- E05-S03 con `OutboundMessage` tenant-owned y migration Prisma `20260819184530_add_outbound_messages_foundation`: idempotencia por tenant, estados operativos, lease/retry/DLQ, índices de cola y FKs restrictivas.
+- Manager outbound tenant-safe con revalidación de tenant operativo, entitlement, canal y actor; transiciones persistidas con Outbox, deduplicación por idempotency key y error sanitizado.
+- API `POST/GET /api/v1/channels/:channelId/messages` con respuesta `202`, payload cerrado, validación de teléfono/media y lectura de estado least-data; usa el permiso canónico `channels.manage`.
+- Dispatcher detrás del `MessagingProvider` SPI y worker de polling PostgreSQL con retry/backoff, timeout, concurrencia 5, rate limit por canal de 5 mensajes/segundo y recuperación de leases; no se añadió BullMQ porque el fallback de polling está permitido y no existe la dependencia en el monorepo.
+- Verificación E05-S03: suites dispatcher 3/3, database 4/4, API 3/3 y worker 1/1 contra PostgreSQL/Nest reales; regresión raíz 19 archivos/90 pruebas, migración/status, Biome, typecheck/build Docker y Compose runtime saludables.
+- E05-S03 mantiene fuera de alcance providers WhatsApp reales, Contacts, Conversations, UI de envío y adapter BullMQ futuro.
 - E05-S02 con normalización inbound pura para payloads genéricos/mock y Meta Cloud API, contexto confiable de tenant/canal, media, receipts, timestamps y fallback `UNKNOWN`; WPPConnect queda en el parser genérico y no se presenta como provider real implementado.
 - `InboundMessageEvent` tenant-owned y migration Prisma `20260818110000_inbound_message_event_foundation`, con UUIDv7, JSONB raw/normalized, estados de procesamiento, índices tenant/channel/status, deduplicación por `(tenant_id, channel_account_id, provider_message_id)` y FKs restrictivas alineadas con la autoridad vigente del modelo.
 - Manager de ingestión con revalidación de tenant operativo + `module.messaging.basic`, persistencia atómica de evento y Outbox `messaging.inbound.event_received`, deduplicación segura incluso ante carreras `P2002`, sin doble fila ni doble notificación.

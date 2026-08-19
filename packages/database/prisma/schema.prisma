@@ -179,6 +179,7 @@ model Tenant {
   userRoles           UserRole[]
   channelAccounts     ChannelAccount[]
   inboundMessageEvents InboundMessageEvent[]
+  outboundMessages    OutboundMessage[]
 
   @@index([status], map: "tenant_status_idx")
   @@index([deploymentId], map: "tenant_deployment_id_idx")
@@ -202,6 +203,7 @@ model User {
   sessions            UserSession[]
   passwordResetTokens UserPasswordResetToken[]
   roleAssignments     UserRole[]
+  outboundMessages    OutboundMessage[]
 
   @@unique([tenantId, email], map: "tenant_user_tenant_email_key")
   @@unique([tenantId, id], map: "tenant_user_tenant_id_id_key")
@@ -435,6 +437,7 @@ model ChannelAccount {
   tenant                Tenant            @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   organizationUnit      OrganizationUnit? @relation(fields: [tenantId, organizationUnitId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade)
   inboundMessageEvents  InboundMessageEvent[]
+  outboundMessages      OutboundMessage[]
 
   @@unique([tenantId, phoneNumberUniqueKey], map: "channel_account_tenant_phone_active_key")
   @@index([tenantId], map: "channel_account_tenant_id_idx")
@@ -463,4 +466,36 @@ model InboundMessageEvent {
   @@index([tenantId, processedStatus], map: "inbound_message_event_tenant_status_idx")
   @@unique([tenantId, channelAccountId, providerMessageId], map: "inbound_message_event_provider_message_key")
   @@map("inbound_message_event")
+}
+
+model OutboundMessage {
+  id                String          @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  tenantId          String          @map("tenant_id") @db.Uuid
+  channelAccountId  String          @map("channel_account_id") @db.Uuid
+  actorUserId       String?         @map("actor_user_id") @db.Uuid
+  idempotencyKey    String          @map("idempotency_key")
+  recipientPhone    String          @map("recipient_phone")
+  messageType       String          @default("text") @map("message_type")
+  content           Json            @db.JsonB
+  status            String          @default("PENDING")
+  retryCount        Int             @default(0) @map("retry_count")
+  maxRetries        Int             @default(3) @map("max_retries")
+  providerMessageId String?         @map("provider_message_id")
+  lastError         String?         @map("last_error")
+  scheduledAt       DateTime?       @map("scheduled_at") @db.Timestamptz(3)
+  sentAt            DateTime?       @map("sent_at") @db.Timestamptz(3)
+  failedAt          DateTime?       @map("failed_at") @db.Timestamptz(3)
+  createdAt         DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  tenant            Tenant          @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  channelAccount    ChannelAccount  @relation(fields: [channelAccountId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  actorUser         User?           @relation(fields: [tenantId, actorUserId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@unique([tenantId, idempotencyKey], map: "outbound_message_tenant_idempotency_key")
+  @@index([tenantId, channelAccountId], map: "outbound_message_tenant_channel_idx")
+  @@index([tenantId, status], map: "outbound_message_tenant_status_idx")
+  @@index([status, scheduledAt], map: "outbound_message_status_scheduled_idx")
+  @@index([tenantId, recipientPhone], map: "outbound_message_tenant_recipient_idx")
+  @@index([tenantId, actorUserId], map: "outbound_message_tenant_actor_idx")
+  @@map("outbound_message")
 }

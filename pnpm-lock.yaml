@@ -92,6 +92,12 @@ importers:
       '@whatsapp-platform/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@whatsapp-platform/database':
+        specifier: workspace:*
+        version: link:../../packages/database
+      '@whatsapp-platform/messaging':
+        specifier: workspace:*
+        version: link:../../packages/messaging
 
   packages/auth:
     dependencies:

@@ -29,6 +29,7 @@ export type {
   AuditLog,
   DomainEventOutbox,
   OrganizationUnit,
+  OutboundMessage,
   Permission,
   Role,
   RolePermission,
@@ -69,6 +70,21 @@ export {
   type OrganizationUnitUpdateInput,
   type OrganizationUnitUsage,
 } from "./organization-unit-manager";
+export {
+  createOutboundMessageManager,
+  OUTBOUND_MESSAGE_STATUSES,
+  OutboundMessageChannelInactiveError,
+  OutboundMessageChannelNotFoundError,
+  type OutboundMessageContent,
+  type OutboundMessageCreateInput,
+  type OutboundMessageManager,
+  type OutboundMessageManagerDatabase,
+  type OutboundMessageRecord,
+  OutboundMessageStateError,
+  type OutboundMessageStatus,
+  type OutboundMessageTransaction,
+  type OutboundMessageType,
+} from "./outbound-message-manager";
 export {
   TenantRbacRecordNotFoundError,
   UnknownPermissionKeyError,

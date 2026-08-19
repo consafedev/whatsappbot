@@ -2,7 +2,7 @@
 
 **Actualizado:** 2026-08-19
 **Versión de producto:** `0.0.0`  
-**Estado:** E05-S02 — PASS; **Epic 05 — Messaging Provider Core — IN PROGRESS**.
+**Estado:** E05-S03 — PASS; **Epic 05 — Messaging Provider Core — IN PROGRESS**.
 
 ## Current milestone
 
@@ -16,6 +16,7 @@ Estado por historia:
 
 - E05-S01 — Messaging Provider SPI, channel management y Mock driver: **PASS**.
 - E05-S02 — Inbound Webhook Ingestion & Normalizer Pipeline: **PASS**.
+- E05-S03 — Outbound Messaging Queue, Dispatcher & Retry Worker: **PASS**.
 
 Epics anteriores:
 
@@ -50,7 +51,13 @@ Epics base:
 - E05-S02 — manager tenant-safe valida tenant operativo, entitlement `module.messaging.basic` y canal activo; persiste evento + Outbox `messaging.inbound.event_received` en la misma transaction y resuelve duplicados sin segunda fila ni segundo evento, incluyendo carreras `P2002` fuera de la transacción abortada.
 - E05-S02 — API pública `GET/POST /api/v1/webhooks/whatsapp/:channelId` y `POST /api/v1/webhooks/whatsapp/mock/:channelId`: handshake Meta, HMAC sobre raw body, límite JSON de 256 KB, ACK HTTP 200, resolución de tenant sólo desde ChannelAccount y credenciales siempre cifradas; no se implementaron Contacts, Conversations, UI ni providers reales.
 - Verificación E05-S02: normalizer 3/3, database 3/3 y API 4/4 contra PostgreSQL 18.4/Nest reales en Docker; `db:validate`, `db:generate`, typecheck, build host y Biome PASS. Cobertura porcentual no medida. La exportación final de la imagen Docker quedó sin completar por bloqueo de Docker Desktop; el contenedor de pruebas existente ejecutó la migración y las suites contra PostgreSQL real.
-- Discrepancia documental explícita: el backlog histórico `DATA_MODEL_ERD_MVP_BACKLOG.md` todavía etiqueta E05-S02 como Baileys adapter y E05-S03 como ChannelAccount management. Esta ejecución siguió el prompt vigente y este STATUS operativo para inbound webhooks; Baileys real permanece diferido y el backlog histórico no se reescribió silenciosamente.
+- Discrepancia documental explícita: el backlog histórico `DATA_MODEL_ERD_MVP_BACKLOG.md` todavía etiqueta E05-S02 como Baileys adapter y E05-S03 como ChannelAccount management. E05-S02 siguió el prompt vigente y este STATUS operativo para inbound webhooks; E05-S03 siguió el prompt vigente y este STATUS para la cola outbound. Baileys real y la etiqueta histórica del backlog no se reescribieron silenciosamente.
+- E05-S03 — `OutboundMessage` tenant-owned y migration Prisma `20260819184530_add_outbound_messages_foundation`, con UUIDv7, unique `(tenant_id, idempotency_key)`, estados `PENDING|QUEUED|SENDING|SENT|FAILED|RETRYING|DLQ`, lease/retry fields, índices operativos y FKs restrictivas conforme a la autoridad documental.
+- E05-S03 — manager tenant-safe que revalida tenant operativo, `module.messaging.basic`, canal activo y actor activo; aplica idempotencia, reclama mensajes con lease, persiste transiciones y escribe Outbox después de cada transición durable. El agotamiento de reintentos termina en `DLQ` y el error público queda saneado.
+- E05-S03 — API `POST/GET /api/v1/channels/:channelId/messages`, con `202 Accepted`, estado least-data, validación de UUIDv7/E.164-ish, media HTTPS pública e idempotency key. Usa el permiso canónico existente `channels.manage`; no se inventó `messaging:write` ni `message:send` porque el catálogo cerrado no los contiene.
+- E05-S03 — dispatcher detrás del `MessagingProvider` SPI y worker PostgreSQL polling (fallback permitido por el alcance, sin dependencia BullMQ inexistente), con revalidación de tenant/entitlement/canal, idempotencia por mensaje, timeout/network/rate-limit retry, backoff exponencial acotado, concurrencia 5, límite por canal de 5 mensajes/segundo y recuperación de leases vencidos.
+- Verificación E05-S03: Vitest raíz 19 archivos/90 pruebas; dispatcher unitario 3/3, database 4/4, API 3/3 y worker 1/1 contra PostgreSQL 18.4/Nest reales en Docker; `db:validate`, `db:generate`, `db:migrate:deploy`, `prisma migrate status`, typecheck en contenedor, Biome y build Docker `api web worker-whatsapp` PASS. Compose dejó API, web, ambos workers, PostgreSQL y Redis saludables; `/health` y `/` respondieron HTTP 200. Cobertura porcentual no medida.
+- Alcance E05-S03: no se implementaron providers WhatsApp reales, Contacts, Conversations, UI de envío ni un adaptador BullMQ; el polling actual mantiene PostgreSQL como fuente de verdad y deja el boundary de orquestación listo para un adapter futuro.
 
 - E04-S01 — App shell: **PASS**; Epic 04 quedó **PASS / COMPLETE**.
 - `/app` usa un layout Next.js reusable, sidebar desktop-first, drawer móvil accesible, identidad real del Tenant/User y logout por `POST /auth/logout`.
@@ -255,18 +262,19 @@ Epics base:
 
 ## In progress
 
-E05-S02 está completada y verificada; Epic 05 continúa **IN PROGRESS** hasta implementar la historia siguiente.
+E05-S03 está completada y verificada; Epic 05 continúa **IN PROGRESS** hasta implementar la historia siguiente.
 
 ## Blocked
 
-No hay bloqueo funcional de E05-S02. La exportación de imagen Docker debe reintentarse en un entorno Docker Desktop estable antes de usar esta build como artefacto de release; los providers WhatsApp reales, Contacts/Conversations y la cola de envíos permanecen fuera del alcance.
+No hay bloqueo funcional de E05-S03. Los providers WhatsApp reales, Contacts/Conversations, UI de envío y el adapter BullMQ permanecen fuera del alcance de esta historia.
 
 ## Next story
 
-`E05-S03 — Outbound Messaging Queue, Dispatcher & Retry Worker`
+`E06-S01 — Contact Entity, Phone Identity & Channel Binding`
 
 ## Last verified commands
 
+  - E05-S03 — PASS; `pnpm vitest run` (19 archivos/90 pruebas), dispatcher (3/3), database (4/4), API (3/3) y worker (1/1) en Docker contra PostgreSQL real; migration deploy/status, Biome, typecheck en contenedor, build Docker `api web worker-whatsapp`, `docker compose ps`, API `/health` y web `/` verificados con HTTP 200.
   - E05-S02 — PASS; `pnpm --filter @whatsapp-platform/database test:integration:inbound-webhooks` (3/3), `pnpm --filter @whatsapp-platform/api test:integration:inbound-webhooks` (4/4), normalizer (3/3), migration deploy, Biome, typecheck y build host; las suites se ejecutaron contra PostgreSQL 18.4/Nest reales en Docker.
   - E05-S01 — PASS; `pnpm vitest run` (17 archivos/84 pruebas), `pnpm --filter @whatsapp-platform/database test:integration:channel-accounts` (4/4), `pnpm --filter @whatsapp-platform/api test:integration:channel-accounts` (5/5), migration deploy, Biome, typecheck y `docker compose build api`.
 - E04-S04 regresiones — PASS; Organization Units database 14/14 y API 15/15, tenant detail database 5/5 y API 4/4.

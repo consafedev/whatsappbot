@@ -7,9 +7,12 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
+    "test:integration:outbound-worker": "vitest run --config vitest.outbound-worker.config.mts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@whatsapp-platform/config": "workspace:*"
+    "@whatsapp-platform/config": "workspace:*",
+    "@whatsapp-platform/database": "workspace:*",
+    "@whatsapp-platform/messaging": "workspace:*"
   }
 }

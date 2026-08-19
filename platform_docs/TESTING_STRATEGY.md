@@ -236,6 +236,17 @@ Las suites dedicadas ejecutan normalizer unitario (3 pruebas), database (3 prueb
 - entitlement `module.messaging.basic`, tenant suspendido y cross-tenant channel ID fail-closed;
 - mock route sólo fuera de producción, sin Contacts/Conversations y sin afirmar provider real no implementado.
 
+## 7.2 Outbound queue, dispatcher and worker (E05-S03)
+
+Las suites dedicadas cubren la cola tenant-owned, las transiciones persistidas y el worker contra PostgreSQL 18.4/Nest reales:
+
+- dispatcher unitario: 3 pruebas para envío de texto/media mediante el `MessagingProvider` SPI, clasificación fail-closed de errores y backoff determinista;
+- database: 4 pruebas para idempotencia `(tenant_id, idempotency_key)`, `PENDING → SENDING → SENT`, retry agotado a `DLQ` con Outbox y aislamiento cross-tenant en enqueue/read/mutate;
+- API: 3 pruebas para `202 Accepted` + estado `PENDING`, validación de teléfono/payload y 404 cross-tenant sin revelar existencia;
+- worker: 1 prueba de integración con provider flaky que verifica retry de error de red, backoff y posterior `SENT`, incluyendo Outbox de fallo y éxito;
+- regresión: `pnpm vitest run` con 19 archivos/90 pruebas; `db:validate`, generación y deploy/status de migration, Biome, typecheck/build Docker y runtime Compose también forman parte de la verificación;
+- el worker revalida tenant operativo, entitlement y canal antes del side effect, usa timeout, lease recovery, concurrencia máxima 5 y límite por canal de 5 mensajes/segundo. PostgreSQL es la fuente de verdad; el polling es el fallback actual porque no hay dependencia BullMQ.
+
 ---
 
 # 8. Inbox E2E

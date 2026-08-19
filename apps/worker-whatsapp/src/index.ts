@@ -1,7 +1,14 @@
 import { loadRuntimeConfig } from "@whatsapp-platform/config";
+import { createOutboundMessageManager } from "@whatsapp-platform/database";
+import {
+  disconnectPlatformDatabaseClient,
+  getPlatformDatabaseClient,
+} from "@whatsapp-platform/database/platform";
+import { OutboundWorker } from "./outbound-worker";
 
 const config = loadRuntimeConfig();
-const keepAlive = setInterval(() => undefined, 60_000);
+const database = getPlatformDatabaseClient();
+const worker = new OutboundWorker(createOutboundMessageManager(database), database);
 
 console.info(
   JSON.stringify({
@@ -11,9 +18,15 @@ console.info(
   }),
 );
 
+worker.start();
+
+let shutdownPromise: Promise<void> | undefined;
 function shutdown(): void {
-  clearInterval(keepAlive);
-  process.exit(0);
+  shutdownPromise ??= worker
+    .stop()
+    .then(disconnectPlatformDatabaseClient)
+    .then(() => undefined);
+  void shutdownPromise.then(() => process.exit(0));
 }
 
 process.once("SIGINT", shutdown);

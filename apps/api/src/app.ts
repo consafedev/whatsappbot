@@ -7,6 +7,7 @@ import {
   createChannelAccountManager,
   createInboundEventManager,
   createOrganizationUnitManager,
+  createOutboundMessageManager,
   createTenantThemeRepository,
   createUserManagementManager,
 } from "@whatsapp-platform/database";
@@ -32,6 +33,11 @@ import {
   InboundWebhookController,
   InboundWebhookService,
 } from "./inbound-webhooks";
+import {
+  OUTBOUND_MESSAGE_MANAGER,
+  OutboundMessagesController,
+  OutboundMessagesService,
+} from "./outbound-messages";
 import {
   PLATFORM_AUTH_OPTIONS,
   PLATFORM_AUTH_REPOSITORY,
@@ -138,6 +144,7 @@ export async function createApiApplication(
       TenantOrganizationUnitsController,
       TenantUserManagementController,
       TenantChannelsController,
+      OutboundMessagesController,
       InboundWebhookController,
       ...(config.environment === "test" ? [EntitlementTestProbeController] : []),
     ],
@@ -164,6 +171,7 @@ export async function createApiApplication(
       TenantOrganizationUnitsService,
       TenantUserManagementService,
       TenantChannelsService,
+      OutboundMessagesService,
       InboundWebhookService,
       {
         provide: ORGANIZATION_UNIT_MANAGER,
@@ -180,6 +188,10 @@ export async function createApiApplication(
       {
         provide: INBOUND_EVENT_MANAGER,
         useFactory: () => createInboundEventManager(getPlatformDatabaseClient()),
+      },
+      {
+        provide: OUTBOUND_MESSAGE_MANAGER,
+        useFactory: () => createOutboundMessageManager(getPlatformDatabaseClient()),
       },
       {
         provide: INBOUND_WEBHOOK_CHANNEL_RESOLVER,
