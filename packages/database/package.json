@@ -29,6 +29,7 @@
     "test:integration:theme-engine": "pnpm --filter @whatsapp-platform/config build && pnpm --filter @whatsapp-platform/themes build && vitest run --config vitest.theme-engine.config.mts",
     "test:integration:organization-units": "pnpm --filter @whatsapp-platform/config build && vitest run --config vitest.organization-units.config.mts",
     "test:integration:user-management": "pnpm --filter @whatsapp-platform/config build && vitest run --config vitest.user-management.config.mts",
+    "test:integration:channel-accounts": "pnpm --filter @whatsapp-platform/config build && vitest run --config vitest.channel-accounts.config.mts",
     "test:integration:rbac": "pnpm --filter @whatsapp-platform/config build && pnpm --filter @whatsapp-platform/rbac build && vitest run --config vitest.rbac.config.mts",
     "test:integration:platform-tenants": "pnpm --filter @whatsapp-platform/config build && vitest run --config vitest.platform-tenants.config.mts",
     "test:integration:platform-tenant-detail": "pnpm --filter @whatsapp-platform/config build && vitest run --config vitest.platform-tenant-detail.config.mts",
@@ -42,6 +43,7 @@
     "@prisma/adapter-pg": "7.9.1",
     "@prisma/client": "7.9.1",
     "@whatsapp-platform/config": "workspace:*",
+    "@whatsapp-platform/messaging": "workspace:*",
     "@whatsapp-platform/rbac": "workspace:*",
     "@whatsapp-platform/themes": "workspace:*"
   },

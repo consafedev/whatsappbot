@@ -41,6 +41,9 @@ importers:
       '@whatsapp-platform/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@whatsapp-platform/messaging':
+        specifier: workspace:*
+        version: link:../../packages/messaging
       '@whatsapp-platform/rbac':
         specifier: workspace:*
         version: link:../../packages/rbac
@@ -113,6 +116,9 @@ importers:
       '@whatsapp-platform/config':
         specifier: workspace:*
         version: link:../config
+      '@whatsapp-platform/messaging':
+        specifier: workspace:*
+        version: link:../messaging
       '@whatsapp-platform/rbac':
         specifier: workspace:*
         version: link:../rbac

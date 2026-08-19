@@ -1,25 +1,33 @@
 # STATUS.md — Estado operativo actual del proyecto
 
-**Actualizado:** 2026-08-15
+**Actualizado:** 2026-08-18
 **Versión de producto:** `0.0.0`  
-**Estado:** E04-S04 — PASS; **Epic 04 — Tenant Dashboard Shell — PASS / COMPLETE**.
+**Estado:** E05-S01 — PASS; **Epic 05 — Messaging Provider Core — IN PROGRESS**.
 
 ## Current milestone
 
-Tenant Dashboard Shell.
+Messaging Provider Core.
 
 ## Current epic
 
-**Epic 04 — Tenant Dashboard Shell**
+**Epic 05 — Messaging Provider Core**
 
 Estado por historia:
+
+- E05-S01 — Messaging Provider SPI, channel management y Mock driver: **PASS**.
+
+Epics anteriores:
+
+- Epic 04 — Tenant Dashboard Shell: **PASS / COMPLETE**.
+
+Historias anteriores:
 
 - E04-S01 — App shell: **PASS**.
 - E04-S02 — Theme Engine minimal: **PASS**.
 - E04-S03 — Organization Units management: **PASS**.
 - E04-S04 — User management: **PASS**.
 
-Epic anterior:
+Epics base:
 
 - Epic 02 — Authentication and Tenancy: **PASS / COMPLETE**.
 - E01-S01 — Prisma/schema baseline: **PASS**.
@@ -30,12 +38,19 @@ Epic anterior:
 
 ## Completed
 
-- E04-S01 — App shell: **PASS**; Epic 04 permanece **IN PROGRESS**.
+- E05-S01 — Messaging Provider SPI, WhatsApp Channel Management & Mock Driver: **PASS**; la instrucción adjunta pedía FastAPI/Alembic, pero la autoridad del repositorio exige NestJS/Prisma, por lo que la historia quedó implementada sobre esos boundaries canónicos sin crear un segundo stack Python.
+- `packages/messaging` define el `MessagingProvider` agnóstico de Nest/FastAPI, DTOs de estado/salud/evento normalizado, verificación HMAC, `MockMessagingProvider` con inspección en memoria y fallos configurables (`network`, `rate_limit`, `invalid_number`); la factory sólo habilita `mock` y falla cerrado para providers reales aún no implementados.
+- `ChannelAccount` tenant-owned se añadió mediante la migration Prisma `20260818090000_messaging_channel_account_foundation`, con UUIDv7, phone único por tenant sólo para registros activos, estado/provider/configuración, ciphertext y versión de clave separados de la proyección pública, FK compuesta tenant/OUnit e índices tenant/status.
+- `createChannelAccountManager(...)` aplica `module.messaging.basic`, `limit.channel_accounts` con `Prisma.Decimal`, advisory lock transaccional por tenant, validación de OUs, CRUD/archive tenant-scoped y Audit + Outbox atómicos (`channel.created|updated|deleted`) sin credenciales en responses, summaries ni payloads.
+- La API expone `GET/POST/PATCH/DELETE /api/v1/channels`, detalle y `test-connection`, además de aliases canónicos `/app/channels`; requiere `channels.read`/`channels.manage` y entitlement efectivo, devuelve 404 para IDs cross-tenant y cifra credenciales con AES-256-GCM usando `MESSAGING_CREDENTIALS_KEY` fuera de la base.
+- Verificación E05-S01: Vitest raíz 17 archivos/84 pruebas; suite database 4/4 y API 5/5 contra PostgreSQL 18.4/Nest reales; migration aplicada, Biome/typecheck/build Docker API y health del contenedor PASS. Cobertura porcentual no medida.
+
+- E04-S01 — App shell: **PASS**; Epic 04 quedó **PASS / COMPLETE**.
 - `/app` usa un layout Next.js reusable, sidebar desktop-first, drawer móvil accesible, identidad real del Tenant/User y logout por `POST /auth/logout`.
 - `GET /app/bootstrap` está protegido por `TenantUserSessionGuard` y `TenantContextGuard`; deriva tenant/user solamente de la sesión, consulta módulos efectivos y permisos efectivos desde PostgreSQL y no expone config, settings, hashes, sesiones ni metadata privilegiada.
 - La navegación centralizada usa módulos/permisos sólo como UX; APIs futuras conservan guards. Inicio es el único link existente y capacidades efectivas futuras aparecen como `Próximamente` no clicable, sin `href="#"` ni rutas vacías.
 - No hay cache persistente de auth/permissions/entitlements, migration, schema change ni Theme Engine; `brandingConfig` no se interpreta y el modo es `platform_default`.
-- E04-S02 — Theme Engine minimal: **PASS**; Epic 04 permanece **IN PROGRESS**.
+- E04-S02 — Theme Engine minimal: **PASS**; Epic 04 quedó **PASS / COMPLETE**.
 - `packages/themes` (`@whatsapp-platform/themes`) con schema canónico estricto: `version: 1`, preset de cinco profesionales + `custom`, `colorMode` light/dark, colores `#RRGGBB` con contraste vs blanco ≥ 3.0, logo HTTPS público sin credenciales ni hosts internos (`localhost`, `.local`, `.internal`, RFC1918, loopback, `::1`), y `{}` o config inválida resuelve al default `corporate-blue` light.
 - Presets light/dark explícitos con tokens derivados (`primary`, `primaryDark`, `onPrimary`, softs, accent y `accentText` con contraste ≥ 4.5) para display; `resolveTenantTheme(...)` es fail-soft y nunca falla el bootstrap ni el editor ante config dañada.
 - `GET /app/theme` y `PATCH /app/theme` requieren `tenant.settings.manage`; PATCH con body `{}` restablece el default, body inválido devuelve 400 y la presencia de `logo` (incluido `null`) exige el módulo `module.white_label` con 403 `ENTITLEMENT_REQUIRED`.
@@ -45,7 +60,7 @@ Epic anterior:
 - El logo remoto es honesto: no hay fetch server-side ni riesgo SSRF (la API sólo valida y persiste la URL HTTPS pública); el navegador hace una request normal al host del logo con el Referer suprimido. Upload/almacenamiento gestionado del logo queda como hardening futuro y no rediseña storage.
 - Sin cambios de schema (siete migrations), sin migration 8 y sin ADR nuevo; `prisma.config.ts` sólo añade `shadowDatabaseUrl` desde `SHADOW_DATABASE_URL` (documentado en `.env.example`) para el diff de migrations.
 - Suites E04-S02: `pnpm test:integration:theme-engine` (7 database + 11 API), regresión `pnpm test:integration:auth` (12 archivos/75 pruebas), `pnpm test:integration:tenant-app-bootstrap` (6) y `pnpm test:security:tenant-isolation` (9 + 37) contra PostgreSQL 18.4/Nest reales.
-- E04-S03 — Organization Units management: **PASS**; Epic 04 permanece **IN PROGRESS**.
+- E04-S03 — Organization Units management: **PASS**; Epic 04 quedó **PASS / COMPLETE**.
 - `createOrganizationUnitManager(...)` en `packages/database` (tenant-safe, nunca por `/platform`): `list/create/update` con contexto de tenant obligatorio, árbol tenant-consistent, invariante de root estructural (parent null + type company inmutable en move/deactivate/retype, rename sí), prohibición de ciclos (self y descendientes), tope de profundidad `ORGANIZATION_UNIT_MAX_DEPTH = 10` como constante de código documentada para configurabilidad futura y resolución del límite efectivo `limit.organization_units`.
 - Semántica del límite: efectivo sólo con fila `enabled` vigente (`startsAt <= now < endsAt`) y `limitValue != null`; el rechazo usa `Prisma.Decimal` sin conversión numérica; el recuento incluye root e inactivos; `list()` devuelve `usage: { used, limit }` con `limit` en string o `null`.
 - Concurrencia: cada create/update es una transacción que toma un advisory lock PostgreSQL por tenant (`SELECT 1 FROM pg_advisory_xact_lock(hashtextextended(${tenantId}::text, 0::bigint))`), sin locks globales ni cambios de framework; el límite se respeta exactamente bajo concurrencia (verificado con 8 creates paralelos, 4 aceptados/4 rechazados y `used = limit`).
@@ -233,19 +248,19 @@ Epic anterior:
 
 ## In progress
 
-No hay historias abiertas en Epic 04.
+E05-S01 está completada y verificada; Epic 05 continúa **IN PROGRESS** hasta implementar la historia siguiente.
 
 ## Blocked
 
-Ningún bloqueo de código para E04-S04. Password recovery requiere un adapter de delivery antes de habilitarse operativamente.
+Ningún bloqueo de código para E05-S01. Los providers WhatsApp reales, webhooks y la cola de envíos permanecen fuera del alcance de esta historia.
 
 ## Next story
 
-`E05-S01 — Messaging contracts`
+`E05-S02 — Inbound Webhook Ingestion & Normalizer Pipeline`
 
 ## Last verified commands
 
-- E04-S04 user management — PASS; 23 pruebas database y 12 pruebas API contra PostgreSQL 18.4/Nest reales.
+  - E05-S01 — PASS; `pnpm vitest run` (17 archivos/84 pruebas), `pnpm --filter @whatsapp-platform/database test:integration:channel-accounts` (4/4), `pnpm --filter @whatsapp-platform/api test:integration:channel-accounts` (5/5), migration deploy, Biome, typecheck y `docker compose build api`.
 - E04-S04 regresiones — PASS; Organization Units database 14/14 y API 15/15, tenant detail database 5/5 y API 4/4.
 - `tsc -p tsconfig.json --noEmit` / `biome check --formatter-enabled=true --linter-enabled=true .` — PASS; 207 archivos Biome y TypeScript strict.
 - `vitest run` — PASS; 16 archivos y 76 pruebas unitarias.

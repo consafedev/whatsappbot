@@ -57,6 +57,7 @@ services:
       API_PORT: 3001
       PLATFORM_WEB_ORIGIN: ${PLATFORM_WEB_ORIGIN:-http://localhost:3000}
       TENANT_WEB_ORIGIN: ${TENANT_WEB_ORIGIN:-http://localhost:3000}
+      MESSAGING_CREDENTIALS_KEY: ${MESSAGING_CREDENTIALS_KEY:-}
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
     ports:

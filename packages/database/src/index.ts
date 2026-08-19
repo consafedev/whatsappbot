@@ -1,5 +1,23 @@
 export type { AuditEntryInput, AuditWriter } from "./audit";
 export {
+  CHANNEL_ACCOUNT_STATUSES,
+  type ChannelAccountCreateInput,
+  type ChannelAccountItem,
+  ChannelAccountLimitReachedError,
+  type ChannelAccountListOptions,
+  type ChannelAccountManager,
+  type ChannelAccountManagerDatabase,
+  ChannelAccountModuleEntitlementRequiredError,
+  type ChannelAccountMutationMetadata,
+  ChannelAccountNotFoundError,
+  ChannelAccountOrganizationUnitNotFoundError,
+  type ChannelAccountPage,
+  ChannelAccountPhoneConflictError,
+  type ChannelAccountStatus,
+  type ChannelAccountUpdateInput,
+  createChannelAccountManager,
+} from "./channel-account-manager";
+export {
   isLimitEntitlementKey,
   isModuleEntitlementKey,
   LIMIT_ENTITLEMENT_KEYS,

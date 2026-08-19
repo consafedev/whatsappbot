@@ -13,6 +13,13 @@ const nonSecretEnvironmentSchema = z.object({
 
 const secretEnvironmentSchema = z.object({
   DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
+  MESSAGING_CREDENTIALS_KEY: z.preprocess(
+    (value) => (value === "" ? undefined : value),
+    z
+      .string()
+      .regex(/^[0-9a-fA-F]{64}$/, "must be 64 hexadecimal characters")
+      .optional(),
+  ),
   REDIS_URL: z.url({ protocol: /^redis(s)?$/ }),
 });
 
@@ -29,6 +36,7 @@ export interface NonSecretConfig {
 
 export interface SecretConfig {
   readonly databaseUrl: string;
+  readonly messagingCredentialsKey?: string;
   readonly redisUrl: string;
 }
 
@@ -82,6 +90,9 @@ export function loadSecretConfig(
 
   return Object.freeze({
     databaseUrl: values.DATABASE_URL,
+    ...(values.MESSAGING_CREDENTIALS_KEY === undefined
+      ? {}
+      : { messagingCredentialsKey: values.MESSAGING_CREDENTIALS_KEY }),
     redisUrl: values.REDIS_URL,
   });
 }

@@ -3,6 +3,7 @@ import { NestFactory } from "@nestjs/core";
 import { platformCookieConfig, tenantCookieConfig } from "@whatsapp-platform/auth";
 import type { NonSecretConfig } from "@whatsapp-platform/config";
 import {
+  createChannelAccountManager,
   createOrganizationUnitManager,
   createTenantThemeRepository,
   createUserManagementManager,
@@ -19,6 +20,7 @@ import {
   type PlatformAuthRepository,
   type TenantAuthRepository,
 } from "@whatsapp-platform/database/platform";
+import { createMessagingCredentialCipher } from "@whatsapp-platform/messaging";
 import { EntitlementTestProbeController } from "./entitlement-test-probe";
 import {
   PLATFORM_AUTH_OPTIONS,
@@ -68,6 +70,12 @@ import {
   UnavailablePasswordResetDelivery,
 } from "./tenant-auth";
 import {
+  CHANNEL_ACCOUNT_MANAGER,
+  MESSAGING_CREDENTIAL_CIPHER,
+  TenantChannelsController,
+  TenantChannelsService,
+} from "./tenant-channels";
+import {
   TENANT_DATA_ACCESS_DATABASE,
   TenantContextGuard,
   TenantDataAccessFactory,
@@ -96,7 +104,10 @@ class HealthController {
 
 export async function createApiApplication(
   config: Readonly<NonSecretConfig>,
-  dependencies: { passwordResetDelivery?: PasswordResetDelivery } = {},
+  dependencies: {
+    messagingCredentialsKey?: string;
+    passwordResetDelivery?: PasswordResetDelivery;
+  } = {},
 ) {
   const options: PlatformAuthOptions = {
     cookie: platformCookieConfig(config.environment),
@@ -116,6 +127,7 @@ export async function createApiApplication(
       TenantThemeController,
       TenantOrganizationUnitsController,
       TenantUserManagementController,
+      TenantChannelsController,
       ...(config.environment === "test" ? [EntitlementTestProbeController] : []),
     ],
     providers: [
@@ -140,6 +152,7 @@ export async function createApiApplication(
       TenantThemeService,
       TenantOrganizationUnitsService,
       TenantUserManagementService,
+      TenantChannelsService,
       {
         provide: ORGANIZATION_UNIT_MANAGER,
         useFactory: () => createOrganizationUnitManager(getPlatformDatabaseClient()),
@@ -147,6 +160,19 @@ export async function createApiApplication(
       {
         provide: USER_MANAGEMENT_MANAGER,
         useFactory: () => createUserManagementManager(getPlatformDatabaseClient()),
+      },
+      {
+        provide: CHANNEL_ACCOUNT_MANAGER,
+        useFactory: () => createChannelAccountManager(getPlatformDatabaseClient()),
+      },
+      {
+        provide: MESSAGING_CREDENTIAL_CIPHER,
+        useValue:
+          dependencies.messagingCredentialsKey === undefined
+            ? null
+            : createMessagingCredentialCipher(
+                Buffer.from(dependencies.messagingCredentialsKey, "hex"),
+              ),
       },
       {
         provide: TENANT_THEME_REPOSITORY,

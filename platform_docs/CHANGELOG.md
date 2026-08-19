@@ -8,6 +8,12 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Added
 
+- E05-S01 con `@whatsapp-platform/messaging`: `MessagingProvider`/DTOs agnósticos, estados de mensaje, normalización inbound, firma HMAC, health y `MockMessagingProvider` con inspección en memoria y fallos configurables; la factory falla cerrado para providers reales aún no implementados.
+- `ChannelAccount` tenant-owned y migration Prisma `20260818090000_messaging_channel_account_foundation`, con phone único por tenant para canales activos, credenciales AES-256-GCM fuera de la proyección pública, configuración y health/lifecycle fields, FK compuesta tenant/OUnit e índices tenant/status.
+- Manager tenant-safe para listar, crear, actualizar y archivar canales con `module.messaging.basic`, `limit.channel_accounts`, advisory lock PostgreSQL, validación de OU, Audit + Outbox atómicos y ausencia de secretos en responses, summaries y payloads.
+- API `GET/POST/PATCH/DELETE /api/v1/channels` y `POST /api/v1/channels/:channelId/test-connection`, con aliases `/app/channels`, permisos `channels.read`/`channels.manage`, 404 cross-tenant, paginación/filtro de estado, Mock health y errores cerrados para providers no disponibles.
+- Suite E05-S01: 7 pruebas unitarias de messaging, 4 database y 5 API de integración contra PostgreSQL 18.4/Nest reales; `MESSAGING_CREDENTIALS_KEY` opcional se trata como no configurada cuando Compose la inyecta vacía y la API bloquea cualquier credencial sin clave válida.
+
 - E04-S01 con `/app` tenant-authenticated, bootstrap tenant-safe, shell reutilizable responsive, navegación centralizada module/permission-aware, Home honesta y logout funcional sin datos demo ni caché persistente.
 - E04-S02 con `packages/themes` (`@whatsapp-platform/themes`): schema canónico estricto de branding (version 1, cinco presets + custom, light/dark, colores `#RRGGBB` con contraste ≥ 3.0, logo HTTPS público sin hosts internos), presets de tokens light/dark y resolver fail-soft hacia el default `corporate-blue`.
 - `GET /app/theme` y `PATCH /app/theme` con `tenant.settings.manage`, restablecimiento por `{}`, validación fail-closed 400 y logo (incluido null) condicionado al módulo `module.white_label` (403 `ENTITLEMENT_REQUIRED`).

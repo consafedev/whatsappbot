@@ -82,6 +82,7 @@ Añadir test por cada nuevo repository tenant-owned.
 La matriz dedicada se ejecuta con `pnpm test:security:tenant-isolation` contra PostgreSQL 18 con las migrations aplicadas. En la baseline actual cubre:
 
 - `TenantEntitlement` y `OrganizationUnit`: reads tenant-scoped, mutation de entitlements sólo desde Platform, IDs ajenos, inputs hostiles, jerarquía y FK compuesta;
+- `ChannelAccount`: list/create/update/archive y test de provider con Tenant A/B, 404 cross-tenant en read/PATCH/DELETE, phone activo duplicado, límite exacto, OU cross-tenant, ciphertext ausente de respuestas/Audit/Outbox y rollback atómico;
 - `AuditLog` y `DomainEventOutbox`: tenant inyectado, separación A/B, atomicidad commit/rollback y acceso privilegiado no exportado por el facade tenant;
 - `User`, `UserSession` y `UserPasswordResetToken`: mismo email en tenants distintos, credenciales/sesiones/reset cross-tenant, revocación, expiración y FKs compuestas;
 - `/auth/me`, `/auth/logout` y `/auth/sessions/revoke-all`: el contexto deriva sólo de la sesión autenticada y no de body, query, header, route param ni cookie de plataforma;

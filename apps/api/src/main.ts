@@ -4,7 +4,12 @@ import { createApiApplication } from "./app";
 
 async function bootstrap(): Promise<void> {
   const config = loadRuntimeConfig();
-  const app = await createApiApplication(config);
+  const app = await createApiApplication(
+    config,
+    config.messagingCredentialsKey === undefined
+      ? {}
+      : { messagingCredentialsKey: config.messagingCredentialsKey },
+  );
   await app.listen(config.apiPort, "0.0.0.0");
 }
 

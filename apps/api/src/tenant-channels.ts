@@ -1,0 +1,536 @@
+import { randomUUID } from "node:crypto";
+import {
+  applyDecorators,
+  BadRequestException,
+  Body,
+  ConflictException,
+  Controller,
+  Delete,
+  ForbiddenException,
+  Get,
+  HttpCode,
+  Inject,
+  Injectable,
+  NotFoundException,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Req,
+  ServiceUnavailableException,
+  UseGuards,
+} from "@nestjs/common";
+import type {
+  ChannelAccountItem,
+  ChannelAccountListOptions,
+  ChannelAccountManager,
+  ChannelAccountPage,
+  ChannelAccountStatus,
+  TenantContext,
+} from "@whatsapp-platform/database";
+import {
+  CHANNEL_ACCOUNT_STATUSES,
+  ChannelAccountLimitReachedError,
+  ChannelAccountModuleEntitlementRequiredError,
+  ChannelAccountNotFoundError,
+  ChannelAccountOrganizationUnitNotFoundError,
+  ChannelAccountPhoneConflictError,
+} from "@whatsapp-platform/database";
+import {
+  getMessagingProvider,
+  type MessagingCredentialCipher,
+  MessagingCredentialCipherError,
+  MessagingProviderError,
+} from "@whatsapp-platform/messaging";
+import {
+  CurrentTenantContext,
+  CurrentTenantIdentity,
+  type TenantAuthenticationRequest,
+  type TenantSessionIdentity,
+} from "./tenant-context";
+import { RequireEntitlements, TenantEntitlementGuard } from "./tenant-entitlements";
+import { TenantAuthorized } from "./tenant-rbac";
+
+export const CHANNEL_ACCOUNT_MANAGER = Symbol("CHANNEL_ACCOUNT_MANAGER");
+export const MESSAGING_CREDENTIAL_CIPHER = Symbol("MESSAGING_CREDENTIAL_CIPHER");
+
+const UUID_V7_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const PROVIDER_TYPES = new Map<string, string>([
+  ["mock", "mock"],
+  ["MOCK", "mock"],
+  ["baileys", "baileys"],
+  ["BAILEYS", "baileys"],
+  ["wppconnect", "wppconnect"],
+  ["WPPCONNECT", "wppconnect"],
+  ["meta", "meta"],
+  ["META", "meta"],
+  ["meta_cloud_api", "meta"],
+  ["META_CLOUD_API", "meta"],
+]);
+const STATUS_ALIASES = new Map<string, ChannelAccountStatus>([
+  ...CHANNEL_ACCOUNT_STATUSES.map((value) => [value, value] as const),
+  ["ACTIVE", "connected"],
+  ["DISCONNECTED", "disconnected"],
+  ["CONNECTING", "pairing"],
+  ["FAILED", "error"],
+  ["ARCHIVED", "archived"],
+]);
+const MAX_SETTINGS_BYTES = 16 * 1024;
+
+type JsonPrimitive = string | number | boolean | null;
+type JsonValue = JsonPrimitive | JsonObject | JsonValue[];
+type JsonObject = { [key: string]: JsonValue };
+
+export type ChannelResponse = ChannelAccountItem & Readonly<{ name: string }>;
+
+export type ChannelTestConnectionResponse = Readonly<{
+  status: "OK" | "ERROR";
+  latencyMs: number;
+  message: string;
+  timestamp: string;
+}>;
+
+type ChannelCreatePayload = {
+  displayName: string;
+  phoneNumber: string | null;
+  providerType: string;
+  externalAccountId?: string | null;
+  organizationUnitId?: string | null;
+  active?: boolean;
+};
+
+type ChannelUpdatePayload = {
+  displayName?: string;
+  status?: ChannelAccountStatus;
+  externalAccountId?: string | null;
+  organizationUnitId?: string | null;
+  isActive?: boolean;
+};
+
+function requestId(request: TenantAuthenticationRequest): string {
+  const value = request.headers["x-request-id"];
+  const header = Array.isArray(value) ? value[0] : value;
+  return header !== undefined && /^[A-Za-z0-9._:-]{1,128}$/.test(header) ? header : randomUUID();
+}
+
+function plainObject(value: unknown, message = "Invalid channel request"): Record<string, unknown> {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    throw new BadRequestException(message);
+  }
+  return value as Record<string, unknown>;
+}
+
+function exactKeys(value: Record<string, unknown>, allowed: readonly string[]): void {
+  const keys = new Set(allowed);
+  if (Object.keys(value).some((key) => !keys.has(key))) {
+    throw new BadRequestException("Invalid channel request");
+  }
+}
+
+function stringValue(value: unknown, label: string, maxLength: number): string {
+  if (typeof value !== "string") throw new BadRequestException(`Invalid ${label}`);
+  const result = value.trim();
+  if (result.length === 0 || result.length > maxLength) {
+    throw new BadRequestException(`Invalid ${label}`);
+  }
+  return result;
+}
+
+function phoneNumber(value: unknown): string | null {
+  if (value === undefined || value === null) return null;
+  if (typeof value !== "string") throw new BadRequestException("Invalid phone number");
+  const normalized = value.replace(/[\s().-]/g, "").trim();
+  if (!/^\+?[0-9]{7,15}$/.test(normalized)) {
+    throw new BadRequestException("Invalid phone number");
+  }
+  return normalized;
+}
+
+function uuid(value: unknown, label: string): string {
+  if (typeof value !== "string" || !UUID_V7_PATTERN.test(value)) {
+    throw new BadRequestException(`Invalid ${label}`);
+  }
+  return value.toLowerCase();
+}
+
+function providerType(value: unknown): string {
+  if (typeof value !== "string") throw new BadRequestException("Invalid provider type");
+  const normalized = PROVIDER_TYPES.get(value.trim());
+  if (normalized === undefined) throw new BadRequestException("Invalid provider type");
+  return normalized;
+}
+
+function status(value: unknown): ChannelAccountStatus {
+  if (typeof value !== "string") throw new BadRequestException("Invalid channel status");
+  const normalized = STATUS_ALIASES.get(value.trim());
+  if (normalized === undefined) throw new BadRequestException("Invalid channel status");
+  return normalized;
+}
+
+function objectJson(value: unknown, message: string): JsonObject {
+  const result = plainObject(value, message);
+  if (Buffer.byteLength(JSON.stringify(result), "utf8") > MAX_SETTINGS_BYTES) {
+    throw new BadRequestException("Channel object is too large");
+  }
+  return result as JsonObject;
+}
+
+function settings(value: unknown): JsonObject {
+  return value === undefined ? {} : objectJson(value, "Invalid channel settings");
+}
+
+function credentials(value: unknown): JsonObject {
+  return value === undefined ? {} : objectJson(value, "Invalid channel credentials");
+}
+
+function response(item: ChannelAccountItem): ChannelResponse {
+  return { ...item, name: item.displayName };
+}
+
+function parseCreate(body: unknown): {
+  input: ChannelCreatePayload;
+  credentials: JsonObject;
+  settings: JsonObject;
+} {
+  const value = plainObject(body);
+  exactKeys(value, [
+    "displayName",
+    "name",
+    "phoneNumber",
+    "providerType",
+    "credentials",
+    "settings",
+    "externalAccountId",
+    "organizationUnitId",
+    "active",
+  ]);
+  if (value.displayName !== undefined && value.name !== undefined) {
+    throw new BadRequestException("Use only one channel name field");
+  }
+  if (value.active !== undefined && typeof value.active !== "boolean") {
+    throw new BadRequestException("Invalid active flag");
+  }
+  const input: ChannelCreatePayload = {
+    displayName: stringValue(value.displayName ?? value.name, "channel name", 100),
+    phoneNumber: phoneNumber(value.phoneNumber),
+    providerType: providerType(value.providerType ?? "mock"),
+  };
+  if (value.active !== undefined) input.active = value.active as boolean;
+  if (value.externalAccountId !== undefined) {
+    input.externalAccountId =
+      value.externalAccountId === null
+        ? null
+        : stringValue(value.externalAccountId, "external account id", 255);
+  }
+  if (value.organizationUnitId !== undefined) {
+    input.organizationUnitId =
+      value.organizationUnitId === null
+        ? null
+        : uuid(value.organizationUnitId, "organization unit id");
+  }
+  return { credentials: credentials(value.credentials), input, settings: settings(value.settings) };
+}
+
+function parseUpdate(body: unknown): {
+  input: ChannelUpdatePayload;
+  credentials: JsonObject | undefined;
+  settings: JsonObject | undefined;
+} {
+  const value = plainObject(body);
+  exactKeys(value, [
+    "displayName",
+    "name",
+    "status",
+    "credentials",
+    "settings",
+    "externalAccountId",
+    "organizationUnitId",
+    "isActive",
+  ]);
+  if (Object.keys(value).length === 0) throw new BadRequestException("Invalid channel update");
+  if (value.displayName !== undefined && value.name !== undefined) {
+    throw new BadRequestException("Use only one channel name field");
+  }
+  if (value.isActive !== undefined && typeof value.isActive !== "boolean") {
+    throw new BadRequestException("Invalid active flag");
+  }
+  const input: ChannelUpdatePayload = {};
+  if (value.displayName !== undefined || value.name !== undefined) {
+    input.displayName = stringValue(value.displayName ?? value.name, "channel name", 100);
+  }
+  if (value.externalAccountId !== undefined) {
+    input.externalAccountId =
+      value.externalAccountId === null
+        ? null
+        : stringValue(value.externalAccountId, "external account id", 255);
+  }
+  if (value.isActive !== undefined) input.isActive = value.isActive as boolean;
+  if (value.organizationUnitId !== undefined) {
+    input.organizationUnitId =
+      value.organizationUnitId === null
+        ? null
+        : uuid(value.organizationUnitId, "organization unit id");
+  }
+  if (value.status !== undefined) input.status = status(value.status);
+  return {
+    credentials: value.credentials === undefined ? undefined : credentials(value.credentials),
+    input,
+    settings: value.settings === undefined ? undefined : settings(value.settings),
+  };
+}
+
+function pageValue(value: unknown, label: string, max: number, fallback: number): number {
+  if (value === undefined) return fallback;
+  const parsed = typeof value === "string" ? Number(value) : Number.NaN;
+  if (!Number.isInteger(parsed) || parsed < 1 || parsed > max) {
+    throw new BadRequestException(`Invalid ${label}`);
+  }
+  return parsed;
+}
+
+function mapError(error: unknown): never {
+  if (error instanceof ChannelAccountNotFoundError)
+    throw new NotFoundException("Channel not found");
+  if (error instanceof ChannelAccountOrganizationUnitNotFoundError) {
+    throw new NotFoundException("Organization unit not found");
+  }
+  if (error instanceof ChannelAccountPhoneConflictError) {
+    throw new ConflictException({
+      code: "CHANNEL_PHONE_CONFLICT",
+      error: "Conflict",
+      message: "An active channel already uses this phone number",
+      statusCode: 409,
+    });
+  }
+  if (error instanceof ChannelAccountLimitReachedError) {
+    throw new ConflictException({
+      code: "CHANNEL_LIMIT_REACHED",
+      error: "Conflict",
+      message: "The channel account limit for the workspace has been reached",
+      statusCode: 409,
+    });
+  }
+  if (error instanceof ChannelAccountModuleEntitlementRequiredError) {
+    throw new ForbiddenException({
+      code: "ENTITLEMENT_REQUIRED",
+      error: "Forbidden",
+      message: "The messaging module is not enabled",
+      moduleKey: "module.messaging.basic",
+      statusCode: 403,
+    });
+  }
+  if (error instanceof MessagingCredentialCipherError) {
+    throw new ServiceUnavailableException("Messaging credential encryption is not configured");
+  }
+  throw error;
+}
+
+function messagingAuthorized(
+  ...permissions: ["channels.read"] | ["channels.manage"]
+): MethodDecorator & ClassDecorator {
+  return applyDecorators(
+    TenantAuthorized(...permissions),
+    RequireEntitlements("module.messaging.basic"),
+    UseGuards(TenantEntitlementGuard),
+  );
+}
+
+@Injectable()
+export class TenantChannelsService {
+  constructor(
+    @Inject(CHANNEL_ACCOUNT_MANAGER) private readonly manager: ChannelAccountManager,
+    @Inject(MESSAGING_CREDENTIAL_CIPHER)
+    private readonly credentialCipher: MessagingCredentialCipher | null,
+  ) {}
+
+  list(
+    context: TenantContext,
+    query: Record<string, string | undefined>,
+  ): Promise<ChannelAccountPage> {
+    const options: ChannelAccountListOptions = {
+      page: pageValue(query.page, "page", 10_000, 1),
+      pageSize: pageValue(query.pageSize, "page size", 100, 25),
+      ...(query.status === undefined ? {} : { status: status(query.status) }),
+    };
+    return this.manager.list(context, options);
+  }
+
+  async create(
+    context: TenantContext,
+    identity: TenantSessionIdentity,
+    requestIdValue: string,
+    body: unknown,
+  ): Promise<ChannelResponse> {
+    const parsed = parseCreate(body);
+    try {
+      const ciphertext = this.encryptCredentials(parsed.credentials);
+      const item = await this.manager.create(
+        context,
+        { ...parsed.input, credentialsCiphertext: ciphertext, settings: parsed.settings },
+        { actorUserId: identity.userId, requestId: requestIdValue },
+      );
+      return response(item);
+    } catch (error) {
+      return mapError(error);
+    }
+  }
+
+  async get(context: TenantContext, channelId: string): Promise<ChannelResponse> {
+    const item = await this.manager.findById(context, this.channelId(channelId));
+    if (item === null) throw new NotFoundException("Channel not found");
+    return response(item);
+  }
+
+  async update(
+    context: TenantContext,
+    identity: TenantSessionIdentity,
+    requestIdValue: string,
+    channelId: string,
+    body: unknown,
+  ): Promise<ChannelResponse> {
+    const parsed = parseUpdate(body);
+    try {
+      const ciphertext =
+        parsed.credentials === undefined ? undefined : this.encryptCredentials(parsed.credentials);
+      const item = await this.manager.update(
+        context,
+        this.channelId(channelId),
+        {
+          ...parsed.input,
+          ...(ciphertext === undefined ? {} : { credentialsCiphertext: ciphertext }),
+          ...(parsed.settings === undefined ? {} : { settings: parsed.settings }),
+        },
+        { actorUserId: identity.userId, requestId: requestIdValue },
+      );
+      return response(item);
+    } catch (error) {
+      return mapError(error);
+    }
+  }
+
+  async archive(
+    context: TenantContext,
+    identity: TenantSessionIdentity,
+    requestIdValue: string,
+    channelId: string,
+  ): Promise<ChannelResponse> {
+    try {
+      const item = await this.manager.archive(context, this.channelId(channelId), {
+        actorUserId: identity.userId,
+        requestId: requestIdValue,
+      });
+      return response(item);
+    } catch (error) {
+      return mapError(error);
+    }
+  }
+
+  async testConnection(
+    context: TenantContext,
+    channelId: string,
+  ): Promise<ChannelTestConnectionResponse> {
+    const item = await this.manager.findById(context, this.channelId(channelId));
+    if (item === null) throw new NotFoundException("Channel not found");
+    const started = performance.now();
+    try {
+      const health = await getMessagingProvider({
+        providerType: item.providerType,
+      }).getHealthStatus();
+      return {
+        latencyMs: Math.max(0, Math.round(performance.now() - started)),
+        message: health.message ?? health.status,
+        status: health.status === "healthy" ? "OK" : "ERROR",
+        timestamp: health.checkedAt.toISOString(),
+      };
+    } catch (error) {
+      if (error instanceof MessagingProviderError) {
+        throw new ConflictException({
+          code: error.code,
+          error: "Conflict",
+          message: error.message,
+        });
+      }
+      throw error;
+    }
+  }
+
+  private encryptCredentials(value: Record<string, unknown>): string | null {
+    if (Object.keys(value).length === 0) return null;
+    if (this.credentialCipher === null) {
+      throw new MessagingCredentialCipherError("Messaging credential encryption is not configured");
+    }
+    return this.credentialCipher.encrypt(value);
+  }
+
+  private channelId(value: string): string {
+    if (!UUID_V7_PATTERN.test(value)) throw new BadRequestException("Invalid channel id");
+    return value.toLowerCase();
+  }
+}
+
+@Controller(["app/channels", "api/v1/channels"])
+export class TenantChannelsController {
+  constructor(private readonly service: TenantChannelsService) {}
+
+  @Get()
+  @messagingAuthorized("channels.read")
+  list(
+    @Query() query: Record<string, string | undefined>,
+    @CurrentTenantContext() context: TenantContext,
+  ): Promise<ChannelAccountPage> {
+    return this.service.list(context, query);
+  }
+
+  @Post()
+  @HttpCode(201)
+  @messagingAuthorized("channels.manage")
+  create(
+    @CurrentTenantContext() context: TenantContext,
+    @CurrentTenantIdentity() identity: TenantSessionIdentity,
+    @Req() request: TenantAuthenticationRequest,
+    @Body() body: unknown,
+  ): Promise<ChannelResponse> {
+    return this.service.create(context, identity, requestId(request), body);
+  }
+
+  @Get(":channelId")
+  @messagingAuthorized("channels.read")
+  get(
+    @Param("channelId") channelId: string,
+    @CurrentTenantContext() context: TenantContext,
+  ): Promise<ChannelResponse> {
+    return this.service.get(context, channelId);
+  }
+
+  @Patch(":channelId")
+  @messagingAuthorized("channels.manage")
+  update(
+    @Param("channelId") channelId: string,
+    @CurrentTenantContext() context: TenantContext,
+    @CurrentTenantIdentity() identity: TenantSessionIdentity,
+    @Req() request: TenantAuthenticationRequest,
+    @Body() body: unknown,
+  ): Promise<ChannelResponse> {
+    return this.service.update(context, identity, requestId(request), channelId, body);
+  }
+
+  @Delete(":channelId")
+  @messagingAuthorized("channels.manage")
+  archive(
+    @Param("channelId") channelId: string,
+    @CurrentTenantContext() context: TenantContext,
+    @CurrentTenantIdentity() identity: TenantSessionIdentity,
+    @Req() request: TenantAuthenticationRequest,
+  ): Promise<ChannelResponse> {
+    return this.service.archive(context, identity, requestId(request), channelId);
+  }
+
+  @Post(":channelId/test-connection")
+  @messagingAuthorized("channels.manage")
+  testConnection(
+    @Param("channelId") channelId: string,
+    @CurrentTenantContext() context: TenantContext,
+  ): Promise<ChannelTestConnectionResponse> {
+    return this.service.testConnection(context, channelId);
+  }
+}

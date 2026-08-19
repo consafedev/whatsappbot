@@ -177,6 +177,7 @@ model Tenant {
   passwordResetTokens UserPasswordResetToken[]
   roles               Role[]
   userRoles           UserRole[]
+  channelAccounts     ChannelAccount[]
 
   @@index([status], map: "tenant_status_idx")
   @@index([deploymentId], map: "tenant_deployment_id_idx")
@@ -397,10 +398,44 @@ model OrganizationUnit {
   children        OrganizationUnit[]   @relation("OrganizationUnitHierarchy")
   auditLogs       AuditLog[]
   userRoles       UserRole[]
+  channelAccounts ChannelAccount[]
 
   @@unique([tenantId, id], map: "organization_unit_tenant_id_id_key")
   @@index([tenantId], map: "organization_unit_tenant_id_idx")
   @@index([parentId], map: "organization_unit_parent_id_idx")
   @@index([tenantId, active], map: "organization_unit_tenant_active_idx")
   @@map("organization_unit")
+}
+
+model ChannelAccount {
+  id                    String            @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  tenantId              String            @map("tenant_id") @db.Uuid
+  organizationUnitId    String?           @map("organization_unit_id") @db.Uuid
+  channelType           String            @default("whatsapp") @map("channel_type")
+  providerType          String            @map("provider_type")
+  displayName           String            @map("display_name")
+  externalAccountId     String?           @map("external_account_id")
+  phoneNumber           String?           @map("phone_number")
+  phoneNumberUniqueKey  String?           @map("phone_number_unique_key")
+  status                String            @default("disconnected")
+  automationDefaultMode String?          @map("automation_default_mode")
+  credentialsCiphertext String?          @map("credentials_ciphertext")
+  credentialsKeyVersion Int?             @map("credentials_key_version")
+  providerConfig        Json?             @map("provider_config") @db.JsonB
+  settings              Json              @default("{}") @db.JsonB
+  lastConnectedAt       DateTime?         @map("last_connected_at") @db.Timestamptz(3)
+  lastDisconnectedAt    DateTime?         @map("last_disconnected_at") @db.Timestamptz(3)
+  lastErrorCode         String?           @map("last_error_code")
+  lastErrorAt           DateTime?         @map("last_error_at") @db.Timestamptz(3)
+  healthStatus          String?           @map("health_status")
+  createdAt             DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  active                Boolean           @default(true)
+  tenant                Tenant            @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  organizationUnit      OrganizationUnit? @relation(fields: [tenantId, organizationUnitId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@unique([tenantId, phoneNumberUniqueKey], map: "channel_account_tenant_phone_active_key")
+  @@index([tenantId], map: "channel_account_tenant_id_idx")
+  @@index([tenantId, status], map: "channel_account_tenant_status_idx")
+  @@map("channel_account")
 }

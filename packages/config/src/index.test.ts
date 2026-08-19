@@ -52,4 +52,14 @@ describe("configuration", () => {
       redisUrl: "redis://:password@localhost:6379",
     });
   });
+
+  it("treats an empty optional messaging key as not configured", () => {
+    const config = loadSecretConfig({
+      DATABASE_URL: "postgresql://user:password@localhost:5432/platform",
+      MESSAGING_CREDENTIALS_KEY: "",
+      REDIS_URL: "redis://:password@localhost:6379",
+    });
+
+    expect(config).not.toHaveProperty("messagingCredentialsKey");
+  });
 });
