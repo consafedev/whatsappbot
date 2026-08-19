@@ -1,8 +1,8 @@
 # STATUS.md — Estado operativo actual del proyecto
 
-**Actualizado:** 2026-08-18
+**Actualizado:** 2026-08-19
 **Versión de producto:** `0.0.0`  
-**Estado:** E05-S01 — PASS; **Epic 05 — Messaging Provider Core — IN PROGRESS**.
+**Estado:** E05-S02 — PASS; **Epic 05 — Messaging Provider Core — IN PROGRESS**.
 
 ## Current milestone
 
@@ -15,6 +15,7 @@ Messaging Provider Core.
 Estado por historia:
 
 - E05-S01 — Messaging Provider SPI, channel management y Mock driver: **PASS**.
+- E05-S02 — Inbound Webhook Ingestion & Normalizer Pipeline: **PASS**.
 
 Epics anteriores:
 
@@ -44,6 +45,12 @@ Epics base:
 - `createChannelAccountManager(...)` aplica `module.messaging.basic`, `limit.channel_accounts` con `Prisma.Decimal`, advisory lock transaccional por tenant, validación de OUs, CRUD/archive tenant-scoped y Audit + Outbox atómicos (`channel.created|updated|deleted`) sin credenciales en responses, summaries ni payloads.
 - La API expone `GET/POST/PATCH/DELETE /api/v1/channels`, detalle y `test-connection`, además de aliases canónicos `/app/channels`; requiere `channels.read`/`channels.manage` y entitlement efectivo, devuelve 404 para IDs cross-tenant y cifra credenciales con AES-256-GCM usando `MESSAGING_CREDENTIALS_KEY` fuera de la base.
 - Verificación E05-S01: Vitest raíz 17 archivos/84 pruebas; suite database 4/4 y API 5/5 contra PostgreSQL 18.4/Nest reales; migration aplicada, Biome/typecheck/build Docker API y health del contenedor PASS. Cobertura porcentual no medida.
+- E05-S02 — `packages/messaging` amplía el DTO normalizado y añade normalización pura para payloads genéricos/mock y Meta Cloud API, con contexto confiable de `tenantId`/`channelId`, texto, media, receipts, timestamps y fallback `UNKNOWN`; WPPConnect queda cubierto por el parser genérico sin afirmar un transporte provider real.
+- E05-S02 — `InboundMessageEvent` tenant-owned se añadió con la migration Prisma `20260818110000_inbound_message_event_foundation`, UUIDv7, JSONB raw/normalized, estado `PENDING|PROCESSED|DUPLICATE|FAILED`, índices tenant/channel/status, unique `(tenant_id, channel_account_id, provider_message_id)` y FKs restrictivas conforme al modelo vigente.
+- E05-S02 — manager tenant-safe valida tenant operativo, entitlement `module.messaging.basic` y canal activo; persiste evento + Outbox `messaging.inbound.event_received` en la misma transaction y resuelve duplicados sin segunda fila ni segundo evento, incluyendo carreras `P2002` fuera de la transacción abortada.
+- E05-S02 — API pública `GET/POST /api/v1/webhooks/whatsapp/:channelId` y `POST /api/v1/webhooks/whatsapp/mock/:channelId`: handshake Meta, HMAC sobre raw body, límite JSON de 256 KB, ACK HTTP 200, resolución de tenant sólo desde ChannelAccount y credenciales siempre cifradas; no se implementaron Contacts, Conversations, UI ni providers reales.
+- Verificación E05-S02: normalizer 3/3, database 3/3 y API 4/4 contra PostgreSQL 18.4/Nest reales en Docker; `db:validate`, `db:generate`, typecheck, build host y Biome PASS. Cobertura porcentual no medida. La exportación final de la imagen Docker quedó sin completar por bloqueo de Docker Desktop; el contenedor de pruebas existente ejecutó la migración y las suites contra PostgreSQL real.
+- Discrepancia documental explícita: el backlog histórico `DATA_MODEL_ERD_MVP_BACKLOG.md` todavía etiqueta E05-S02 como Baileys adapter y E05-S03 como ChannelAccount management. Esta ejecución siguió el prompt vigente y este STATUS operativo para inbound webhooks; Baileys real permanece diferido y el backlog histórico no se reescribió silenciosamente.
 
 - E04-S01 — App shell: **PASS**; Epic 04 quedó **PASS / COMPLETE**.
 - `/app` usa un layout Next.js reusable, sidebar desktop-first, drawer móvil accesible, identidad real del Tenant/User y logout por `POST /auth/logout`.
@@ -248,18 +255,19 @@ Epics base:
 
 ## In progress
 
-E05-S01 está completada y verificada; Epic 05 continúa **IN PROGRESS** hasta implementar la historia siguiente.
+E05-S02 está completada y verificada; Epic 05 continúa **IN PROGRESS** hasta implementar la historia siguiente.
 
 ## Blocked
 
-Ningún bloqueo de código para E05-S01. Los providers WhatsApp reales, webhooks y la cola de envíos permanecen fuera del alcance de esta historia.
+No hay bloqueo funcional de E05-S02. La exportación de imagen Docker debe reintentarse en un entorno Docker Desktop estable antes de usar esta build como artefacto de release; los providers WhatsApp reales, Contacts/Conversations y la cola de envíos permanecen fuera del alcance.
 
 ## Next story
 
-`E05-S02 — Inbound Webhook Ingestion & Normalizer Pipeline`
+`E05-S03 — Outbound Messaging Queue, Dispatcher & Retry Worker`
 
 ## Last verified commands
 
+  - E05-S02 — PASS; `pnpm --filter @whatsapp-platform/database test:integration:inbound-webhooks` (3/3), `pnpm --filter @whatsapp-platform/api test:integration:inbound-webhooks` (4/4), normalizer (3/3), migration deploy, Biome, typecheck y build host; las suites se ejecutaron contra PostgreSQL 18.4/Nest reales en Docker.
   - E05-S01 — PASS; `pnpm vitest run` (17 archivos/84 pruebas), `pnpm --filter @whatsapp-platform/database test:integration:channel-accounts` (4/4), `pnpm --filter @whatsapp-platform/api test:integration:channel-accounts` (5/5), migration deploy, Biome, typecheck y `docker compose build api`.
 - E04-S04 regresiones — PASS; Organization Units database 14/14 y API 15/15, tenant detail database 5/5 y API 4/4.
 - `tsc -p tsconfig.json --noEmit` / `biome check --formatter-enabled=true --linter-enabled=true .` — PASS; 207 archivos Biome y TypeScript strict.

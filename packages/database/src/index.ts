@@ -37,6 +37,20 @@ export type {
 } from "./generated/prisma/client";
 export * from "./generated/prisma/enums";
 export {
+  createInboundEventManager,
+  INBOUND_EVENT_STATUSES,
+  InboundChannelInactiveError,
+  InboundChannelNotFoundError,
+  type InboundEventInput,
+  type InboundEventManager,
+  type InboundEventManagerDatabase,
+  type InboundEventRecord,
+  type InboundEventResult,
+  type InboundEventStatus,
+  InboundMessagingModuleRequiredError,
+  InboundTenantNotOperationalError,
+} from "./inbound-event-manager";
+export {
   createOrganizationUnitManager,
   ORGANIZATION_UNIT_MAX_DEPTH,
   OrganizationUnitCompanyTypeReservedError,

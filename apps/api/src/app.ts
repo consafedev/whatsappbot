@@ -1,14 +1,17 @@
 import { Controller, Get, Module } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
+import type { NestExpressApplication } from "@nestjs/platform-express";
 import { platformCookieConfig, tenantCookieConfig } from "@whatsapp-platform/auth";
 import type { NonSecretConfig } from "@whatsapp-platform/config";
 import {
   createChannelAccountManager,
+  createInboundEventManager,
   createOrganizationUnitManager,
   createTenantThemeRepository,
   createUserManagementManager,
 } from "@whatsapp-platform/database";
 import {
+  createInboundWebhookChannelResolver,
   createPlatformAuthRepository,
   createPlatformTenantDetailQueryService,
   createPlatformTenantEntitlementAdminRepository,
@@ -22,6 +25,13 @@ import {
 } from "@whatsapp-platform/database/platform";
 import { createMessagingCredentialCipher } from "@whatsapp-platform/messaging";
 import { EntitlementTestProbeController } from "./entitlement-test-probe";
+import {
+  INBOUND_EVENT_MANAGER,
+  INBOUND_WEBHOOK_CHANNEL_RESOLVER,
+  INBOUND_WEBHOOK_OPTIONS,
+  InboundWebhookController,
+  InboundWebhookService,
+} from "./inbound-webhooks";
 import {
   PLATFORM_AUTH_OPTIONS,
   PLATFORM_AUTH_REPOSITORY,
@@ -128,6 +138,7 @@ export async function createApiApplication(
       TenantOrganizationUnitsController,
       TenantUserManagementController,
       TenantChannelsController,
+      InboundWebhookController,
       ...(config.environment === "test" ? [EntitlementTestProbeController] : []),
     ],
     providers: [
@@ -153,6 +164,7 @@ export async function createApiApplication(
       TenantOrganizationUnitsService,
       TenantUserManagementService,
       TenantChannelsService,
+      InboundWebhookService,
       {
         provide: ORGANIZATION_UNIT_MANAGER,
         useFactory: () => createOrganizationUnitManager(getPlatformDatabaseClient()),
@@ -164,6 +176,18 @@ export async function createApiApplication(
       {
         provide: CHANNEL_ACCOUNT_MANAGER,
         useFactory: () => createChannelAccountManager(getPlatformDatabaseClient()),
+      },
+      {
+        provide: INBOUND_EVENT_MANAGER,
+        useFactory: () => createInboundEventManager(getPlatformDatabaseClient()),
+      },
+      {
+        provide: INBOUND_WEBHOOK_CHANNEL_RESOLVER,
+        useFactory: () => createInboundWebhookChannelResolver(getPlatformDatabaseClient()),
+      },
+      {
+        provide: INBOUND_WEBHOOK_OPTIONS,
+        useValue: { allowMock: config.environment !== "production" },
       },
       {
         provide: MESSAGING_CREDENTIAL_CIPHER,
@@ -221,7 +245,8 @@ export async function createApiApplication(
   })
   class AppModule {}
 
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, { rawBody: true });
+  app.useBodyParser("json", { limit: "256kb" });
   app.enableCors({
     credentials: true,
     origin: [...new Set([config.platformWebOrigin, config.tenantWebOrigin])],

@@ -1,7 +1,9 @@
 import { randomUUID } from "node:crypto";
+import { normalizeInboundPayload } from "./inbound-normalizer";
 import {
   type ConnectionResult,
   type ConnectionState,
+  type InboundNormalizationContext,
   MESSAGE_STATUS,
   MessagingProvider,
   type MockMessagingProviderOptions,
@@ -85,30 +87,13 @@ export class MockMessagingProvider extends MessagingProvider {
 
   async normalizeInboundPayload(
     payload: Readonly<Record<string, unknown>>,
+    context: InboundNormalizationContext = {
+      channelId: "",
+      providerType: "mock",
+      tenantId: "",
+    },
   ): Promise<NormalizedInboundEvent> {
-    const text = typeof payload.text === "string" ? payload.text : null;
-    const from = typeof payload.from === "string" ? payload.from : null;
-    const mediaUrl = typeof payload.mediaUrl === "string" ? payload.mediaUrl : null;
-    const providerMessageId =
-      typeof payload.providerMessageId === "string" ? payload.providerMessageId : null;
-    const rawTimestamp =
-      typeof payload.timestamp === "string" ? new Date(payload.timestamp) : new Date();
-    const providerTimestamp = Number.isNaN(rawTimestamp.getTime()) ? new Date() : rawTimestamp;
-    return {
-      contactPoint: from,
-      conversationExternalId:
-        typeof payload.conversationId === "string" ? payload.conversationId : from,
-      direction: "inbound",
-      eventId: typeof payload.eventId === "string" ? payload.eventId : randomUUID(),
-      mediaType: typeof payload.mediaType === "string" ? payload.mediaType : null,
-      mediaUrl,
-      messageType: text !== null ? "text" : mediaUrl !== null ? "media" : "unknown",
-      metadata: {},
-      origin: payload.fromMe === true ? "human_external_device" : "customer",
-      providerMessageId,
-      providerTimestamp,
-      textBody: text,
-    };
+    return normalizeInboundPayload("mock", payload, context);
   }
 
   async getHealthStatus(): Promise<ProviderHealth> {

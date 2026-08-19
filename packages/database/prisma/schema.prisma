@@ -178,6 +178,7 @@ model Tenant {
   roles               Role[]
   userRoles           UserRole[]
   channelAccounts     ChannelAccount[]
+  inboundMessageEvents InboundMessageEvent[]
 
   @@index([status], map: "tenant_status_idx")
   @@index([deploymentId], map: "tenant_deployment_id_idx")
@@ -433,9 +434,33 @@ model ChannelAccount {
   active                Boolean           @default(true)
   tenant                Tenant            @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   organizationUnit      OrganizationUnit? @relation(fields: [tenantId, organizationUnitId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade)
+  inboundMessageEvents  InboundMessageEvent[]
 
   @@unique([tenantId, phoneNumberUniqueKey], map: "channel_account_tenant_phone_active_key")
   @@index([tenantId], map: "channel_account_tenant_id_idx")
   @@index([tenantId, status], map: "channel_account_tenant_status_idx")
   @@map("channel_account")
+}
+
+model InboundMessageEvent {
+  id                 String         @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  tenantId           String         @map("tenant_id") @db.Uuid
+  channelAccountId   String         @map("channel_account_id") @db.Uuid
+  providerMessageId  String?        @map("provider_message_id")
+  eventType          String         @default("MESSAGE_RECEIVED") @map("event_type")
+  senderPhone        String?        @map("sender_phone")
+  recipientPhone     String?        @map("recipient_phone")
+  messageType        String?        @map("message_type")
+  payload            Json           @db.JsonB
+  normalizedData     Json?          @map("normalized_data") @db.JsonB
+  processedStatus    String         @default("PENDING") @map("processed_status")
+  createdAt          DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  processedAt        DateTime?      @map("processed_at") @db.Timestamptz(3)
+  tenant             Tenant         @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  channelAccount     ChannelAccount @relation(fields: [channelAccountId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([tenantId, channelAccountId], map: "inbound_message_event_tenant_channel_idx")
+  @@index([tenantId, processedStatus], map: "inbound_message_event_tenant_status_idx")
+  @@unique([tenantId, channelAccountId, providerMessageId], map: "inbound_message_event_provider_message_key")
+  @@map("inbound_message_event")
 }

@@ -12,6 +12,21 @@ export type MessageStatus = (typeof MESSAGE_STATUS)[keyof typeof MESSAGE_STATUS]
 export const MessageStatusEnum = MESSAGE_STATUS;
 
 export type ProviderType = "mock" | "baileys" | "wppconnect" | "meta";
+export type InboundEventType =
+  | "MESSAGE_RECEIVED"
+  | "STATUS_UPDATE"
+  | "DELIVERY_RECEIPT"
+  | "UNKNOWN";
+export type NormalizedMessageType =
+  | "text"
+  | "image"
+  | "audio"
+  | "document"
+  | "video"
+  | "location"
+  | "interactive"
+  | "media"
+  | "unknown";
 export type ProviderHealthState = "healthy" | "degraded" | "disconnected" | "error";
 export type ConnectionState =
   | "not_configured"
@@ -33,14 +48,43 @@ export type ProviderSendResult = Readonly<{
 
 export type SendMessageMetadata = Readonly<Record<string, unknown>>;
 
+export type InboundNormalizationContext = Readonly<{
+  channelId: string;
+  tenantId: string;
+  providerType: ProviderType;
+}>;
+
+export type NormalizedMedia = Readonly<{
+  url: string;
+  mimeType: string;
+  fileName?: string;
+  caption?: string;
+}>;
+
+export type NormalizedStatusUpdate = Readonly<{
+  status: "sent" | "delivered" | "read" | "failed";
+  timestamp: Date;
+  errorCode?: string;
+}>;
+
 export type NormalizedInboundEvent = Readonly<{
+  providerType: ProviderType;
+  channelId: string;
+  tenantId: string;
+  eventType: InboundEventType;
   eventId: string;
   providerMessageId: string | null;
+  senderPhone: string | null;
+  recipientPhone: string | null;
+  messageType: NormalizedMessageType;
+  media: NormalizedMedia | null;
+  statusUpdate: NormalizedStatusUpdate | null;
+  rawPayload: Readonly<Record<string, unknown>>;
+  timestamp: Date;
   conversationExternalId: string | null;
   contactPoint: string | null;
   direction: "inbound";
   origin: "customer" | "human_external_device";
-  messageType: "text" | "media" | "unknown";
   textBody: string | null;
   mediaUrl: string | null;
   mediaType: string | null;
@@ -118,6 +162,7 @@ export abstract class MessagingProvider {
   ): boolean;
   abstract normalizeInboundPayload(
     payload: Readonly<Record<string, unknown>>,
+    context?: InboundNormalizationContext,
   ): Promise<NormalizedInboundEvent>;
   abstract getHealthStatus(): Promise<ProviderHealth>;
 }

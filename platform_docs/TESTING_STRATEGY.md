@@ -84,6 +84,7 @@ La matriz dedicada se ejecuta con `pnpm test:security:tenant-isolation` contra P
 - `TenantEntitlement` y `OrganizationUnit`: reads tenant-scoped, mutation de entitlements sólo desde Platform, IDs ajenos, inputs hostiles, jerarquía y FK compuesta;
 - `ChannelAccount`: list/create/update/archive y test de provider con Tenant A/B, 404 cross-tenant en read/PATCH/DELETE, phone activo duplicado, límite exacto, OU cross-tenant, ciphertext ausente de respuestas/Audit/Outbox y rollback atómico;
 - `AuditLog` y `DomainEventOutbox`: tenant inyectado, separación A/B, atomicidad commit/rollback y acceso privilegiado no exportado por el facade tenant;
+- `InboundMessageEvent`: tenant/canal derivados desde la cuenta de provider resuelta por `channelId`, persistencia raw+normalized, Outbox atómico, deduplicación por provider message id, canal inactivo/no-entitled y aislamiento A/B;
 - `User`, `UserSession` y `UserPasswordResetToken`: mismo email en tenants distintos, credenciales/sesiones/reset cross-tenant, revocación, expiración y FKs compuestas;
 - `/auth/me`, `/auth/logout` y `/auth/sessions/revoke-all`: el contexto deriva sólo de la sesión autenticada y no de body, query, header, route param ni cookie de plataforma;
 - requests y transacciones concurrentes A/B sobre el mismo cliente sin contaminación de contexto;
@@ -223,6 +224,17 @@ Cada adapter debe aprobar:
 - malformed provider event.
 
 No todos los providers soportan exactamente las mismas receipts; contract puede declarar capability flags.
+
+## 7.1 Inbound webhook ingestion (E05-S02)
+
+Las suites dedicadas ejecutan normalizer unitario (3 pruebas), database (3 pruebas) y API (4 pruebas) contra PostgreSQL 18.4/Nest reales. La matriz mínima cubre:
+
+- texto genérico/mock, imagen Meta, delivery receipt y payload malformado con `UNKNOWN` explícito;
+- handshake Meta correcto/incorrecto y rechazo de UUID inexistente o canal inactivo;
+- HMAC sobre el raw body, límite JSON de 256 KB y ACK HTTP 200 sólo después de commit del evento + Outbox;
+- duplicate provider message id sin segundo evento ni segundo Outbox, incluido el camino de carrera `P2002`;
+- entitlement `module.messaging.basic`, tenant suspendido y cross-tenant channel ID fail-closed;
+- mock route sólo fuera de producción, sin Contacts/Conversations y sin afirmar provider real no implementado.
 
 ---
 

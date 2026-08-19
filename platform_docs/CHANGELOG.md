@@ -8,6 +8,12 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Added
 
+- E05-S02 con normalización inbound pura para payloads genéricos/mock y Meta Cloud API, contexto confiable de tenant/canal, media, receipts, timestamps y fallback `UNKNOWN`; WPPConnect queda en el parser genérico y no se presenta como provider real implementado.
+- `InboundMessageEvent` tenant-owned y migration Prisma `20260818110000_inbound_message_event_foundation`, con UUIDv7, JSONB raw/normalized, estados de procesamiento, índices tenant/channel/status, deduplicación por `(tenant_id, channel_account_id, provider_message_id)` y FKs restrictivas alineadas con la autoridad vigente del modelo.
+- Manager de ingestión con revalidación de tenant operativo + `module.messaging.basic`, persistencia atómica de evento y Outbox `messaging.inbound.event_received`, deduplicación segura incluso ante carreras `P2002`, sin doble fila ni doble notificación.
+- Webhooks públicos `GET/POST /api/v1/webhooks/whatsapp/:channelId` y `POST /api/v1/webhooks/whatsapp/mock/:channelId`, handshake Meta, HMAC raw-body, límite JSON de 256 KB, ACK rápido y resolución de tenant exclusivamente desde `ChannelAccount`; secretos sólo via ciphertext de credenciales.
+- Tests E05-S02: normalizer 3/3, database 3/3 y API 4/4 contra PostgreSQL 18.4/Nest reales en Docker; sin Contacts, Conversations, UI ni provider WhatsApp real.
+- Reconciliación documental registrada: el backlog histórico aún llama a E05-S02 “Baileys adapter”; esta historia siguió el prompt vigente y el STATUS operativo sin reescribir silenciosamente ese backlog.
 - E05-S01 con `@whatsapp-platform/messaging`: `MessagingProvider`/DTOs agnósticos, estados de mensaje, normalización inbound, firma HMAC, health y `MockMessagingProvider` con inspección en memoria y fallos configurables; la factory falla cerrado para providers reales aún no implementados.
 - `ChannelAccount` tenant-owned y migration Prisma `20260818090000_messaging_channel_account_foundation`, con phone único por tenant para canales activos, credenciales AES-256-GCM fuera de la proyección pública, configuración y health/lifecycle fields, FK compuesta tenant/OUnit e índices tenant/status.
 - Manager tenant-safe para listar, crear, actualizar y archivar canales con `module.messaging.basic`, `limit.channel_accounts`, advisory lock PostgreSQL, validación de OU, Audit + Outbox atómicos y ausencia de secretos en responses, summaries y payloads.

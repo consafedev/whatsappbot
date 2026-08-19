@@ -1,3 +1,4 @@
+import { InboundMessagingProviderAdapter } from "./inbound-provider";
 import { MockMessagingProvider } from "./mock-provider";
 import {
   type MessagingProvider,
@@ -14,6 +15,15 @@ export type MessagingProviderFactoryOptions = Readonly<{
   mock?: MockMessagingProviderOptions;
 }>;
 
+export function canonicalProviderType(value: string): ProviderType | null {
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "mock") return "mock";
+  if (normalized === "baileys") return "baileys";
+  if (normalized === "wppconnect") return "wppconnect";
+  if (normalized === "meta" || normalized === "meta_cloud_api") return "meta";
+  return null;
+}
+
 export function getMessagingProvider(
   channel: MessagingProviderChannel,
   options: MessagingProviderFactoryOptions = {},
@@ -24,4 +34,15 @@ export function getMessagingProvider(
     "UNSUPPORTED_PROVIDER",
     `Provider ${channel.providerType} is not implemented in this release`,
   );
+}
+
+export function getMessagingInboundProvider(channel: MessagingProviderChannel): MessagingProvider {
+  const provider = canonicalProviderType(channel.providerType);
+  if (provider === null) {
+    throw new MessagingProviderError(
+      "UNSUPPORTED_PROVIDER",
+      `Provider ${channel.providerType} is not implemented in this release`,
+    );
+  }
+  return new InboundMessagingProviderAdapter(provider);
 }

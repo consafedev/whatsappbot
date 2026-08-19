@@ -9,6 +9,12 @@ import {
 import { PrismaClient } from "./generated/prisma/client";
 
 export {
+  createInboundWebhookChannelResolver,
+  type InboundWebhookChannel,
+  type InboundWebhookChannelResolver,
+  type InboundWebhookChannelResolverDatabase,
+} from "./inbound-webhook-channel";
+export {
   type BootstrapPlatformAdminInput,
   type CreatePlatformAdminInput,
   type CreatePlatformAdminSessionInput,
