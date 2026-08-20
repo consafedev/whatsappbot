@@ -35,6 +35,24 @@ export {
   createContactManager,
 } from "./contact-manager";
 export {
+  CONVERSATION_AUTOMATION_MODES,
+  CONVERSATION_STATUSES,
+  type ConversationAutomationMode,
+  ConversationChannelInactiveError,
+  ConversationChannelNotFoundError,
+  ConversationInboundEventNotFoundError,
+  type ConversationItem,
+  type ConversationManager,
+  type ConversationManagerDatabase,
+  ConversationModuleEntitlementRequiredError,
+  type ConversationRouteInput,
+  ConversationSenderPhoneRequiredError,
+  type ConversationStatus,
+  ConversationTenantNotOperationalError,
+  type ConversationTransaction,
+  createConversationManager,
+} from "./conversation-manager";
+export {
   isLimitEntitlementKey,
   isModuleEntitlementKey,
   LIMIT_ENTITLEMENT_KEYS,
@@ -45,6 +63,7 @@ export {
 export type {
   AuditLog,
   Contact,
+  Conversation,
   DomainEventOutbox,
   OrganizationUnit,
   OutboundMessage,

@@ -8,6 +8,10 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Added
 
+- E06-S02 con `Conversation` tenant-owned y migration Prisma `20260819230000_add_conversations_foundation`: UUIDv7, lifecycle y automation modes canónicos, referencias tenant-aware a canal/contacto/asignación, índices de resolución y FKs restrictivas.
+- `createConversationManager(...)` implementa resolución inbound tenant-safe: deriva canal y teléfono desde `InboundMessageEvent`, reutiliza/crea Contact en la misma transacción, reabre `new|pending` como `open`, crea hilo tras `closed`, aplica advisory lock tenant/canal/contacto y emite Audit + Outbox atómicos.
+- Tests E06-S02: Vitest raíz 20 archivos/93 pruebas, Conversation resolver 5/5, regresión Contact 5/5 e Inbound 3/3 contra PostgreSQL 18.4 real; migration deploy/status, TypeScript/build de workspaces Docker, Biome y `git diff --check` verificados. La exportación/tag final de la nueva imagen Docker no terminó y no se marca runtime API como PASS.
+- Reconciliación documental E06-S02: el prompt adjunto mezcla resolver, mensajes e Inbox/API y usa estados no canónicos; el backlog/PRD tienen precedencia. `ConversationMessage`, completion de inbound, Inbox/API y assignment/reply se difieren a E06-S03/Epic 07 y la decisión queda en ADR-0019.
 - E06-S01 con `Contact` tenant-owned y migration Prisma `20260819200000_add_contacts_foundation`: identidad primaria por teléfono E.164 única por tenant, estado `ACTIVE|BLOCKED|ARCHIVED`, tags y custom attributes JSONB, con FK restrictiva e índices tenant-safe.
 - Normalizador puro de teléfonos con separadores, formatos local/nacional/internacional, default explícito de México y conversión legacy `+521...` → `+52...`; `ContactManager` con find-or-create concurrente, CRUD/listado, block/archive, revalidación de tenant operativo, advisory lock y Audit + Outbox atómicos.
 - API `POST/GET/PATCH/DELETE /api/v1/contacts` con permisos canónicos `contacts.read`/`contacts.write`, respuestas 201/409/400/404/403, DTO cerrado, 404 cross-tenant y sin aceptar tenant IDs del cliente; requiere entitlement `module.crm_lite` vía `@RequireEntitlements` + `TenantEntitlementGuard`.

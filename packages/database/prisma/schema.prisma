@@ -181,6 +181,7 @@ model Tenant {
   inboundMessageEvents InboundMessageEvent[]
   outboundMessages    OutboundMessage[]
   contacts             Contact[]
+  conversations       Conversation[]
 
   @@index([status], map: "tenant_status_idx")
   @@index([deploymentId], map: "tenant_deployment_id_idx")
@@ -205,6 +206,7 @@ model User {
   passwordResetTokens UserPasswordResetToken[]
   roleAssignments     UserRole[]
   outboundMessages    OutboundMessage[]
+  assignedConversations Conversation[] @relation("ConversationAssignedUser")
 
   @@unique([tenantId, email], map: "tenant_user_tenant_email_key")
   @@unique([tenantId, id], map: "tenant_user_tenant_id_id_key")
@@ -403,6 +405,7 @@ model OrganizationUnit {
   auditLogs       AuditLog[]
   userRoles       UserRole[]
   channelAccounts ChannelAccount[]
+  assignedConversations Conversation[] @relation("ConversationAssignedUnit")
 
   @@unique([tenantId, id], map: "organization_unit_tenant_id_id_key")
   @@index([tenantId], map: "organization_unit_tenant_id_idx")
@@ -439,7 +442,9 @@ model ChannelAccount {
   organizationUnit      OrganizationUnit? @relation(fields: [tenantId, organizationUnitId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade)
   inboundMessageEvents  InboundMessageEvent[]
   outboundMessages      OutboundMessage[]
+  conversations         Conversation[]
 
+  @@unique([tenantId, id], map: "channel_account_tenant_id_id_key")
   @@unique([tenantId, phoneNumberUniqueKey], map: "channel_account_tenant_phone_active_key")
   @@index([tenantId], map: "channel_account_tenant_id_idx")
   @@index([tenantId, status], map: "channel_account_tenant_status_idx")
@@ -514,10 +519,49 @@ model Contact {
   createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt        DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
   tenant           Tenant    @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  conversations    Conversation[]
 
+  @@unique([tenantId, id], map: "contact_tenant_id_id_key")
   @@unique([tenantId, phoneNumber], map: "contact_tenant_phone_number_key")
   @@index([tenantId], map: "contact_tenant_id_idx")
   @@index([tenantId, status], map: "contact_tenant_status_idx")
   @@index([tenantId, name], map: "contact_tenant_name_idx")
   @@map("contact")
+}
+
+model Conversation {
+  id                    String            @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  tenantId              String            @map("tenant_id") @db.Uuid
+  channelAccountId      String            @map("channel_account_id") @db.Uuid
+  contactId             String            @map("contact_id") @db.Uuid
+  status                String            @default("open")
+  automationMode        String            @default("AUTO") @map("automation_mode")
+  assignedUserId        String?           @map("assigned_user_id") @db.Uuid
+  assignedUnitId        String?           @map("assigned_unit_id") @db.Uuid
+  priority              Int               @default(0)
+  subject               String?
+  providerThreadId      String?           @map("provider_thread_id")
+  lastMessageAt         DateTime?         @map("last_message_at") @db.Timestamptz(3)
+  lastInboundAt         DateTime?         @map("last_inbound_at") @db.Timestamptz(3)
+  lastOutboundAt        DateTime?         @map("last_outbound_at") @db.Timestamptz(3)
+  lastHumanMessageAt    DateTime?         @map("last_human_message_at") @db.Timestamptz(3)
+  lastAutomationMessageAt DateTime?      @map("last_automation_message_at") @db.Timestamptz(3)
+  humanTakeoverUntil    DateTime?         @map("human_takeover_until") @db.Timestamptz(3)
+  closedAt              DateTime?         @map("closed_at") @db.Timestamptz(3)
+  metadata              Json?             @db.JsonB
+  createdAt             DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  tenant                Tenant            @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  channelAccount        ChannelAccount    @relation(fields: [tenantId, channelAccountId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade)
+  contact               Contact           @relation(fields: [tenantId, contactId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade)
+  assignedUser          User?             @relation("ConversationAssignedUser", fields: [tenantId, assignedUserId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade)
+  assignedUnit          OrganizationUnit? @relation("ConversationAssignedUnit", fields: [tenantId, assignedUnitId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([tenantId, status, lastMessageAt], map: "conversation_tenant_status_last_message_idx")
+  @@index([tenantId, contactId], map: "conversation_tenant_contact_idx")
+  @@index([tenantId, channelAccountId], map: "conversation_tenant_channel_idx")
+  @@index([tenantId, assignedUserId], map: "conversation_tenant_assigned_user_idx")
+  @@index([tenantId, assignedUnitId], map: "conversation_tenant_assigned_unit_idx")
+  @@index([tenantId, channelAccountId, contactId, status], map: "conversation_tenant_resolution_idx")
+  @@map("conversation")
 }
