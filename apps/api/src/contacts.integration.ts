@@ -67,7 +67,7 @@ async function provision(marker: string): Promise<{ ownerId: string; tenantId: s
     defaultTimezone: "America/Mexico_City",
     deploymentId: null,
     displayName: `Contacts API ${marker}`,
-    enabledModules: [],
+    enabledModules: ["module.crm_lite"],
     legalName: `Contacts API ${marker} SA`,
     limits: {
       channelAccounts: 2,

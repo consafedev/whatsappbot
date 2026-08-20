@@ -17,6 +17,7 @@ import {
   Post,
   Query,
   Req,
+  UseGuards,
 } from "@nestjs/common";
 import type {
   ContactCreateInput,
@@ -43,6 +44,7 @@ import {
   type TenantAuthenticationRequest,
   type TenantSessionIdentity,
 } from "./tenant-context";
+import { RequireEntitlements, TenantEntitlementGuard } from "./tenant-entitlements";
 import { TenantAuthorized } from "./tenant-rbac";
 
 export const CONTACT_MANAGER = Symbol("CONTACT_MANAGER");
@@ -332,6 +334,8 @@ export class ContactsService {
 }
 
 @Controller("api/v1/contacts")
+@RequireEntitlements("module.crm_lite")
+@UseGuards(TenantEntitlementGuard)
 export class ContactsController {
   constructor(private readonly service: ContactsService) {}
 

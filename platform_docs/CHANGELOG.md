@@ -10,7 +10,7 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 - E06-S01 con `Contact` tenant-owned y migration Prisma `20260819200000_add_contacts_foundation`: identidad primaria por teléfono E.164 única por tenant, estado `ACTIVE|BLOCKED|ARCHIVED`, tags y custom attributes JSONB, con FK restrictiva e índices tenant-safe.
 - Normalizador puro de teléfonos con separadores, formatos local/nacional/internacional, default explícito de México y conversión legacy `+521...` → `+52...`; `ContactManager` con find-or-create concurrente, CRUD/listado, block/archive, revalidación de tenant operativo, advisory lock y Audit + Outbox atómicos.
-- API `POST/GET/PATCH/DELETE /api/v1/contacts` con permisos canónicos `contacts.read`/`contacts.write`, respuestas 201/409/400/404/403, DTO cerrado, 404 cross-tenant y sin aceptar tenant IDs del cliente; Contacts Core no agrega entitlement de módulo.
+- API `POST/GET/PATCH/DELETE /api/v1/contacts` con permisos canónicos `contacts.read`/`contacts.write`, respuestas 201/409/400/404/403, DTO cerrado, 404 cross-tenant y sin aceptar tenant IDs del cliente; requiere entitlement `module.crm_lite` vía `@RequireEntitlements` + `TenantEntitlementGuard`.
 - E06-S01 deja explícitamente `ContactPoint`/identidades omnicanal, Conversations/Messages, asociación de webhooks, CRM pipeline y UI para historias posteriores. La proyección `Contact.phoneNumber` es la decisión acotada de esta historia y no sustituye el modelo omnicanal futuro.
 - Tests E06-S01: suite raíz 20 archivos/93 pruebas, database 5/5, API 3/3 y RBAC 11/11 contra PostgreSQL 18.4/Nest reales; migración, TypeScript, Biome y aislamiento verificados. La compilación Docker de workspaces pasó, pero la exportación/tag final de la nueva imagen no se reporta como PASS.
 - E05-S03 con `OutboundMessage` tenant-owned y migration Prisma `20260819184530_add_outbound_messages_foundation`: idempotencia por tenant, estados operativos, lease/retry/DLQ, índices de cola y FKs restrictivas.
@@ -134,6 +134,7 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Fixed
 
+- E06-S01 (fix) — `ContactsController` ahora valida entitlement `module.crm_lite` vía `@RequireEntitlements` + `TenantEntitlementGuard`, alineándose con el patrón de otros controllers (outbound-messages, channel-accounts); integration test actualizado con `enabledModules: ["module.crm_lite"]`.
 - E04-S02 (fix) — `/app/bootstrap` oculta `branding.logo` cuando `module.white_label` no está efectivo (desactivado, schedule o expirado), preserva el `brandingConfig` guardado y `GET /app/theme`, y restaura el logo al reactivar el módulo sin relogin ni re-upload; sin cambio de schema.
 - Compose construye una sola vez la imagen compartida de aplicación y evita la colisión concurrente `image ... already exists`.
 - El usuario runtime `node` reutiliza la caché preparada de Corepack/pnpm sin intentar descargas desde redes internas.
