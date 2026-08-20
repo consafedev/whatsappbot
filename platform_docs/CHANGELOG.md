@@ -8,6 +8,11 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Added
 
+- E06-S01 con `Contact` tenant-owned y migration Prisma `20260819200000_add_contacts_foundation`: identidad primaria por teléfono E.164 única por tenant, estado `ACTIVE|BLOCKED|ARCHIVED`, tags y custom attributes JSONB, con FK restrictiva e índices tenant-safe.
+- Normalizador puro de teléfonos con separadores, formatos local/nacional/internacional, default explícito de México y conversión legacy `+521...` → `+52...`; `ContactManager` con find-or-create concurrente, CRUD/listado, block/archive, revalidación de tenant operativo, advisory lock y Audit + Outbox atómicos.
+- API `POST/GET/PATCH/DELETE /api/v1/contacts` con permisos canónicos `contacts.read`/`contacts.write`, respuestas 201/409/400/404/403, DTO cerrado, 404 cross-tenant y sin aceptar tenant IDs del cliente; Contacts Core no agrega entitlement de módulo.
+- E06-S01 deja explícitamente `ContactPoint`/identidades omnicanal, Conversations/Messages, asociación de webhooks, CRM pipeline y UI para historias posteriores. La proyección `Contact.phoneNumber` es la decisión acotada de esta historia y no sustituye el modelo omnicanal futuro.
+- Tests E06-S01: suite raíz 20 archivos/93 pruebas, database 5/5, API 3/3 y RBAC 11/11 contra PostgreSQL 18.4/Nest reales; migración, TypeScript, Biome y aislamiento verificados. La compilación Docker de workspaces pasó, pero la exportación/tag final de la nueva imagen no se reporta como PASS.
 - E05-S03 con `OutboundMessage` tenant-owned y migration Prisma `20260819184530_add_outbound_messages_foundation`: idempotencia por tenant, estados operativos, lease/retry/DLQ, índices de cola y FKs restrictivas.
 - Manager outbound tenant-safe con revalidación de tenant operativo, entitlement, canal y actor; transiciones persistidas con Outbox, deduplicación por idempotency key y error sanitizado.
 - API `POST/GET /api/v1/channels/:channelId/messages` con respuesta `202`, payload cerrado, validación de teléfono/media y lectura de estado least-data; usa el permiso canónico `channels.manage`.

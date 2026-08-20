@@ -180,6 +180,7 @@ model Tenant {
   channelAccounts     ChannelAccount[]
   inboundMessageEvents InboundMessageEvent[]
   outboundMessages    OutboundMessage[]
+  contacts             Contact[]
 
   @@index([status], map: "tenant_status_idx")
   @@index([deploymentId], map: "tenant_deployment_id_idx")
@@ -498,4 +499,25 @@ model OutboundMessage {
   @@index([tenantId, recipientPhone], map: "outbound_message_tenant_recipient_idx")
   @@index([tenantId, actorUserId], map: "outbound_message_tenant_actor_idx")
   @@map("outbound_message")
+}
+
+model Contact {
+  id               String    @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  tenantId         String    @map("tenant_id") @db.Uuid
+  name             String    @default("Sin Nombre")
+  phoneNumber      String    @map("phone_number")
+  email            String?
+  avatarUrl        String?   @map("avatar_url")
+  status           String    @default("ACTIVE")
+  tags             String[]  @default([])
+  customAttributes Json?     @map("custom_attributes") @db.JsonB
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  tenant           Tenant    @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@unique([tenantId, phoneNumber], map: "contact_tenant_phone_number_key")
+  @@index([tenantId], map: "contact_tenant_id_idx")
+  @@index([tenantId, status], map: "contact_tenant_status_idx")
+  @@index([tenantId, name], map: "contact_tenant_name_idx")
+  @@map("contact")
 }

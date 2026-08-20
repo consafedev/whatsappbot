@@ -4,6 +4,8 @@ export const PERMISSION_CATALOG = [
   { key: "tenant.roles.manage", description: "Manage tenant roles" },
   { key: "channels.read", description: "Read channel configuration" },
   { key: "channels.manage", description: "Manage channel configuration" },
+  { key: "contacts.read", description: "Read contacts" },
+  { key: "contacts.write", description: "Create and manage contacts" },
   { key: "conversations.read", description: "Read conversations" },
   { key: "conversations.reply", description: "Reply to conversations" },
   { key: "conversations.assign", description: "Assign conversations" },

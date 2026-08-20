@@ -191,12 +191,12 @@ La query usa dos operaciones Prisma de nivel superior por página (`count` y `fi
 
 `pnpm test:integration:tenant-provisioning` ejecuta suites dedicadas sobre PostgreSQL 18 y Nest real:
 
-- commit de Tenant activo, Owner, seis roles system tenant-owned, 29 grants Owner, assignment tenant-wide, root OU, módulos, cinco limits, Audit y Outbox;
+- commit de Tenant activo, Owner, seis roles system tenant-owned, 31 grants Owner, assignment tenant-wide, root OU, módulos, cinco limits, Audit y Outbox;
 - rollback físico de todas esas filas ante un error PostgreSQL controlado durante la creación de roles, sin cleanup compensatorio;
 - catálogo de permisos incompleto falla cerrado antes de crear Tenant; el sync sigue siendo prerequisite explícito, no trabajo oculto de cada request;
 - mismo email Owner en tenants distintos, IDs/assignments/roots/entitlements aislados y permissions globales compartidas;
 - Platform Admin válido, ausente, revocado y disabled; cookie Tenant User nunca autoriza provisioning;
-- login Owner inmediato, `/auth/me`, resolución de los 29 permissions y acceso a un endpoint de prueba protegido;
+- login Owner inmediato, `/auth/me`, resolución de los 31 permissions y acceso a un endpoint de prueba protegido;
 - slug conflict, module key desconocida, limits inválidos, campos extra y deployment inexistente sin recursos parciales;
 - response, Audit y Outbox sin password ni hash, y Argon2id verificable en el User persistido;
 - E03-S01 sigue mostrando el tenant creado con status, users, módulos, activity, deployment y channels diferidos correctos;
@@ -246,6 +246,16 @@ Las suites dedicadas cubren la cola tenant-owned, las transiciones persistidas y
 - worker: 1 prueba de integración con provider flaky que verifica retry de error de red, backoff y posterior `SENT`, incluyendo Outbox de fallo y éxito;
 - regresión: `pnpm vitest run` con 19 archivos/90 pruebas; `db:validate`, generación y deploy/status de migration, Biome, typecheck/build Docker y runtime Compose también forman parte de la verificación;
 - el worker revalida tenant operativo, entitlement y canal antes del side effect, usa timeout, lease recovery, concurrencia máxima 5 y límite por canal de 5 mensajes/segundo. PostgreSQL es la fuente de verdad; el polling es el fallback actual porque no hay dependencia BullMQ.
+
+## 7.3 Contact identity and phone normalization (E06-S01)
+
+Las suites dedicadas cubren el modelo Contact y la API contra PostgreSQL 18.4/Nest reales:
+
+- unit: normalización E.164, limpieza de separadores, formatos local/nacional/internacional, México `+521...` → `+52...` y rechazo de entradas inválidas;
+- database: 5 pruebas para persistencia tenant-owned, tags/JSONB, Audit + Outbox atómicos, find-or-create concurrente, unique de teléfono, block/archive, aislamiento A/B y revalidación de tenant suspendido;
+- API: 3 pruebas para POST 201, normalización, duplicate 409, listado por búsqueda/tag, PATCH, DELETE/archive, payload inválido 400 y IDs cross-tenant 404;
+- RBAC: regresión de catálogo cerrado con exactamente 31 permisos canónicos, incluyendo `contacts.read` y `contacts.write`;
+- no se prueba aún asociación a `ContactPoint`, Conversations/Messages, webhooks ni UI porque esas superficies pertenecen a historias posteriores. PostgreSQL es la fuente de verdad; no se usa Redis para identidad de contactos.
 
 ---
 

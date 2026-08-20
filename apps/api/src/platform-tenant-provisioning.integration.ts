@@ -221,7 +221,7 @@ describe.sequential("Platform tenant provisioning API", () => {
     ).resolves.toBe(true);
   });
 
-  it("allows immediate Owner login, tenant context, and all 29 RBAC grants", async () => {
+  it("allows immediate Owner login, tenant context, and all 31 RBAC grants", async () => {
     const login = await fetch(`${baseUrl}/auth/tenants/${prefix}-created/login`, {
       body: JSON.stringify({ email: `${prefix}-owner@example.invalid`, password: ownerPassword }),
       headers: { "content-type": "application/json", origin },

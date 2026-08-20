@@ -59,7 +59,7 @@ pnpm --filter @whatsapp-platform/worker-whatsapp start
 
 The API exposes the superficial bootstrap check at `GET /health`. An authenticated Platform Admin can query the paginated inventory with `GET /platform/tenants` and atomically provision a tenant with `POST /platform/tenants`. The productive web routes are `/platform/tenants` and `/platform/tenants/new`; both use `NEXT_PUBLIC_API_BASE_URL` from the environment.
 
-`pnpm rbac:sync-permissions` is a deployment prerequisite before tenant provisioning. It synchronizes the 29 canonical permission rows; the create endpoint fails closed if that catalog is incomplete.
+`pnpm rbac:sync-permissions` is a deployment prerequisite before tenant provisioning. It synchronizes the 31 canonical permission rows; the create endpoint fails closed if that catalog is incomplete.
 
 ## Docker Compose
 

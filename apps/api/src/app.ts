@@ -5,6 +5,7 @@ import { platformCookieConfig, tenantCookieConfig } from "@whatsapp-platform/aut
 import type { NonSecretConfig } from "@whatsapp-platform/config";
 import {
   createChannelAccountManager,
+  createContactManager,
   createInboundEventManager,
   createOrganizationUnitManager,
   createOutboundMessageManager,
@@ -25,6 +26,7 @@ import {
   type TenantAuthRepository,
 } from "@whatsapp-platform/database/platform";
 import { createMessagingCredentialCipher } from "@whatsapp-platform/messaging";
+import { CONTACT_MANAGER, ContactsController, ContactsService } from "./contacts";
 import { EntitlementTestProbeController } from "./entitlement-test-probe";
 import {
   INBOUND_EVENT_MANAGER,
@@ -144,6 +146,7 @@ export async function createApiApplication(
       TenantOrganizationUnitsController,
       TenantUserManagementController,
       TenantChannelsController,
+      ContactsController,
       OutboundMessagesController,
       InboundWebhookController,
       ...(config.environment === "test" ? [EntitlementTestProbeController] : []),
@@ -171,6 +174,7 @@ export async function createApiApplication(
       TenantOrganizationUnitsService,
       TenantUserManagementService,
       TenantChannelsService,
+      ContactsService,
       OutboundMessagesService,
       InboundWebhookService,
       {
@@ -184,6 +188,10 @@ export async function createApiApplication(
       {
         provide: CHANNEL_ACCOUNT_MANAGER,
         useFactory: () => createChannelAccountManager(getPlatformDatabaseClient()),
+      },
+      {
+        provide: CONTACT_MANAGER,
+        useFactory: () => createContactManager(getPlatformDatabaseClient()),
       },
       {
         provide: INBOUND_EVENT_MANAGER,

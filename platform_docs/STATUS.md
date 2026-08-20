@@ -2,21 +2,22 @@
 
 **Actualizado:** 2026-08-19
 **Versión de producto:** `0.0.0`  
-**Estado:** E05-S03 — PASS; **Epic 05 — Messaging Provider Core — IN PROGRESS**.
+**Estado:** E06-S01 — PASS; **Epic 06 — CRM Lite — IN PROGRESS**.
 
 ## Current milestone
 
-Messaging Provider Core.
+CRM Lite.
 
 ## Current epic
 
-**Epic 05 — Messaging Provider Core**
+**Epic 06 — CRM Lite**
 
 Estado por historia:
 
 - E05-S01 — Messaging Provider SPI, channel management y Mock driver: **PASS**.
 - E05-S02 — Inbound Webhook Ingestion & Normalizer Pipeline: **PASS**.
 - E05-S03 — Outbound Messaging Queue, Dispatcher & Retry Worker: **PASS**.
+- E06-S01 — Contact Entity, Phone Identity & Channel Binding: **PASS**.
 
 Epics anteriores:
 
@@ -58,6 +59,13 @@ Epics base:
 - E05-S03 — dispatcher detrás del `MessagingProvider` SPI y worker PostgreSQL polling (fallback permitido por el alcance, sin dependencia BullMQ inexistente), con revalidación de tenant/entitlement/canal, idempotencia por mensaje, timeout/network/rate-limit retry, backoff exponencial acotado, concurrencia 5, límite por canal de 5 mensajes/segundo y recuperación de leases vencidos.
 - Verificación E05-S03: Vitest raíz 19 archivos/90 pruebas; dispatcher unitario 3/3, database 4/4, API 3/3 y worker 1/1 contra PostgreSQL 18.4/Nest reales en Docker; `db:validate`, `db:generate`, `db:migrate:deploy`, `prisma migrate status`, typecheck en contenedor, Biome y build Docker `api web worker-whatsapp` PASS. Compose dejó API, web, ambos workers, PostgreSQL y Redis saludables; `/health` y `/` respondieron HTTP 200. Cobertura porcentual no medida.
 - Alcance E05-S03: no se implementaron providers WhatsApp reales, Contacts, Conversations, UI de envío ni un adaptador BullMQ; el polling actual mantiene PostgreSQL como fuente de verdad y deja el boundary de orquestación listo para un adapter futuro.
+
+- E06-S01 — migration Prisma `20260819200000_add_contacts_foundation` con `Contact` tenant-owned, UUIDv7, estado `ACTIVE|BLOCKED|ARCHIVED`, tags/text[] y customAttributes/JSONB; FK a Tenant restrictiva, índices por tenant/status/name y unique `(tenant_id, phone_number)`.
+- E06-S01 — `normalizePhoneNumber(...)` produce E.164, limpia separadores, admite internacional/nacional/local con default explícito `52` para México y normaliza la forma mexicana legacy `+521...` a `+52...`; la resolución regional por tenant queda para una historia posterior.
+- E06-S01 — `createContactManager(...)` es tenant-safe, revalida tenant operativo también en lecturas, usa advisory lock por tenant para writes/find-or-create, soporta CRUD/listado/filtro, block/archive y escribe `AuditLog` + `DomainEventOutbox` atómicos (`contact.created|updated|archived`, `crm.contact.created|updated`).
+- E06-S01 — API `POST/GET/PATCH/DELETE /api/v1/contacts` con `contacts.read`/`contacts.write`, DTO cerrado, 201/409/400/404/403, 404 cross-tenant y tenant derivado exclusivamente de la sesión. Contacts Core no requiere entitlement de módulo.
+- E06-S01 — límite documental: el backlog conceptual conserva `ContactPoint` para identidades omnicanal futuras; esta historia implementa únicamente la proyección primaria solicitada `Contact.phoneNumber`. No se implementaron conversaciones, mensajes, asociación de webhooks, CRM pipeline ni UI.
+- Verificación E06-S01: suite raíz 20 archivos/93 pruebas; phone/RBAC unitarios PASS; database Contact 5/5, API Contact 3/3 y regresión RBAC 11/11 contra PostgreSQL 18.4/Nest reales; migración aplicada, TypeScript, Biome y `git diff --check` PASS. La exportación final de una imagen Docker nueva no se marca como PASS: la compilación Docker llegó a compilar los workspaces, pero la etiqueta final no quedó disponible; no se afirma runtime de E06 sobre la imagen anterior.
 
 - E04-S01 — App shell: **PASS**; Epic 04 quedó **PASS / COMPLETE**.
 - `/app` usa un layout Next.js reusable, sidebar desktop-first, drawer móvil accesible, identidad real del Tenant/User y logout por `POST /auth/logout`.
@@ -262,18 +270,19 @@ Epics base:
 
 ## In progress
 
-E05-S03 está completada y verificada; Epic 05 continúa **IN PROGRESS** hasta implementar la historia siguiente.
+E06-S01 está completada y verificada; Epic 06 continúa **IN PROGRESS** hasta implementar la historia siguiente.
 
 ## Blocked
 
-No hay bloqueo funcional de E05-S03. Los providers WhatsApp reales, Contacts/Conversations, UI de envío y el adapter BullMQ permanecen fuera del alcance de esta historia.
+No hay bloqueo funcional de E06-S01. `ContactPoint`, Conversations/Messages, asociación de webhooks, CRM pipeline, UI y providers WhatsApp reales permanecen fuera de alcance.
 
 ## Next story
 
-`E06-S01 — Contact Entity, Phone Identity & Channel Binding`
+`E06-S02 — Contact Points & Omnichannel Identity`
 
 ## Last verified commands
 
+  - E06-S01 — PASS; `pnpm vitest run` (20 archivos/93 pruebas), Contact database (5/5), Contact API (3/3), RBAC (11/11), `db:migrate:deploy` con `20260819200000_add_contacts_foundation`, TypeScript directo en contenedor, Biome y `git diff --check`. La prueba Docker de E06 se ejecutó con fuentes/configuración actuales montados sobre el runtime Node existente; la nueva imagen compiló los workspaces, pero su exportación/tag final no quedó verificada.
   - E05-S03 — PASS; `pnpm vitest run` (19 archivos/90 pruebas), dispatcher (3/3), database (4/4), API (3/3) y worker (1/1) en Docker contra PostgreSQL real; migration deploy/status, Biome, typecheck en contenedor, build Docker `api web worker-whatsapp`, `docker compose ps`, API `/health` y web `/` verificados con HTTP 200.
   - E05-S02 — PASS; `pnpm --filter @whatsapp-platform/database test:integration:inbound-webhooks` (3/3), `pnpm --filter @whatsapp-platform/api test:integration:inbound-webhooks` (4/4), normalizer (3/3), migration deploy, Biome, typecheck y build host; las suites se ejecutaron contra PostgreSQL 18.4/Nest reales en Docker.
   - E05-S01 — PASS; `pnpm vitest run` (17 archivos/84 pruebas), `pnpm --filter @whatsapp-platform/database test:integration:channel-accounts` (4/4), `pnpm --filter @whatsapp-platform/api test:integration:channel-accounts` (5/5), migration deploy, Biome, typecheck y `docker compose build api`.

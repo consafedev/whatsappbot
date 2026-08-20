@@ -182,7 +182,7 @@ describe.sequential("tenant RBAC foundation", () => {
     expect(tenantWideIndex).toHaveLength(1);
   });
 
-  it("synchronizes exactly 29 canonical permissions twice and preserves unknown rows", async () => {
+  it("synchronizes exactly 31 canonical permissions twice and preserves unknown rows", async () => {
     await prisma.permission.create({
       data: { description: "Must survive catalog sync", key: unknownPermissionKey },
     });
@@ -190,14 +190,14 @@ describe.sequential("tenant RBAC foundation", () => {
       data: { description: "stale" },
       where: { key: "channels.read" },
     });
-    expect(await syncPermissionCatalog(prisma)).toEqual({ synchronized: 29 });
-    expect(await syncPermissionCatalog(prisma)).toEqual({ synchronized: 29 });
+    expect(await syncPermissionCatalog(prisma)).toEqual({ synchronized: 31 });
+    expect(await syncPermissionCatalog(prisma)).toEqual({ synchronized: 31 });
     const canonical = await prisma.permission.findMany({
       orderBy: { key: "asc" },
       where: { key: { in: PERMISSION_CATALOG.map(({ key }) => key) } },
     });
-    expect(canonical).toHaveLength(29);
-    expect(new Set(canonical.map(({ key }) => key)).size).toBe(29);
+    expect(canonical).toHaveLength(31);
+    expect(new Set(canonical.map(({ key }) => key)).size).toBe(31);
     expect(canonical.find(({ key }) => key === "channels.read")?.description).toBe(
       "Read channel configuration",
     );

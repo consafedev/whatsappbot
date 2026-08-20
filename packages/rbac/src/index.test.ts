@@ -7,6 +7,8 @@ const documentedPermissionKeys = [
   "tenant.roles.manage",
   "channels.read",
   "channels.manage",
+  "contacts.read",
+  "contacts.write",
   "conversations.read",
   "conversations.reply",
   "conversations.assign",
@@ -38,11 +40,12 @@ describe("RBAC catalogs", () => {
     const actual = PERMISSION_CATALOG.map(({ key }) => key);
     expect(actual).toEqual(documentedPermissionKeys);
     expect(new Set(actual).size).toBe(actual.length);
-    expect(actual).toHaveLength(29);
+    expect(actual).toHaveLength(31);
   });
 
   it("recognizes only canonical permission keys", () => {
     expect(isPermissionKey("channels.manage")).toBe(true);
+    expect(isPermissionKey("contacts.write")).toBe(true);
     expect(isPermissionKey("channels.mange")).toBe(false);
     expect(isPermissionKey("platform.tenants.manage")).toBe(false);
   });

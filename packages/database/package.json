@@ -30,6 +30,7 @@
     "test:integration:organization-units": "pnpm --filter @whatsapp-platform/config build && vitest run --config vitest.organization-units.config.mts",
     "test:integration:user-management": "pnpm --filter @whatsapp-platform/config build && vitest run --config vitest.user-management.config.mts",
     "test:integration:channel-accounts": "pnpm --filter @whatsapp-platform/config build && vitest run --config vitest.channel-accounts.config.mts",
+    "test:integration:contacts": "pnpm --filter @whatsapp-platform/config build && vitest run --config vitest.contacts.config.mts",
     "test:integration:inbound-webhooks": "pnpm --filter @whatsapp-platform/config build && vitest run --config vitest.inbound-webhooks.config.mts",
     "test:integration:outbound-messages": "pnpm --filter @whatsapp-platform/config build && vitest run --config vitest.outbound-messages.config.mts",
     "test:integration:rbac": "pnpm --filter @whatsapp-platform/config build && pnpm --filter @whatsapp-platform/rbac build && vitest run --config vitest.rbac.config.mts",

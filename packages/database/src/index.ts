@@ -18,6 +18,23 @@ export {
   createChannelAccountManager,
 } from "./channel-account-manager";
 export {
+  CONTACT_STATUSES,
+  type ContactCreateInput,
+  type ContactItem,
+  type ContactListOptions,
+  type ContactManager,
+  type ContactManagerDatabase,
+  type ContactMutationMetadata,
+  ContactNotFoundError,
+  type ContactPage,
+  ContactPhoneConflictError,
+  type ContactStatus,
+  type ContactTransaction,
+  type ContactUpdateInput,
+  ContactValidationError,
+  createContactManager,
+} from "./contact-manager";
+export {
   isLimitEntitlementKey,
   isModuleEntitlementKey,
   LIMIT_ENTITLEMENT_KEYS,
@@ -27,6 +44,7 @@ export {
 } from "./entitlement-catalog";
 export type {
   AuditLog,
+  Contact,
   DomainEventOutbox,
   OrganizationUnit,
   OutboundMessage,
@@ -85,6 +103,12 @@ export {
   type OutboundMessageTransaction,
   type OutboundMessageType,
 } from "./outbound-message-manager";
+export {
+  isE164PhoneNumber,
+  normalizePhoneNumber,
+  type PhoneNormalizationOptions,
+  PhoneNumberInvalidError,
+} from "./phone-utils";
 export {
   TenantRbacRecordNotFoundError,
   UnknownPermissionKeyError,
