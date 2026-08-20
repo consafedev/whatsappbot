@@ -1,8 +1,8 @@
 # STATUS.md — Estado operativo actual del proyecto
 
-**Actualizado:** 2026-08-19
+**Actualizado:** 2026-08-20
 **Versión de producto:** `0.0.0`  
-**Estado:** E06-S02 — PASS; **Epic 06 — CRM Lite — IN PROGRESS**.
+**Estado:** E06-S03 — PASS; **Epic 06 — CRM Lite — IN PROGRESS**.
 
 ## Current milestone
 
@@ -19,6 +19,7 @@ Estado por historia:
 - E05-S03 — Outbound Messaging Queue, Dispatcher & Retry Worker: **PASS**.
 - E06-S01 — Contact Entity, Phone Identity & Channel Binding: **PASS**.
 - E06-S02 — Conversation Resolver, tenant-safe lifecycle and inbound routing: **PASS**.
+- E06-S03 — Persist inbound messages and fulfill inbound events: **PASS**.
 
 Epics anteriores:
 
@@ -71,6 +72,9 @@ Epics base:
 - E06-S02 — `createConversationManager(...)` revalida tenant operativo, `module.messaging.basic` y `module.crm_lite`, deriva el canal desde el InboundMessageEvent tenant-scoped, resuelve/crea Contact en la misma transacción, reutiliza o reabre el hilo activo y crea uno nuevo tras `closed`.
 - E06-S02 — resolución concurrente serializada por advisory lock tenant/channel/contact; Audit `conversation.created|conversation.state_changed` y Outbox homónimo atómicos. El evento inbound permanece `PENDING` deliberadamente; persistencia de mensajes, completion del evento, Inbox/API, UI y bots quedan diferidos conforme al backlog y ADR-0019.
 - Verificación E06-S02: Vitest raíz 20 archivos/93 pruebas, suite Conversation resolver 5/5, regresión Contact 5/5 e Inbound 3/3 contra PostgreSQL 18.4 real en contenedor con el código fuente actual; `db:validate`, `db:generate`, `migrate deploy`, `migrate status`, TypeScript/build de workspaces Docker y Biome PASS. La exportación/tag final de la imagen Docker no terminó; no se afirma runtime de API con E06-S02.
+- E06-S03 — migration Prisma `20260820100000_add_messages_foundation` con `Message` tenant-owned, UUIDv7, contrato normativo `direction/origin/actor_type`, contenido normalizado, timestamp del provider, referencias tenant-aware a Conversation/ChannelAccount/Contact/InboundMessageEvent y FKs restrictivas. La tabla deduplica por `(tenant_id, channel_account_id, provider_message_id)` y por `inbound_event_id`.
+- E06-S03 — `createInboundMessageManager(...)` deriva tenant, canal, contacto y conversación exclusivamente del `InboundMessageEvent`; reutiliza el resolver dentro de la misma transacción, persiste el Message inbound, actualiza `last_message_at`/`last_inbound_at`, cambia `PENDING -> PROCESSED` y agrega `message.received` al Outbox atómico. Duplicados y carreras son idempotentes; no hay API Inbox ni outbound anticipados.
+- Verificación E06-S03: suite inbound message 5/5 y regresión Conversation 5/5 contra PostgreSQL 18.4 real en Docker con source mounts; `db:validate`, `db:generate`, `db:migrate:deploy` (13 migrations, incluida `20260820100000_add_messages_foundation`), typecheck de `@whatsapp-platform/database`, Biome y `git diff --check` verificados. El build Docker compiló database/API/web/workers, pero la exportación final quedó interrumpida; no se marca una imagen/runtime API E06-S03 como PASS.
 
 - E04-S01 — App shell: **PASS**; Epic 04 quedó **PASS / COMPLETE**.
 - `/app` usa un layout Next.js reusable, sidebar desktop-first, drawer móvil accesible, identidad real del Tenant/User y logout por `POST /auth/logout`.
@@ -275,19 +279,20 @@ Epics base:
 
 ## In progress
 
-E06-S02 está completada y verificada; Epic 06 continúa **IN PROGRESS** hasta implementar la historia siguiente.
+E06-S03 está completada y verificada; Epic 06 continúa **IN PROGRESS** hasta implementar la historia siguiente.
 
 ## Blocked
 
-No hay bloqueo funcional de E06-S02. `ConversationMessage`, persistencia/completion de inbound, Inbox/API, ContactPoint omnicanal, CRM pipeline, UI, WebSockets/SSE, bots/IA y providers WhatsApp reales permanecen fuera de alcance por autoridad documental.
+No hay bloqueo funcional de E06-S03. Inbox/API, outbound de conversación, ContactPoint omnicanal, CRM pipeline, UI, WebSockets/SSE, bots/IA y providers WhatsApp reales permanecen fuera de alcance por autoridad documental.
 
 ## Next story
 
-`E06-S03 — Persist inbound messages`
+`E06-S04 — Persist outbound messages (create-before-send)`
 
 ## Last verified commands
 
   - E06-S02 — PASS; Vitest raíz 20 archivos/93 pruebas, Conversation database 5/5, Contact regression 5/5 e Inbound regression 3/3 contra PostgreSQL 18.4 real en Docker con source mounts; `db:validate`, `db:generate`, `db:migrate:deploy` (`20260819230000_add_conversations_foundation`), `prisma migrate status` (12 migrations, up to date), TypeScript/build de workspaces Docker, Biome y `git diff --check` PASS. La exportación/tag final de la nueva imagen Docker no terminó y no se reporta runtime API E06-S02.
+  - E06-S03 — PASS; inbound message database 5/5 y Conversation regression 5/5 contra PostgreSQL 18.4 real con source mounts; `db:validate`, `db:generate`, `db:migrate:deploy` (`20260820100000_add_messages_foundation`, 13 migrations), database typecheck, Biome y `git diff --check` PASS. El build Docker de workspaces compiló, pero la exportación final fue interrumpida y no se reporta runtime API E06-S03.
   - E06-S01 — PASS AFTER FIX; `pnpm vitest run` (20 archivos/93 pruebas), Contact database (5/5), Contact API (3/3), RBAC (11/11), `db:migrate:deploy` con `20260819200000_add_contacts_foundation`, Biome (247 files) y lint clean. Fix: entitlement `module.crm_lite` añadido a `ContactsController` via `@RequireEntitlements` + `TenantEntitlementGuard`; integration test actualizado con `enabledModules: ["module.crm_lite"]`.
   - E05-S03 — PASS; `pnpm vitest run` (19 archivos/90 pruebas), dispatcher (3/3), database (4/4), API (3/3) y worker (1/1) en Docker contra PostgreSQL real; migration deploy/status, Biome, typecheck en contenedor, build Docker `api web worker-whatsapp`, `docker compose ps`, API `/health` y web `/` verificados con HTTP 200.
   - E05-S02 — PASS; `pnpm --filter @whatsapp-platform/database test:integration:inbound-webhooks` (3/3), `pnpm --filter @whatsapp-platform/api test:integration:inbound-webhooks` (4/4), normalizer (3/3), migration deploy, Biome, typecheck y build host; las suites se ejecutaron contra PostgreSQL 18.4/Nest reales en Docker.

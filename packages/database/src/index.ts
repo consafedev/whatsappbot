@@ -65,6 +65,7 @@ export type {
   Contact,
   Conversation,
   DomainEventOutbox,
+  Message,
   OrganizationUnit,
   OutboundMessage,
   Permission,
@@ -88,6 +89,16 @@ export {
   InboundMessagingModuleRequiredError,
   InboundTenantNotOperationalError,
 } from "./inbound-event-manager";
+export {
+  createInboundMessageManager,
+  InboundMessageEventAlreadyProcessedError,
+  InboundMessageEventNotFoundError,
+  InboundMessageEventTypeUnsupportedError,
+  type InboundMessageManager,
+  type InboundMessageManagerDatabase,
+  type InboundMessagePersistInput,
+  type InboundMessagePersistResult,
+} from "./inbound-message-manager";
 export {
   createOrganizationUnitManager,
   ORGANIZATION_UNIT_MAX_DEPTH,

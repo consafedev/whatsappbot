@@ -269,88 +269,96 @@ async function appendStateChange(
   });
 }
 
+export async function routeInboundEventToConversationInTransaction(
+  context: TenantContext,
+  input: ConversationRouteInput,
+  transaction: Prisma.TransactionClient,
+  database: ConversationManagerDatabase,
+): Promise<ConversationItem> {
+  const tenant = createTenantContext(context.tenantId);
+  try {
+    await assertTenantOperational(tenant, transaction);
+  } catch (error) {
+    if (error instanceof TenantNotOperationalError) {
+      throw new ConversationTenantNotOperationalError();
+    }
+    throw error;
+  }
+  await assertConversationEntitlements(tenant, transaction);
+
+  const inboundEvent = await transaction.inboundMessageEvent.findFirst({
+    select: { channelAccountId: true, id: true, senderPhone: true, tenantId: true },
+    where: { id: input.inboundEventId, tenantId: tenant.tenantId },
+  });
+  if (inboundEvent === null) {
+    throw new ConversationInboundEventNotFoundError();
+  }
+  const channel = await transaction.channelAccount.findFirst({
+    select: { active: true, automationDefaultMode: true, id: true, status: true },
+    where: { id: inboundEvent.channelAccountId, tenantId: tenant.tenantId },
+  });
+  if (channel === null) throw new ConversationChannelNotFoundError();
+  if (!channel.active || !activeChannelStatus(channel.status)) {
+    throw new ConversationChannelInactiveError();
+  }
+
+  const senderPhone = inboundEvent.senderPhone ?? input.senderPhone ?? null;
+  if (senderPhone === null) throw new ConversationSenderPhoneRequiredError();
+  const contact = await createContactManager(database).findOrCreateContactByPhone(
+    tenant,
+    senderPhone,
+    input.senderName ?? "Sin Nombre",
+    transaction,
+  );
+  await lockConversation(transaction, tenant.tenantId, channel.id, contact.id);
+
+  const current = await transaction.conversation.findFirst({
+    orderBy: [{ lastMessageAt: "desc" }, { id: "asc" }],
+    where: {
+      channelAccountId: channel.id,
+      contactId: contact.id,
+      status: { in: [...ACTIVE_CONVERSATION_STATUSES] },
+      tenantId: tenant.tenantId,
+    },
+  });
+  if (current !== null) {
+    const currentItem = conversationItem(current);
+    if (currentItem.status === "open") return currentItem;
+    const reopened = await transaction.conversation.update({
+      data: { closedAt: null, status: "open" },
+      where: { tenantId_id: { id: current.id, tenantId: tenant.tenantId } },
+    });
+    const reopenedItem = conversationItem(reopened);
+    await appendStateChange(tenant, transaction, currentItem, reopenedItem);
+    return reopenedItem;
+  }
+
+  const created = await transaction.conversation.create({
+    data: {
+      automationMode: defaultAutomationMode(channel.automationDefaultMode),
+      channelAccountId: channel.id,
+      contactId: contact.id,
+      ...(input.providerThreadId === undefined ? {} : { providerThreadId: input.providerThreadId }),
+      status: "open",
+      tenantId: tenant.tenantId,
+    },
+  });
+  const item = conversationItem(created);
+  await appendCreatedMutation(tenant, transaction, item);
+  return item;
+}
+
 export function createConversationManager(
   database: ConversationManagerDatabase,
 ): ConversationManager {
-  const routeInboundEventToConversation = async (
+  const routeInboundEventToConversation = (
     context: TenantContext,
     input: ConversationRouteInput,
   ): Promise<ConversationItem> => {
     const tenant = createTenantContext(context.tenantId);
-    return database.$transaction(async (transaction) => {
-      try {
-        await assertTenantOperational(tenant, transaction);
-      } catch (error) {
-        if (error instanceof TenantNotOperationalError) {
-          throw new ConversationTenantNotOperationalError();
-        }
-        throw error;
-      }
-      await assertConversationEntitlements(tenant, transaction);
-
-      const inboundEvent = await transaction.inboundMessageEvent.findFirst({
-        select: { channelAccountId: true, id: true, senderPhone: true, tenantId: true },
-        where: { id: input.inboundEventId, tenantId: tenant.tenantId },
-      });
-      if (inboundEvent === null) {
-        throw new ConversationInboundEventNotFoundError();
-      }
-      const channel = await transaction.channelAccount.findFirst({
-        select: { active: true, automationDefaultMode: true, id: true, status: true },
-        where: { id: inboundEvent.channelAccountId, tenantId: tenant.tenantId },
-      });
-      if (channel === null) throw new ConversationChannelNotFoundError();
-      if (!channel.active || !activeChannelStatus(channel.status)) {
-        throw new ConversationChannelInactiveError();
-      }
-
-      const senderPhone = inboundEvent.senderPhone ?? input.senderPhone ?? null;
-      if (senderPhone === null) throw new ConversationSenderPhoneRequiredError();
-      const contact = await createContactManager(database).findOrCreateContactByPhone(
-        tenant,
-        senderPhone,
-        input.senderName ?? "Sin Nombre",
-        transaction,
-      );
-      await lockConversation(transaction, tenant.tenantId, channel.id, contact.id);
-
-      const current = await transaction.conversation.findFirst({
-        orderBy: [{ lastMessageAt: "desc" }, { id: "asc" }],
-        where: {
-          channelAccountId: channel.id,
-          contactId: contact.id,
-          status: { in: [...ACTIVE_CONVERSATION_STATUSES] },
-          tenantId: tenant.tenantId,
-        },
-      });
-      if (current !== null) {
-        const currentItem = conversationItem(current);
-        if (currentItem.status === "open") return currentItem;
-        const reopened = await transaction.conversation.update({
-          data: { closedAt: null, status: "open" },
-          where: { id: current.id },
-        });
-        const reopenedItem = conversationItem(reopened);
-        await appendStateChange(tenant, transaction, currentItem, reopenedItem);
-        return reopenedItem;
-      }
-
-      const created = await transaction.conversation.create({
-        data: {
-          automationMode: defaultAutomationMode(channel.automationDefaultMode),
-          channelAccountId: channel.id,
-          contactId: contact.id,
-          ...(input.providerThreadId === undefined
-            ? {}
-            : { providerThreadId: input.providerThreadId }),
-          status: "open",
-          tenantId: tenant.tenantId,
-        },
-      });
-      const item = conversationItem(created);
-      await appendCreatedMutation(tenant, transaction, item);
-      return item;
-    });
+    return database.$transaction((transaction) =>
+      routeInboundEventToConversationInTransaction(tenant, input, transaction, database),
+    );
   };
 
   return Object.freeze({ routeInboundEventToConversation });

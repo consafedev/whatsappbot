@@ -182,6 +182,7 @@ model Tenant {
   outboundMessages    OutboundMessage[]
   contacts             Contact[]
   conversations       Conversation[]
+  messages            Message[]
 
   @@index([status], map: "tenant_status_idx")
   @@index([deploymentId], map: "tenant_deployment_id_idx")
@@ -443,6 +444,7 @@ model ChannelAccount {
   inboundMessageEvents  InboundMessageEvent[]
   outboundMessages      OutboundMessage[]
   conversations         Conversation[]
+  messages              Message[]
 
   @@unique([tenantId, id], map: "channel_account_tenant_id_id_key")
   @@unique([tenantId, phoneNumberUniqueKey], map: "channel_account_tenant_phone_active_key")
@@ -467,10 +469,12 @@ model InboundMessageEvent {
   processedAt        DateTime?      @map("processed_at") @db.Timestamptz(3)
   tenant             Tenant         @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   channelAccount     ChannelAccount @relation(fields: [channelAccountId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  messages           Message[]
 
   @@index([tenantId, channelAccountId], map: "inbound_message_event_tenant_channel_idx")
   @@index([tenantId, processedStatus], map: "inbound_message_event_tenant_status_idx")
   @@unique([tenantId, channelAccountId, providerMessageId], map: "inbound_message_event_provider_message_key")
+  @@unique([tenantId, id], map: "inbound_message_event_tenant_id_key")
   @@map("inbound_message_event")
 }
 
@@ -520,6 +524,7 @@ model Contact {
   updatedAt        DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
   tenant           Tenant    @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   conversations    Conversation[]
+  messages         Message[]
 
   @@unique([tenantId, id], map: "contact_tenant_id_id_key")
   @@unique([tenantId, phoneNumber], map: "contact_tenant_phone_number_key")
@@ -556,7 +561,9 @@ model Conversation {
   contact               Contact           @relation(fields: [tenantId, contactId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade)
   assignedUser          User?             @relation("ConversationAssignedUser", fields: [tenantId, assignedUserId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade)
   assignedUnit          OrganizationUnit? @relation("ConversationAssignedUnit", fields: [tenantId, assignedUnitId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade)
+  messages              Message[]
 
+  @@unique([tenantId, id], map: "conversation_tenant_id_id_key")
   @@index([tenantId, status, lastMessageAt], map: "conversation_tenant_status_last_message_idx")
   @@index([tenantId, contactId], map: "conversation_tenant_contact_idx")
   @@index([tenantId, channelAccountId], map: "conversation_tenant_channel_idx")
@@ -564,4 +571,43 @@ model Conversation {
   @@index([tenantId, assignedUnitId], map: "conversation_tenant_assigned_unit_idx")
   @@index([tenantId, channelAccountId, contactId, status], map: "conversation_tenant_resolution_idx")
   @@map("conversation")
+}
+
+model Message {
+  id                 String               @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  tenantId           String               @map("tenant_id") @db.Uuid
+  conversationId     String               @map("conversation_id") @db.Uuid
+  channelAccountId   String               @map("channel_account_id") @db.Uuid
+  contactId          String?              @map("contact_id") @db.Uuid
+  direction          String
+  origin             String
+  actorType          String               @map("actor_type")
+  actorId            String?              @map("actor_id")
+  providerMessageId  String?              @map("provider_message_id")
+  providerTimestamp  DateTime             @map("provider_timestamp") @db.Timestamptz(3)
+  messageType        String               @map("message_type")
+  textBody           String?              @map("text_body")
+  structuredPayload  Json?                @map("structured_payload") @db.JsonB
+  replyToMessageId   String?              @map("reply_to_message_id") @db.Uuid
+  deliveryStatus     String               @default("received") @map("delivery_status")
+  idempotencyKey     String?              @map("idempotency_key")
+  inboundEventId     String?              @map("inbound_event_id") @db.Uuid
+  metadata           Json?                @db.JsonB
+  createdAt          DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  tenant             Tenant               @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  conversation       Conversation         @relation(fields: [tenantId, conversationId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade)
+  channelAccount     ChannelAccount       @relation(fields: [tenantId, channelAccountId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade)
+  contact            Contact?             @relation(fields: [tenantId, contactId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade)
+  inboundEvent       InboundMessageEvent? @relation(fields: [tenantId, inboundEventId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade)
+  replyTo            Message?             @relation("MessageReplies", fields: [tenantId, replyToMessageId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade)
+  replies            Message[]            @relation("MessageReplies")
+
+  @@unique([tenantId, id], map: "message_tenant_id_key")
+  @@unique([tenantId, channelAccountId, providerMessageId], map: "message_provider_identity_key")
+  @@unique([tenantId, inboundEventId], map: "message_tenant_inbound_event_key")
+  @@index([tenantId, conversationId, createdAt], map: "message_tenant_conversation_created_idx")
+  @@index([tenantId, providerMessageId], map: "message_tenant_provider_message_idx")
+  @@index([tenantId, inboundEventId], map: "message_tenant_inbound_event_idx")
+  @@map("message")
 }

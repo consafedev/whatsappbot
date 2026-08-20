@@ -35,6 +35,7 @@
     "test:integration:channel-accounts": "pnpm --filter @whatsapp-platform/database test:integration:channel-accounts && pnpm --filter @whatsapp-platform/api test:integration:channel-accounts",
     "test:integration:contacts": "pnpm --filter @whatsapp-platform/database test:integration:contacts && pnpm --filter @whatsapp-platform/api test:integration:contacts",
     "test:integration:conversations": "pnpm --filter @whatsapp-platform/database test:integration:conversations",
+    "test:integration:inbound-messages": "pnpm --filter @whatsapp-platform/database test:integration:inbound-messages",
     "test:integration:inbound-webhooks": "pnpm --filter @whatsapp-platform/database test:integration:inbound-webhooks && pnpm --filter @whatsapp-platform/api test:integration:inbound-webhooks",
     "test:security:tenant-isolation": "pnpm --filter @whatsapp-platform/database test:security:tenant-isolation && pnpm --filter @whatsapp-platform/api test:security:tenant-isolation",
     "format": "biome format --write .",
