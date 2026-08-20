@@ -76,6 +76,15 @@ export type {
 } from "./generated/prisma/client";
 export * from "./generated/prisma/enums";
 export {
+  createInboundEventDispatcher,
+  InboundEventDispatchDeferredError,
+  InboundEventDispatchEventNotFoundError,
+  type InboundEventDispatcher,
+  type InboundEventDispatcherDatabase,
+  type InboundEventDispatchInput,
+  type InboundEventDispatchResult,
+} from "./inbound-event-dispatcher";
+export {
   createInboundEventManager,
   INBOUND_EVENT_STATUSES,
   InboundChannelInactiveError,
@@ -129,6 +138,20 @@ export {
   type OutboundConversationMessageManagerDatabase,
   type OutboundConversationMessageResult,
 } from "./outbound-conversation-message-manager";
+export {
+  createOutboundEchoManager,
+  OutboundEchoAlreadyProcessedError,
+  OutboundEchoChannelMismatchError,
+  OutboundEchoConflictError,
+  OutboundEchoEventNotFoundError,
+  OutboundEchoEventTypeUnsupportedError,
+  type OutboundEchoManager,
+  type OutboundEchoManagerDatabase,
+  OutboundEchoNotMatchedError,
+  OutboundEchoProviderMessageMismatchError,
+  type OutboundEchoReconcileInput,
+  type OutboundEchoReconcileResult,
+} from "./outbound-echo-manager";
 export {
   createOutboundMessageManager,
   OUTBOUND_MESSAGE_STATUSES,
