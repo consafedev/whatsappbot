@@ -220,6 +220,9 @@ export function createInboundMessageManager(
         where: { id: conversation.id, tenantId: tenant.tenantId },
       });
       if (currentConversation === null) throw new InboundMessageEventNotFoundError();
+      if (created.providerTimestamp === null) {
+        throw new Error("Inbound messages require a provider timestamp");
+      }
       const lastMessageAt = latestTimestamp(
         currentConversation.lastMessageAt,
         created.providerTimestamp,

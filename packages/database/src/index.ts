@@ -119,6 +119,17 @@ export {
   type OrganizationUnitUsage,
 } from "./organization-unit-manager";
 export {
+  ConversationNotFoundError,
+  ConversationNotWritableError,
+  createOutboundConversationMessageManager,
+  OutboundConversationMessageActorNotFoundError,
+  OutboundConversationMessageIdempotencyConflictError,
+  type OutboundConversationMessageInput,
+  type OutboundConversationMessageManager,
+  type OutboundConversationMessageManagerDatabase,
+  type OutboundConversationMessageResult,
+} from "./outbound-conversation-message-manager";
+export {
   createOutboundMessageManager,
   OUTBOUND_MESSAGE_STATUSES,
   OutboundMessageChannelInactiveError,

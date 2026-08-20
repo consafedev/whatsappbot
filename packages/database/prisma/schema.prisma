@@ -500,7 +500,9 @@ model OutboundMessage {
   tenant            Tenant          @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   channelAccount    ChannelAccount  @relation(fields: [channelAccountId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   actorUser         User?           @relation(fields: [tenantId, actorUserId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade)
+  message           Message?        @relation("OutboundCanonicalMessage")
 
+  @@unique([tenantId, id], map: "outbound_message_tenant_id_key")
   @@unique([tenantId, idempotencyKey], map: "outbound_message_tenant_idempotency_key")
   @@index([tenantId, channelAccountId], map: "outbound_message_tenant_channel_idx")
   @@index([tenantId, status], map: "outbound_message_tenant_status_idx")
@@ -584,7 +586,7 @@ model Message {
   actorType          String               @map("actor_type")
   actorId            String?              @map("actor_id")
   providerMessageId  String?              @map("provider_message_id")
-  providerTimestamp  DateTime             @map("provider_timestamp") @db.Timestamptz(3)
+  providerTimestamp  DateTime?            @map("provider_timestamp") @db.Timestamptz(3)
   messageType        String               @map("message_type")
   textBody           String?              @map("text_body")
   structuredPayload  Json?                @map("structured_payload") @db.JsonB
@@ -592,6 +594,7 @@ model Message {
   deliveryStatus     String               @default("received") @map("delivery_status")
   idempotencyKey     String?              @map("idempotency_key")
   inboundEventId     String?              @map("inbound_event_id") @db.Uuid
+  outboundMessageId  String?              @map("outbound_message_id") @db.Uuid
   metadata           Json?                @db.JsonB
   createdAt          DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt          DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
@@ -600,14 +603,18 @@ model Message {
   channelAccount     ChannelAccount       @relation(fields: [tenantId, channelAccountId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade)
   contact            Contact?             @relation(fields: [tenantId, contactId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade)
   inboundEvent       InboundMessageEvent? @relation(fields: [tenantId, inboundEventId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade)
+  outboundMessage    OutboundMessage?     @relation("OutboundCanonicalMessage", fields: [tenantId, outboundMessageId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade)
   replyTo            Message?             @relation("MessageReplies", fields: [tenantId, replyToMessageId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade)
   replies            Message[]            @relation("MessageReplies")
 
   @@unique([tenantId, id], map: "message_tenant_id_key")
   @@unique([tenantId, channelAccountId, providerMessageId], map: "message_provider_identity_key")
   @@unique([tenantId, inboundEventId], map: "message_tenant_inbound_event_key")
+  @@unique([tenantId, idempotencyKey], map: "message_tenant_idempotency_key")
+  @@unique([tenantId, outboundMessageId], map: "message_tenant_outbound_message_key")
   @@index([tenantId, conversationId, createdAt], map: "message_tenant_conversation_created_idx")
   @@index([tenantId, providerMessageId], map: "message_tenant_provider_message_idx")
   @@index([tenantId, inboundEventId], map: "message_tenant_inbound_event_idx")
+  @@index([tenantId, outboundMessageId], map: "message_tenant_outbound_message_idx")
   @@map("message")
 }

@@ -180,7 +180,7 @@ function defaultAutomationMode(mode: string | null): ConversationAutomationMode 
   return isAutomationMode(mode) ? mode : "AUTO";
 }
 
-function lockConversation(
+export function lockConversationInTransaction(
   transaction: Prisma.TransactionClient,
   tenantId: string,
   channelAccountId: string,
@@ -310,7 +310,7 @@ export async function routeInboundEventToConversationInTransaction(
     input.senderName ?? "Sin Nombre",
     transaction,
   );
-  await lockConversation(transaction, tenant.tenantId, channel.id, contact.id);
+  await lockConversationInTransaction(transaction, tenant.tenantId, channel.id, contact.id);
 
   const current = await transaction.conversation.findFirst({
     orderBy: [{ lastMessageAt: "desc" }, { id: "asc" }],

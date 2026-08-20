@@ -36,7 +36,9 @@ to E06-S04 and Inbox APIs to Epic 07.
 Inbound webhook processing now has a durable message timeline row and an
 atomic event for later rules/inbox consumers. Retries return the existing
 message without another row or Outbox event. Inbox pagination and dashboard
-reply remain future stories and must consume this canonical model.
+reply remain future stories and must consume this canonical model. Outbound
+create-before-send is defined separately in ADR-0021 and links the canonical
+outbound Message to the existing queue.
 
 ## Migration/rollback
 
