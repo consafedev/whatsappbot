@@ -53,6 +53,22 @@ export {
   createConversationManager,
 } from "./conversation-manager";
 export {
+  createDeliveryStatusManager,
+  DELIVERY_STATUS_RANK,
+  type DeliveryStatus,
+  DeliveryStatusChannelMismatchError,
+  DeliveryStatusEventNotFoundError,
+  DeliveryStatusEventTypeUnsupportedError,
+  type DeliveryStatusManager,
+  type DeliveryStatusManagerDatabase,
+  DeliveryStatusMessageConflictError,
+  DeliveryStatusMessageNotFoundError,
+  type DeliveryStatusReconcileInput,
+  type DeliveryStatusReconcileResult,
+  type DeliveryStatusTransaction,
+  type DeliveryStatusUpdate,
+} from "./delivery-status-manager";
+export {
   isLimitEntitlementKey,
   isModuleEntitlementKey,
   LIMIT_ENTITLEMENT_KEYS,
@@ -96,6 +112,7 @@ export * from "./generated/prisma/enums";
 export {
   createInboundEventDispatcher,
   InboundEventDispatchDeferredError,
+  InboundEventDispatchDeliveryStatusInvalidError,
   InboundEventDispatchEventNotFoundError,
   type InboundEventDispatcher,
   type InboundEventDispatcherDatabase,

@@ -90,6 +90,7 @@ describe("inbound normalizer", () => {
                       id: "wamid.image-1",
                       recipient_id: "+5215512345678",
                       status: "delivered",
+                      errorMessage: "provider detail",
                       timestamp: "1724000001",
                     },
                   ],
@@ -103,8 +104,9 @@ describe("inbound normalizer", () => {
     );
     expect(receipt).toMatchObject({
       eventType: "DELIVERY_RECEIPT",
+      eventId: "receipt:wamid.image-1:delivered:2024-08-18T16:53:21.000Z",
       providerMessageId: "wamid.image-1",
-      statusUpdate: { status: "delivered" },
+      statusUpdate: { errorMessage: "provider detail", status: "delivered" },
     });
     expect(receipt.statusUpdate?.timestamp).toEqual(new Date(1_724_000_001_000));
   });

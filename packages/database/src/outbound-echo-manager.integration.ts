@@ -3,7 +3,6 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { Prisma, PrismaClient } from "./generated/prisma/client";
 import {
   createInboundEventDispatcher,
-  InboundEventDispatchDeferredError,
   type InboundEventDispatcher,
 } from "./inbound-event-dispatcher";
 import { createInboundEventManager, type InboundEventManager } from "./inbound-event-manager";
@@ -281,7 +280,7 @@ describe.sequential("E06-S05 outbound echo reconciliation", () => {
     ).resolves.toMatchObject({ processedStatus: "PENDING", tenantId: tenantAId });
   });
 
-  it("keeps regular inbound persistence and delivery receipts in their documented boundaries", async () => {
+  it("keeps regular inbound persistence and routes delivery receipts to E06-S07", async () => {
     const inboundEventId = await recordMessageEvent(
       tenantAId,
       "provider-inbound-1",
@@ -300,16 +299,26 @@ describe.sequential("E06-S05 outbound echo reconciliation", () => {
     const receipt = await inboundEvents.recordInboundEvent(createTenantContext(tenantAId), {
       channelAccountId: channelAId,
       eventType: "DELIVERY_RECEIPT",
-      normalizedData: { statusUpdate: { status: "delivered" } },
+      normalizedData: {
+        providerMessageId: "provider-echo-1",
+        statusUpdate: {
+          providerMessageId: "provider-echo-1",
+          status: "delivered",
+          timestamp: "2026-08-20T12:33:01.000Z",
+        },
+      },
       payload: { status: "delivered" },
       providerMessageId: "provider-echo-1-receipt",
       recipientPhone: "+5215512345678",
     });
     await expect(
       dispatcher.dispatch(createTenantContext(tenantAId), { inboundEventId: receipt.event.id }),
-    ).rejects.toBeInstanceOf(InboundEventDispatchDeferredError);
+    ).resolves.toMatchObject({
+      kind: "delivery_status",
+      result: { deliveryStatus: "delivered", duplicate: false },
+    });
     await expect(
       prisma.inboundMessageEvent.findUniqueOrThrow({ where: { id: receipt.event.id } }),
-    ).resolves.toMatchObject({ processedStatus: "PENDING" });
+    ).resolves.toMatchObject({ processedStatus: "PROCESSED" });
   });
 });

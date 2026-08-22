@@ -1,5 +1,10 @@
 import type { ConversationManagerDatabase } from "./conversation-manager";
 import {
+  createDeliveryStatusManager,
+  type DeliveryStatusManager,
+  type DeliveryStatusReconcileResult,
+} from "./delivery-status-manager";
+import {
   createExternalHumanMessageManager,
   type ExternalHumanMessageManager,
   ExternalHumanMessageOutboundEchoRaceError,
@@ -14,6 +19,7 @@ import {
 import {
   createOutboundEchoManager,
   OutboundEchoAlreadyProcessedError,
+  OutboundEchoConflictError,
   type OutboundEchoManager,
   OutboundEchoNotMatchedError,
   type OutboundEchoReconcileResult,
@@ -29,6 +35,7 @@ export type InboundEventDispatchResult = Readonly<
   | { kind: "inbound"; result: InboundMessagePersistResult }
   | { kind: "echo"; result: OutboundEchoReconcileResult }
   | { kind: "external_human"; result: ExternalHumanMessageResult }
+  | { kind: "delivery_status"; result: DeliveryStatusReconcileResult }
 >;
 
 export class InboundEventDispatchEventNotFoundError extends Error {
@@ -44,6 +51,14 @@ export class InboundEventDispatchDeferredError extends Error {
 
   constructor(eventType: string) {
     super(`Inbound event type ${eventType} is deferred to a later story`);
+  }
+}
+
+export class InboundEventDispatchDeliveryStatusInvalidError extends Error {
+  override readonly name = "InboundEventDispatchDeliveryStatusInvalidError";
+
+  constructor() {
+    super("Inbound delivery status event is missing a valid provider message or status update");
   }
 }
 
@@ -115,6 +130,57 @@ function providerTimestamp(event: InboundMessageEvent): Date {
   );
 }
 
+const DELIVERY_STATUSES = new Set(["sent", "delivered", "read", "failed"]);
+
+function deliveryStatusInput(event: InboundMessageEvent): {
+  providerMessageId: string;
+  statusUpdate: {
+    status: "sent" | "delivered" | "read" | "failed";
+    timestamp: Date;
+    errorCode?: string;
+    errorMessage?: string;
+  };
+} {
+  const normalized = record(event.normalizedData);
+  const payload = record(event.payload);
+  const normalizedUpdate = record(normalized.statusUpdate);
+  const payloadUpdate = record(payload.statusUpdate);
+  const source = Object.keys(normalizedUpdate).length > 0 ? normalizedUpdate : payloadUpdate;
+  const rawStatus =
+    stringValue(source.status) ?? stringValue(normalized.status) ?? stringValue(payload.status);
+  const status = rawStatus?.toLowerCase();
+  const providerMessageId =
+    stringValue(normalized.providerMessageId) ??
+    stringValue(normalizedUpdate.providerMessageId) ??
+    stringValue(payload.providerMessageId) ??
+    event.providerMessageId;
+  const timestamp =
+    dateValue(source.timestamp) ??
+    dateValue(normalized.providerTimestamp) ??
+    dateValue(normalized.timestamp);
+
+  if (
+    providerMessageId === null ||
+    status === undefined ||
+    !DELIVERY_STATUSES.has(status) ||
+    timestamp === null
+  ) {
+    throw new InboundEventDispatchDeliveryStatusInvalidError();
+  }
+
+  const errorCode = stringValue(source.errorCode);
+  const errorMessage = stringValue(source.errorMessage);
+  return {
+    providerMessageId,
+    statusUpdate: {
+      ...(errorCode === null ? {} : { errorCode }),
+      ...(errorMessage === null ? {} : { errorMessage }),
+      status: status as "sent" | "delivered" | "read" | "failed",
+      timestamp,
+    },
+  };
+}
+
 export interface InboundEventDispatcher {
   dispatch(
     context: TenantContext,
@@ -129,6 +195,7 @@ export function createInboundEventDispatcher(
   const outboundEchoes: OutboundEchoManager = createOutboundEchoManager(database);
   const externalHumanMessages: ExternalHumanMessageManager =
     createExternalHumanMessageManager(database);
+  const deliveryStatuses: DeliveryStatusManager = createDeliveryStatusManager(database);
 
   const dispatch = async (
     context: TenantContext,
@@ -162,19 +229,21 @@ export function createInboundEventDispatcher(
       } catch (error) {
         if (
           !(error instanceof OutboundEchoNotMatchedError) &&
-          !(error instanceof OutboundEchoAlreadyProcessedError)
+          !(error instanceof OutboundEchoAlreadyProcessedError) &&
+          !(error instanceof OutboundEchoConflictError)
         ) {
           throw error;
         }
       }
 
       try {
+        const structuredPayload = externalStructuredPayload(event);
         return {
           kind: "external_human",
           result: await externalHumanMessages.reconcileExternalHumanMessage(tenant, {
             ...echoInput,
             recipientPhone: event.recipientPhone,
-            structuredPayload: externalStructuredPayload(event),
+            ...(structuredPayload === undefined ? {} : { structuredPayload }),
             textBody: externalTextBody(event),
           }),
         };
@@ -185,6 +254,19 @@ export function createInboundEventDispatcher(
           result: await outboundEchoes.reconcileOutboundEcho(tenant, echoInput),
         };
       }
+    }
+
+    if (event.eventType === "STATUS_UPDATE" || event.eventType === "DELIVERY_RECEIPT") {
+      const delivery = deliveryStatusInput(event);
+      return {
+        kind: "delivery_status",
+        result: await deliveryStatuses.reconcileDeliveryStatus(tenant, {
+          channelAccountId: event.channelAccountId,
+          inboundEventId: event.id,
+          providerMessageId: delivery.providerMessageId,
+          statusUpdate: delivery.statusUpdate,
+        }),
+      };
     }
 
     throw new InboundEventDispatchDeferredError(event.eventType);

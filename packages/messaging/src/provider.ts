@@ -65,6 +65,7 @@ export type NormalizedStatusUpdate = Readonly<{
   status: "sent" | "delivered" | "read" | "failed";
   timestamp: Date;
   errorCode?: string;
+  errorMessage?: string;
 }>;
 
 export type NormalizedInboundEvent = Readonly<{

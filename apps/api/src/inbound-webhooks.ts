@@ -204,7 +204,10 @@ export class InboundWebhookService {
           messageType: normalized.messageType,
           normalizedData: jsonInput(normalized),
           payload: jsonInput(payload),
-          providerMessageId: normalized.providerMessageId,
+          providerMessageId:
+            normalized.eventType === "MESSAGE_RECEIVED"
+              ? normalized.providerMessageId
+              : normalized.eventId,
           recipientPhone: normalized.recipientPhone,
           senderPhone: normalized.senderPhone,
         },

@@ -78,8 +78,10 @@ function statusUpdate(value: unknown, timestamp: Date): NormalizedStatusUpdate |
     return null;
   }
   const errorCode = stringValue(source.errorCode);
+  const errorMessage = stringValue(source.errorMessage);
   return {
     ...(errorCode === null ? {} : { errorCode }),
+    ...(errorMessage === null ? {} : { errorMessage }),
     status,
     timestamp: dateValue(source.timestamp ?? timestamp),
   };
@@ -162,6 +164,11 @@ function cryptoRandomId(): string {
   return `inbound-${randomUUID()}`;
 }
 
+function receiptEventId(providerMessageId: string | null, status: string | null, timestamp: Date) {
+  if (providerMessageId === null || status === null) return null;
+  return `receipt:${providerMessageId}:${status}:${timestamp.toISOString()}`;
+}
+
 function normalizeGenericPayload(
   payload: Payload,
   context: InboundNormalizationContext,
@@ -182,16 +189,21 @@ function normalizeGenericPayload(
           : "MESSAGE_RECEIVED"
         : "DELIVERY_RECEIPT";
   const mediaValue = media(payload, type, stringValue(payload.mediaUrl));
+  const providerMessageId =
+    stringValue(payload.providerMessageId ?? nestedString(payload, "id", "_serialized")) ??
+    stringValue(payload.id);
+  const explicitEventId = stringValue(payload.eventId);
   return baseEvent(payload, context, {
     conversationExternalId: stringValue(payload.conversationId ?? payload.chatId),
-    eventId: stringValue(payload.eventId ?? payload.id),
+    eventId:
+      inferredEventType === "MESSAGE_RECEIVED"
+        ? explicitEventId
+        : (explicitEventId ?? receiptEventId(providerMessageId, status?.status ?? null, timestamp)),
     eventType: inferredEventType,
     media: mediaValue,
     messageType: type,
     origin: payload.fromMe === true ? "human_external_device" : "customer",
-    providerMessageId:
-      stringValue(payload.providerMessageId ?? nestedString(payload, "id", "_serialized")) ??
-      stringValue(payload.id),
+    providerMessageId,
     recipientPhone: stringValue(payload.to ?? payload.recipientPhone),
     senderPhone: stringValue(payload.from ?? payload.senderPhone),
     statusUpdate: status,
@@ -211,12 +223,14 @@ function normalizeMetaPayload(
   const receipt = record(Array.isArray(value.statuses) ? value.statuses[0] : null);
   if (Object.keys(receipt).length > 0 && Object.keys(message).length === 0) {
     const timestamp = dateValue(receipt.timestamp);
+    const normalizedStatus = statusUpdate(receipt, timestamp);
+    const providerMessageId = stringValue(receipt.id);
     return baseEvent(payload, context, {
-      eventId: stringValue(receipt.id),
+      eventId: receiptEventId(providerMessageId, normalizedStatus?.status ?? null, timestamp),
       eventType: "DELIVERY_RECEIPT",
-      providerMessageId: stringValue(receipt.id),
+      providerMessageId,
       recipientPhone: stringValue(receipt.recipient_id),
-      statusUpdate: statusUpdate(receipt, timestamp),
+      statusUpdate: normalizedStatus,
       timestamp,
     });
   }

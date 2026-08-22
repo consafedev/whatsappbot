@@ -1,5 +1,6 @@
 import { loadDatabaseConfig } from "@whatsapp-platform/config";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import type { ModuleEntitlementKey } from "./entitlement-catalog";
 import {
   createExternalHumanMessageManager,
   ExternalHumanMessageEventNotFoundError,
@@ -58,7 +59,10 @@ async function cleanup(): Promise<void> {
   await prisma.tenant.deleteMany({ where: { id: { in: ids } } });
 }
 
-async function provision(marker: string, enabledModules: readonly string[]): Promise<string> {
+async function provision(
+  marker: string,
+  enabledModules: readonly ModuleEntitlementKey[],
+): Promise<string> {
   const result = await createPlatformTenantProvisioningRepository(prisma).provision({
     actorPlatformAdminId: "019c0000-0000-7000-8000-000000000001",
     defaultCurrency: "MXN",
