@@ -2,6 +2,7 @@ import { loadDatabaseConfig } from "@whatsapp-platform/config";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { PrismaClient } from "./generated/prisma/client";
 import {
+  ConversationNotFoundError,
   createInboxQueryManager,
   type InboxQueryManager,
   InboxQueryValidationError,
@@ -35,6 +36,7 @@ async function cleanup(): Promise<void> {
   });
   const ids = tenants.map(({ id }) => id);
   if (ids.length === 0) return;
+  await prisma.message.deleteMany({ where: { tenantId: { in: ids } } });
   await prisma.conversation.deleteMany({ where: { tenantId: { in: ids } } });
   await prisma.contact.deleteMany({ where: { tenantId: { in: ids } } });
   await prisma.channelAccount.deleteMany({ where: { tenantId: { in: ids } } });
@@ -142,6 +144,21 @@ describe.sequential("E07-S01 inbox query manager", () => {
       }),
     ]);
     const [alice, bob, carol, closed, tenantBContact] = contacts;
+    await Promise.all([
+      prisma.channelAccount.update({
+        data: { phoneNumber: "+525500000001" },
+        where: { id: channelAId, tenantId: tenantAId },
+      }),
+      prisma.contact.update({
+        data: {
+          avatarUrl: "https://cdn.example.invalid/alice.png",
+          customAttributes: { source: "integration" },
+          email: "alice@example.invalid",
+          tags: ["priority", "vip"],
+        },
+        where: { id: alice.id, tenantId: tenantAId },
+      }),
+    ]);
     const conversations = await Promise.all([
       prisma.conversation.create({
         data: {
@@ -195,6 +212,63 @@ describe.sequential("E07-S01 inbox query manager", () => {
     ]);
     conversationA1Id = conversations[0].id;
     conversationA4Id = conversations[3].id;
+    await prisma.message.createMany({
+      data: [
+        {
+          actorId: alice.id,
+          actorType: "contact",
+          channelAccountId: channelAId,
+          conversationId: conversationA1Id,
+          createdAt: new Date("2026-08-21T10:00:00.000Z"),
+          direction: "inbound",
+          messageType: "text",
+          origin: "customer",
+          providerTimestamp: new Date("2026-08-21T10:00:00.000Z"),
+          tenantId: tenantAId,
+          textBody: "first message",
+        },
+        {
+          actorId: ownerAId,
+          actorType: "tenant_user",
+          channelAccountId: channelAId,
+          conversationId: conversationA1Id,
+          createdAt: new Date("2026-08-21T10:01:00.000Z"),
+          direction: "outbound",
+          messageType: "image",
+          origin: "human_app",
+          providerTimestamp: new Date("2026-08-21T10:01:00.000Z"),
+          structuredPayload: { mediaId: "media-1", mimeType: "image/jpeg" },
+          tenantId: tenantAId,
+          textBody: "image caption",
+        },
+        {
+          actorId: null,
+          actorType: "external_human_unknown",
+          channelAccountId: channelAId,
+          conversationId: conversationA1Id,
+          createdAt: new Date("2026-08-21T10:02:00.000Z"),
+          direction: "outbound",
+          messageType: "text",
+          origin: "human_external_device",
+          providerTimestamp: new Date("2026-08-21T10:02:00.000Z"),
+          tenantId: tenantAId,
+          textBody: "external echo",
+        },
+        {
+          actorId: null,
+          actorType: "system",
+          channelAccountId: channelAId,
+          conversationId: conversationA1Id,
+          createdAt: new Date("2026-08-21T10:03:00.000Z"),
+          direction: "inbound",
+          messageType: "system",
+          origin: "system",
+          providerTimestamp: null,
+          tenantId: tenantAId,
+          textBody: "latest message",
+        },
+      ],
+    });
     manager = createInboxQueryManager(prisma);
   });
 
@@ -242,6 +316,103 @@ describe.sequential("E07-S01 inbox query manager", () => {
     });
   });
 
+  it("returns the closed detail projection without secrets", async () => {
+    const detail = await manager.getInboxConversationDetail(
+      createTenantContext(tenantAId),
+      conversationA1Id,
+    );
+    expect(detail).toMatchObject({
+      assignedUnit: { id: unitAId, name: "Inbox Unit A" },
+      assignedUser: { email: expect.stringContaining("e07-s01-inbox-query-db-owner-a") },
+      channelAccount: {
+        id: channelAId,
+        name: "Inbox Channel A",
+        phoneNumber: "+525500000001",
+      },
+      contact: {
+        avatarUrl: "https://cdn.example.invalid/alice.png",
+        customAttributes: { source: "integration" },
+        email: "alice@example.invalid",
+        id: expect.any(String),
+        name: "Alice A",
+        phoneNumber: "+525511111111",
+        status: "ACTIVE",
+        tags: ["priority", "vip"],
+      },
+      id: conversationA1Id,
+      unread: true,
+    });
+    expect(detail).not.toHaveProperty("tenantId");
+    expect(detail.channelAccount).not.toHaveProperty("credentialsCiphertext");
+  });
+
+  it("paginates the message timeline in both directions and preserves message semantics", async () => {
+    const historicalFirst = await manager.listInboxConversationMessages(
+      createTenantContext(tenantAId),
+      conversationA1Id,
+      { limit: 2 },
+    );
+    expect(historicalFirst.items.map(({ textBody }) => textBody)).toEqual([
+      "latest message",
+      "external echo",
+    ]);
+    expect(historicalFirst.items[0]).toMatchObject({
+      actorType: "system",
+      direction: "inbound",
+      origin: "system",
+    });
+    expect(historicalFirst.nextCursor).not.toBeNull();
+    expect(historicalFirst.prevCursor).toBeNull();
+
+    const historicalSecond = await manager.listInboxConversationMessages(
+      createTenantContext(tenantAId),
+      conversationA1Id,
+      {
+        ...(historicalFirst.nextCursor === null ? {} : { cursor: historicalFirst.nextCursor }),
+        direction: "before",
+        limit: 2,
+      },
+    );
+    expect(historicalSecond.items.map(({ textBody }) => textBody)).toEqual([
+      "image caption",
+      "first message",
+    ]);
+    expect(historicalSecond.items[0]).toMatchObject({
+      structuredPayload: { mediaId: "media-1", mimeType: "image/jpeg" },
+    });
+    expect(historicalSecond.items[1]).toMatchObject({
+      actorType: "contact",
+      origin: "customer",
+    });
+    expect(historicalSecond.nextCursor).toBeNull();
+    expect(historicalSecond.prevCursor).not.toBeNull();
+
+    const progressiveFirst = await manager.listInboxConversationMessages(
+      createTenantContext(tenantAId),
+      conversationA1Id,
+      { direction: "after", limit: 2 },
+    );
+    expect(progressiveFirst.items.map(({ textBody }) => textBody)).toEqual([
+      "first message",
+      "image caption",
+    ]);
+    expect(progressiveFirst.nextCursor).not.toBeNull();
+    const progressiveSecond = await manager.listInboxConversationMessages(
+      createTenantContext(tenantAId),
+      conversationA1Id,
+      {
+        ...(progressiveFirst.nextCursor === null ? {} : { cursor: progressiveFirst.nextCursor }),
+        direction: "after",
+        limit: 2,
+      },
+    );
+    expect(progressiveSecond.items.map(({ textBody }) => textBody)).toEqual([
+      "external echo",
+      "latest message",
+    ]);
+    expect(progressiveSecond.nextCursor).toBeNull();
+  });
+
   it("paginates without overlaps and rejects malformed cursors", async () => {
     const first = await manager.listInboxConversations(createTenantContext(tenantAId), {
       limit: 2,
@@ -265,11 +436,23 @@ describe.sequential("E07-S01 inbox query manager", () => {
     expect(tenantB.items).toHaveLength(1);
     expect(tenantB.items[0]).not.toHaveProperty("tenantId");
     await expect(
+      manager.getInboxConversationDetail(createTenantContext(tenantBId), conversationA1Id),
+    ).rejects.toBeInstanceOf(ConversationNotFoundError);
+    await expect(
+      manager.listInboxConversationMessages(createTenantContext(tenantBId), conversationA1Id),
+    ).rejects.toBeInstanceOf(ConversationNotFoundError);
+    await expect(
       manager.listInboxConversations(createTenantContext(tenantWithoutCrmId)),
+    ).rejects.toBeInstanceOf(TenantModuleEntitlementRequiredError);
+    await expect(
+      manager.getInboxConversationDetail(createTenantContext(tenantWithoutCrmId), conversationA1Id),
     ).rejects.toBeInstanceOf(TenantModuleEntitlementRequiredError);
     await prisma.tenant.update({ data: { status: "suspended" }, where: { id: tenantAId } });
     await expect(
       manager.listInboxConversations(createTenantContext(tenantAId)),
+    ).rejects.toBeInstanceOf(TenantNotOperationalError);
+    await expect(
+      manager.listInboxConversationMessages(createTenantContext(tenantAId), conversationA1Id),
     ).rejects.toBeInstanceOf(TenantNotOperationalError);
     await prisma.tenant.update({ data: { status: "active" }, where: { id: tenantAId } });
   });

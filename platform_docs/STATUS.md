@@ -2,7 +2,7 @@
 
 **Actualizado:** 2026-08-22
 **Versión de producto:** `0.0.0`  
-**Estado:** E07-S01 — PASS; **Epic 07 — Inbox — IN PROGRESS**.
+**Estado:** E07-S02 — PASS; **Epic 07 — Inbox — IN PROGRESS**.
 
 ## Current milestone
 
@@ -25,6 +25,7 @@ Estado por historia:
 - E06-S06 — External human detection: **IMPLEMENTED; VERIFICATION BLOCKED BY ENVIRONMENT**.
 - E06-S07 — Delivery state: **IMPLEMENTED; VERIFICATION BLOCKED BY ENVIRONMENT**.
 - E07-S01 — Conversation list, filters and cursor pagination: **PASS**.
+- E07-S02 — Conversation detail and bidirectional message timeline: **PASS**.
 
 Epics anteriores:
 
@@ -97,6 +98,10 @@ Epics base:
 - E07-S01 — `createInboxQueryManager(...)` implementa el listado tenant-scoped con estados canónicos, alias `active`, filtros de asignación/canal, búsqueda case-insensitive por contacto, cursor base64url sobre `(lastMessageAt DESC NULLS LAST, id DESC)`, `totalActive` y proyección least-data con `unread` derivado de timestamps existentes.
 - E07-S01 — la API expone `GET /api/v1/inbox/conversations`, exige `conversations.read`, `module.messaging.basic` y `module.crm_lite`, deriva tenant exclusivamente de sesión/contexto y mantiene la cadena de guards ordenada sesión → contexto → permiso → entitlement. No se implementó `inbox.read` ni detalle porque la autoridad documental asigna detalle a E07-S02.
 - Verificación E07-S01 — suite database 4/4 y API Nest/PostgreSQL 3/3; `prisma validate`, TypeScript API/database, Biome (264 archivos), Vitest raíz (20 archivos/93 pruebas) y `git diff --check` PASS. No hubo migration; el host no tiene disponibles los binarios locales de Biome/TypeScript, por lo que esos dos checks se ejecutaron en contenedor reproducible.
+- E07-S02 — `createInboxQueryManager(...)` ahora expone detalle tenant-scoped y timeline de `Message` con proyecciones cerradas: contacto, canal, asignación, actor/origen, delivery, timestamps y `structuredPayload` para contenido media-shaped. No selecciona metadata privada, credenciales, provider config ni agrega `messageType` al DTO REST cerrado definido por la story.
+- E07-S02 — la API expone `GET /api/v1/inbox/conversations/:conversationId` y `GET /api/v1/inbox/conversations/:conversationId/messages`, exige `conversations.read` y ambas entitlements, convierte 404 cross-tenant/no encontrado, y serializa timestamps REST explícitamente como ISO.
+- E07-S02 — cursor estricto `(createdAt,id)`: `before` histórico descendente, `after` progresivo ascendente, `nextCursor` direccional y `prevCursor` sólo cuando existe página en sentido contrario; límite default 30 y máximo 100. No hay migration, mutación, realtime ni UI.
+- Verificación E07-S02 — suite database 6/6 y API Nest/PostgreSQL 4/4 con detalle, media, eco externo, paginación bidireccional, aislamiento A/B, RBAC/entitlements y 404 cross-tenant; `prisma validate`, TypeScript API/database, Biome (264 archivos) y `git diff --check` PASS. No hubo migration; checks reproducibles ejecutados en contenedor porque los binarios locales no están disponibles.
 
 - E04-S01 — App shell: **PASS**; Epic 04 quedó **PASS / COMPLETE**.
 - `/app` usa un layout Next.js reusable, sidebar desktop-first, drawer móvil accesible, identidad real del Tenant/User y logout por `POST /auth/logout`.
@@ -301,19 +306,20 @@ Epics base:
 
 ## In progress
 
-E07-S01 está **PASS**. E06-S06/E06-S07 conservan verificación pendiente por la indisponibilidad histórica de Docker/Prisma del host; Epic 07 continúa **IN PROGRESS**.
+E07-S02 está **PASS**. E06-S06/E06-S07 conservan verificación pendiente por la indisponibilidad histórica de Docker/Prisma del host; Epic 07 continúa **IN PROGRESS**.
 
 ## Blocked
 
-No hay bloqueo funcional de diseño para E07-S01. La verificación histórica de E06-S06/E06-S07 sigue bloqueada por Docker Desktop ausente y dependencias host incompletas. Conversation detail (E07-S02), ContactPoint omnicanal, CRM pipeline, UI, WebSockets/SSE, bots/IA y providers WhatsApp reales permanecen fuera de alcance por autoridad documental.
+No hay bloqueo funcional de diseño para E07-S02. La verificación histórica de E06-S06/E06-S07 sigue bloqueada por dependencias host incompletas. ContactPoint omnicanal, CRM pipeline, UI, WebSockets/SSE, bots/IA y providers WhatsApp reales permanecen fuera de alcance por autoridad documental.
 
 ## Next story
 
-`E07-S02 — Conversation detail`.
+`E07-S03 — Reply from dashboard`.
 
 ## Last verified commands
 
   - E07-S01 — `docker compose run ... pnpm --filter @whatsapp-platform/database db:validate` PASS; suite database 4/4 y API 3/3 contra PostgreSQL 18.4/Nest reales con source mounts; TypeScript API/database PASS; Biome 264 archivos PASS; Vitest raíz 20 archivos/93 pruebas PASS; `git diff --check` PASS. No migration nueva.
+  - E07-S02 — `docker compose run ... pnpm --filter @whatsapp-platform/database test:integration:inbox-query` PASS (6/6) y `pnpm --filter @whatsapp-platform/api test:integration:inbox` PASS (4/4) contra PostgreSQL 18.4/Nest reales con source mounts; `prisma validate`, TypeScript API/database, Biome 264 archivos y `git diff --check` PASS. No migration nueva.
   - E06-S06 — Biome dirigido y `git diff --check` PASS. `docker compose run ... tsc` quedó bloqueado porque no existe el pipe `dockerDesktopLinuxEngine`; `pnpm db:generate` host quedó bloqueado por `prisma/build/index.js` ausente; la suite Vitest host no inició por `@whatsapp-platform/config` no resoluble. No se afirma typecheck ni integración E06-S06.
   - E06-S07 — `pnpm exec biome check .` PASS (267 archivos), `pnpm exec vitest run packages/messaging/src/inbound-normalizer.test.ts` PASS (3/3), `git diff --check` PASS. `pnpm --filter @whatsapp-platform/database test:integration:delivery-status` no inició las pruebas porque Vitest no resolvió `@whatsapp-platform/config`; `tsc -p packages/database/tsconfig.json --noEmit` mantiene los errores previos de workspace/Prisma generado. No se afirma PostgreSQL, Prisma ni suite completa.
   - E06-S02 — PASS; Vitest raíz 20 archivos/93 pruebas, Conversation database 5/5, Contact regression 5/5 e Inbound regression 3/3 contra PostgreSQL 18.4 real en Docker con source mounts; `db:validate`, `db:generate`, `db:migrate:deploy` (`20260819230000_add_conversations_foundation`), `prisma migrate status` (12 migrations, up to date), TypeScript/build de workspaces Docker, Biome y `git diff --check` PASS. La exportación/tag final de la nueva imagen Docker no terminó y no se reporta runtime API E06-S02.

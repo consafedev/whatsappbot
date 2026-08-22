@@ -5,17 +5,24 @@ import {
   Get,
   Inject,
   Injectable,
+  NotFoundException,
+  Param,
   Query,
   UseGuards,
 } from "@nestjs/common";
 import type {
+  InboxConversationDetail,
   InboxConversationItem,
+  InboxMessageItem,
+  InboxMessageQueryOptions,
+  InboxMessageQueryResult,
   InboxQueryManager,
   InboxQueryOptions,
   InboxQueryResult,
   TenantContext,
 } from "@whatsapp-platform/database";
 import {
+  ConversationNotFoundError,
   InboxQueryValidationError,
   TenantModuleEntitlementRequiredError,
   TenantNotOperationalError,
@@ -38,6 +45,7 @@ const QUERY_KEYS = new Set([
   "search",
   "status",
 ]);
+const MESSAGE_QUERY_KEYS = new Set(["cursor", "direction", "limit"]);
 
 type InboxConversationResponse = Readonly<{
   id: string;
@@ -68,6 +76,44 @@ type InboxListResponse = Readonly<{
   items: readonly InboxConversationResponse[];
   nextCursor: string | null;
   totalActive: number;
+}>;
+
+type InboxConversationDetailResponse = Readonly<{
+  id: string;
+  channelAccountId: string;
+  contactId: string;
+  status: string;
+  automationMode: string;
+  assignedUserId: string | null;
+  assignedUnitId: string | null;
+  priority: number;
+  subject: string | null;
+  lastMessageAt: string | null;
+  lastInboundAt: string | null;
+  lastOutboundAt: string | null;
+  lastHumanMessageAt: string | null;
+  humanTakeoverUntil: string | null;
+  closedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  unread: boolean;
+  contact: InboxConversationDetail["contact"];
+  channelAccount: InboxConversationDetail["channelAccount"];
+  assignedUser: InboxConversationDetail["assignedUser"];
+  assignedUnit: InboxConversationDetail["assignedUnit"];
+}>;
+
+type InboxMessageResponse = Readonly<
+  Omit<InboxMessageItem, "createdAt" | "providerTimestamp"> & {
+    createdAt: string;
+    providerTimestamp: string | null;
+  }
+>;
+
+type InboxMessagesResponse = Readonly<{
+  items: readonly InboxMessageResponse[];
+  nextCursor: string | null;
+  prevCursor: string | null;
 }>;
 
 function queryValue(query: Record<string, unknown>, key: string): QueryValue {
@@ -114,6 +160,27 @@ function parseLimit(value: QueryValue): number | undefined {
   return limit;
 }
 
+function parseMessageLimit(value: QueryValue): number | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== "string" || !/^[0-9]+$/.test(value)) {
+    throw new BadRequestException("Invalid message limit");
+  }
+  const limit = Number(value);
+  if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100) {
+    throw new BadRequestException("Invalid message limit");
+  }
+  return limit;
+}
+
+function parseMessageDirection(value: QueryValue): "before" | "after" | undefined {
+  const direction = optionalQueryString(value, "message direction", 10);
+  if (direction === undefined) return undefined;
+  if (direction !== "before" && direction !== "after") {
+    throw new BadRequestException("Invalid message direction");
+  }
+  return direction;
+}
+
 function parseOptions(query: Record<string, unknown>): InboxQueryOptions {
   if (Object.keys(query).some((key) => !QUERY_KEYS.has(key))) {
     throw new BadRequestException("Invalid inbox query parameter");
@@ -145,6 +212,20 @@ function parseOptions(query: Record<string, unknown>): InboxQueryOptions {
     ...(limit === undefined ? {} : { limit }),
     ...(search === undefined ? {} : { search }),
     ...(status === undefined ? {} : { status }),
+  };
+}
+
+function parseMessageOptions(query: Record<string, unknown>): InboxMessageQueryOptions {
+  if (Object.keys(query).some((key) => !MESSAGE_QUERY_KEYS.has(key))) {
+    throw new BadRequestException("Invalid message query parameter");
+  }
+  const cursor = optionalQueryString(queryValue(query, "cursor"), "message cursor", 512);
+  const limit = parseMessageLimit(queryValue(query, "limit"));
+  const direction = parseMessageDirection(queryValue(query, "direction"));
+  return {
+    ...(cursor === undefined ? {} : { cursor }),
+    ...(direction === undefined ? {} : { direction }),
+    ...(limit === undefined ? {} : { limit }),
   };
 }
 
@@ -187,7 +268,57 @@ function publicResult(result: InboxQueryResult): InboxListResponse {
   };
 }
 
+function publicDetail(detail: InboxConversationDetail): InboxConversationDetailResponse {
+  return {
+    assignedUnit: detail.assignedUnit,
+    assignedUnitId: detail.assignedUnitId,
+    assignedUser: detail.assignedUser,
+    assignedUserId: detail.assignedUserId,
+    automationMode: detail.automationMode,
+    channelAccount: detail.channelAccount,
+    channelAccountId: detail.channelAccountId,
+    closedAt: iso(detail.closedAt),
+    contact: detail.contact,
+    contactId: detail.contactId,
+    createdAt: detail.createdAt.toISOString(),
+    humanTakeoverUntil: iso(detail.humanTakeoverUntil),
+    id: detail.id,
+    lastHumanMessageAt: iso(detail.lastHumanMessageAt),
+    lastInboundAt: iso(detail.lastInboundAt),
+    lastMessageAt: iso(detail.lastMessageAt),
+    lastOutboundAt: iso(detail.lastOutboundAt),
+    priority: detail.priority,
+    status: detail.status,
+    subject: detail.subject,
+    unread: detail.unread,
+    updatedAt: detail.updatedAt.toISOString(),
+  };
+}
+
+function publicMessages(result: InboxMessageQueryResult): InboxMessagesResponse {
+  return {
+    items: result.items.map((item) => ({
+      actorId: item.actorId,
+      actorType: item.actorType,
+      conversationId: item.conversationId,
+      createdAt: item.createdAt.toISOString(),
+      deliveryStatus: item.deliveryStatus,
+      direction: item.direction,
+      id: item.id,
+      origin: item.origin,
+      providerTimestamp: iso(item.providerTimestamp),
+      structuredPayload: item.structuredPayload,
+      textBody: item.textBody,
+    })),
+    nextCursor: result.nextCursor,
+    prevCursor: result.prevCursor,
+  };
+}
+
 function mapError(error: unknown): never {
+  if (error instanceof ConversationNotFoundError) {
+    throw new NotFoundException("Conversation not found");
+  }
   if (error instanceof InboxQueryValidationError) {
     throw new BadRequestException(error.message);
   }
@@ -222,12 +353,72 @@ export class InboxService {
       return mapError(error);
     }
   }
+
+  async detail(
+    context: TenantContext,
+    conversationId: string,
+  ): Promise<InboxConversationDetailResponse> {
+    try {
+      return publicDetail(await this.manager.getInboxConversationDetail(context, conversationId));
+    } catch (error) {
+      return mapError(error);
+    }
+  }
+
+  async messages(
+    context: TenantContext,
+    conversationId: string,
+    query: Record<string, unknown>,
+  ): Promise<InboxMessagesResponse> {
+    try {
+      return publicMessages(
+        await this.manager.listInboxConversationMessages(
+          context,
+          conversationId,
+          parseMessageOptions(query),
+        ),
+      );
+    } catch (error) {
+      return mapError(error);
+    }
+  }
 }
 
 @Controller("api/v1/inbox")
 @RequireEntitlements("module.messaging.basic", "module.crm_lite")
 export class InboxController {
   constructor(private readonly service: InboxService) {}
+
+  @Get("conversations/:conversationId/messages")
+  @RequirePermissions("conversations.read")
+  @UseGuards(
+    TenantUserSessionGuard,
+    TenantContextGuard,
+    TenantPermissionGuard,
+    TenantEntitlementGuard,
+  )
+  messages(
+    @Param("conversationId") conversationId: string,
+    @CurrentTenantContext() context: TenantContext,
+    @Query() query: Record<string, unknown>,
+  ): Promise<InboxMessagesResponse> {
+    return this.service.messages(context, conversationId, query);
+  }
+
+  @Get("conversations/:conversationId")
+  @RequirePermissions("conversations.read")
+  @UseGuards(
+    TenantUserSessionGuard,
+    TenantContextGuard,
+    TenantPermissionGuard,
+    TenantEntitlementGuard,
+  )
+  detail(
+    @Param("conversationId") conversationId: string,
+    @CurrentTenantContext() context: TenantContext,
+  ): Promise<InboxConversationDetailResponse> {
+    return this.service.detail(context, conversationId);
+  }
 
   @Get("conversations")
   @RequirePermissions("conversations.read")

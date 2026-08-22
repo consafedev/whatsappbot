@@ -145,7 +145,11 @@ export {
 } from "./inbound-message-manager";
 export {
   createInboxQueryManager,
+  type InboxConversationDetail,
   type InboxConversationItem,
+  type InboxMessageItem,
+  type InboxMessageQueryOptions,
+  type InboxMessageQueryResult,
   type InboxQueryManager,
   type InboxQueryManagerDatabase,
   type InboxQueryOptions,
