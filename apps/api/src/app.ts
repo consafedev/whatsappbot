@@ -7,6 +7,7 @@ import {
   createChannelAccountManager,
   createContactManager,
   createInboundEventManager,
+  createInboxQueryManager,
   createOrganizationUnitManager,
   createOutboundMessageManager,
   createTenantThemeRepository,
@@ -35,6 +36,7 @@ import {
   InboundWebhookController,
   InboundWebhookService,
 } from "./inbound-webhooks";
+import { INBOX_QUERY_MANAGER, InboxController, InboxService } from "./inbox";
 import {
   OUTBOUND_MESSAGE_MANAGER,
   OutboundMessagesController,
@@ -148,6 +150,7 @@ export async function createApiApplication(
       TenantChannelsController,
       ContactsController,
       OutboundMessagesController,
+      InboxController,
       InboundWebhookController,
       ...(config.environment === "test" ? [EntitlementTestProbeController] : []),
     ],
@@ -176,6 +179,7 @@ export async function createApiApplication(
       TenantChannelsService,
       ContactsService,
       OutboundMessagesService,
+      InboxService,
       InboundWebhookService,
       {
         provide: ORGANIZATION_UNIT_MANAGER,
@@ -200,6 +204,10 @@ export async function createApiApplication(
       {
         provide: OUTBOUND_MESSAGE_MANAGER,
         useFactory: () => createOutboundMessageManager(getPlatformDatabaseClient()),
+      },
+      {
+        provide: INBOX_QUERY_MANAGER,
+        useFactory: () => createInboxQueryManager(getPlatformDatabaseClient()),
       },
       {
         provide: INBOUND_WEBHOOK_CHANNEL_RESOLVER,

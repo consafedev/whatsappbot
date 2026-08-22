@@ -144,6 +144,15 @@ export {
   type InboundMessagePersistResult,
 } from "./inbound-message-manager";
 export {
+  createInboxQueryManager,
+  type InboxConversationItem,
+  type InboxQueryManager,
+  type InboxQueryManagerDatabase,
+  type InboxQueryOptions,
+  type InboxQueryResult,
+  InboxQueryValidationError,
+} from "./inbox-query-manager";
+export {
   createOrganizationUnitManager,
   ORGANIZATION_UNIT_MAX_DEPTH,
   OrganizationUnitCompanyTypeReservedError,
