@@ -1,5 +1,11 @@
 import type { ConversationManagerDatabase } from "./conversation-manager";
-import type { InboundMessageEvent, PrismaClient } from "./generated/prisma/client";
+import {
+  createExternalHumanMessageManager,
+  type ExternalHumanMessageManager,
+  ExternalHumanMessageOutboundEchoRaceError,
+  type ExternalHumanMessageResult,
+} from "./external-human-message-manager";
+import type { InboundMessageEvent, Prisma, PrismaClient } from "./generated/prisma/client";
 import {
   createInboundMessageManager,
   type InboundMessageManager,
@@ -7,6 +13,7 @@ import {
 } from "./inbound-message-manager";
 import {
   createOutboundEchoManager,
+  OutboundEchoAlreadyProcessedError,
   type OutboundEchoManager,
   OutboundEchoNotMatchedError,
   type OutboundEchoReconcileResult,
@@ -21,6 +28,7 @@ export type InboundEventDispatchInput = Readonly<{ inboundEventId: string }>;
 export type InboundEventDispatchResult = Readonly<
   | { kind: "inbound"; result: InboundMessagePersistResult }
   | { kind: "echo"; result: OutboundEchoReconcileResult }
+  | { kind: "external_human"; result: ExternalHumanMessageResult }
 >;
 
 export class InboundEventDispatchEventNotFoundError extends Error {
@@ -45,6 +53,42 @@ function record(value: unknown): Readonly<Record<string, unknown>> {
     : {};
 }
 
+function stringValue(value: unknown): string | null {
+  return typeof value === "string" && value.trim().length > 0 ? value : null;
+}
+
+function jsonValue(value: unknown): Prisma.InputJsonValue | undefined {
+  if (value === null || value === undefined) return undefined;
+  return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+}
+
+function externalStructuredPayload(event: InboundMessageEvent): Prisma.InputJsonValue | undefined {
+  const normalized = record(event.normalizedData);
+  const payload = record(event.payload);
+  const explicit = jsonValue(normalized.structuredPayload ?? payload.structuredPayload);
+  if (explicit !== undefined) return explicit;
+  const data: Record<string, Prisma.InputJsonValue> = {};
+  const media = jsonValue(normalized.media ?? payload.media);
+  const metadata = jsonValue(normalized.metadata);
+  const conversationExternalId = jsonValue(normalized.conversationExternalId);
+  if (media !== undefined) data.media = media;
+  if (metadata !== undefined) data.metadata = metadata;
+  if (conversationExternalId !== undefined) data.conversationExternalId = conversationExternalId;
+  return Object.keys(data).length === 0 ? undefined : data;
+}
+
+function externalTextBody(event: InboundMessageEvent): string | null {
+  const normalized = record(event.normalizedData);
+  const payload = record(event.payload);
+  return (
+    stringValue(normalized.textBody) ??
+    stringValue(payload.textBody) ??
+    stringValue(payload.text) ??
+    stringValue(payload.body) ??
+    stringValue(payload.caption)
+  );
+}
+
 function dateValue(value: unknown): Date | null {
   if (value instanceof Date && !Number.isNaN(value.getTime())) return new Date(value);
   if (typeof value !== "string" && typeof value !== "number") return null;
@@ -54,7 +98,12 @@ function dateValue(value: unknown): Date | null {
 
 function fromMe(event: InboundMessageEvent): boolean {
   const normalized = record(event.normalizedData);
-  return normalized.fromMe === true || normalized.origin === "human_external_device";
+  const payload = record(event.payload);
+  return (
+    normalized.fromMe === true ||
+    normalized.origin === "human_external_device" ||
+    payload.fromMe === true
+  );
 }
 
 function providerTimestamp(event: InboundMessageEvent): Date {
@@ -78,6 +127,8 @@ export function createInboundEventDispatcher(
 ): InboundEventDispatcher {
   const inboundMessages: InboundMessageManager = createInboundMessageManager(database);
   const outboundEchoes: OutboundEchoManager = createOutboundEchoManager(database);
+  const externalHumanMessages: ExternalHumanMessageManager =
+    createExternalHumanMessageManager(database);
 
   const dispatch = async (
     context: TenantContext,
@@ -97,15 +148,43 @@ export function createInboundEventDispatcher(
         };
       }
       if (event.providerMessageId === null) throw new OutboundEchoNotMatchedError();
-      return {
-        kind: "echo",
-        result: await outboundEchoes.reconcileOutboundEcho(tenant, {
-          channelAccountId: event.channelAccountId,
-          inboundEventId: event.id,
-          providerMessageId: event.providerMessageId,
-          providerTimestamp: providerTimestamp(event),
-        }),
+      const echoInput = {
+        channelAccountId: event.channelAccountId,
+        inboundEventId: event.id,
+        providerMessageId: event.providerMessageId,
+        providerTimestamp: providerTimestamp(event),
       };
+      try {
+        return {
+          kind: "echo",
+          result: await outboundEchoes.reconcileOutboundEcho(tenant, echoInput),
+        };
+      } catch (error) {
+        if (
+          !(error instanceof OutboundEchoNotMatchedError) &&
+          !(error instanceof OutboundEchoAlreadyProcessedError)
+        ) {
+          throw error;
+        }
+      }
+
+      try {
+        return {
+          kind: "external_human",
+          result: await externalHumanMessages.reconcileExternalHumanMessage(tenant, {
+            ...echoInput,
+            recipientPhone: event.recipientPhone,
+            structuredPayload: externalStructuredPayload(event),
+            textBody: externalTextBody(event),
+          }),
+        };
+      } catch (error) {
+        if (!(error instanceof ExternalHumanMessageOutboundEchoRaceError)) throw error;
+        return {
+          kind: "echo",
+          result: await outboundEchoes.reconcileOutboundEcho(tenant, echoInput),
+        };
+      }
     }
 
     throw new InboundEventDispatchDeferredError(event.eventType);

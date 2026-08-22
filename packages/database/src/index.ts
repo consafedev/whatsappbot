@@ -60,6 +60,24 @@ export {
   MODULE_ENTITLEMENT_KEYS,
   type ModuleEntitlementKey,
 } from "./entitlement-catalog";
+export {
+  createExternalHumanMessageManager,
+  ExternalHumanMessageAlreadyProcessedError,
+  ExternalHumanMessageChannelMismatchError,
+  ExternalHumanMessageEventNotFoundError,
+  ExternalHumanMessageEventTypeUnsupportedError,
+  type ExternalHumanMessageInput,
+  type ExternalHumanMessageManager,
+  type ExternalHumanMessageManagerDatabase,
+  ExternalHumanMessageNotDetectedError,
+  ExternalHumanMessageOutboundEchoRaceError,
+  ExternalHumanMessageProviderIdentityConflictError,
+  ExternalHumanMessageProviderMessageMismatchError,
+  ExternalHumanMessageRecipientMismatchError,
+  ExternalHumanMessageRecipientPhoneRequiredError,
+  type ExternalHumanMessageResult,
+  type ExternalHumanMessageTransaction,
+} from "./external-human-message-manager";
 export type {
   AuditLog,
   Contact,

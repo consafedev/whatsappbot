@@ -1,8 +1,8 @@
 # STATUS.md — Estado operativo actual del proyecto
 
-**Actualizado:** 2026-08-20
+**Actualizado:** 2026-08-21
 **Versión de producto:** `0.0.0`  
-**Estado:** E06-S05 — PASS; **Epic 06 — CRM Lite — IN PROGRESS**.
+**Estado:** E06-S06 — IMPLEMENTED; VERIFICATION BLOCKED BY ENVIRONMENT; **Epic 06 — CRM Lite — IN PROGRESS**.
 
 ## Current milestone
 
@@ -22,6 +22,7 @@ Estado por historia:
 - E06-S03 — Persist inbound messages and fulfill inbound events: **PASS**.
 - E06-S04 — Persist outbound messages (create-before-send): **PASS**.
 - E06-S05 — Echo reconciliation: **PASS**.
+- E06-S06 — External human detection: **IMPLEMENTED; VERIFICATION BLOCKED BY ENVIRONMENT**.
 
 Epics anteriores:
 
@@ -82,9 +83,12 @@ Epics base:
 - E06-S04 — idempotencia por tenant y advisory lock tenant/canal/contacto evitan duplicados bajo reintento/concurrencia; el test A/B devuelve not-found al tenant incorrecto. No se añadieron Inbox/listado/reply, `unreadCount`/preview, WebSockets/SSE ni cambios al catálogo RBAC: corresponden a Epic 07 según backlog/ADR-0021. `conversations.read`/`conversations.reply` permanecen como catálogo existente; no se inventó `conversations.manage`.
 - Verificación E06-S04: suite outbound conversation database 4/4, regresión Conversation 5/5 e inbound Message 5/5 contra PostgreSQL 18.4 real en Docker; `db:validate`, `db:generate`, `db:migrate:deploy` (15 migrations, incluida la corrección `20260820121000_align_outbound_message_fk_name`), `prisma migrate status`, `prisma migrate diff` sin diferencias, database typecheck y Biome verificados. El CLI Prisma host sigue incompleto y se usó Docker; no se afirma runtime de una imagen Docker nueva.
 - E06-S05 — `createOutboundEchoManager(...)` correlaciona un echo conocido por identidad tenant/canal/provider o por `OutboundMessage.providerMessageId` y su relación canónica; actualiza sólo `providerMessageId`/`providerTimestamp`, completa el evento `PROCESSED` y emite `message.echo_reconciled` de forma atómica e idempotente.
-- E06-S05 — `createInboundEventDispatcher(...)` envía `MESSAGE_RECEIVED` regular a E06-S03 y los eventos normalizados como `fromMe`/`human_external_device` al reconciliador; un echo no correlacionado queda `PENDING` para E06-S06 y no inventa un `Message`. `STATUS_UPDATE`/`DELIVERY_RECEIPT` permanecen diferidos a E06-S07; no se muta `delivery_status` ni `OutboundMessage.status` en esta story.
+- E06-S05 — `createOutboundEchoManager(...)` deja el echo no correlacionado `PENDING` dentro de su boundary; el dispatcher lo entrega inmediatamente al fallback E06-S06 sin inventar un segundo Message de plataforma. `STATUS_UPDATE`/`DELIVERY_RECEIPT` permanecen diferidos a E06-S07; el reconciliador no muta `delivery_status` ni `OutboundMessage.status`.
 - E06-S05 — no requiere migration: reutiliza las columnas, uniques e integración tenant-aware de E06-S04. La corrección de alcance y nombres (`human_external_device`/`external_human_unknown` en lugar de `external_device`/`external`) queda formalizada en ADR-0022; no se alteró silenciosamente el backlog normativo.
 - Verificación E06-S05: suite outbound echo 5/5 contra PostgreSQL 18.4 real con source mount; regresión E06-S04 4/4 y E06-S03 5/5; database typecheck Docker, typecheck local, Biome y `git diff --check` PASS. El build Docker nuevo fue intentado pero quedó bloqueado por timeout de `pnpm install` contra npm; no se afirma una imagen nueva ni runtime API.
+- E06-S06 — `createExternalHumanMessageManager(...)` detecta el fallback no correlacionado de E06-S05, valida tenant operativo y ambos entitlements, resuelve/crea Contact por `recipientPhone`, reutiliza el lifecycle/lock de Conversation, persiste el Message canónico `outbound/human_external_device/external_human_unknown/sent`, completa el evento y emite `message.external_human_detected` de forma idempotente.
+- E06-S06 — el dispatcher conserva echo-first y reintenta E06-S05 si aparece una correlación concurrente; no crea `OutboundMessage`, no cambia automation/takeover, no agrega Inbox/API/WebSockets/SSE, no implementa receipts E06-S07 y no requiere migration. ADR-0023 documenta las correcciones de nombres, tenant context, recipient routing, closed lifecycle y ausencia de `lastMessagePreview`.
+- E06-S06 — verificación estática dirigida: Biome y `git diff --check` PASS. La suite PostgreSQL, typecheck Prisma y regresiones no pudieron ejecutarse porque Docker Desktop no está disponible en esta sesión; el CLI Prisma host también falla por un módulo `prisma/build/index.js` ausente y Vitest host no resuelve `@whatsapp-platform/config`.
 
 - E04-S01 — App shell: **PASS**; Epic 04 quedó **PASS / COMPLETE**.
 - `/app` usa un layout Next.js reusable, sidebar desktop-first, drawer móvil accesible, identidad real del Tenant/User y logout por `POST /auth/logout`.
@@ -289,18 +293,19 @@ Epics base:
 
 ## In progress
 
-E06-S05 está completada y verificada; Epic 06 continúa **IN PROGRESS** hasta implementar la historia siguiente.
+E06-S06 está implementada, pero su verificación ejecutable queda pendiente por la indisponibilidad del entorno Docker/Prisma; Epic 06 continúa **IN PROGRESS**.
 
 ## Blocked
 
-No hay bloqueo funcional de E06-S05. Delivery state, external human detection completa, Inbox/API, ContactPoint omnicanal, CRM pipeline, UI, WebSockets/SSE, bots/IA y providers WhatsApp reales permanecen fuera de alcance por autoridad documental.
+No hay bloqueo funcional de diseño. La verificación de E06-S06 está bloqueada por Docker Desktop ausente y dependencias host incompletas. Delivery state, Inbox/API, ContactPoint omnicanal, CRM pipeline, UI, WebSockets/SSE, bots/IA y providers WhatsApp reales permanecen fuera de alcance por autoridad documental.
 
 ## Next story
 
-`E06-S06 — External human detection`
+`E06-S07 — Delivery state`, después de ejecutar la verificación pendiente de E06-S06.
 
 ## Last verified commands
 
+  - E06-S06 — Biome dirigido y `git diff --check` PASS. `docker compose run ... tsc` quedó bloqueado porque no existe el pipe `dockerDesktopLinuxEngine`; `pnpm db:generate` host quedó bloqueado por `prisma/build/index.js` ausente; la suite Vitest host no inició por `@whatsapp-platform/config` no resoluble. No se afirma typecheck ni integración E06-S06.
   - E06-S02 — PASS; Vitest raíz 20 archivos/93 pruebas, Conversation database 5/5, Contact regression 5/5 e Inbound regression 3/3 contra PostgreSQL 18.4 real en Docker con source mounts; `db:validate`, `db:generate`, `db:migrate:deploy` (`20260819230000_add_conversations_foundation`), `prisma migrate status` (12 migrations, up to date), TypeScript/build de workspaces Docker, Biome y `git diff --check` PASS. La exportación/tag final de la nueva imagen Docker no terminó y no se reporta runtime API E06-S02.
   - E06-S03 — PASS; inbound message database 5/5 y Conversation regression 5/5 contra PostgreSQL 18.4 real con source mounts; `db:validate`, `db:generate`, `db:migrate:deploy` (`20260820100000_add_messages_foundation`, 13 migrations), database typecheck, Biome y `git diff --check` PASS. El build Docker de workspaces compiló, pero la exportación final fue interrumpida y no se reporta runtime API E06-S03.
   - E06-S04 — PASS; outbound conversation database 4/4, Conversation regression 5/5 e inbound message regression 5/5 contra PostgreSQL 18.4 real con source mounts; `db:validate`, `db:generate`, `db:migrate:deploy` (`20260820120000_add_outbound_message_correlation` + `20260820121000_align_outbound_message_fk_name`, 15 migrations), `prisma migrate status`, `prisma migrate diff` sin diferencias, database typecheck y Biome PASS. El CLI Prisma host está incompleto; no se reporta imagen/runtime API nueva.
@@ -514,6 +519,7 @@ No hay bloqueo funcional de E06-S05. Delivery state, external human detection co
 
 ## Known issues
 
+- E06-S06 requiere reejecutar typecheck, suite PostgreSQL y regresiones cuando Docker Desktop vuelva a exponer `dockerDesktopLinuxEngine`; el checkout host conserva symlinks/workspace y Prisma incompletos.
 - El proveedor CI permanece deliberadamente sin seleccionar hasta que exista un remote o una decisión documental explícita.
 - El rate limiter E02-S01 es local a cada proceso; coordinación distribuida queda para una historia operativa futura si la topología escala horizontalmente.
 - Los limiters E02-S02 también son locales a proceso y deben distribuirse antes de horizontal scaling.

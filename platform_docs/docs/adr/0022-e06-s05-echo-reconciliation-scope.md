@@ -31,8 +31,9 @@ not known by the platform.
 - Update only the canonical provider identity/timestamp when needed, mark the
   source event `PROCESSED`, and append one atomic `message.echo_reconciled`
   Outbox event. Do not change `delivery_status` or `OutboundMessage.status`.
-- Keep an unmatched `fromMe` echo pending and raise a typed not-matched error.
-  E06-S06 will classify and persist the external human message using the
+- Keep an unmatched `fromMe` echo pending within E06-S05 and raise a typed
+  not-matched error so the dispatcher can hand it to E06-S06, which classifies
+  and persists the external human message using the
   canonical `human_external_device` / `external_human_unknown` values.
 - Route regular `MESSAGE_RECEIVED` events to E06-S03. Keep
   `STATUS_UPDATE`/`DELIVERY_RECEIPT` deferred to E06-S07 rather than creating
@@ -55,9 +56,9 @@ not known by the platform.
 ## Consequences
 
 Known platform sends are reconciled idempotently and tenant-safely without a
-second message. Unknown echoes remain durable as inbound events for the next
-story instead of being silently discarded or misattributed. Delivery receipts
-remain pending until E06-S07 supplies their owner.
+second message. Unmatched external-human echoes are handed to E06-S06 for
+durable classification instead of being silently discarded or misattributed.
+Delivery receipts remain pending until E06-S07 supplies their owner.
 
 ## Migration/rollback
 
@@ -67,5 +68,5 @@ relation required by this story.
 
 ## Affected documents
 
-`platform_docs/STATUS.md`, `platform_docs/CHANGELOG.md` and the E06-S04
-outbound scope ADR.
+`platform_docs/STATUS.md`, `platform_docs/CHANGELOG.md`, ADR-0023 and the
+E06-S04 outbound scope ADR.

@@ -11,7 +11,6 @@ import {
   createOutboundConversationMessageManager,
   type OutboundConversationMessageManager,
 } from "./outbound-conversation-message-manager";
-import { OutboundEchoNotMatchedError } from "./outbound-echo-manager";
 import {
   createPlatformDatabaseClient,
   createPlatformTenantProvisioningRepository,
@@ -222,7 +221,7 @@ describe.sequential("E06-S05 outbound echo reconciliation", () => {
     ).resolves.toBe(1);
   });
 
-  it("leaves an unmatched fromMe echo pending for E06-S06 instead of inventing a message", async () => {
+  it("persists an unmatched fromMe echo as an external human message", async () => {
     const eventId = await recordMessageEvent(tenantAId, "provider-unknown-1", {
       fromMe: true,
       origin: "human_external_device",
@@ -230,17 +229,40 @@ describe.sequential("E06-S05 outbound echo reconciliation", () => {
       textBody: "escrito directamente en el teléfono",
     });
 
-    await expect(
-      dispatcher.dispatch(createTenantContext(tenantAId), { inboundEventId: eventId }),
-    ).rejects.toBeInstanceOf(OutboundEchoNotMatchedError);
+    const result = await dispatcher.dispatch(createTenantContext(tenantAId), {
+      inboundEventId: eventId,
+    });
+    expect(result).toMatchObject({
+      kind: "external_human",
+      result: {
+        duplicate: false,
+        message: {
+          actorId: null,
+          actorType: "external_human_unknown",
+          deliveryStatus: "sent",
+          direction: "outbound",
+          origin: "human_external_device",
+          providerMessageId: "provider-unknown-1",
+          tenantId: tenantAId,
+        },
+      },
+    });
     await expect(
       prisma.inboundMessageEvent.findUniqueOrThrow({ where: { id: eventId } }),
-    ).resolves.toMatchObject({ processedStatus: "PENDING" });
+    ).resolves.toMatchObject({ processedStatus: "PROCESSED" });
     await expect(
       prisma.message.count({
         where: { providerMessageId: "provider-unknown-1", tenantId: tenantAId },
       }),
-    ).resolves.toBe(0);
+    ).resolves.toBe(1);
+    await expect(
+      dispatcher.dispatch(createTenantContext(tenantAId), { inboundEventId: eventId }),
+    ).resolves.toMatchObject({ kind: "external_human", result: { duplicate: true } });
+    await expect(
+      prisma.domainEventOutbox.count({
+        where: { eventType: "message.external_human_detected", tenantId: tenantAId },
+      }),
+    ).resolves.toBe(1);
   });
 
   it("fails closed for cross-tenant dispatch without mutating the source event", async () => {

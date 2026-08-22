@@ -38,6 +38,7 @@
     "test:integration:inbound-messages": "pnpm --filter @whatsapp-platform/database test:integration:inbound-messages",
     "test:integration:outbound-conversation-messages": "pnpm --filter @whatsapp-platform/database test:integration:outbound-conversation-messages",
     "test:integration:outbound-echo": "pnpm --filter @whatsapp-platform/database test:integration:outbound-echo",
+    "test:integration:external-human-messages": "pnpm --filter @whatsapp-platform/database test:integration:external-human-messages",
     "test:integration:inbound-webhooks": "pnpm --filter @whatsapp-platform/database test:integration:inbound-webhooks && pnpm --filter @whatsapp-platform/api test:integration:inbound-webhooks",
     "test:security:tenant-isolation": "pnpm --filter @whatsapp-platform/database test:security:tenant-isolation && pnpm --filter @whatsapp-platform/api test:security:tenant-isolation",
     "format": "biome format --write .",

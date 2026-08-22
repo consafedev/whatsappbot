@@ -52,6 +52,12 @@ export type ConversationRouteInput = Readonly<{
   providerThreadId?: string | null;
 }>;
 
+export type ExternalHumanConversationRouteInput = Readonly<{
+  inboundEventId: string;
+  recipientPhone: string;
+  providerThreadId?: string | null;
+}>;
+
 export type ConversationManagerDatabase = TenantTransactionDatabase &
   TenantDataAccessDatabase &
   Pick<
@@ -269,6 +275,59 @@ async function appendStateChange(
   });
 }
 
+type ConversationChannel = Readonly<{
+  active: boolean;
+  automationDefaultMode: string | null;
+  id: string;
+  status: string;
+}>;
+
+async function resolveConversationForContactInTransaction(
+  context: TenantContext,
+  channel: ConversationChannel,
+  contactId: string,
+  providerThreadId: string | null | undefined,
+  transaction: Prisma.TransactionClient,
+): Promise<ConversationItem> {
+  const tenant = createTenantContext(context.tenantId);
+  await lockConversationInTransaction(transaction, tenant.tenantId, channel.id, contactId);
+
+  const current = await transaction.conversation.findFirst({
+    orderBy: [{ lastMessageAt: "desc" }, { id: "asc" }],
+    where: {
+      channelAccountId: channel.id,
+      contactId,
+      status: { in: [...ACTIVE_CONVERSATION_STATUSES] },
+      tenantId: tenant.tenantId,
+    },
+  });
+  if (current !== null) {
+    const currentItem = conversationItem(current);
+    if (currentItem.status === "open") return currentItem;
+    const reopened = await transaction.conversation.update({
+      data: { closedAt: null, status: "open" },
+      where: { tenantId_id: { id: current.id, tenantId: tenant.tenantId } },
+    });
+    const reopenedItem = conversationItem(reopened);
+    await appendStateChange(tenant, transaction, currentItem, reopenedItem);
+    return reopenedItem;
+  }
+
+  const created = await transaction.conversation.create({
+    data: {
+      automationMode: defaultAutomationMode(channel.automationDefaultMode),
+      channelAccountId: channel.id,
+      contactId,
+      ...(providerThreadId === undefined ? {} : { providerThreadId }),
+      status: "open",
+      tenantId: tenant.tenantId,
+    },
+  });
+  const item = conversationItem(created);
+  await appendCreatedMutation(tenant, transaction, item);
+  return item;
+}
+
 export async function routeInboundEventToConversationInTransaction(
   context: TenantContext,
   input: ConversationRouteInput,
@@ -310,42 +369,61 @@ export async function routeInboundEventToConversationInTransaction(
     input.senderName ?? "Sin Nombre",
     transaction,
   );
-  await lockConversationInTransaction(transaction, tenant.tenantId, channel.id, contact.id);
+  return resolveConversationForContactInTransaction(
+    tenant,
+    channel,
+    contact.id,
+    input.providerThreadId,
+    transaction,
+  );
+}
 
-  const current = await transaction.conversation.findFirst({
-    orderBy: [{ lastMessageAt: "desc" }, { id: "asc" }],
-    where: {
-      channelAccountId: channel.id,
-      contactId: contact.id,
-      status: { in: [...ACTIVE_CONVERSATION_STATUSES] },
-      tenantId: tenant.tenantId,
-    },
+export async function routeExternalHumanEventToConversationInTransaction(
+  context: TenantContext,
+  input: ExternalHumanConversationRouteInput,
+  transaction: Prisma.TransactionClient,
+  database: ConversationManagerDatabase,
+): Promise<ConversationItem> {
+  const tenant = createTenantContext(context.tenantId);
+  try {
+    await assertTenantOperational(tenant, transaction);
+  } catch (error) {
+    if (error instanceof TenantNotOperationalError) {
+      throw new ConversationTenantNotOperationalError();
+    }
+    throw error;
+  }
+  await assertConversationEntitlements(tenant, transaction);
+
+  const inboundEvent = await transaction.inboundMessageEvent.findFirst({
+    select: { channelAccountId: true, id: true },
+    where: { id: input.inboundEventId, tenantId: tenant.tenantId },
   });
-  if (current !== null) {
-    const currentItem = conversationItem(current);
-    if (currentItem.status === "open") return currentItem;
-    const reopened = await transaction.conversation.update({
-      data: { closedAt: null, status: "open" },
-      where: { tenantId_id: { id: current.id, tenantId: tenant.tenantId } },
-    });
-    const reopenedItem = conversationItem(reopened);
-    await appendStateChange(tenant, transaction, currentItem, reopenedItem);
-    return reopenedItem;
+  if (inboundEvent === null) {
+    throw new ConversationInboundEventNotFoundError();
+  }
+  const channel = await transaction.channelAccount.findFirst({
+    select: { active: true, automationDefaultMode: true, id: true, status: true },
+    where: { id: inboundEvent.channelAccountId, tenantId: tenant.tenantId },
+  });
+  if (channel === null) throw new ConversationChannelNotFoundError();
+  if (!channel.active || !activeChannelStatus(channel.status)) {
+    throw new ConversationChannelInactiveError();
   }
 
-  const created = await transaction.conversation.create({
-    data: {
-      automationMode: defaultAutomationMode(channel.automationDefaultMode),
-      channelAccountId: channel.id,
-      contactId: contact.id,
-      ...(input.providerThreadId === undefined ? {} : { providerThreadId: input.providerThreadId }),
-      status: "open",
-      tenantId: tenant.tenantId,
-    },
-  });
-  const item = conversationItem(created);
-  await appendCreatedMutation(tenant, transaction, item);
-  return item;
+  const contact = await createContactManager(database).findOrCreateContactByPhone(
+    tenant,
+    input.recipientPhone,
+    "Sin Nombre",
+    transaction,
+  );
+  return resolveConversationForContactInTransaction(
+    tenant,
+    channel,
+    contact.id,
+    input.providerThreadId,
+    transaction,
+  );
 }
 
 export function createConversationManager(
