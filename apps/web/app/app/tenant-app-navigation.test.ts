@@ -41,4 +41,22 @@ describe("tenant app navigation", () => {
     );
     expect(roles.find((item) => item.id === "users")?.href).toBe("/app/users");
   });
+
+  it("exposes inbox route when messaging module and conversations.read permission are granted", () => {
+    const withoutModule = resolveTenantNavigation([], ["conversations.read"]).flatMap(
+      (group) => group.items,
+    );
+    expect(withoutModule.some((item) => item.id === "inbox")).toBe(false);
+
+    const withoutPerm = resolveTenantNavigation(["module.messaging.basic"], []).flatMap(
+      (group) => group.items,
+    );
+    expect(withoutPerm.some((item) => item.id === "inbox")).toBe(false);
+
+    const withBoth = resolveTenantNavigation(
+      ["module.messaging.basic"],
+      ["conversations.read"],
+    ).flatMap((group) => group.items);
+    expect(withBoth.find((item) => item.id === "inbox")?.href).toBe("/app/inbox");
+  });
 });

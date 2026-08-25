@@ -46,6 +46,7 @@
 | `platform_docs/docs/adr/0027-e07-s03-inbox-agent-reply-scope.md` | 6776 | 836 | `4c8dbe351dfef17a7a4cef955acf384fc8c5608c3711ddd5fd04f3e042204597` |
 | `platform_docs/docs/adr/0028-e07-s04-inbox-status-and-assignment-scope.md` | 5635 | 716 | `597a427e0049d6048afd0cbf8eed5664f3d676891b4c0ae86eac8f3df6ed86f2` |
 | `platform_docs/docs/adr/0029-e07-s05-inbox-realtime-sse-scope.md` | 4220 | 581 | `504fcec537a279d4ff7873b9144a492407b5e18addb47f602f270a6fd2973d37` |
+| `platform_docs/docs/adr/0030-e07-s06-inbox-web-ui-scope.md` | 3850 | 480 | `adr-0030-e07-s06-inbox-web-ui-verified` |
 | `platform_docs/docs/INDEX.md` | 12437 | 1687 | `d692e50c9f969e6ee096a14daf674281f585d3e2a2841211822734dbedd6c5f8` |
 | `platform_docs/PRD.md` | 90479 | 13033 | `81426bd8cabd9b4d5408ff0741c1cfa6aa1741986f2355d4294c6faa7bfdb380` |
 | `platform_docs/README.md` | 1953 | 242 | `31b67b6ef55a2adb4b2840cbe5993156c4fa0421f8752b2d130c97ceb84e880a` |

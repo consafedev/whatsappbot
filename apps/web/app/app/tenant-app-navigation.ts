@@ -37,7 +37,7 @@ const navigation: readonly TenantAppNavigationGroup[] = Object.freeze([
     items: [
       { href: "/app", id: "home", label: "Inicio" },
       {
-        href: null,
+        href: "/app/inbox",
         id: "inbox",
         label: "Inbox",
         requiredModule: "module.messaging.basic",
