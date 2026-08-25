@@ -25,6 +25,7 @@ let ownerBCookie = "";
 let ownerWithoutCrmCookie = "";
 let conversationAId = "";
 let conversationBId = "";
+let unitAId = "";
 
 function binary(value: Buffer): Uint8Array<ArrayBuffer> {
   return new Uint8Array(value);
@@ -121,6 +122,23 @@ function postJson(
   });
 }
 
+function patchJson(
+  path: string,
+  body: unknown,
+  cookie: string,
+  requestIdValue?: string,
+): Promise<Response> {
+  return fetch(`${baseUrl}${path}`, {
+    body: JSON.stringify(body),
+    headers: {
+      Cookie: cookie,
+      "content-type": "application/json",
+      ...(requestIdValue === undefined ? {} : { "x-request-id": requestIdValue }),
+    },
+    method: "PATCH",
+  });
+}
+
 describe.sequential("E07 inbox API", () => {
   beforeAll(async () => {
     prisma = createPlatformDatabaseClient({ databaseUrl: process.env.DATABASE_URL ?? "" });
@@ -189,6 +207,7 @@ describe.sequential("E07 inbox API", () => {
     const unitA = await prisma.organizationUnit.create({
       data: { name: "Inbox API Unit A", tenantId: tenantAId, type: "department" },
     });
+    unitAId = unitA.id;
     const [conversationA] = await Promise.all([
       prisma.conversation.create({
         data: {
@@ -578,6 +597,139 @@ describe.sequential("E07 inbox API", () => {
       ownerBCookie,
     );
     expect(crossTenant.status).toBe(404);
+  });
+
+  it("updates conversation status through the documented lifecycle and assignment", async () => {
+    const pending = await patchJson(
+      `/api/v1/inbox/conversations/${conversationAId}/status`,
+      { reason: "requiere seguimiento", status: "pending" },
+      ownerACookie,
+      "e07-s04-api-pending",
+    );
+    expect(pending.status).toBe(200);
+    await expect(pending.json()).resolves.toMatchObject({
+      closedAt: null,
+      id: conversationAId,
+      status: "pending",
+    });
+
+    const closed = await patchJson(
+      `/api/v1/inbox/conversations/${conversationAId}/status`,
+      { reason: "resuelto", status: "closed" },
+      ownerACookie,
+      "e07-s04-api-closed",
+    );
+    expect(closed.status).toBe(200);
+    await expect(closed.json()).resolves.toMatchObject({
+      closedAt: expect.any(String),
+      id: conversationAId,
+      status: "closed",
+    });
+
+    const reopened = await patchJson(
+      `/api/v1/inbox/conversations/${conversationAId}/status`,
+      { status: "open" },
+      ownerACookie,
+      "e07-s04-api-reopened",
+    );
+    expect(reopened.status).toBe(200);
+    await expect(reopened.json()).resolves.toMatchObject({
+      closedAt: null,
+      id: conversationAId,
+      status: "open",
+    });
+
+    const unassigned = await patchJson(
+      `/api/v1/inbox/conversations/${conversationAId}/assignment`,
+      { assignedUserId: null },
+      ownerACookie,
+      "e07-s04-api-unassign",
+    );
+    expect(unassigned.status).toBe(200);
+    await expect(unassigned.json()).resolves.toMatchObject({
+      assignedUnitId: unitAId,
+      assignedUserId: null,
+      id: conversationAId,
+    });
+
+    const assigned = await patchJson(
+      `/api/v1/inbox/conversations/${conversationAId}/assignment`,
+      { assignedUnitId: unitAId, assignedUserId: ownerAId },
+      ownerACookie,
+      "e07-s04-api-assign",
+    );
+    expect(assigned.status).toBe(200);
+    await expect(assigned.json()).resolves.toMatchObject({
+      assignedUnitId: unitAId,
+      assignedUserId: ownerAId,
+      id: conversationAId,
+    });
+
+    const invalidTransition = await patchJson(
+      `/api/v1/inbox/conversations/${conversationAId}/status`,
+      { status: "open" },
+      ownerACookie,
+    );
+    expect(invalidTransition.status).toBe(400);
+    const invalidUser = await patchJson(
+      `/api/v1/inbox/conversations/${conversationAId}/assignment`,
+      { assignedUserId: conversationBId },
+      ownerACookie,
+    );
+    expect(invalidUser.status).toBe(400);
+  });
+
+  it("keeps status and assignment tenant-safe and fail-closed", async () => {
+    expect(
+      (
+        await patchJson(
+          `/api/v1/inbox/conversations/${conversationAId}/status`,
+          { status: "pending" },
+          ownerBCookie,
+        )
+      ).status,
+    ).toBe(404);
+    expect(
+      (
+        await patchJson(
+          `/api/v1/inbox/conversations/${conversationAId}/assignment`,
+          { assignedUserId: null },
+          ownerBCookie,
+        )
+      ).status,
+    ).toBe(404);
+
+    const permission = await prisma.permission.findUniqueOrThrow({
+      where: { key: "conversations.assign" },
+    });
+    const ownerRole = await prisma.role.findUniqueOrThrow({
+      where: { tenantId_key: { key: "owner", tenantId: tenantAId } },
+    });
+    await prisma.rolePermission.delete({
+      where: { roleId_permissionId: { permissionId: permission.id, roleId: ownerRole.id } },
+    });
+    expect(
+      (
+        await patchJson(
+          `/api/v1/inbox/conversations/${conversationAId}/status`,
+          { status: "pending" },
+          ownerACookie,
+        )
+      ).status,
+    ).toBe(403);
+    await prisma.rolePermission.create({
+      data: { permissionId: permission.id, roleId: ownerRole.id },
+    });
+
+    expect(
+      (
+        await patchJson(
+          `/api/v1/inbox/conversations/${conversationAId}/assignment`,
+          { assignedUserId: null },
+          ownerWithoutCrmCookie,
+        )
+      ).status,
+    ).toBe(403);
   });
 
   it("fails closed when reply RBAC or the CRM entitlement is missing", async () => {

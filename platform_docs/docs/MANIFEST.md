@@ -1,7 +1,7 @@
 # docs/MANIFEST.md — Baseline documental verificada
 
 **Fecha:** 2026-08-24
-**Estado:** documentación sincronizada con E07-S03 — PASS; Epic 07 — IN PROGRESS.
+**Estado:** documentación sincronizada con E07-S04 — PASS; Epic 07 — IN PROGRESS.
 **Propósito:** comprobar integridad y composición del conjunto de documentos que permite continuar el proyecto sin depender de memoria conversacional.
 
 > Las rutas son relativas a la raíz del repositorio. Los hashes cambian si se edita un archivo. Después de cambios intencionales, regenerar este manifest.
@@ -12,7 +12,7 @@
 | `README.md` | 8026 | 960 | `cee94177528c317114d524256385dc2335b0ed544cbf0abbd87fa7850f8f115f` |
 | `.agents/agents.md` | 388 | 41 | `d52b02af7fdab6d2ecbf7af4dd2f311d5d244f153817498ff9e542427e9e1675` |
 | `.agents/skills/whatsapp-platform-engineering/SKILL.md` | 19764 | 2747 | `8597b90ddbb55ccb4dbcb5b1d98b100b264759be2357f772ec5c997a1a0ff23b` |
-| `platform_docs/CHANGELOG.md` | 35481 | 4380 | `18246a3a06576f9bd891d90a7ebfe8a5aa7199a85e141ed07dc5a494e75b8080` |
+| `platform_docs/CHANGELOG.md` | 36938 | 4534 | `dcfd73440789d4edf10b65b58b01d591ceb7172d54642da1972df39f5e08fd28` |
 | `platform_docs/DATA_MODEL_ERD_MVP_BACKLOG.md` | 71997 | 9710 | `fa826abb9921511f566c874cdce0ba1f963941a90e55b0138d6e86827feba4f6` |
 | `platform_docs/DEMO_AND_SALES.md` | 8689 | 1253 | `28944d7c37827e10f72d6cdac811eb8bda92fbc9da96fa4947f09ef42eb5b9f4` |
 | `platform_docs/DEPLOYMENT.md` | 5766 | 811 | `665319a6f0a460d4cd509c062af9e5879416c795f2227f63287d076f1c3d7293` |
@@ -44,6 +44,7 @@
 | `platform_docs/docs/adr/0025-e07-s01-inbox-query-api-scope.md` | 5594 | 723 | `652fae7bdbc00311bf9dc1616f8c640a43c912e87a6fa3ba50e099882d001861` |
 | `platform_docs/docs/adr/0026-e07-s02-inbox-conversation-detail-and-messages-scope.md` | 5528 | 701 | `8ecdbbf7d19ade24f71170fec42c38d780470e138c1d1cd49a131bdbd5e80` |
 | `platform_docs/docs/adr/0027-e07-s03-inbox-agent-reply-scope.md` | 6776 | 836 | `4c8dbe351dfef17a7a4cef955acf384fc8c5608c3711ddd5fd04f3e042204597` |
+| `platform_docs/docs/adr/0028-e07-s04-inbox-status-and-assignment-scope.md` | 5635 | 716 | `597a427e0049d6048afd0cbf8eed5664f3d676891b4c0ae86eac8f3df6ed86f2` |
 | `platform_docs/docs/INDEX.md` | 12437 | 1687 | `d692e50c9f969e6ee096a14daf674281f585d3e2a2841211822734dbedd6c5f8` |
 | `platform_docs/PRD.md` | 90479 | 13033 | `81426bd8cabd9b4d5408ff0741c1cfa6aa1741986f2355d4294c6faa7bfdb380` |
 | `platform_docs/README.md` | 1953 | 242 | `31b67b6ef55a2adb4b2840cbe5993156c4fa0421f8752b2d130c97ceb84e880a` |
@@ -51,7 +52,7 @@
 | `platform_docs/RUNBOOK_BACKUP_RESTORE.md` | 4857 | 666 | `27e324b4cea0cd3a2514f44eeee4ce31db80a3a4701f0ba528ffb36afcebb3ff` |
 | `platform_docs/RUNBOOK_OPERATIONS.md` | 5777 | 796 | `23d4c537dd3bbcf4b8f08b39b4a948c42c10e3a458594c25ccf2b65937376252` |
 | `platform_docs/SECURITY.md` | 14589 | 2085 | `51b737e15512ae8136760024f2fcb78161276af0cf0699e8d06326ce1dc7b482` |
-| `platform_docs/STATUS.md` | 85212 | 10738 | `da99607ba66d5bec6bce5282ed7ef6a3133545a7ce7e2df32d3bd1d5e0153da3` |
+| `platform_docs/STATUS.md` | 86780 | 10931 | `59752d9f48045df79bf5511b68b2ab854e13a9474ed36c82ab8bbe4fa3e79e39` |
 | `platform_docs/SYSTEM_DESIGN.md` | 42737 | 5750 | `91f13a2973e0dc679941b408a80b2e2be3f2acb033de2fad62ca3e465c748ea4` |
 | `platform_docs/TESTING_STRATEGY.md` | 18229 | 2513 | `2659f25d06bcfe571830b291c6546ad481abb609049bede79003d80add2da358` |
 | `platform_docs/UI_FLOWS.md` | 21742 | 3143 | `b62156f9570904f2dabba110221763c4dd0b3a06e8ef9fd1ed1800eafda6edac` |

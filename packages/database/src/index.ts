@@ -144,6 +144,17 @@ export {
   type InboundMessagePersistResult,
 } from "./inbound-message-manager";
 export {
+  ActiveTenantUserNotFoundError,
+  type ConversationAssignmentInput,
+  ConversationMutationActorNotFoundError,
+  type ConversationMutationStatus,
+  createInboxMutationManager,
+  type InboxMutationManager,
+  type InboxMutationManagerDatabase,
+  InvalidConversationAssignmentError,
+  InvalidConversationStateTransitionError,
+} from "./inbox-mutation-manager";
+export {
   createInboxQueryManager,
   type InboxConversationDetail,
   type InboxConversationItem,

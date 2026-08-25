@@ -7,6 +7,7 @@ import {
   createChannelAccountManager,
   createContactManager,
   createInboundEventManager,
+  createInboxMutationManager,
   createInboxQueryManager,
   createOrganizationUnitManager,
   createOutboundConversationMessageManager,
@@ -38,6 +39,7 @@ import {
   InboundWebhookService,
 } from "./inbound-webhooks";
 import {
+  INBOX_MUTATION_MANAGER,
   INBOX_QUERY_MANAGER,
   InboxController,
   InboxService,
@@ -214,6 +216,10 @@ export async function createApiApplication(
       {
         provide: INBOX_QUERY_MANAGER,
         useFactory: () => createInboxQueryManager(getPlatformDatabaseClient()),
+      },
+      {
+        provide: INBOX_MUTATION_MANAGER,
+        useFactory: () => createInboxMutationManager(getPlatformDatabaseClient()),
       },
       {
         provide: OUTBOUND_CONVERSATION_MESSAGE_MANAGER,

@@ -11,6 +11,7 @@ import {
   Injectable,
   NotFoundException,
   Param,
+  Patch,
   Post,
   Query,
   Req,
@@ -22,6 +23,7 @@ import type {
   InboxMessageItem,
   InboxMessageQueryOptions,
   InboxMessageQueryResult,
+  InboxMutationManager,
   InboxQueryManager,
   InboxQueryOptions,
   InboxQueryResult,
@@ -30,9 +32,14 @@ import type {
   TenantContext,
 } from "@whatsapp-platform/database";
 import {
+  ActiveTenantUserNotFoundError,
+  ConversationMutationActorNotFoundError,
   ConversationNotFoundError,
   ConversationNotWritableError,
   InboxQueryValidationError,
+  InvalidConversationAssignmentError,
+  InvalidConversationStateTransitionError,
+  OrganizationUnitNotFoundError,
   OutboundConversationMessageActorNotFoundError,
   OutboundConversationMessageIdempotencyConflictError,
   TenantModuleEntitlementRequiredError,
@@ -53,11 +60,13 @@ export const INBOX_QUERY_MANAGER = Symbol("INBOX_QUERY_MANAGER");
 export const OUTBOUND_CONVERSATION_MESSAGE_MANAGER = Symbol(
   "OUTBOUND_CONVERSATION_MESSAGE_MANAGER",
 );
+export const INBOX_MUTATION_MANAGER = Symbol("INBOX_MUTATION_MANAGER");
 
 const UUID_V7_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const MAX_TEXT_LENGTH = 4_096;
 const MAX_CAPTION_LENGTH = 1_024;
 const MAX_MEDIA_URL_LENGTH = 2_048;
+const MAX_REASON_LENGTH = 512;
 
 type QueryValue = string | readonly string[] | undefined;
 
@@ -161,6 +170,16 @@ type ParsedInboxSendMessage = Readonly<{
   content: OutboundMessageContent;
   idempotencyKey?: string;
   messageType: "text" | "media";
+}>;
+
+type ParsedConversationStatusMutation = Readonly<{
+  reason?: string;
+  status: "open" | "pending" | "closed";
+}>;
+
+type ParsedConversationAssignmentMutation = Readonly<{
+  assignedUnitId?: string | null;
+  assignedUserId?: string | null;
 }>;
 
 function requestId(request: TenantAuthenticationRequest): string {
@@ -290,6 +309,58 @@ function parseSendMessage(body: unknown): ParsedInboxSendMessage {
     content,
     ...(key === undefined ? {} : { idempotencyKey: key }),
     messageType: mediaUrl === undefined ? "text" : "media",
+  };
+}
+
+function mutationObject(value: unknown, message: string): Record<string, unknown> {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    throw new BadRequestException(message);
+  }
+  return value as Record<string, unknown>;
+}
+
+function parseConversationStatusMutation(body: unknown): ParsedConversationStatusMutation {
+  const value = mutationObject(body, "Invalid conversation status request");
+  if (Object.keys(value).some((key) => !new Set(["status", "reason"]).has(key))) {
+    throw new BadRequestException("Invalid conversation status request");
+  }
+  if (value.status !== "open" && value.status !== "pending" && value.status !== "closed") {
+    throw new BadRequestException("Invalid conversation status");
+  }
+  const reason =
+    value.reason === undefined
+      ? undefined
+      : cleanMessageString(value.reason, MAX_REASON_LENGTH, "conversation status reason");
+  return { status: value.status, ...(reason === undefined ? {} : { reason }) };
+}
+
+function mutationAssignmentId(value: unknown, label: string): string | null {
+  if (value === null) return null;
+  if (typeof value !== "string" || !UUID_V7_PATTERN.test(value.trim())) {
+    throw new BadRequestException(`Invalid ${label}`);
+  }
+  return value.trim().toLowerCase();
+}
+
+function parseConversationAssignmentMutation(body: unknown): ParsedConversationAssignmentMutation {
+  const value = mutationObject(body, "Invalid conversation assignment request");
+  if (
+    Object.keys(value).some((key) => key !== "assignedUserId" && key !== "assignedUnitId") ||
+    (value.assignedUserId === undefined && value.assignedUnitId === undefined)
+  ) {
+    throw new BadRequestException("At least one conversation assignment field is required");
+  }
+  const assignedUserId =
+    value.assignedUserId === undefined
+      ? undefined
+      : mutationAssignmentId(value.assignedUserId, "assigned user");
+  const assignedUnitId =
+    value.assignedUnitId === undefined
+      ? undefined
+      : mutationAssignmentId(value.assignedUnitId, "assigned unit");
+  return {
+    ...(assignedUserId === undefined ? {} : { assignedUserId }),
+    ...(assignedUnitId === undefined ? {} : { assignedUnitId }),
   };
 }
 
@@ -524,6 +595,21 @@ function mapError(error: unknown): never {
   if (error instanceof ConversationNotWritableError) {
     throw new BadRequestException("Conversation or channel is not writable");
   }
+  if (error instanceof InvalidConversationStateTransitionError) {
+    throw new BadRequestException("Invalid conversation state transition");
+  }
+  if (error instanceof ActiveTenantUserNotFoundError) {
+    throw new BadRequestException("Assigned user was not found or is inactive");
+  }
+  if (error instanceof OrganizationUnitNotFoundError) {
+    throw new BadRequestException("Assigned unit was not found");
+  }
+  if (error instanceof InvalidConversationAssignmentError) {
+    throw new BadRequestException(error.message);
+  }
+  if (error instanceof ConversationMutationActorNotFoundError) {
+    throw new ForbiddenException("Forbidden");
+  }
   if (error instanceof OutboundConversationMessageIdempotencyConflictError) {
     throw new ConflictException({
       code: "IDEMPOTENCY_KEY_CONFLICT",
@@ -564,6 +650,8 @@ export class InboxService {
     @Inject(INBOX_QUERY_MANAGER) private readonly manager: InboxQueryManager,
     @Inject(OUTBOUND_CONVERSATION_MESSAGE_MANAGER)
     private readonly replyManager: OutboundConversationMessageManager,
+    @Inject(INBOX_MUTATION_MANAGER)
+    private readonly mutationManager: InboxMutationManager,
   ) {}
 
   async list(context: TenantContext, query: Record<string, unknown>): Promise<InboxListResponse> {
@@ -631,6 +719,55 @@ export class InboxService {
       return mapError(error);
     }
   }
+
+  async updateStatus(
+    context: TenantContext,
+    identity: TenantSessionIdentity,
+    requestIdValue: string,
+    conversationIdValue: string,
+    body: unknown,
+  ): Promise<InboxConversationDetailResponse> {
+    const parsed = parseConversationStatusMutation(body);
+    try {
+      await this.mutationManager.updateConversationStatus(
+        context,
+        conversationId(conversationIdValue),
+        identity.userId,
+        parsed.status,
+        parsed.reason,
+        requestIdValue,
+      );
+      return publicDetail(
+        await this.manager.getInboxConversationDetail(context, conversationId(conversationIdValue)),
+      );
+    } catch (error) {
+      return mapError(error);
+    }
+  }
+
+  async assign(
+    context: TenantContext,
+    identity: TenantSessionIdentity,
+    requestIdValue: string,
+    conversationIdValue: string,
+    body: unknown,
+  ): Promise<InboxConversationDetailResponse> {
+    const parsed = parseConversationAssignmentMutation(body);
+    try {
+      await this.mutationManager.assignConversation(
+        context,
+        conversationId(conversationIdValue),
+        identity.userId,
+        parsed,
+        requestIdValue,
+      );
+      return publicDetail(
+        await this.manager.getInboxConversationDetail(context, conversationId(conversationIdValue)),
+      );
+    } catch (error) {
+      return mapError(error);
+    }
+  }
 }
 
 @Controller("api/v1/inbox")
@@ -655,6 +792,48 @@ export class InboxController {
     @Body() body: unknown,
   ): Promise<InboxSendMessageResponse> {
     return this.service.send(context, identity, requestId(request), conversationIdValue, body);
+  }
+
+  @Patch("conversations/:conversationId/status")
+  @RequirePermissions("conversations.assign")
+  @UseGuards(
+    TenantUserSessionGuard,
+    TenantContextGuard,
+    TenantPermissionGuard,
+    TenantEntitlementGuard,
+  )
+  updateStatus(
+    @Param("conversationId") conversationIdValue: string,
+    @CurrentTenantContext() context: TenantContext,
+    @CurrentTenantIdentity() identity: TenantSessionIdentity,
+    @Req() request: TenantAuthenticationRequest,
+    @Body() body: unknown,
+  ): Promise<InboxConversationDetailResponse> {
+    return this.service.updateStatus(
+      context,
+      identity,
+      requestId(request),
+      conversationIdValue,
+      body,
+    );
+  }
+
+  @Patch("conversations/:conversationId/assignment")
+  @RequirePermissions("conversations.assign")
+  @UseGuards(
+    TenantUserSessionGuard,
+    TenantContextGuard,
+    TenantPermissionGuard,
+    TenantEntitlementGuard,
+  )
+  assign(
+    @Param("conversationId") conversationIdValue: string,
+    @CurrentTenantContext() context: TenantContext,
+    @CurrentTenantIdentity() identity: TenantSessionIdentity,
+    @Req() request: TenantAuthenticationRequest,
+    @Body() body: unknown,
+  ): Promise<InboxConversationDetailResponse> {
+    return this.service.assign(context, identity, requestId(request), conversationIdValue, body);
   }
 
   @Get("conversations/:conversationId/messages")

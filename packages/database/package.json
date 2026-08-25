@@ -33,6 +33,7 @@
     "test:integration:contacts": "pnpm --filter @whatsapp-platform/config build && vitest run --config vitest.contacts.config.mts",
     "test:integration:conversations": "pnpm --filter @whatsapp-platform/config build && vitest run --config vitest.conversations.config.mts",
     "test:integration:inbox-query": "pnpm --filter @whatsapp-platform/config build && vitest run --config vitest.inbox-query.config.mts",
+    "test:integration:inbox-mutation": "pnpm --filter @whatsapp-platform/config build && vitest run --config vitest.inbox-mutation.config.mts",
     "test:integration:inbound-messages": "pnpm --filter @whatsapp-platform/config build && vitest run --config vitest.inbound-messages.config.mts",
     "test:integration:outbound-conversation-messages": "pnpm --filter @whatsapp-platform/config build && vitest run --config vitest.outbound-conversation-messages.config.mts",
     "test:integration:outbound-echo": "pnpm --filter @whatsapp-platform/config build && vitest run --config vitest.outbound-echo.config.mts",
