@@ -183,6 +183,7 @@ model Tenant {
   contacts             Contact[]
   conversations       Conversation[]
   messages            Message[]
+  rules               Rule[]
 
   @@index([status], map: "tenant_status_idx")
   @@index([deploymentId], map: "tenant_deployment_id_idx")
@@ -407,6 +408,7 @@ model OrganizationUnit {
   userRoles       UserRole[]
   channelAccounts ChannelAccount[]
   assignedConversations Conversation[] @relation("ConversationAssignedUnit")
+  rules           Rule[]
 
   @@unique([tenantId, id], map: "organization_unit_tenant_id_id_key")
   @@index([tenantId], map: "organization_unit_tenant_id_idx")
@@ -445,6 +447,7 @@ model ChannelAccount {
   outboundMessages      OutboundMessage[]
   conversations         Conversation[]
   messages              Message[]
+  rules                 Rule[]
 
   @@unique([tenantId, id], map: "channel_account_tenant_id_id_key")
   @@unique([tenantId, phoneNumberUniqueKey], map: "channel_account_tenant_phone_active_key")
@@ -617,4 +620,30 @@ model Message {
   @@index([tenantId, inboundEventId], map: "message_tenant_inbound_event_idx")
   @@index([tenantId, outboundMessageId], map: "message_tenant_outbound_message_idx")
   @@map("message")
+}
+
+model Rule {
+  id                 String            @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  tenantId           String            @map("tenant_id") @db.Uuid
+  name               String
+  description        String?
+  triggerType        String            @map("trigger_type")
+  priority           Int               @default(100)
+  status             String            @default("draft")
+  executionMode      String            @default("first_match_stop") @map("execution_mode")
+  conditions         Json              @db.JsonB
+  actions            Json              @db.JsonB
+  cooldownSeconds    Int               @default(0) @map("cooldown_seconds")
+  channelAccountId   String?           @map("channel_account_id") @db.Uuid
+  organizationUnitId String?           @map("organization_unit_id") @db.Uuid
+  createdAt          DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  tenant             Tenant            @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  channelAccount     ChannelAccount?   @relation(fields: [tenantId, channelAccountId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade)
+  organizationUnit   OrganizationUnit? @relation(fields: [tenantId, organizationUnitId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@unique([tenantId, id], map: "rule_tenant_id_key")
+  @@index([tenantId, status, triggerType, priority], map: "rule_tenant_status_trigger_priority_idx")
+  @@index([tenantId, channelAccountId], map: "rule_tenant_channel_account_idx")
+  @@map("rule")
 }

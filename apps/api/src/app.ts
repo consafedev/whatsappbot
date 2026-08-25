@@ -12,6 +12,7 @@ import {
   createOrganizationUnitManager,
   createOutboundConversationMessageManager,
   createOutboundMessageManager,
+  createRuleCatalogManager,
   createTenantThemeRepository,
   createUserManagementManager,
 } from "@whatsapp-platform/database";
@@ -84,6 +85,7 @@ import {
   PLATFORM_TENANT_QUERY,
   PlatformTenantsController,
 } from "./platform-tenants";
+import { RULE_CATALOG_MANAGER, RulesController, RulesService } from "./rules";
 import {
   TENANT_APP_BOOTSTRAP_DATABASE,
   TenantAppBootstrapController,
@@ -163,6 +165,7 @@ export async function createApiApplication(
       TenantUserManagementController,
       TenantChannelsController,
       ContactsController,
+      RulesController,
       OutboundMessagesController,
       InboxController,
       InboundWebhookController,
@@ -192,11 +195,16 @@ export async function createApiApplication(
       TenantUserManagementService,
       TenantChannelsService,
       ContactsService,
+      RulesService,
       OutboundMessagesService,
       InboxService,
       InboxRealtimeBroadcaster,
       InboxRealtimeOutboxBridge,
       InboundWebhookService,
+      {
+        provide: RULE_CATALOG_MANAGER,
+        useFactory: () => createRuleCatalogManager(getPlatformDatabaseClient()),
+      },
       {
         provide: ORGANIZATION_UNIT_MANAGER,
         useFactory: () => createOrganizationUnitManager(getPlatformDatabaseClient()),

@@ -2,18 +2,34 @@
 
 **Actualizado:** 2026-08-25
 **Versión de producto:** `0.0.0`  
-**Estado:** E07-S06 — PASS; **Epic 07 — Inbox — PASS / COMPLETE**.
+**Estado:** E08-S01 — PASS; **Epic 08 — Rules Engine — IN PROGRESS**.
 
 ## Current milestone
 
-Inbox Core & Realtime Web Console Client.
+Rules Engine Foundation & Catalog Management.
 
 ## Current epic
 
-**Epic 07 — Inbox** — **PASS / COMPLETE**
+**Epic 08 — Rules Engine & Deterministic Automation** — **IN PROGRESS**
 
 Estado por historia:
 
+- E08-S01 — Rules Engine Foundation, Data Model & Catalog Management API: **PASS**.
+
+Epics anteriores:
+
+- Epic 07 — Inbox: **PASS / COMPLETE**.
+- Epic 04 — Tenant Dashboard Shell: **PASS / COMPLETE**.
+- Epic 02 — Authentication and Tenancy: **PASS / COMPLETE**.
+
+Historias anteriores:
+
+- E07-S01 — Conversation list, filters and cursor pagination: **PASS**.
+- E07-S02 — Conversation detail and bidirectional message timeline: **PASS**.
+- E07-S03 — Reply from dashboard and outbound dispatch API: **PASS**.
+- E07-S04 — Conversation status management and assignment API: **PASS**.
+- E07-S05 — Inbox realtime push via Server-Sent Events: **PASS**.
+- E07-S06 — Inbox Web UI Frontend & Console Client: **PASS**.
 - E05-S01 — Messaging Provider SPI, channel management y Mock driver: **PASS**.
 - E05-S02 — Inbound Webhook Ingestion & Normalizer Pipeline: **PASS**.
 - E05-S03 — Outbound Messaging Queue, Dispatcher & Retry Worker: **PASS**.
@@ -22,18 +38,8 @@ Estado por historia:
 - E06-S03 — Persist inbound messages and fulfill inbound events: **PASS**.
 - E06-S04 — Persist outbound messages (create-before-send): **PASS**.
 - E06-S05 — Echo reconciliation: **PASS**.
-- E06-S06 — External human detection: **IMPLEMENTED; VERIFICATION BLOCKED BY ENVIRONMENT**.
-- E06-S07 — Delivery state: **IMPLEMENTED; VERIFICATION BLOCKED BY ENVIRONMENT**.
-- E07-S01 — Conversation list, filters and cursor pagination: **PASS**.
-- E07-S02 — Conversation detail and bidirectional message timeline: **PASS**.
-- E07-S03 — Reply from dashboard and outbound dispatch API: **PASS**.
-- E07-S04 — Conversation status management and assignment API: **PASS**.
-- E07-S05 — Inbox realtime push via Server-Sent Events: **PASS**.
-- E07-S06 — Inbox Web UI Frontend & Console Client: **PASS**.
-
-Epics anteriores:
-
-- Epic 04 — Tenant Dashboard Shell: **PASS / COMPLETE**.
+- E06-S06 — External human detection: **PASS**.
+- E06-S07 — Delivery state: **PASS**.
 
 Historias anteriores:
 
@@ -52,6 +58,13 @@ Epics base:
 - E01-S05 — Audit foundation: **PASS**.
 
 ## Completed
+
+- E08-S01 — Rules Engine Foundation, Data Model & Catalog Management API: **PASS** (ADR-0031).
+  - Modelo Prisma `Rule` añadido con UUIDv7, soporte multi-inquilino estricto, trigger types (`ON_MESSAGE_RECEIVED`, `ON_CONVERSATION_UNASSIGNED`, `ON_TAG_ADDED`, `ON_SCHEDULED_WINDOW`), execution modes (`first_match_stop`, `execute_all_matches`), estados (`draft`, `active`, `inactive`, `archived`), condiciones JSONB (`field`, `operator`, `value`), acciones JSONB (`actionType`, `parameters`), prioridad entera (1-10,000), cooldown en segundos y relaciones opcionales compuestas a `ChannelAccount` y `OrganizationUnit`.
+  - Migración SQL `packages/database/prisma/migrations/20260825120000_add_rules_engine_foundation/migration.sql` aplicada exitosamente en PostgreSQL 18.4.
+  - `createRuleCatalogManager(...)` en `packages/database/src/rule-catalog-manager.ts` implementa CRUD completo, validación determinista de esquemas JSON de condiciones y acciones, revalidación de estado operativo del tenant, verificación de módulo `module.automation.basic` y emisión atómica de `AuditLog` y `DomainEventOutbox` (`rule.created`, `rule.updated`, `rule.deleted`).
+  - Endpoints REST en `apps/api/src/rules.ts` (`POST /api/v1/rules`, `GET /api/v1/rules`, `GET /api/v1/rules/:ruleId`, `PUT /api/v1/rules/:ruleId`, `DELETE /api/v1/rules/:ruleId`) con guardias RBAC (`rules.read`, `rules.manage`), guardia de módulo `TenantEntitlementGuard` (`module.automation.basic`), aislamiento multi-inquilino 404 estricto y DTOs fuertemente tipados.
+  - Verificación: 8 tests de integración de base de datos (`packages/database/src/rule-catalog-manager.integration.ts`) y 8 tests de integración de API REST (`apps/api/src/rules.integration.ts`) superados con 100% PASS; suite general Vitest (21 suites, 114 tests) intacta; Biome check (0 errores, 0 warnings en 291 archivos); TypeScript typecheck (18 workspaces) 100% PASS.
 
 - E05-S01 — Messaging Provider SPI, WhatsApp Channel Management & Mock Driver: **PASS**; la instrucción adjunta pedía FastAPI/Alembic, pero la autoridad del repositorio exige NestJS/Prisma, por lo que la historia quedó implementada sobre esos boundaries canónicos sin crear un segundo stack Python.
 - `packages/messaging` define el `MessagingProvider` agnóstico de Nest/FastAPI, DTOs de estado/salud/evento normalizado, verificación HMAC, `MockMessagingProvider` con inspección en memoria y fallos configurables (`network`, `rate_limit`, `invalid_number`); la factory sólo habilita `mock` y falla cerrado para providers reales aún no implementados.
