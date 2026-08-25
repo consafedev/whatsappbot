@@ -8,6 +8,16 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Added
 
+- E08-S02 implementa el evaluador de predicados y condiciones puramente en memoria y determinista para el motor de reglas (Rules Engine) en `packages/database`:
+  - Módulo `rule-condition-evaluator.ts` con interfaz de contexto tipada `RuleEvaluationContext` (`message`, `contact`, `conversation`, `channel`, `now`).
+  - Catálogo exhaustivo de operadores `RULE_OPERATORS` tipado: String (`EQUALS`, `NOT_EQUALS`, `CONTAINS`, `NOT_CONTAINS`, `STARTS_WITH`, `ENDS_WITH`, `MATCHES_REGEX`, `IS_EMPTY`, `IS_NOT_EMPTY`), Numéricos (`GREATER_THAN`, `GREATER_THAN_OR_EQUAL`, `LESS_THAN`, `LESS_THAN_OR_EQUAL`, `NUMERIC_EQUALS`, `NUMERIC_NOT_EQUALS`), Listas/Tags (`IN`, `NOT_IN`, `CONTAINS_ANY`, `CONTAINS_ALL`, `ARRAY_EMPTY`, `ARRAY_NOT_EMPTY`) y Existencia/Booleans/Nulls (`IS_NULL`, `IS_NOT_NULL`, `EXISTS`, `IS_TRUE`, `IS_FALSE`).
+  - Resolución segura de propiedades anidadas `resolveContextPath` con notación por puntos (ej. `contact.customAttributes.planTier`, `conversation.unreadCount`), protección contra prototype pollution y retorno fail-safe de `undefined` sin excepciones no controladas.
+  - Evaluación recursiva de árboles de condiciones `RuleConditionGroup` con cortocircuito lógico para grupos `AND` y `OR`, y soporte de reglas catch-all (condiciones vacías retornan `true`).
+  - Protección estricta contra ReDoS: límites de tamaño (`MAX_REGEX_PATTERN_LENGTH = 100`, `MAX_REGEX_INPUT_LENGTH = 10_000`) y detección estática previa de cuantificadores anidados o alternaciones superpuestas peligrosas.
+  - Evaluador de cooldown/frecuencia `isRuleInCooldown(lastExecutedAt, cooldownSeconds, now)`.
+  - Reconciliación documental E08-S02 en ADR-0032 formalizando la gramática de predicados, tipos soportados, seguridad ReDoS y la secuencia de construcción del motor de reglas previo al despachador de eventos (E08-S04) y ejecutor de mutaciones (E08-S03).
+  - Verificación E08-S02: 26 pruebas unitarias dedicadas en `rule-condition-evaluator.test.ts` (100% PASS); 142 pruebas en 23 suites Vitest PASS; regresiones de integración DB (8/8) y API REST (8/8) PASS; Biome check (0 errores en 296 archivos); TypeScript typecheck (18 workspaces) 100% PASS. No requiere migration.
+
 - PORTAL-HUB-ROOT-ROUTE reemplaza el placeholder de `/` por un gateway responsive y accesible con enlaces canónicos a Consola de Operador (`/app/inbox`, badge `Principal / Milestone A`), Tenant Workspace (`/app`) y Platform Control (`/platform/tenants`).
 - El gateway incorpora login real para identidades tenant y Platform mediante los endpoints existentes, cookies separadas, contraseña no persistida en navegador, normalización alineada al backend y destinos post-login limitados a una allowlist local. Las rutas protegidas redirigen al modo correcto cuando falta sesión; no se modificaron API, esquema ni migrations.
 - Bootstrap operativo local: el entorno Compose verificado quedó con 1 Platform Admin activo, 0 tenants y 0 usuarios tenant. `pnpm platform-admin:create` leyó sus valores exclusivamente desde el `.env` ignorado por Git; PostgreSQL conserva Argon2id y login, `/platform/auth/me`, logout y revocación fueron verificados sin registrar email ni contraseña en documentación versionada.

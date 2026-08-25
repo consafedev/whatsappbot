@@ -267,6 +267,17 @@ export {
   validateConditions,
 } from "./rule-catalog-manager";
 export {
+  evaluateRuleConditions,
+  isRuleInCooldown,
+  MAX_REGEX_INPUT_LENGTH,
+  MAX_REGEX_PATTERN_LENGTH,
+  RULE_OPERATORS,
+  type RuleConditionGroup,
+  type RuleEvaluationContext,
+  type RuleOperator,
+  resolveContextPath,
+} from "./rule-condition-evaluator";
+export {
   createTenantAppBootstrap,
   type TenantAppBootstrap,
   type TenantAppBootstrapDatabase,

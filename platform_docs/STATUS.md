@@ -15,6 +15,7 @@ Rules Engine Foundation & Catalog Management.
 Estado por historia:
 
 - E08-S01 — Rules Engine Foundation, Data Model & Catalog Management API: **PASS**.
+- E08-S02 — Rule Condition Evaluator & Predicate Execution Engine: **PASS** (ADR-0032).
 
 Tareas transversales:
 
@@ -71,6 +72,18 @@ Epics base:
   - Reconciliación de alcance: esta tarea es transversal y no corresponde a una historia numerada del backlog; “Portal del Inquilino” se implementa como Tenant Workspace y no adelanta el Customer Portal de Epic 17. El siguiente nombre canónico es E08-S02 — Event dispatcher; el rótulo “Rule Condition Evaluator & Predicate Execution Engine” del prompt contradice `DATA_MODEL_ERD_MVP_BACKLOG.md` y no se adopta.
   - Se corrigió formato, sin cambios de lógica, en seis archivos existentes de Inbox que impedían el gate global de Biome en el commit base.
   - Verificación: suite raíz Vitest 22 archivos/116 pruebas PASS; autenticación Nest/PostgreSQL 2 archivos/17 pruebas PASS (tenant 10/10, Platform 7/7); Biome 294 archivos sin errores; typecheck web y build de producción Next.js PASS; QA visual desktop/móvil y redirecciones sin sesión verificadas en navegador real. No requiere migration.
+
+- E08-S02 — Rule Condition Evaluator & Predicate Execution Engine: **PASS** (ADR-0032).
+  - Evaluador de predicados y condiciones puramente en memoria, determinista y sin I/O implementado en `packages/database/src/rule-condition-evaluator.ts`.
+  - Contexto de ejecución tipado `RuleEvaluationContext` (`message`, `contact`, `conversation`, `channel`, `now`).
+  - Catálogo de operadores completo `RULE_OPERATORS` tipado: String (`EQUALS`, `NOT_EQUALS`, `CONTAINS`, `NOT_CONTAINS`, `STARTS_WITH`, `ENDS_WITH`, `MATCHES_REGEX`, `IS_EMPTY`, `IS_NOT_EMPTY`), Numéricos (`GREATER_THAN`, `GREATER_THAN_OR_EQUAL`, `LESS_THAN`, `LESS_THAN_OR_EQUAL`, `NUMERIC_EQUALS`, `NUMERIC_NOT_EQUALS`), Listas/Tags (`IN`, `NOT_IN`, `CONTAINS_ANY`, `CONTAINS_ALL`, `ARRAY_EMPTY`, `ARRAY_NOT_EMPTY`) y Existencia/Booleans/Nulls (`IS_NULL`, `IS_NOT_NULL`, `EXISTS`, `IS_TRUE`, `IS_FALSE`).
+  - Resolución segura de paths anidados `resolveContextPath` con notación por puntos (ej. `contact.customAttributes.planTier`, `conversation.unreadCount`), protección contra prototype pollution (`__proto__`, `constructor`, `prototype`) y retorno fail-safe de `undefined` sin excepciones no controladas.
+  - Evaluación recursiva de árboles lógicos `RuleConditionGroup` con cortocircuito para grupos `AND` y `OR`, y soporte de reglas catch-all (condiciones vacías retornan `true`).
+  - Seguridad ReDoS: patrón máximo 100 caracteres (`MAX_REGEX_PATTERN_LENGTH`), texto evaluado máximo 10,000 caracteres (`MAX_REGEX_INPUT_LENGTH`), y detección estática previa de backtracking catastrófico (cuantificadores anidados y alternaciones superpuestas) ejecutando en < 1ms (< 50ms límite de seguridad).
+  - Evaluador de cooldown/frecuencia `isRuleInCooldown(lastExecutedAt, cooldownSeconds, now)` con validación defensiva de intervalos y desvío de reloj.
+  - Reconciliación explícita de backlog y nombres formalizada en ADR-0032: `E08-S02` establece el motor de evaluación de predicados puro en memoria antes de acoplar el despachador de eventos (E08-S04) y la ejecución de mutaciones (E08-S03).
+  - Exportación de tipos y utilidades en `@whatsapp-platform/database` (`packages/database/src/index.ts`) y alineación retrocompatible en `validateConditions` de `packages/database/src/rule-catalog-manager.ts`.
+  - Verificación: 26 pruebas unitarias dedicadas en `packages/database/src/rule-condition-evaluator.test.ts` (100% PASS); suite general Vitest monorepo (23 archivos, 142 pruebas PASS); regresiones de integración DB (8/8) y API REST (8/8) PASS; Biome check (0 errores en 296 archivos); TypeScript typecheck (18 workspaces) 100% PASS. No requiere migration.
 
 - E08-S01 — Rules Engine Foundation, Data Model & Catalog Management API: **PASS** (ADR-0031).
   - Modelo Prisma `Rule` añadido con UUIDv7, soporte multi-inquilino estricto, trigger types (`ON_MESSAGE_RECEIVED`, `ON_CONVERSATION_UNASSIGNED`, `ON_TAG_ADDED`, `ON_SCHEDULED_WINDOW`), execution modes (`first_match_stop`, `execute_all_matches`), estados (`draft`, `active`, `inactive`, `archived`), condiciones JSONB (`field`, `operator`, `value`), acciones JSONB (`actionType`, `parameters`), prioridad entera (1-10,000), cooldown en segundos y relaciones opcionales compuestas a `ChannelAccount` y `OrganizationUnit`.

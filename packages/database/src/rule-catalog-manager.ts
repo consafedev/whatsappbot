@@ -1,4 +1,5 @@
 import type { Prisma, Rule } from "./generated/prisma/client";
+import { RULE_OPERATORS } from "./rule-condition-evaluator";
 import { createTenantContext, type TenantContext } from "./tenant-context";
 import { createTenantDataAccess, type TenantTransactionDatabase } from "./tenant-data-access";
 import { assertTenantModuleEntitled } from "./tenant-entitlements";
@@ -19,18 +20,32 @@ export const RULE_EXECUTION_MODES = ["first_match_stop", "evaluate_all"] as cons
 export type RuleExecutionMode = (typeof RULE_EXECUTION_MODES)[number];
 
 export const RULE_CONDITION_OPERATORS = [
+  ...RULE_OPERATORS,
   "equals",
   "not_equals",
   "contains",
   "not_contains",
   "starts_with",
   "ends_with",
+  "matches_regex",
   "in",
   "not_in",
   "greater_than",
+  "greater_than_or_equal",
   "less_than",
+  "less_than_or_equal",
+  "numeric_equals",
+  "numeric_not_equals",
+  "contains_any",
+  "contains_all",
+  "array_empty",
+  "array_not_empty",
   "is_empty",
   "is_not_empty",
+  "is_null",
+  "is_not_null",
+  "is_true",
+  "is_false",
   "exists",
 ] as const;
 export type RuleConditionOperator = (typeof RULE_CONDITION_OPERATORS)[number];
