@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import type { MessageEvent } from "@nestjs/common";
 import {
   BadRequestException,
   Body,
@@ -15,6 +16,8 @@ import {
   Post,
   Query,
   Req,
+  Res,
+  Sse,
   UseGuards,
 } from "@nestjs/common";
 import type {
@@ -45,6 +48,11 @@ import {
   TenantModuleEntitlementRequiredError,
   TenantNotOperationalError,
 } from "@whatsapp-platform/database";
+import type { Observable } from "rxjs";
+import {
+  INBOX_REALTIME_BROADCASTER,
+  type InboxRealtimeBroadcaster,
+} from "./inbox-realtime.service";
 import { TenantUserSessionGuard } from "./tenant-auth";
 import {
   CurrentTenantContext,
@@ -181,6 +189,8 @@ type ParsedConversationAssignmentMutation = Readonly<{
   assignedUnitId?: string | null;
   assignedUserId?: string | null;
 }>;
+
+type ApiResponse = { setHeader(name: string, value: string): void };
 
 function requestId(request: TenantAuthenticationRequest): string {
   const value = request.headers["x-request-id"];
@@ -652,6 +662,8 @@ export class InboxService {
     private readonly replyManager: OutboundConversationMessageManager,
     @Inject(INBOX_MUTATION_MANAGER)
     private readonly mutationManager: InboxMutationManager,
+    @Inject(INBOX_REALTIME_BROADCASTER)
+    private readonly realtimeBroadcaster: InboxRealtimeBroadcaster,
   ) {}
 
   async list(context: TenantContext, query: Record<string, unknown>): Promise<InboxListResponse> {
@@ -768,12 +780,34 @@ export class InboxService {
       return mapError(error);
     }
   }
+
+  events(context: TenantContext): Observable<MessageEvent> {
+    return this.realtimeBroadcaster.subscribeTenantInboxEvents(context.tenantId);
+  }
 }
 
 @Controller("api/v1/inbox")
 @RequireEntitlements("module.messaging.basic", "module.crm_lite")
 export class InboxController {
   constructor(private readonly service: InboxService) {}
+
+  @Sse("events")
+  @RequirePermissions("conversations.read")
+  @UseGuards(
+    TenantUserSessionGuard,
+    TenantContextGuard,
+    TenantPermissionGuard,
+    TenantEntitlementGuard,
+  )
+  events(
+    @CurrentTenantContext() context: TenantContext,
+    @Res({ passthrough: true }) response: ApiResponse,
+  ): Observable<MessageEvent> {
+    response.setHeader("Cache-Control", "no-cache");
+    response.setHeader("Connection", "keep-alive");
+    response.setHeader("X-Accel-Buffering", "no");
+    return this.service.events(context);
+  }
 
   @Post("conversations/:conversationId/messages")
   @HttpCode(201)

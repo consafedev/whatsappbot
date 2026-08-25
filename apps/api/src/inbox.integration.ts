@@ -139,6 +139,37 @@ function patchJson(
   });
 }
 
+async function readSseEvent(
+  response: Response,
+  predicate: (event: { data: Record<string, unknown>; type: string }) => boolean,
+): Promise<{ data: Record<string, unknown>; type: string }> {
+  const reader = response.body?.getReader();
+  if (reader === undefined) throw new Error("SSE response has no readable body");
+  const decoder = new TextDecoder();
+  let buffer = "";
+  try {
+    while (true) {
+      const chunk = await reader.read();
+      if (chunk.done) throw new Error("SSE stream ended before the expected event");
+      buffer += decoder.decode(chunk.value, { stream: true });
+      while (true) {
+        const separator = buffer.indexOf("\n\n");
+        if (separator < 0) break;
+        const block = buffer.slice(0, separator);
+        buffer = buffer.slice(separator + 2);
+        const type = block.match(/^event: (.+)$/m)?.[1];
+        const data = block.match(/^data: (.+)$/m)?.[1];
+        if (type === undefined || data === undefined) continue;
+        const parsed = { data: JSON.parse(data) as Record<string, unknown>, type };
+        if (predicate(parsed)) return parsed;
+      }
+    }
+  } finally {
+    await reader.cancel();
+    reader.releaseLock();
+  }
+}
+
 describe.sequential("E07 inbox API", () => {
   beforeAll(async () => {
     prisma = createPlatformDatabaseClient({ databaseUrl: process.env.DATABASE_URL ?? "" });
@@ -677,6 +708,43 @@ describe.sequential("E07 inbox API", () => {
       ownerACookie,
     );
     expect(invalidUser.status).toBe(400);
+  });
+
+  it("opens an authorized SSE stream and pushes same-tenant conversation events", async () => {
+    const streamA = await request("/api/v1/inbox/events", ownerACookie);
+    const streamB = await request("/api/v1/inbox/events", ownerBCookie);
+    expect(streamA.status).toBe(200);
+    expect(streamB.status).toBe(200);
+    expect(streamA.headers.get("content-type")).toContain("text/event-stream");
+    expect(streamA.headers.get("cache-control")).toContain("no-cache");
+    expect(streamA.headers.get("connection")).toBe("keep-alive");
+
+    const eventA = readSseEvent(
+      streamA,
+      (value) =>
+        value.type === "inbox.conversation_status_updated" &&
+        value.data.conversationId === conversationAId,
+    );
+    const update = await patchJson(
+      `/api/v1/inbox/conversations/${conversationAId}/status`,
+      { status: "pending" },
+      ownerACookie,
+      "e07-s05-api-realtime-status",
+    );
+    expect(update.status).toBe(200);
+    await expect(eventA).resolves.toMatchObject({
+      data: {
+        conversationId: conversationAId,
+        newStatus: "pending",
+        previousStatus: "open",
+      },
+      type: "inbox.conversation_status_updated",
+    });
+    const serialized = JSON.stringify(await eventA);
+    expect(serialized).not.toContain(tenantAId);
+    expect(serialized).not.toContain("api first message");
+
+    await streamB.body?.cancel();
   });
 
   it("keeps status and assignment tenant-safe and fail-closed", async () => {

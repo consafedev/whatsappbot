@@ -46,6 +46,12 @@ import {
   OUTBOUND_CONVERSATION_MESSAGE_MANAGER,
 } from "./inbox";
 import {
+  INBOX_REALTIME_BROADCASTER,
+  INBOX_REALTIME_OUTBOX_DATABASE,
+  InboxRealtimeBroadcaster,
+  InboxRealtimeOutboxBridge,
+} from "./inbox-realtime.service";
+import {
   OUTBOUND_MESSAGE_MANAGER,
   OutboundMessagesController,
   OutboundMessagesService,
@@ -188,6 +194,8 @@ export async function createApiApplication(
       ContactsService,
       OutboundMessagesService,
       InboxService,
+      InboxRealtimeBroadcaster,
+      InboxRealtimeOutboxBridge,
       InboundWebhookService,
       {
         provide: ORGANIZATION_UNIT_MANAGER,
@@ -224,6 +232,14 @@ export async function createApiApplication(
       {
         provide: OUTBOUND_CONVERSATION_MESSAGE_MANAGER,
         useFactory: () => createOutboundConversationMessageManager(getPlatformDatabaseClient()),
+      },
+      {
+        provide: INBOX_REALTIME_BROADCASTER,
+        useExisting: InboxRealtimeBroadcaster,
+      },
+      {
+        provide: INBOX_REALTIME_OUTBOX_DATABASE,
+        useFactory: getPlatformDatabaseClient,
       },
       {
         provide: INBOUND_WEBHOOK_CHANNEL_RESOLVER,

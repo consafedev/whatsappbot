@@ -29,7 +29,7 @@ export default defineConfig({
     fileParallelism: false,
     environment: "node",
     hookTimeout: 45_000,
-    include: ["src/inbox.integration.ts"],
+    include: ["src/inbox.integration.ts", "src/inbox-realtime.service.test.ts"],
     pool: "forks",
     testTimeout: 30_000,
   },
