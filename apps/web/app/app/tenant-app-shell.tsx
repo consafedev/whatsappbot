@@ -89,6 +89,12 @@ export function TenantAppShell({
   }, [load]);
 
   useEffect(() => {
+    if (state !== "unauthorized") return;
+    const destination = pathname === "/app/inbox" ? "/app/inbox" : "/app";
+    router.replace(`/?access=tenant&next=${encodeURIComponent(destination)}#portal-login`);
+  }, [pathname, router, state]);
+
+  useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setDrawerOpen(false);
@@ -100,8 +106,17 @@ export function TenantAppShell({
   }, []);
 
   if (state === "loading") return <main className="tenant-app-state">Cargando workspace…</main>;
-  if (state === "unauthorized")
-    return <main className="tenant-app-state">Tu sesión no está disponible.</main>;
+  if (state === "unauthorized") {
+    const destination = pathname === "/app/inbox" ? "/app/inbox" : "/app";
+    return (
+      <main className="tenant-app-state">
+        <p>Tu sesión no está disponible. Redirigiendo al acceso del workspace…</p>
+        <Link href={`/?access=tenant&next=${encodeURIComponent(destination)}#portal-login`}>
+          Iniciar sesión
+        </Link>
+      </main>
+    );
+  }
   if (state === "error") {
     return (
       <main className="tenant-app-state">

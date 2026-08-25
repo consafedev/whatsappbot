@@ -69,6 +69,16 @@ El Customer Portal es una tercera superficie externa.
 
 No mezclar navegación del Super Admin con la del tenant.
 
+## 2.1 Gateway raíz de acceso
+
+La ruta `/` es un selector público de superficie, no una tercera sesión ni un Customer Portal. Expone enlaces directos a:
+
+- Consola de Operador: `/app/inbox`;
+- Tenant Workspace: `/app`;
+- Platform Control: `/platform/tenants`.
+
+El formulario de acceso permite elegir identidad tenant o Platform, pero nunca las mezcla. El acceso tenant exige slug, email y contraseña; Platform exige email y contraseña. Las rutas protegidas sin sesión redirigen a `/` con el modo y destino local preseleccionados. El destino posterior al login sólo puede ser una ruta permitida de la misma superficie; permisos, módulos, tenant y estado de sesión se vuelven a resolver en backend.
+
 ---
 
 # 3. Module gating

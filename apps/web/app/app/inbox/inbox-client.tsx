@@ -83,9 +83,7 @@ export function InboxClient({ apiBaseUrl }: InboxClientProps) {
         const result = await fetchConversations(base, filter);
         setState((prev) => ({
           ...prev,
-          conversations: append
-            ? [...prev.conversations, ...result.items]
-            : result.items,
+          conversations: append ? [...prev.conversations, ...result.items] : result.items,
           filter,
           loadingConversations: false,
           nextCursor: result.nextCursor,
@@ -223,10 +221,7 @@ export function InboxClient({ apiBaseUrl }: InboxClientProps) {
 
   // Update status
   const handleUpdateStatus = useCallback(
-    async (
-      newStatus: "open" | "pending" | "closed",
-      reason?: string | undefined,
-    ) => {
+    async (newStatus: "open" | "pending" | "closed", reason?: string | undefined) => {
       const convId = state.selectedConversationId;
       if (!convId) return;
 
@@ -340,8 +335,8 @@ export function InboxClient({ apiBaseUrl }: InboxClientProps) {
       <div className="inbox-error-gate" role="alert">
         <h2>Módulo de Mensajería no habilitado</h2>
         <p>
-          Este tenant no tiene habilitado el módulo <code>module.messaging.basic</code>.
-          Contacta al administrador para activar este módulo.
+          Este tenant no tiene habilitado el módulo <code>module.messaging.basic</code>. Contacta al
+          administrador para activar este módulo.
         </p>
       </div>
     );
@@ -352,8 +347,8 @@ export function InboxClient({ apiBaseUrl }: InboxClientProps) {
       <div className="inbox-error-gate" role="alert">
         <h2>Permiso insuficiente</h2>
         <p>
-          Tu rol no incluye el permiso <code>conversations.read</code> necesario para
-          acceder al Inbox.
+          Tu rol no incluye el permiso <code>conversations.read</code> necesario para acceder al
+          Inbox.
         </p>
       </div>
     );

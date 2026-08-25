@@ -8,11 +8,7 @@ export type MessageOrigin =
   | "human_external_device"
   | "automation"
   | "system";
-export type MessageActorType =
-  | "customer"
-  | "tenant_user"
-  | "external_human_unknown"
-  | "system";
+export type MessageActorType = "customer" | "tenant_user" | "external_human_unknown" | "system";
 
 export type InboxContactSummary = Readonly<{
   id: string;

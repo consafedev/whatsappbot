@@ -211,6 +211,14 @@ Surfaces principales se separan más con border/background que con sombras fuert
 - tables se convierten en cards/scroll controlado;
 - primary actions accesibles.
 
+## Gateway raíz
+
+- composición B2B limpia con hero corto, tres tarjetas de destino y panel de acceso;
+- Consola de Operador se identifica como destino principal sin ocultar Tenant Workspace ni Platform Control;
+- formularios tenant y Platform comparten estructura, pero mantienen señales visuales e identidades separadas;
+- en tablet las tarjetas pasan a una columna y en móvil no debe existir overflow horizontal;
+- usar tokens globales, contraste visible y focus states; evitar gradients decorativos o datos demo.
+
 ---
 
 # 9. Sidebar
@@ -908,5 +916,4 @@ La UI del Milestone A debe permitir que en una demo un prospecto entienda en men
 6. el sistema puede crecer por módulos.
 
 No es necesario mostrar todos los módulos para vender el primer MVP.
-
 

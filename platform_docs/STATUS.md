@@ -2,7 +2,7 @@
 
 **Actualizado:** 2026-08-25
 **Versión de producto:** `0.0.0`  
-**Estado:** E08-S01 — PASS; **Epic 08 — Rules Engine — IN PROGRESS**.
+**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; **Epic 08 — Rules Engine — IN PROGRESS**.
 
 ## Current milestone
 
@@ -15,6 +15,10 @@ Rules Engine Foundation & Catalog Management.
 Estado por historia:
 
 - E08-S01 — Rules Engine Foundation, Data Model & Catalog Management API: **PASS**.
+
+Tareas transversales:
+
+- PORTAL-HUB-ROOT-ROUTE — Portal raíz, selección de superficie y acceso autenticado: **PASS**.
 
 Epics anteriores:
 
@@ -58,6 +62,15 @@ Epics base:
 - E01-S05 — Audit foundation: **PASS**.
 
 ## Completed
+
+- PORTAL-HUB-ROOT-ROUTE — Portal raíz, selección de superficie y acceso autenticado: **PASS**.
+  - `/` ofrece las tres superficies canónicas: Consola de Operador (`/app/inbox`), Tenant Workspace (`/app`) y Platform Control (`/platform/tenants`), con layout responsive y accesible alineado al sistema visual B2B.
+  - El formulario usa los endpoints existentes `POST /auth/tenants/:tenantSlug/login` y `POST /platform/auth/login`; las identidades y cookies permanecen separadas, no se guarda contraseña en el navegador y los destinos posteriores al login están en allowlist local.
+  - Las rutas protegidas tenant y Platform redirigen al modo de acceso correspondiente cuando la sesión no existe, sin aceptar identidad tenant desde query/body ni cambiar API, esquema o migrations.
+  - Auditoría de cuentas del entorno Compose al cierre: 0 Platform Admin, 0 tenants y 0 usuarios tenant. El email y la contraseña candidatos del bootstrap permanecen sólo en `.env` bajo `PLATFORM_ADMIN_BOOTSTRAP_EMAIL` y `PLATFORM_ADMIN_BOOTSTRAP_PASSWORD`, pero no se ejecutó `pnpm platform-admin:create`; por tanto no son todavía una credencial activa. Al ejecutar el bootstrap, PostgreSQL sólo conserva Argon2id. No hay otros usuarios de prueba persistidos que anunciar.
+  - Reconciliación de alcance: esta tarea es transversal y no corresponde a una historia numerada del backlog; “Portal del Inquilino” se implementa como Tenant Workspace y no adelanta el Customer Portal de Epic 17. El siguiente nombre canónico es E08-S02 — Event dispatcher; el rótulo “Rule Condition Evaluator & Predicate Execution Engine” del prompt contradice `DATA_MODEL_ERD_MVP_BACKLOG.md` y no se adopta.
+  - Se corrigió formato, sin cambios de lógica, en seis archivos existentes de Inbox que impedían el gate global de Biome en el commit base.
+  - Verificación: suite raíz Vitest 22 archivos/116 pruebas PASS; autenticación Nest/PostgreSQL 2 archivos/17 pruebas PASS (tenant 10/10, Platform 7/7); Biome 294 archivos sin errores; typecheck web y build de producción Next.js PASS; QA visual desktop/móvil y redirecciones sin sesión verificadas en navegador real. No requiere migration.
 
 - E08-S01 — Rules Engine Foundation, Data Model & Catalog Management API: **PASS** (ADR-0031).
   - Modelo Prisma `Rule` añadido con UUIDv7, soporte multi-inquilino estricto, trigger types (`ON_MESSAGE_RECEIVED`, `ON_CONVERSATION_UNASSIGNED`, `ON_TAG_ADDED`, `ON_SCHEDULED_WINDOW`), execution modes (`first_match_stop`, `execute_all_matches`), estados (`draft`, `active`, `inactive`, `archived`), condiciones JSONB (`field`, `operator`, `value`), acciones JSONB (`actionType`, `parameters`), prioridad entera (1-10,000), cooldown en segundos y relaciones opcionales compuestas a `ChannelAccount` y `OrganizationUnit`.
@@ -331,18 +344,19 @@ Epics base:
 
 ## In progress
 
-E07-S06 está **PASS**. Epic 07 (Inbox) queda **PASS / COMPLETE**. E06-S06/E06-S07 conservan verificación histórica pendiente por la indisponibilidad previa de Docker/Prisma del host.
+PORTAL-HUB-ROOT-ROUTE está **PASS**. Epic 08 permanece **IN PROGRESS** después de E08-S01; esta tarea transversal no avanza ni renombra historias del epic.
 
 ## Blocked
 
-No hay bloqueos para E07-S06. ContactPoint omnicanal, CRM pipeline, WebSockets bidireccionales y automatizaciones/bots permanecen fuera de alcance por autoridad documental (Epic 08 / Epic 09 / Epic 10).
+No hay bloqueos para PORTAL-HUB-ROOT-ROUTE. No existe una cuenta persistida para acceso manual en el entorno Compose actual; el bootstrap de Platform Admin continúa siendo explícito y no se ejecuta al iniciar la aplicación.
 
 ## Next story
 
-`Epic 07 Completion Gate` o `Epic 08 — Rules & Automation Engine Foundation`.
+`E08-S02 — Event dispatcher`.
 
 ## Last verified commands
 
+  - PORTAL-HUB-ROOT-ROUTE — `pnpm exec biome check .` PASS (294 archivos); `pnpm --filter @whatsapp-platform/web typecheck` PASS; `pnpm --filter @whatsapp-platform/web build` PASS con `/`, `/app`, `/app/inbox` y `/platform/tenants`; `pnpm vitest run` PASS (22 archivos/116 pruebas); suites de autenticación tenant/Platform PASS (2 archivos/17 pruebas) contra Nest/PostgreSQL reales; consulta final PostgreSQL con 0 Platform Admin, 0 tenants y 0 usuarios tenant; `git diff --check` PASS. No migration nueva.
   - E07-S06 — `docker compose exec api pnpm test` PASS (21 suites / 113 pruebas, incluidas 20 pruebas de View Model y Reducer de eventos SSE); `docker compose exec api pnpm lint` (Biome 0 errores en 278 archivos); `docker compose exec api pnpm --filter @whatsapp-platform/web typecheck` PASS; `docker compose exec -e NODE_ENV=production api pnpm --filter @whatsapp-platform/web build` PASS con ruta `/app/inbox`; `git diff --check` PASS. No migration nueva.
   - E07-S05 — `docker compose build api` PASS; `docker compose run ... pnpm --filter @whatsapp-platform/api test:integration:inbox` PASS (2 archivos/14 pruebas: 12 API + 2 unitarias) contra PostgreSQL 18.4/Nest reales; `prisma validate`, migrate status (15 migrations up to date), Biome dirigido sobre los archivos cambiados y `git diff --check` PASS. No migration nueva.
   - E07-S04 — suites dirigidas ejecutadas en Docker con source mounts mediante Vitest (database 5/5 y API Inbox 11/11) contra PostgreSQL 18.4/Nest reales; Prisma validate, migrate status (15 migrations up to date), TypeScript API/database, Biome (275 archivos), Vitest raíz (20 archivos/93 pruebas) y `git diff --check` PASS. No migration nueva.

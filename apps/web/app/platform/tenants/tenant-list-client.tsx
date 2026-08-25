@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { type FormEvent, useEffect, useState } from "react";
 import {
   channelCountLabel,
@@ -33,6 +34,7 @@ export function TenantListClient({
   apiBaseUrl,
   createdSlug,
 }: Readonly<{ apiBaseUrl: string; createdSlug: string | null }>) {
+  const router = useRouter();
   const [data, setData] = useState<PlatformTenantListResponse | null>(null);
   const [state, setState] = useState<LoadState>("loading");
   const [page, setPage] = useState(1);
@@ -72,6 +74,12 @@ export function TenantListClient({
 
     return () => controller.abort();
   }, [apiBaseUrl, page, retry, search, status]);
+
+  useEffect(() => {
+    if (state === "unauthorized") {
+      router.replace("/?access=platform&next=%2Fplatform%2Ftenants#portal-login");
+    }
+  }, [router, state]);
 
   function submitSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -173,7 +181,10 @@ export function TenantListClient({
           {state === "unauthorized" && (
             <div className="state-panel state-error" role="alert">
               <strong>Sesión de Platform Admin requerida</strong>
-              <span>Inicia sesión en Platform Control para consultar tenants.</span>
+              <span>Redirigiendo al acceso de Platform Control…</span>
+              <Link href="/?access=platform&next=%2Fplatform%2Ftenants#portal-login">
+                Iniciar sesión
+              </Link>
             </div>
           )}
           {state === "error" && (

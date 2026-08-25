@@ -76,8 +76,8 @@ export function InboxChatView({
           </span>
           <h3>Selecciona una conversación</h3>
           <p>
-            Elige un hilo del panel lateral para ver el historial de mensajes,
-            responder en tiempo real y gestionar la asignación.
+            Elige un hilo del panel lateral para ver el historial de mensajes, responder en tiempo
+            real y gestionar la asignación.
           </p>
         </div>
       </section>
@@ -86,10 +86,7 @@ export function InboxChatView({
 
   const contactName =
     conversation.contact.name || formatE164Phone(conversation.contact.phoneNumber);
-  const initials = initialsFromName(
-    conversation.contact.name,
-    conversation.contact.phoneNumber,
-  );
+  const initials = initialsFromName(conversation.contact.name, conversation.contact.phoneNumber);
 
   const handleSendText = async () => {
     const text = inputText.trim();
@@ -169,7 +166,9 @@ export function InboxChatView({
             </span>
           </div>
           <div className="inbox-header-meta">
-            <span>Canal: <b>{conversation.channelAccount.name}</b></span>
+            <span>
+              Canal: <b>{conversation.channelAccount.name}</b>
+            </span>
             <span>·</span>
             <span className={`inbox-mode-tag mode-${conversation.automationMode.toLowerCase()}`}>
               {conversation.automationMode}
@@ -184,9 +183,7 @@ export function InboxChatView({
           <select
             className="inbox-status-select"
             id="conversation-status-select"
-            onChange={(e) =>
-              handleStatusChange(e.target.value as "open" | "pending" | "closed")
-            }
+            onChange={(e) => handleStatusChange(e.target.value as "open" | "pending" | "closed")}
             value={conversation.status}
           >
             <option value="open">Abierta</option>
@@ -284,9 +281,7 @@ export function InboxChatView({
                       </div>
                     ) : null}
 
-                    {msg.textBody ? (
-                      <p className="inbox-bubble-text">{msg.textBody}</p>
-                    ) : null}
+                    {msg.textBody ? <p className="inbox-bubble-text">{msg.textBody}</p> : null}
 
                     <footer className="inbox-bubble-footer">
                       <time className="inbox-bubble-time" dateTime={msg.createdAt}>
@@ -386,11 +381,7 @@ export function InboxChatView({
               />
             </div>
             <div className="inbox-modal-actions">
-              <button
-                className="btn-cancel"
-                onClick={() => setShowMediaModal(false)}
-                type="button"
-              >
+              <button className="btn-cancel" onClick={() => setShowMediaModal(false)} type="button">
                 Cancelar
               </button>
               <button

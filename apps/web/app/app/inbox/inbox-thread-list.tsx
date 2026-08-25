@@ -54,7 +54,9 @@ export function InboxThreadList({
           <input
             aria-label="Buscar por nombre o teléfono"
             className="inbox-search-input"
-            onChange={(e) => onFilterChange({ cursor: undefined, search: e.target.value || undefined })}
+            onChange={(e) =>
+              onFilterChange({ cursor: undefined, search: e.target.value || undefined })
+            }
             placeholder="Buscar nombre o teléfono…"
             type="search"
             value={filter.search ?? ""}
@@ -128,12 +130,8 @@ export function InboxThreadList({
           <ul className="inbox-thread-items">
             {conversations.map((conv) => {
               const isSelected = conv.id === selectedConversationId;
-              const contactName =
-                conv.contact.name || formatE164Phone(conv.contact.phoneNumber);
-              const initials = initialsFromName(
-                conv.contact.name,
-                conv.contact.phoneNumber,
-              );
+              const contactName = conv.contact.name || formatE164Phone(conv.contact.phoneNumber);
+              const initials = initialsFromName(conv.contact.name, conv.contact.phoneNumber);
 
               return (
                 <li key={conv.id}>
@@ -165,7 +163,9 @@ export function InboxThreadList({
                         ) : null}
                       </div>
                       <div className="inbox-thread-tags">
-                        <span className={`inbox-mode-tag mode-${conv.automationMode.toLowerCase()}`}>
+                        <span
+                          className={`inbox-mode-tag mode-${conv.automationMode.toLowerCase()}`}
+                        >
                           {conv.automationMode}
                         </span>
                         <span className="inbox-status-tag">{conv.status}</span>

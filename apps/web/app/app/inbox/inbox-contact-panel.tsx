@@ -26,12 +26,8 @@ export function InboxContactPanel({
   organizationUnits = [],
   users = [],
 }: InboxContactPanelProps) {
-  const [selectedUser, setSelectedUser] = useState<string>(
-    conversation?.assignedUserId ?? "",
-  );
-  const [selectedUnit, setSelectedUnit] = useState<string>(
-    conversation?.assignedUnitId ?? "",
-  );
+  const [selectedUser, setSelectedUser] = useState<string>(conversation?.assignedUserId ?? "");
+  const [selectedUnit, setSelectedUnit] = useState<string>(conversation?.assignedUnitId ?? "");
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -40,10 +36,7 @@ export function InboxContactPanel({
 
   const contactName =
     conversation.contact.name || formatE164Phone(conversation.contact.phoneNumber);
-  const initials = initialsFromName(
-    conversation.contact.name,
-    conversation.contact.phoneNumber,
-  );
+  const initials = initialsFromName(conversation.contact.name, conversation.contact.phoneNumber);
 
   const handleApplyAssignment = async () => {
     setSaving(true);
@@ -105,7 +98,8 @@ export function InboxContactPanel({
               value={selectedUser}
             >
               <option value="">(Sin asignar)</option>
-              {conversation.assignedUser && !users.some((u) => u.id === conversation.assignedUser?.id) ? (
+              {conversation.assignedUser &&
+              !users.some((u) => u.id === conversation.assignedUser?.id) ? (
                 <option value={conversation.assignedUser.id}>
                   {conversation.assignedUser.displayName}
                 </option>
@@ -126,7 +120,8 @@ export function InboxContactPanel({
               value={selectedUnit}
             >
               <option value="">(Sin unidad)</option>
-              {conversation.assignedUnit && !organizationUnits.some((u) => u.id === conversation.assignedUnit?.id) ? (
+              {conversation.assignedUnit &&
+              !organizationUnits.some((u) => u.id === conversation.assignedUnit?.id) ? (
                 <option value={conversation.assignedUnit.id}>
                   {conversation.assignedUnit.name}
                 </option>

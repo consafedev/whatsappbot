@@ -105,9 +105,9 @@ describe("inbox view model", () => {
         status: 500,
       });
 
-      await expect(
-        fetchConversations("http://api.local", { status: "active" }),
-      ).rejects.toThrow("Failed to fetch conversations: 500");
+      await expect(fetchConversations("http://api.local", { status: "active" })).rejects.toThrow(
+        "Failed to fetch conversations: 500",
+      );
     });
 
     it("fetchConversationDetail fetches conversation by id", async () => {
@@ -181,7 +181,11 @@ describe("inbox view model", () => {
     });
 
     it("updateConversationStatus patches status with reason", async () => {
-      const updatedConv = { ...mockConversation, status: "closed", closedAt: "2026-08-24T12:00:00Z" };
+      const updatedConv = {
+        ...mockConversation,
+        status: "closed",
+        closedAt: "2026-08-24T12:00:00Z",
+      };
       (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
         json: async () => updatedConv,
         ok: true,
