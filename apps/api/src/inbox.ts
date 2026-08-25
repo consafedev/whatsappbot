@@ -1,13 +1,19 @@
+import { randomUUID } from "node:crypto";
 import {
   BadRequestException,
+  Body,
+  ConflictException,
   Controller,
   ForbiddenException,
   Get,
+  HttpCode,
   Inject,
   Injectable,
   NotFoundException,
   Param,
+  Post,
   Query,
+  Req,
   UseGuards,
 } from "@nestjs/common";
 import type {
@@ -19,20 +25,39 @@ import type {
   InboxQueryManager,
   InboxQueryOptions,
   InboxQueryResult,
+  OutboundConversationMessageManager,
+  OutboundMessageContent,
   TenantContext,
 } from "@whatsapp-platform/database";
 import {
   ConversationNotFoundError,
+  ConversationNotWritableError,
   InboxQueryValidationError,
+  OutboundConversationMessageActorNotFoundError,
+  OutboundConversationMessageIdempotencyConflictError,
   TenantModuleEntitlementRequiredError,
   TenantNotOperationalError,
 } from "@whatsapp-platform/database";
 import { TenantUserSessionGuard } from "./tenant-auth";
-import { CurrentTenantContext, TenantContextGuard } from "./tenant-context";
+import {
+  CurrentTenantContext,
+  CurrentTenantIdentity,
+  type TenantAuthenticationRequest,
+  TenantContextGuard,
+  type TenantSessionIdentity,
+} from "./tenant-context";
 import { RequireEntitlements, TenantEntitlementGuard } from "./tenant-entitlements";
 import { RequirePermissions, TenantPermissionGuard } from "./tenant-rbac";
 
 export const INBOX_QUERY_MANAGER = Symbol("INBOX_QUERY_MANAGER");
+export const OUTBOUND_CONVERSATION_MESSAGE_MANAGER = Symbol(
+  "OUTBOUND_CONVERSATION_MESSAGE_MANAGER",
+);
+
+const UUID_V7_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const MAX_TEXT_LENGTH = 4_096;
+const MAX_CAPTION_LENGTH = 1_024;
+const MAX_MEDIA_URL_LENGTH = 2_048;
 
 type QueryValue = string | readonly string[] | undefined;
 
@@ -115,6 +140,163 @@ type InboxMessagesResponse = Readonly<{
   nextCursor: string | null;
   prevCursor: string | null;
 }>;
+
+type InboxSendMessageResponse = Readonly<{
+  message: Readonly<{
+    id: string;
+    conversationId: string;
+    direction: string;
+    origin: string;
+    actorType: string;
+    actorId: string | null;
+    deliveryStatus: string;
+    textBody: string | null;
+    structuredPayload: InboxMessageItem["structuredPayload"];
+    createdAt: string;
+  }>;
+  outboundMessageId: string;
+}>;
+
+type ParsedInboxSendMessage = Readonly<{
+  content: OutboundMessageContent;
+  idempotencyKey?: string;
+  messageType: "text" | "media";
+}>;
+
+function requestId(request: TenantAuthenticationRequest): string {
+  const value = request.headers["x-request-id"];
+  const header = Array.isArray(value) ? value[0] : value;
+  return header !== undefined && /^[A-Za-z0-9._:-]{1,128}$/.test(header) ? header : randomUUID();
+}
+
+function plainObject(value: unknown): Record<string, unknown> {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    throw new BadRequestException("Invalid inbox message request");
+  }
+  return value as Record<string, unknown>;
+}
+
+function exactKeys(value: Record<string, unknown>): void {
+  const allowed = new Set(["textBody", "mediaUrl", "caption", "idempotencyKey"]);
+  if (Object.keys(value).some((key) => !allowed.has(key))) {
+    throw new BadRequestException("Invalid inbox message request");
+  }
+}
+
+function hasDisallowedControlCharacters(value: string): boolean {
+  for (const character of value) {
+    const codePoint = character.codePointAt(0) ?? 0;
+    if (
+      codePoint <= 0x08 ||
+      codePoint === 0x0b ||
+      codePoint === 0x0c ||
+      (codePoint >= 0x0e && codePoint <= 0x1f) ||
+      codePoint === 0x7f
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function cleanMessageString(value: unknown, maxLength: number, label: string): string {
+  if (typeof value !== "string") throw new BadRequestException(`Invalid ${label}`);
+  const normalized = value.normalize("NFC").trim();
+  if (
+    normalized.length === 0 ||
+    normalized.length > maxLength ||
+    hasDisallowedControlCharacters(normalized)
+  ) {
+    throw new BadRequestException(`Invalid ${label}`);
+  }
+  return normalized;
+}
+
+function publicHttpsMediaUrl(value: unknown): string {
+  if (typeof value !== "string") throw new BadRequestException("Invalid media URL");
+  const input = value.trim();
+  if (input.length === 0 || input.length > MAX_MEDIA_URL_LENGTH) {
+    throw new BadRequestException("Invalid media URL");
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(input);
+  } catch {
+    throw new BadRequestException("Invalid media URL");
+  }
+
+  const hostname = parsed.hostname
+    .toLowerCase()
+    .replace(/^\[|\]$/g, "")
+    .replace(/\.$/, "");
+  const privateIpv4 =
+    /^(0|10|127|169\.254|192\.168)(\.|$)/.test(hostname) ||
+    /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(hostname);
+  const privateIpv6 =
+    hostname === "::" ||
+    hostname === "::1" ||
+    /^fc[0-9a-f]{2}:/i.test(hostname) ||
+    /^fd[0-9a-f]{2}:/i.test(hostname) ||
+    /^fe[89ab][0-9a-f]:/i.test(hostname);
+  if (
+    parsed.protocol !== "https:" ||
+    parsed.username.length > 0 ||
+    parsed.password.length > 0 ||
+    hostname.length === 0 ||
+    hostname === "localhost" ||
+    hostname.endsWith(".local") ||
+    hostname.endsWith(".internal") ||
+    privateIpv4 ||
+    privateIpv6
+  ) {
+    throw new BadRequestException("Invalid media URL");
+  }
+  return parsed.toString();
+}
+
+function idempotencyKey(value: unknown): string | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== "string") throw new BadRequestException("Invalid idempotency key");
+  const normalized = value.trim();
+  if (!/^[A-Za-z0-9._:-]{1,200}$/.test(normalized)) {
+    throw new BadRequestException("Invalid idempotency key");
+  }
+  return normalized;
+}
+
+function parseSendMessage(body: unknown): ParsedInboxSendMessage {
+  const value = plainObject(body);
+  exactKeys(value);
+  const textBody =
+    value.textBody === undefined
+      ? undefined
+      : cleanMessageString(value.textBody, MAX_TEXT_LENGTH, "text body");
+  const mediaUrl = value.mediaUrl === undefined ? undefined : publicHttpsMediaUrl(value.mediaUrl);
+  const caption =
+    value.caption === undefined
+      ? undefined
+      : cleanMessageString(value.caption, MAX_CAPTION_LENGTH, "caption");
+  if (textBody === undefined && mediaUrl === undefined) {
+    throw new BadRequestException("Text body or media URL is required");
+  }
+  const content: OutboundMessageContent = {
+    ...(textBody === undefined ? {} : { text: textBody }),
+    ...(mediaUrl === undefined ? {} : { mediaUrl }),
+    ...(caption === undefined ? {} : { caption }),
+  };
+  const key = idempotencyKey(value.idempotencyKey);
+  return {
+    content,
+    ...(key === undefined ? {} : { idempotencyKey: key }),
+    messageType: mediaUrl === undefined ? "text" : "media",
+  };
+}
+
+function conversationId(value: string): string {
+  if (!UUID_V7_PATTERN.test(value)) throw new NotFoundException("Conversation not found");
+  return value.toLowerCase();
+}
 
 function queryValue(query: Record<string, unknown>, key: string): QueryValue {
   const value = query[key];
@@ -315,9 +497,43 @@ function publicMessages(result: InboxMessageQueryResult): InboxMessagesResponse 
   };
 }
 
+function publicSentMessage(
+  result: Awaited<ReturnType<OutboundConversationMessageManager["sendConversationMessage"]>>,
+): InboxSendMessageResponse {
+  return {
+    message: {
+      actorId: result.message.actorId,
+      actorType: result.message.actorType,
+      conversationId: result.message.conversationId,
+      createdAt: result.message.createdAt.toISOString(),
+      deliveryStatus: result.message.deliveryStatus,
+      direction: result.message.direction,
+      id: result.message.id,
+      origin: result.message.origin,
+      structuredPayload: result.message.structuredPayload,
+      textBody: result.message.textBody,
+    },
+    outboundMessageId: result.outboundMessage.id,
+  };
+}
+
 function mapError(error: unknown): never {
   if (error instanceof ConversationNotFoundError) {
     throw new NotFoundException("Conversation not found");
+  }
+  if (error instanceof ConversationNotWritableError) {
+    throw new BadRequestException("Conversation or channel is not writable");
+  }
+  if (error instanceof OutboundConversationMessageIdempotencyConflictError) {
+    throw new ConflictException({
+      code: "IDEMPOTENCY_KEY_CONFLICT",
+      error: "Conflict",
+      message: "Idempotency key conflicts with an existing message",
+      statusCode: 409,
+    });
+  }
+  if (error instanceof OutboundConversationMessageActorNotFoundError) {
+    throw new ForbiddenException("Forbidden");
   }
   if (error instanceof InboxQueryValidationError) {
     throw new BadRequestException(error.message);
@@ -344,7 +560,11 @@ function mapError(error: unknown): never {
 
 @Injectable()
 export class InboxService {
-  constructor(@Inject(INBOX_QUERY_MANAGER) private readonly manager: InboxQueryManager) {}
+  constructor(
+    @Inject(INBOX_QUERY_MANAGER) private readonly manager: InboxQueryManager,
+    @Inject(OUTBOUND_CONVERSATION_MESSAGE_MANAGER)
+    private readonly replyManager: OutboundConversationMessageManager,
+  ) {}
 
   async list(context: TenantContext, query: Record<string, unknown>): Promise<InboxListResponse> {
     try {
@@ -382,12 +602,60 @@ export class InboxService {
       return mapError(error);
     }
   }
+
+  async send(
+    context: TenantContext,
+    identity: TenantSessionIdentity,
+    requestIdValue: string,
+    conversationIdValue: string,
+    body: unknown,
+  ): Promise<InboxSendMessageResponse> {
+    const parsed = parseSendMessage(body);
+    try {
+      return publicSentMessage(
+        await this.replyManager.sendConversationMessage(
+          context,
+          conversationId(conversationIdValue),
+          {
+            actorUserId: identity.userId,
+            content: parsed.content,
+            messageType: parsed.messageType,
+            requestId: requestIdValue,
+            ...(parsed.idempotencyKey === undefined
+              ? {}
+              : { idempotencyKey: parsed.idempotencyKey }),
+          },
+        ),
+      );
+    } catch (error) {
+      return mapError(error);
+    }
+  }
 }
 
 @Controller("api/v1/inbox")
 @RequireEntitlements("module.messaging.basic", "module.crm_lite")
 export class InboxController {
   constructor(private readonly service: InboxService) {}
+
+  @Post("conversations/:conversationId/messages")
+  @HttpCode(201)
+  @RequirePermissions("conversations.reply")
+  @UseGuards(
+    TenantUserSessionGuard,
+    TenantContextGuard,
+    TenantPermissionGuard,
+    TenantEntitlementGuard,
+  )
+  send(
+    @Param("conversationId") conversationIdValue: string,
+    @CurrentTenantContext() context: TenantContext,
+    @CurrentTenantIdentity() identity: TenantSessionIdentity,
+    @Req() request: TenantAuthenticationRequest,
+    @Body() body: unknown,
+  ): Promise<InboxSendMessageResponse> {
+    return this.service.send(context, identity, requestId(request), conversationIdValue, body);
+  }
 
   @Get("conversations/:conversationId/messages")
   @RequirePermissions("conversations.read")

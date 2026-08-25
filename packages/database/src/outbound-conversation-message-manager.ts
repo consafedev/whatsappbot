@@ -26,6 +26,7 @@ export type OutboundConversationMessageInput = Readonly<{
   content: OutboundMessageContent;
   idempotencyKey?: string | null;
   messageType: OutboundMessageType;
+  requestId?: string;
 }>;
 
 export type OutboundConversationMessageResult = Readonly<{
@@ -230,6 +231,7 @@ export function createOutboundConversationMessageManager(
     const tenant = createTenantContext(context.tenantId);
     const key = idempotencyKey(input.idempotencyKey);
     const actorUserId = input.actorUserId ?? null;
+    const mutationRequestId = input.requestId ?? "outbound-conversation-message";
 
     return database.$transaction(async (transaction) => {
       await assertTenantOperational(tenant, transaction);
@@ -346,7 +348,24 @@ export function createOutboundConversationMessageManager(
         where: { tenantId_id: { id: conversation.id, tenantId: tenant.tenantId } },
       });
 
-      await createTenantDataAccess(tenant, transaction).outbox.append({
+      const access = createTenantDataAccess(tenant, transaction);
+      await access.audit.append({
+        action: "conversation.message_sent",
+        actorId: actorUserId,
+        actorType: actorUserId === null ? "system" : "tenant_user",
+        afterSummary: {
+          actorType: created.actorType,
+          deliveryStatus: created.deliveryStatus,
+          direction: created.direction,
+          messageId: created.id,
+          messageType: created.messageType,
+          outboundMessageId: queued.id,
+        },
+        entityId: conversation.id,
+        entityType: "Conversation",
+        requestId: mutationRequestId,
+      });
+      await access.outbox.append({
         aggregateId: created.id,
         aggregateType: "Message",
         eventType: "message.queued",

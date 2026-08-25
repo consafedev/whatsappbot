@@ -9,6 +9,7 @@ import {
   createInboundEventManager,
   createInboxQueryManager,
   createOrganizationUnitManager,
+  createOutboundConversationMessageManager,
   createOutboundMessageManager,
   createTenantThemeRepository,
   createUserManagementManager,
@@ -36,7 +37,12 @@ import {
   InboundWebhookController,
   InboundWebhookService,
 } from "./inbound-webhooks";
-import { INBOX_QUERY_MANAGER, InboxController, InboxService } from "./inbox";
+import {
+  INBOX_QUERY_MANAGER,
+  InboxController,
+  InboxService,
+  OUTBOUND_CONVERSATION_MESSAGE_MANAGER,
+} from "./inbox";
 import {
   OUTBOUND_MESSAGE_MANAGER,
   OutboundMessagesController,
@@ -208,6 +214,10 @@ export async function createApiApplication(
       {
         provide: INBOX_QUERY_MANAGER,
         useFactory: () => createInboxQueryManager(getPlatformDatabaseClient()),
+      },
+      {
+        provide: OUTBOUND_CONVERSATION_MESSAGE_MANAGER,
+        useFactory: () => createOutboundConversationMessageManager(getPlatformDatabaseClient()),
       },
       {
         provide: INBOUND_WEBHOOK_CHANNEL_RESOLVER,
