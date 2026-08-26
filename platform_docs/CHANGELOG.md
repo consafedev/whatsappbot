@@ -8,6 +8,23 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Added
 
+- E08-S04 implementa el despachador central de triggers y el puente con el despachador de eventos entrantes (`Automation Triggers & Inbound Event Dispatcher Bridge`) para el motor de reglas en `packages/database`:
+  - Módulo `rule-trigger-dispatcher.ts` con función central `dispatchRuleTriggers(tenantContext, triggerType, context, database, metadata)`:
+    - Evaluación de reglas activas ordenadas estrictamente por prioridad (`priority: "asc", createdAt: "desc"`).
+    - Soporte completo de modos de ejecución: `first_match_stop` (detiene evaluación tras primera regla coincidente) y `evaluate_all` (evalúa todas las reglas coincidentes).
+    - Descarte automático de reglas en cooldown mediante `isRuleInCooldown`.
+    - Filtros por canal (`channelAccountId`) y unidad organizacional (`organizationUnitId`).
+    - Guardas de modo de automatización: cuando la conversación está en modo `HUMAN` o `MONITOR`, omite la ejecución de reglas automáticas a menos que tengan activas las banderas `forceEvaluation` o `ignoreConversationMode`.
+    - Verificación fail-closed de estado operativo (`assertTenantOperational`) y derecho al módulo (`assertTenantModuleEntitled("module.automation.basic")`).
+    - Evaluación determinista de condiciones vía `evaluateRuleConditions` y ejecución atómica transaccional de mutaciones vía `executeRuleActions`.
+  - Integración en el puente de ingesta de eventos de mensajería (`inbound-event-dispatcher.ts`):
+    - Detección de nuevas conversaciones (`isNewConversation`) y disparo ordenado del trigger `ON_CONVERSATION_CREATED`.
+    - Disparo de triggers de mensaje entrante `ON_MESSAGE_RECEIVED` al procesar mensajes entrantes de clientes (`fromMe: false`).
+    - Manejo degradado elegante (silencioso) para inquilinos sin suscripción al módulo `module.automation.basic`.
+    - Exposición opcional de `ruleDispatchResults: RuleTriggerDispatchResult[]` en `InboundEventDispatchResult` para observabilidad del ciclo de vida.
+  - Reconciliación documental E08-S04 en ADR-0034 formalizando el diseño del despachador de triggers, el orden de prioridad, las guardas de modo de conversación y la integración de eventos.
+  - Verificación E08-S04: 9 pruebas unitarias en `rule-trigger-dispatcher.test.ts` (100% PASS); 5 pruebas de integración contra PostgreSQL real en `rule-trigger-dispatcher.integration.ts` (100% PASS); suite de integración de catálogo DB (8/8) PASS; suite de integración de ejecutor de acciones (8/8) PASS; suite de integración de reglas en API REST (8/8) PASS; suite general Vitest monorepo (25 archivos, 162 pruebas) 100% PASS; Biome check (0 errores, 0 advertencias en 302 archivos); TypeScript typecheck (18 workspaces) 100% PASS. No requiere migration de base de datos.
+
 - E08-S03 implementa el motor de ejecución de acciones y mutaciones atómicas (`Rule Action Execution Engine & Mutation Pipeline`) para el motor de reglas en `packages/database`:
   - Módulo `rule-action-executor.ts` con catálogo exhaustivo de 8 tipos de acciones canónicas (`RULE_ACTION_TYPES`): `SEND_MESSAGE`, `ASSIGN_USER`, `ASSIGN_ORGANIZATION_UNIT`, `CHANGE_CONVERSATION_STATUS`, `ADD_CONTACT_TAG`, `REMOVE_CONTACT_TAG`, `SET_CONTACT_CUSTOM_ATTRIBUTE`, `SET_AUTOMATION_MODE`.
   - Interpolador seguro de plantillas `interpolateTemplate(template, context)`: resuelve variables `{{path.to.var}}` tolerando espacios en blanco, reemplaza nulos/indefinidos por cadena vacía `""` sin arrojar excepciones, formatea objetos como JSON y opera con cero dependencias inseguras (`eval`/`Function`) protegido contra prototype pollution.

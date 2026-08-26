@@ -293,6 +293,11 @@ export {
   resolveContextPath,
 } from "./rule-condition-evaluator";
 export {
+  dispatchRuleTriggers,
+  type RuleTriggerDispatcherDatabase,
+  type RuleTriggerDispatchResult,
+} from "./rule-trigger-dispatcher";
+export {
   createTenantAppBootstrap,
   type TenantAppBootstrap,
   type TenantAppBootstrapDatabase,

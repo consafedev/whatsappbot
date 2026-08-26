@@ -47,6 +47,7 @@ export interface RuleEvaluationContext {
   };
   conversation?: {
     status?: string;
+    automationMode?: string;
     assignedUserId?: string | null;
     assignedUnitId?: string | null;
     unreadCount?: number;

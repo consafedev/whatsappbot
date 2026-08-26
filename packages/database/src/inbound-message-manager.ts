@@ -18,6 +18,7 @@ export type InboundMessagePersistResult = Readonly<{
   duplicate: boolean;
   message: Message;
   conversationId: string;
+  isNewConversation?: boolean;
 }>;
 
 export type InboundMessageManagerDatabase = ConversationManagerDatabase &
@@ -261,6 +262,7 @@ export function createInboundMessageManager(
       return {
         conversationId: created.conversationId,
         duplicate: false,
+        isNewConversation: conversation.isNew ?? false,
         message: created,
       };
     });

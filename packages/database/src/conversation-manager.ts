@@ -43,6 +43,7 @@ export type ConversationItem = Readonly<{
   metadata: Prisma.JsonValue | null;
   createdAt: Date;
   updatedAt: Date;
+  isNew?: boolean;
 }>;
 
 export type ConversationRouteInput = Readonly<{
@@ -303,14 +304,14 @@ async function resolveConversationForContactInTransaction(
   });
   if (current !== null) {
     const currentItem = conversationItem(current);
-    if (currentItem.status === "open") return currentItem;
+    if (currentItem.status === "open") return { ...currentItem, isNew: false };
     const reopened = await transaction.conversation.update({
       data: { closedAt: null, status: "open" },
       where: { tenantId_id: { id: current.id, tenantId: tenant.tenantId } },
     });
     const reopenedItem = conversationItem(reopened);
     await appendStateChange(tenant, transaction, currentItem, reopenedItem);
-    return reopenedItem;
+    return { ...reopenedItem, isNew: false };
   }
 
   const created = await transaction.conversation.create({
@@ -325,7 +326,7 @@ async function resolveConversationForContactInTransaction(
   });
   const item = conversationItem(created);
   await appendCreatedMutation(tenant, transaction, item);
-  return item;
+  return { ...item, isNew: true };
 }
 
 export async function routeInboundEventToConversationInTransaction(

@@ -24,15 +24,35 @@ import {
   OutboundEchoNotMatchedError,
   type OutboundEchoReconcileResult,
 } from "./outbound-echo-manager";
+import type { RuleExecutionContext } from "./rule-action-executor";
+import {
+  dispatchRuleTriggers,
+  type RuleTriggerDispatcherDatabase,
+  type RuleTriggerDispatchResult,
+} from "./rule-trigger-dispatcher";
 import { createTenantContext, type TenantContext } from "./tenant-context";
+import { TenantModuleEntitlementRequiredError } from "./tenant-entitlements";
 
 export type InboundEventDispatcherDatabase = ConversationManagerDatabase &
-  Pick<PrismaClient, "message" | "outboundMessage">;
+  Pick<
+    PrismaClient,
+    | "message"
+    | "outboundMessage"
+    | "rule"
+    | "user"
+    | "organizationUnit"
+    | "auditLog"
+    | "domainEventOutbox"
+  >;
 
 export type InboundEventDispatchInput = Readonly<{ inboundEventId: string }>;
 
 export type InboundEventDispatchResult = Readonly<
-  | { kind: "inbound"; result: InboundMessagePersistResult }
+  | {
+      kind: "inbound";
+      result: InboundMessagePersistResult;
+      ruleDispatchResults?: RuleTriggerDispatchResult[];
+    }
   | { kind: "echo"; result: OutboundEchoReconcileResult }
   | { kind: "external_human"; result: ExternalHumanMessageResult }
   | { kind: "delivery_status"; result: DeliveryStatusReconcileResult }
@@ -209,9 +229,97 @@ export function createInboundEventDispatcher(
 
     if (event.eventType === "MESSAGE_RECEIVED") {
       if (!fromMe(event)) {
+        const persistResult = await inboundMessages.persistInboundMessage(tenant, input);
+        const ruleDispatchResults: RuleTriggerDispatchResult[] = [];
+
+        if (!persistResult.duplicate) {
+          const [conversation, contact, channel] = await Promise.all([
+            database.conversation.findFirst({
+              where: { id: persistResult.conversationId, tenantId: tenant.tenantId },
+            }),
+            persistResult.message.contactId
+              ? database.contact.findFirst({
+                  where: { id: persistResult.message.contactId, tenantId: tenant.tenantId },
+                })
+              : null,
+            database.channelAccount.findFirst({
+              where: { id: persistResult.message.channelAccountId, tenantId: tenant.tenantId },
+            }),
+          ]);
+
+          const resolvedContactId = contact?.id ?? persistResult.message.contactId ?? null;
+          const resolvedProviderType = channel?.providerType;
+          const contactName = contact?.name;
+          const contactPhone = contact?.phoneNumber;
+          const assignedUnitId = conversation?.assignedUnitId;
+          const assignedUserId = conversation?.assignedUserId;
+          const automationMode = conversation?.automationMode;
+          const conversationStatus = conversation?.status;
+
+          const ruleContext: RuleExecutionContext = {
+            channel: {
+              channelAccountId: persistResult.message.channelAccountId,
+              ...(resolvedProviderType ? { providerType: resolvedProviderType } : {}),
+            },
+            channelAccountId: persistResult.message.channelAccountId,
+            contact: {
+              customAttributes:
+                contact?.customAttributes && typeof contact.customAttributes === "object"
+                  ? (contact.customAttributes as Record<string, unknown>)
+                  : {},
+              ...(contactName !== undefined && contactName !== null ? { name: contactName } : {}),
+              ...(contactPhone !== undefined ? { phoneNumber: contactPhone } : {}),
+              tags: contact?.tags ?? [],
+            },
+            ...(resolvedContactId !== null ? { contactId: resolvedContactId } : {}),
+            conversation: {
+              ...(assignedUnitId !== undefined ? { assignedUnitId } : {}),
+              ...(assignedUserId !== undefined ? { assignedUserId } : {}),
+              ...(automationMode !== undefined ? { automationMode } : {}),
+              ...(conversationStatus !== undefined ? { status: conversationStatus } : {}),
+              unreadCount: 1,
+            },
+            conversationId: persistResult.conversationId,
+            message: {
+              direction: persistResult.message.direction,
+              mediaType:
+                persistResult.message.messageType !== "text"
+                  ? persistResult.message.messageType
+                  : null,
+              origin: persistResult.message.origin,
+              textBody: persistResult.message.textBody,
+            },
+            now: new Date(),
+          };
+
+          try {
+            if (persistResult.isNewConversation) {
+              const resCreated = await dispatchRuleTriggers(
+                tenant,
+                "ON_CONVERSATION_CREATED",
+                ruleContext,
+                database as unknown as RuleTriggerDispatcherDatabase,
+              );
+              ruleDispatchResults.push(resCreated);
+            }
+            const resReceived = await dispatchRuleTriggers(
+              tenant,
+              "ON_MESSAGE_RECEIVED",
+              ruleContext,
+              database as unknown as RuleTriggerDispatcherDatabase,
+            );
+            ruleDispatchResults.push(resReceived);
+          } catch (error) {
+            if (!(error instanceof TenantModuleEntitlementRequiredError)) {
+              throw error;
+            }
+          }
+        }
+
         return {
           kind: "inbound",
-          result: await inboundMessages.persistInboundMessage(tenant, input),
+          result: persistResult,
+          ...(ruleDispatchResults.length > 0 ? { ruleDispatchResults } : {}),
         };
       }
       if (event.providerMessageId === null) throw new OutboundEchoNotMatchedError();

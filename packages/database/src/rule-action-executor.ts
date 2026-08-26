@@ -541,7 +541,10 @@ export async function executeRuleActions(
               select: { contactId: true },
               where: { id: targetConversationId, tenantId },
             });
-            if (conv?.contactId) targetContactId = conv.contactId;
+            if (!conv) {
+              throw new RuleActionConversationNotFoundError();
+            }
+            if (conv.contactId) targetContactId = conv.contactId;
           }
 
           if (!targetContactId) {
@@ -604,7 +607,10 @@ export async function executeRuleActions(
               select: { contactId: true },
               where: { id: targetConversationId, tenantId },
             });
-            if (conv?.contactId) targetContactId = conv.contactId;
+            if (!conv) {
+              throw new RuleActionConversationNotFoundError();
+            }
+            if (conv.contactId) targetContactId = conv.contactId;
           }
 
           if (!targetContactId) {
@@ -667,7 +673,10 @@ export async function executeRuleActions(
               select: { contactId: true },
               where: { id: targetConversationId, tenantId },
             });
-            if (conv?.contactId) targetContactId = conv.contactId;
+            if (!conv) {
+              throw new RuleActionConversationNotFoundError();
+            }
+            if (conv.contactId) targetContactId = conv.contactId;
           }
 
           if (!targetContactId) {

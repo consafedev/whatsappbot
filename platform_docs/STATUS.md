@@ -14,9 +14,10 @@ Rules Engine Foundation & Catalog Management.
 
 Estado por historia:
 
-- E08-S01 — Rules Engine Foundation, Data Model & Catalog Management API: **PASS**.
+- E08-S01 — Rules Engine Foundation, Data Model & Catalog Management API: **PASS** (ADR-0031).
 - E08-S02 — Rule Condition Evaluator & Predicate Execution Engine: **PASS** (ADR-0032).
 - E08-S03 — Rule Action Execution Engine & Mutation Pipeline: **PASS** (ADR-0033).
+- E08-S04 — Automation Triggers & Inbound Event Dispatcher Bridge: **PASS** (ADR-0034).
 
 Tareas transversales:
 
@@ -64,6 +65,23 @@ Epics base:
 - E01-S05 — Audit foundation: **PASS**.
 
 ## Completed
+
+- E08-S04 — Automation Triggers & Inbound Event Dispatcher Bridge: **PASS** (ADR-0034).
+  - Módulo `rule-trigger-dispatcher.ts` con función central `dispatchRuleTriggers`:
+    - Evaluación de reglas activas ordenadas estrictamente por prioridad (`priority: "asc", createdAt: "desc"`).
+    - Soporte completo de modos de ejecución: `first_match_stop` (detiene evaluación tras primera coincidencia) y `evaluate_all` (evalúa y ejecuta subsecuentes reglas coincidentes).
+    - Descarte automático de reglas en cooldown mediante `isRuleInCooldown`.
+    - Filtros por canal (`channelAccountId`) y unidad organizacional (`organizationUnitId`).
+    - Guardas de modo de automatización: cuando la conversación está en modo `HUMAN` o `MONITOR`, omite la ejecución de reglas automáticas a menos que tengan activas las banderas `forceEvaluation` o `ignoreConversationMode`.
+    - Verificación fail-closed de estado operativo (`assertTenantOperational`) y derecho al módulo (`assertTenantModuleEntitled("module.automation.basic")`).
+    - Evaluación determinista de condiciones vía `evaluateRuleConditions` y ejecución atómica transaccional de mutaciones vía `executeRuleActions`.
+  - Integración en el puente de ingesta de eventos de mensajería (`inbound-event-dispatcher.ts`):
+    - Detección de nuevas conversaciones (`isNewConversation`) y disparo ordenado del trigger `ON_CONVERSATION_CREATED`.
+    - Disparo de triggers de mensaje entrante `ON_MESSAGE_RECEIVED` al procesar mensajes entrantes de clientes (`fromMe: false`).
+    - Manejo degradado elegante (silencioso) para inquilinos sin suscripción al módulo `module.automation.basic`.
+    - Exposición opcional de `ruleDispatchResults: RuleTriggerDispatchResult[]` en `InboundEventDispatchResult` para observabilidad del ciclo de vida.
+  - Reconciliación documental E08-S04 en ADR-0034 formalizando el diseño del despachador de triggers, el orden de prioridad, las guardas de modo de conversación y la integración de eventos.
+  - Verificación E08-S04: 9 pruebas unitarias en `rule-trigger-dispatcher.test.ts` (100% PASS); 5 pruebas de integración contra PostgreSQL real en `rule-trigger-dispatcher.integration.ts` (100% PASS); suite de integración de catálogo DB (8/8) PASS; suite de integración de ejecutor de acciones (8/8) PASS; suite de integración de reglas en API REST (8/8) PASS; suite general Vitest monorepo (25 archivos, 162 pruebas) 100% PASS; Biome check (0 errores, 0 advertencias en 302 archivos); TypeScript typecheck (18 workspaces) 100% PASS. No requiere migration de base de datos.
 
 - PORTAL-HUB-ROOT-ROUTE — Portal raíz, selección de superficie y acceso autenticado: **PASS**.
   - `/` ofrece las tres superficies canónicas: Consola de Operador (`/app/inbox`), Tenant Workspace (`/app`) y Platform Control (`/platform/tenants`), con layout responsive y accesible alineado al sistema visual B2B.
