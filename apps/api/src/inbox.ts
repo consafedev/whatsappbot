@@ -971,10 +971,10 @@ export class InboxService {
     try {
       return await this.inactivityManager.processInactivityTimeouts(context, {
         actorId: identity.userId,
-        closeReason: parsed.closeReason,
         inactivityMinutes: parsed.inactivityMinutes,
-        releaseTakeoverMinutes: parsed.releaseTakeoverMinutes,
         requestId: requestIdValue,
+        ...(parsed.closeReason === undefined ? {} : { closeReason: parsed.closeReason }),
+        ...(parsed.releaseTakeoverMinutes === undefined ? {} : { releaseTakeoverMinutes: parsed.releaseTakeoverMinutes }),
       });
     } catch (error) {
       return mapError(error);

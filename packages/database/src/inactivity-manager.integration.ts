@@ -186,7 +186,7 @@ describe.sequential("E08-S06 InactivityManager integration", () => {
     expect(updatedInactive.status).toBe("closed");
     expect(updatedInactive.closedAt).toBeDefined();
     const meta = updatedInactive.metadata as Record<string, unknown>;
-    expect(meta.closedReason).toBe("inactivity_timeout_test");
+    expect(meta.closeReason).toBe("inactivity_timeout_test");
 
     // Verify active conversation remains open
     const updatedActive = await prisma.conversation.findUniqueOrThrow({

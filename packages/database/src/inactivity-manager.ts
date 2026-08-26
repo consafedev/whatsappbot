@@ -149,7 +149,7 @@ export function createInactivityManager(database: InactivityManagerDatabase): In
         const currentMeta = parseJsonMetadata(conv.metadata);
         const newMeta = {
           ...currentMeta,
-          closedReason,
+          closeReason,
         };
 
         await tx.conversation.update({
