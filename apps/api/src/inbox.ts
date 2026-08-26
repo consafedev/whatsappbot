@@ -21,6 +21,10 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import type {
+  AssignmentPolicy,
+  AssignmentPolicyEngine,
+  AssignmentPolicyResult,
+  ConversationAutomationMode,
   InboxConversationDetail,
   InboxConversationItem,
   InboxMessageItem,
@@ -32,6 +36,7 @@ import type {
   InboxQueryResult,
   OutboundConversationMessageManager,
   OutboundMessageContent,
+  TakeoverManager,
   TenantContext,
 } from "@whatsapp-platform/database";
 import {
@@ -40,7 +45,9 @@ import {
   ConversationNotFoundError,
   ConversationNotWritableError,
   InboxQueryValidationError,
+  InvalidAssignmentPolicyError,
   InvalidConversationAssignmentError,
+  InvalidConversationAutomationModeError,
   InvalidConversationStateTransitionError,
   OrganizationUnitNotFoundError,
   OutboundConversationMessageActorNotFoundError,
@@ -69,6 +76,8 @@ export const OUTBOUND_CONVERSATION_MESSAGE_MANAGER = Symbol(
   "OUTBOUND_CONVERSATION_MESSAGE_MANAGER",
 );
 export const INBOX_MUTATION_MANAGER = Symbol("INBOX_MUTATION_MANAGER");
+export const TAKEOVER_MANAGER = Symbol("TAKEOVER_MANAGER");
+export const ASSIGNMENT_POLICY_ENGINE = Symbol("ASSIGNMENT_POLICY_ENGINE");
 
 const UUID_V7_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const MAX_TEXT_LENGTH = 4_096;
@@ -374,6 +383,58 @@ function parseConversationAssignmentMutation(body: unknown): ParsedConversationA
   };
 }
 
+type ParsedAutomationModeMutation = Readonly<{
+  mode: ConversationAutomationMode;
+  reason?: string;
+}>;
+
+type ParsedAutoAssignMutation = Readonly<{
+  policy: AssignmentPolicy;
+  unitId?: string;
+}>;
+
+function parseAutomationModeMutation(body: unknown): ParsedAutomationModeMutation {
+  const value = mutationObject(body, "Invalid automation mode request");
+  if (Object.keys(value).some((key) => !new Set(["mode", "reason"]).has(key))) {
+    throw new BadRequestException("Invalid automation mode request");
+  }
+  if (
+    value.mode !== "AUTO" &&
+    value.mode !== "HUMAN" &&
+    value.mode !== "ASSISTED" &&
+    value.mode !== "MONITOR"
+  ) {
+    throw new BadRequestException("Invalid automation mode");
+  }
+  const reason =
+    value.reason === undefined
+      ? undefined
+      : cleanMessageString(value.reason, MAX_REASON_LENGTH, "automation mode reason");
+  return { mode: value.mode as ConversationAutomationMode, ...(reason === undefined ? {} : { reason }) };
+}
+
+function parseAutoAssignMutation(body: unknown): ParsedAutoAssignMutation {
+  const value = mutationObject(body, "Invalid auto-assign request");
+  if (Object.keys(value).some((key) => !new Set(["policy", "unitId"]).has(key))) {
+    throw new BadRequestException("Invalid auto-assign request");
+  }
+  if (
+    value.policy !== "ROUND_ROBIN" &&
+    value.policy !== "LEAST_BUSY" &&
+    value.policy !== "STICKY_AGENT"
+  ) {
+    throw new BadRequestException("Invalid assignment policy");
+  }
+  const unitId =
+    value.unitId === undefined
+      ? undefined
+      : mutationAssignmentId(value.unitId, "assigned unit");
+  return {
+    policy: value.policy as AssignmentPolicy,
+    ...(unitId === undefined || unitId === null ? {} : { unitId }),
+  };
+}
+
 function conversationId(value: string): string {
   if (!UUID_V7_PATTERN.test(value)) throw new NotFoundException("Conversation not found");
   return value.toLowerCase();
@@ -631,6 +692,12 @@ function mapError(error: unknown): never {
   if (error instanceof OutboundConversationMessageActorNotFoundError) {
     throw new ForbiddenException("Forbidden");
   }
+  if (error instanceof InvalidConversationAutomationModeError) {
+    throw new BadRequestException(error.message);
+  }
+  if (error instanceof InvalidAssignmentPolicyError) {
+    throw new BadRequestException(error.message);
+  }
   if (error instanceof InboxQueryValidationError) {
     throw new BadRequestException(error.message);
   }
@@ -662,6 +729,10 @@ export class InboxService {
     private readonly replyManager: OutboundConversationMessageManager,
     @Inject(INBOX_MUTATION_MANAGER)
     private readonly mutationManager: InboxMutationManager,
+    @Inject(TAKEOVER_MANAGER)
+    private readonly takeoverManager: TakeoverManager,
+    @Inject(ASSIGNMENT_POLICY_ENGINE)
+    private readonly assignmentPolicyEngine: AssignmentPolicyEngine,
     @Inject(INBOX_REALTIME_BROADCASTER)
     private readonly realtimeBroadcaster: InboxRealtimeBroadcaster,
   ) {}
@@ -757,6 +828,55 @@ export class InboxService {
     }
   }
 
+  async updateAutomationMode(
+    context: TenantContext,
+    identity: TenantSessionIdentity,
+    requestIdValue: string,
+    conversationIdValue: string,
+    body: unknown,
+  ): Promise<InboxConversationDetailResponse> {
+    const parsed = parseAutomationModeMutation(body);
+    try {
+      await this.takeoverManager.setConversationAutomationMode(
+        context,
+        conversationId(conversationIdValue),
+        identity.userId,
+        parsed.mode,
+        parsed.reason,
+        requestIdValue,
+      );
+      return publicDetail(
+        await this.manager.getInboxConversationDetail(context, conversationId(conversationIdValue)),
+      );
+    } catch (error) {
+      return mapError(error);
+    }
+  }
+
+  async autoAssign(
+    context: TenantContext,
+    identity: TenantSessionIdentity,
+    requestIdValue: string,
+    conversationIdValue: string,
+    body: unknown,
+  ): Promise<AssignmentPolicyResult> {
+    const parsed = parseAutoAssignMutation(body);
+    try {
+      return await this.assignmentPolicyEngine.resolveAssignmentByPolicy(
+        context,
+        conversationId(conversationIdValue),
+        parsed.policy,
+        {
+          actorId: identity.userId,
+          requestId: requestIdValue,
+          ...(parsed.unitId === undefined ? {} : { unitId: parsed.unitId }),
+        },
+      );
+    } catch (error) {
+      return mapError(error);
+    }
+  }
+
   async assign(
     context: TenantContext,
     identity: TenantSessionIdentity,
@@ -844,6 +964,55 @@ export class InboxController {
     @Body() body: unknown,
   ): Promise<InboxConversationDetailResponse> {
     return this.service.updateStatus(
+      context,
+      identity,
+      requestId(request),
+      conversationIdValue,
+      body,
+    );
+  }
+
+  @Patch("conversations/:conversationId/automation-mode")
+  @RequirePermissions("conversations.assign")
+  @UseGuards(
+    TenantUserSessionGuard,
+    TenantContextGuard,
+    TenantPermissionGuard,
+    TenantEntitlementGuard,
+  )
+  updateAutomationMode(
+    @Param("conversationId") conversationIdValue: string,
+    @CurrentTenantContext() context: TenantContext,
+    @CurrentTenantIdentity() identity: TenantSessionIdentity,
+    @Req() request: TenantAuthenticationRequest,
+    @Body() body: unknown,
+  ): Promise<InboxConversationDetailResponse> {
+    return this.service.updateAutomationMode(
+      context,
+      identity,
+      requestId(request),
+      conversationIdValue,
+      body,
+    );
+  }
+
+  @Post("conversations/:conversationId/auto-assign")
+  @HttpCode(200)
+  @RequirePermissions("conversations.assign")
+  @UseGuards(
+    TenantUserSessionGuard,
+    TenantContextGuard,
+    TenantPermissionGuard,
+    TenantEntitlementGuard,
+  )
+  autoAssign(
+    @Param("conversationId") conversationIdValue: string,
+    @CurrentTenantContext() context: TenantContext,
+    @CurrentTenantIdentity() identity: TenantSessionIdentity,
+    @Req() request: TenantAuthenticationRequest,
+    @Body() body: unknown,
+  ): Promise<AssignmentPolicyResult> {
+    return this.service.autoAssign(
       context,
       identity,
       requestId(request),

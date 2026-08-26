@@ -385,3 +385,22 @@ export {
   type UserUpdateStatusInput,
   type UserUsage,
 } from "./user-management-manager";
+export {
+  createTakeoverManager,
+  InvalidConversationAutomationModeError,
+  setConversationAutomationMode,
+  type TakeoverManager,
+  type TakeoverManagerDatabase,
+} from "./takeover-manager";
+export {
+  ASSIGNMENT_POLICIES,
+  type AssignmentPolicy,
+  type AssignmentPolicyEngine,
+  type AssignmentPolicyEngineDatabase,
+  type AssignmentPolicyOptions,
+  type AssignmentPolicyResult,
+  createAssignmentPolicyEngine,
+  InvalidAssignmentPolicyError,
+  resolveAssignmentByPolicy,
+} from "./assignment-policy-engine";
+

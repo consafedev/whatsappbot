@@ -8,6 +8,8 @@ export default defineConfig({
       "src/rule-catalog-manager.integration.ts",
       "src/rule-action-executor.integration.ts",
       "src/rule-trigger-dispatcher.integration.ts",
+      "src/takeover-manager.integration.ts",
+      "src/assignment-policy-engine.integration.ts",
     ],
     testTimeout: 30_000,
   },

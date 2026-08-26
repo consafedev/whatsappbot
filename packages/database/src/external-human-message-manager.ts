@@ -363,13 +363,40 @@ export function createExternalHumanMessageManager(
         ),
       });
       const currentConversation = await currentTransaction.conversation.findFirst({
-        select: { lastHumanMessageAt: true, lastMessageAt: true, lastOutboundAt: true },
+        select: {
+          automationMode: true,
+          lastHumanMessageAt: true,
+          lastMessageAt: true,
+          lastOutboundAt: true,
+          metadata: true,
+        },
         where: { id: conversation.id, tenantId: tenant.tenantId },
       });
       if (currentConversation === null) throw new ExternalHumanMessageEventNotFoundError();
 
+      const shouldPause = currentConversation.automationMode === "AUTO";
+      const currentMeta =
+        currentConversation.metadata !== null &&
+        typeof currentConversation.metadata === "object" &&
+        !Array.isArray(currentConversation.metadata)
+          ? { ...(currentConversation.metadata as Record<string, unknown>) }
+          : {};
+      const newMetadata = shouldPause
+        ? {
+            ...currentMeta,
+            automationPausedAt: providerTimestamp.toISOString(),
+            automationPausedReason: "external_human_reply",
+          }
+        : currentConversation.metadata;
+
       await currentTransaction.conversation.update({
         data: {
+          ...(shouldPause
+            ? {
+                automationMode: "HUMAN",
+                metadata: newMetadata as Prisma.InputJsonValue,
+              }
+            : {}),
           lastHumanMessageAt: latestTimestamp(
             currentConversation.lastHumanMessageAt,
             providerTimestamp,
@@ -386,7 +413,41 @@ export function createExternalHumanMessageManager(
       });
       if (processed.count !== 1) throw new ExternalHumanMessageAlreadyProcessedError();
 
-      await createTenantDataAccess(tenant, currentTransaction).outbox.append({
+      const access = createTenantDataAccess(tenant, currentTransaction);
+
+      if (shouldPause) {
+        await access.audit.append({
+          action: "conversation.automation_mode_updated",
+          actorId: null,
+          actorType: "system",
+          afterSummary: {
+            automationMode: "HUMAN",
+            reason: "external_human_reply",
+          },
+          beforeSummary: {
+            automationMode: currentConversation.automationMode,
+          },
+          entityId: conversation.id,
+          entityType: "Conversation",
+          requestId: "external-human-message-reconciliation",
+        });
+        await access.outbox.append({
+          aggregateId: conversation.id,
+          aggregateType: "Conversation",
+          eventType: "conversation.automation_mode_updated",
+          payload: {
+            actorId: null,
+            conversationId: conversation.id,
+            newMode: "HUMAN",
+            previousMode: currentConversation.automationMode,
+            reason: "external_human_reply",
+            tenantId: tenant.tenantId,
+            timestamp: providerTimestamp.toISOString(),
+          },
+        });
+      }
+
+      await access.outbox.append({
         aggregateId: created.id,
         aggregateType: "Message",
         eventType: "message.external_human_detected",

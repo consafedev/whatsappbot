@@ -4,6 +4,7 @@ import type { NestExpressApplication } from "@nestjs/platform-express";
 import { platformCookieConfig, tenantCookieConfig } from "@whatsapp-platform/auth";
 import type { NonSecretConfig } from "@whatsapp-platform/config";
 import {
+  createAssignmentPolicyEngine,
   createChannelAccountManager,
   createContactManager,
   createInboundEventManager,
@@ -13,6 +14,7 @@ import {
   createOutboundConversationMessageManager,
   createOutboundMessageManager,
   createRuleCatalogManager,
+  createTakeoverManager,
   createTenantThemeRepository,
   createUserManagementManager,
 } from "@whatsapp-platform/database";
@@ -40,11 +42,13 @@ import {
   InboundWebhookService,
 } from "./inbound-webhooks";
 import {
+  ASSIGNMENT_POLICY_ENGINE,
   INBOX_MUTATION_MANAGER,
   INBOX_QUERY_MANAGER,
   InboxController,
   InboxService,
   OUTBOUND_CONVERSATION_MESSAGE_MANAGER,
+  TAKEOVER_MANAGER,
 } from "./inbox";
 import {
   INBOX_REALTIME_BROADCASTER,
@@ -240,6 +244,14 @@ export async function createApiApplication(
       {
         provide: OUTBOUND_CONVERSATION_MESSAGE_MANAGER,
         useFactory: () => createOutboundConversationMessageManager(getPlatformDatabaseClient()),
+      },
+      {
+        provide: TAKEOVER_MANAGER,
+        useFactory: () => createTakeoverManager(getPlatformDatabaseClient()),
+      },
+      {
+        provide: ASSIGNMENT_POLICY_ENGINE,
+        useFactory: () => createAssignmentPolicyEngine(getPlatformDatabaseClient()),
       },
       {
         provide: INBOX_REALTIME_BROADCASTER,

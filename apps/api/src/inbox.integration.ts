@@ -857,4 +857,99 @@ describe.sequential("E07 inbox API", () => {
       ],
     });
   });
+
+  it("updates conversation automation mode via PATCH /automation-mode and enforces tenant isolation", async () => {
+    // 1. Toggle to HUMAN
+    const humanRes = await patchJson(
+      `/api/v1/inbox/conversations/${conversationAId}/automation-mode`,
+      { mode: "HUMAN", reason: "operator_takeover" },
+      ownerACookie,
+      "req-api-takeover-human",
+    );
+    expect(humanRes.status).toBe(200);
+    const humanJson = (await humanRes.json()) as Record<string, unknown>;
+    expect(humanJson.id).toBe(conversationAId);
+    expect(humanJson.automationMode).toBe("HUMAN");
+
+    // 2. Toggle back to AUTO
+    const autoRes = await patchJson(
+      `/api/v1/inbox/conversations/${conversationAId}/automation-mode`,
+      { mode: "AUTO" },
+      ownerACookie,
+      "req-api-takeover-auto",
+    );
+    expect(autoRes.status).toBe(200);
+    const autoJson = (await autoRes.json()) as Record<string, unknown>;
+    expect(autoJson.automationMode).toBe("AUTO");
+
+    // 3. Invalid mode returns 400
+    const invalidRes = await patchJson(
+      `/api/v1/inbox/conversations/${conversationAId}/automation-mode`,
+      { mode: "INVALID_MODE" },
+      ownerACookie,
+    );
+    expect(invalidRes.status).toBe(400);
+
+    // 4. Cross-tenant returns 404
+    const crossTenantRes = await patchJson(
+      `/api/v1/inbox/conversations/${conversationAId}/automation-mode`,
+      { mode: "HUMAN" },
+      ownerBCookie,
+    );
+    expect(crossTenantRes.status).toBe(404);
+  });
+
+  it("resolves auto-assignment via POST /auto-assign with policies and enforces tenant isolation", async () => {
+    // 1. ROUND_ROBIN policy
+    const rrRes = await postJson(
+      `/api/v1/inbox/conversations/${conversationAId}/auto-assign`,
+      { policy: "ROUND_ROBIN" },
+      ownerACookie,
+      "req-api-auto-assign-rr",
+    );
+    expect(rrRes.status).toBe(200);
+    const rrJson = (await rrRes.json()) as Record<string, unknown>;
+    expect(rrJson.policyUsed).toBe("ROUND_ROBIN");
+    expect(rrJson.assignedUserId).toBe(ownerAId);
+
+    // 2. LEAST_BUSY policy
+    const lbRes = await postJson(
+      `/api/v1/inbox/conversations/${conversationAId}/auto-assign`,
+      { policy: "LEAST_BUSY" },
+      ownerACookie,
+      "req-api-auto-assign-lb",
+    );
+    expect(lbRes.status).toBe(200);
+    const lbJson = (await lbRes.json()) as Record<string, unknown>;
+    expect(lbJson.policyUsed).toBe("LEAST_BUSY");
+    expect(lbJson.assignedUserId).toBe(ownerAId);
+
+    // 3. STICKY_AGENT policy
+    const saRes = await postJson(
+      `/api/v1/inbox/conversations/${conversationAId}/auto-assign`,
+      { policy: "STICKY_AGENT" },
+      ownerACookie,
+      "req-api-auto-assign-sa",
+    );
+    expect(saRes.status).toBe(200);
+    const saJson = (await saRes.json()) as Record<string, unknown>;
+    expect(saJson.policyUsed).toBe("STICKY_AGENT");
+    expect(saJson.assignedUserId).toBe(ownerAId);
+
+    // 4. Invalid policy returns 400
+    const invalidRes = await postJson(
+      `/api/v1/inbox/conversations/${conversationAId}/auto-assign`,
+      { policy: "INVALID_POLICY" },
+      ownerACookie,
+    );
+    expect(invalidRes.status).toBe(400);
+
+    // 5. Cross-tenant returns 404
+    const crossTenantRes = await postJson(
+      `/api/v1/inbox/conversations/${conversationAId}/auto-assign`,
+      { policy: "ROUND_ROBIN" },
+      ownerBCookie,
+    );
+    expect(crossTenantRes.status).toBe(404);
+  });
 });

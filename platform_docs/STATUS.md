@@ -18,6 +18,7 @@ Estado por historia:
 - E08-S02 — Rule Condition Evaluator & Predicate Execution Engine: **PASS** (ADR-0032).
 - E08-S03 — Rule Action Execution Engine & Mutation Pipeline: **PASS** (ADR-0033).
 - E08-S04 — Automation Triggers & Inbound Event Dispatcher Bridge: **PASS** (ADR-0034).
+- E08-S05 — Human Takeover and Assignment Routing Policies: **PASS** (ADR-0035).
 
 Tareas transversales:
 
@@ -65,6 +66,24 @@ Epics base:
 - E01-S05 — Audit foundation: **PASS**.
 
 ## Completed
+
+- E08-S05 — Human Takeover and Assignment Routing Policies: **PASS** (ADR-0035).
+  - Módulo `takeover-manager.ts` con función `setConversationAutomationMode` y fábrica `createTakeoverManager`:
+    - Gestión de modos de automatización: `AUTO`, `HUMAN`, `ASSISTED`, `MONITOR`.
+    - Bloqueo consultivo de PostgreSQL `lockConversationInTransaction(tx, tenantId, channelAccountId, contactId)` para evitar carreras y garantizar atomicidad.
+    - Pausa y reanudación de automatización almacenando `automationPausedAt` y `automationPausedReason` en `metadata` JSONB de `Conversation`.
+    - Registro de auditoría `AuditLog` (`conversation.automation_mode_updated`) y evento de dominio `DomainEventOutbox` (`conversation.automation_mode_updated`).
+    - Takeover automático al enviar respuesta de agente desde el dashboard (`outbound-conversation-message-manager.ts` con motivo `agent_reply`).
+    - Takeover automático al detectar mensaje humano externo desde app/web de WhatsApp (`external-human-message-manager.ts` con motivo `external_human_reply`).
+  - Módulo `assignment-policy-engine.ts` con función `resolveAssignmentByPolicy` y fábrica `createAssignmentPolicyEngine`:
+    - Algoritmos deterministas de auto-asignación: `ROUND_ROBIN`, `LEAST_BUSY` (conteo de conversaciones abiertas) y `STICKY_AGENT` (fidelización de contacto).
+    - Filtrado opcional por unidad organizacional (`assignedUnitId` / `organizationUnitId`).
+    - Mutación atómica transaccional vía `InboxMutationManager.assignConversation`.
+  - Exposición en API REST (`inbox.ts`, `app.ts`):
+    - `PATCH /api/v1/inbox/conversations/:conversationId/automation-mode` protegido con RBAC (`conversations.assign`), entitlement check y aislamiento multi-inquilino.
+    - `POST /api/v1/inbox/conversations/:conversationId/auto-assign` protegido con RBAC (`conversations.assign`), entitlement check y aislamiento multi-inquilino.
+  - Reconciliación documental E08-S05 en ADR-0035.
+  - Verificación E08-S05: suite de integración `takeover-manager.integration.ts` (4/4 PASS), suite de integración `assignment-policy-engine.integration.ts` (5/5 PASS), suite de integración `inbox.integration.ts` (14/14 PASS), suite de reglas DB (5 archivos / 30 pruebas PASS), suite de reglas API (8/8 PASS), suite monorepo Vitest (25 archivos / 162 pruebas PASS), Biome format y lint (0 errores en 308 archivos), TypeScript typecheck (18 workspaces PASS). No requiere migration.
 
 - E08-S04 — Automation Triggers & Inbound Event Dispatcher Bridge: **PASS** (ADR-0034).
   - Módulo `rule-trigger-dispatcher.ts` con función central `dispatchRuleTriggers`:

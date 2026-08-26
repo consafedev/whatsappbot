@@ -118,6 +118,7 @@ function actorFields(
 
 type ConversationProjection = Pick<
   Conversation,
+  | "automationMode"
   | "channelAccountId"
   | "contactId"
   | "id"
@@ -126,6 +127,7 @@ type ConversationProjection = Pick<
   | "lastInboundAt"
   | "lastMessageAt"
   | "lastOutboundAt"
+  | "metadata"
   | "status"
   | "tenantId"
 > & {
@@ -139,6 +141,7 @@ async function findConversation(
 ): Promise<ConversationProjection | null> {
   return transaction.conversation.findUnique({
     select: {
+      automationMode: true,
       channelAccountId: true,
       contact: { select: { phoneNumber: true } },
       contactId: true,
@@ -148,6 +151,7 @@ async function findConversation(
       lastInboundAt: true,
       lastMessageAt: true,
       lastOutboundAt: true,
+      metadata: true,
       status: true,
       tenantId: true,
     },
@@ -338,8 +342,29 @@ export function createOutboundConversationMessageManager(
         actorUserId === null
           ? latest(current.lastAutomationMessageAt, now)
           : current.lastAutomationMessageAt;
+      const shouldPauseAutomation = actorUserId !== null && current.automationMode === "AUTO";
+      const currentMeta =
+        current.metadata !== null &&
+        typeof current.metadata === "object" &&
+        !Array.isArray(current.metadata)
+          ? { ...(current.metadata as Record<string, unknown>) }
+          : {};
+      const newMetadata = shouldPauseAutomation
+        ? {
+            ...currentMeta,
+            automationPausedAt: now.toISOString(),
+            automationPausedReason: "agent_reply",
+          }
+        : current.metadata;
+
       await transaction.conversation.update({
         data: {
+          ...(shouldPauseAutomation
+            ? {
+                automationMode: "HUMAN",
+                metadata: newMetadata as Prisma.InputJsonValue,
+              }
+            : {}),
           lastAutomationMessageAt: automation,
           lastHumanMessageAt: human,
           lastMessageAt: latest(current.lastMessageAt, now),
@@ -349,6 +374,39 @@ export function createOutboundConversationMessageManager(
       });
 
       const access = createTenantDataAccess(tenant, transaction);
+
+      if (shouldPauseAutomation) {
+        await access.audit.append({
+          action: "conversation.automation_mode_updated",
+          actorId: actorUserId,
+          actorType: "tenant_user",
+          afterSummary: {
+            automationMode: "HUMAN",
+            reason: "agent_reply",
+          },
+          beforeSummary: {
+            automationMode: current.automationMode,
+          },
+          entityId: conversation.id,
+          entityType: "Conversation",
+          requestId: mutationRequestId,
+        });
+        await access.outbox.append({
+          aggregateId: conversation.id,
+          aggregateType: "Conversation",
+          eventType: "conversation.automation_mode_updated",
+          payload: {
+            actorId: actorUserId,
+            conversationId: conversation.id,
+            newMode: "HUMAN",
+            previousMode: current.automationMode,
+            reason: "agent_reply",
+            tenantId: tenant.tenantId,
+            timestamp: now.toISOString(),
+          },
+        });
+      }
+
       await access.audit.append({
         action: "conversation.message_sent",
         actorId: actorUserId,
