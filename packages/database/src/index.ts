@@ -238,6 +238,21 @@ export {
   UnknownPermissionKeyError,
 } from "./rbac-data-access";
 export {
+  executeRuleActions,
+  interpolateTemplate,
+  RuleActionChannelInactiveError,
+  RuleActionContactNotFoundError,
+  RuleActionConversationNotFoundError,
+  RuleActionConversationNotWritableError,
+  RuleActionExecutionError,
+  type RuleActionExecutorDatabase,
+  RuleActionInvalidStateTransitionError,
+  RuleActionOrganizationUnitNotFoundError,
+  RuleActionUserNotFoundError,
+  type RuleExecutionContext,
+  type RuleExecutionResult,
+} from "./rule-action-executor";
+export {
   type CreateRuleInput,
   createRuleCatalogManager,
   RULE_ACTION_TYPES,

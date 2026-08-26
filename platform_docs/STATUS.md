@@ -16,6 +16,7 @@ Estado por historia:
 
 - E08-S01 — Rules Engine Foundation, Data Model & Catalog Management API: **PASS**.
 - E08-S02 — Rule Condition Evaluator & Predicate Execution Engine: **PASS** (ADR-0032).
+- E08-S03 — Rule Action Execution Engine & Mutation Pipeline: **PASS** (ADR-0033).
 
 Tareas transversales:
 
