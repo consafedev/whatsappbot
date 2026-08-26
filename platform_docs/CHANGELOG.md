@@ -8,6 +8,24 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Added
 
+- E08-S07 implementa la consola web y cliente frontend para la gestión del motor de reglas y automatizaciones (`Rules Engine Web UI Management & Console Client`) en `apps/web`:
+  - View model desacoplado de cliente `apps/web/app/app/rules/rules-view-model.ts`:
+    - Tipos completos para reglas (`RuleItem`, `RuleConditionForm`, `RuleActionForm`, `RuleFormData`, `RuleListFilter`).
+    - Métodos de API REST tipados (`fetchRules`, `fetchRuleDetail`, `createRule`, `updateRule`, `deleteRule`, `toggleRuleStatus`).
+    - Conversión bidireccional y parsing de operadores (`ruleToFormData`, `formDataToCreatePayload`, `formDataToUpdatePayload`).
+    - Generador de oraciones en lenguaje natural en tiempo real (`generateRuleSentencePreview`).
+    - Formatters y helpers de estado (`triggerLabel`, `operatorLabel`, `actionTypeLabel`, `executionModeLabel`, `statusBadgeDetails`).
+  - Componentes de interfaz de usuario de consola (`apps/web/app/app/rules/`):
+    - `RulesList` (`rules-list.tsx`): Tabla y filtros interactivos por disparador y estado, búsqueda en vivo, interruptor rápido de activación/pausa, badges de prioridad/lógica y confirmación de borrado accesible.
+    - `RuleFormModal` (`rule-form-modal.tsx`): Modal/drawer lateral con formulario de configuración general, constructor dinámico de condiciones ("cuándo") y constructor dinámico de acciones ("qué hacer") con chips de variables (`{{contact.name}}`), panel lateral de resumen y vista previa de oraciones.
+    - `RulesClient` (`rules-client.tsx`): Orquestador cliente con guards de módulo (`module.automation.basic`), permisos (`rules.read`, `rules.manage`), carga de opciones de canales, unidades y usuarios, y alertas accesibles.
+    - `TenantRulesPage` (`page.tsx`): Ruta `/app/rules` montada en el App Shell de inquilino.
+  - Navegación de workspace (`apps/web/app/app/tenant-app-navigation.ts`):
+    - Enlace `/app/rules` habilitado para el ítem `automations` protegido por `module.automation.basic` y `rules.read`.
+  - Estilos CSS completos en `apps/web/app/globals.css`.
+  - Reconciliación documental E08-S07 en ADR-0037.
+  - Verificación E08-S07: 21 pruebas unitarias en `rules-view-model.test.ts` (100% PASS); 6 pruebas de navegación en `tenant-app-navigation.test.ts` (100% PASS); suite completa monorepo Vitest (27 archivos, 203 pruebas) 100% PASS; TypeScript typecheck (0 errores); Biome check (0 errores en 6 archivos de rules).
+
 - E08-S06 implementa el evaluador de horarios de atención (`Business Hours Evaluator`), el gestor de inactividad con auto-cierre y liberación de takeover (`Inactivity Manager`) y sus endpoints REST en `packages/database` y `apps/api`:
   - Módulo `business-hours-evaluator.ts` con función pura `isWithinBusinessHours`:
     - Esquema tipado: `DaySchedule` (0=Domingo..6=Sábado, `openTime`, `closeTime` 24h `HH:mm`) y `BusinessHoursConfig` (zona horaria, schedules, feriados en array `holidays` YYYY-MM-DD).

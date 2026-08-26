@@ -26,10 +26,6 @@ export interface InactivityProcessResult {
 
 export class InvalidInactivityTimeoutOptionError extends Error {
   override readonly name = "InvalidInactivityTimeoutOptionError";
-
-  constructor(message: string) {
-    super(message);
-  }
 }
 
 export type InactivityManagerDatabase = TenantTransactionDatabase &

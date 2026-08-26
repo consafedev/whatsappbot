@@ -1,16 +1,16 @@
 # STATUS.md — Estado operativo actual del proyecto
 
-**Actualizado:** 2026-08-25
+**Actualizado:** 2026-08-26
 **Versión de producto:** `0.0.0`  
-**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; **Epic 08 — Rules Engine — IN PROGRESS**.
+**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; **Epic 08 — Rules Engine & Deterministic Automation — PASS / COMPLETE**.
 
 ## Current milestone
 
-Rules Engine Foundation & Catalog Management.
+Epic 08 — Rules Engine & Deterministic Automation Complete.
 
 ## Current epic
 
-**Epic 08 — Rules Engine & Deterministic Automation** — **IN PROGRESS**
+**Epic 08 — Rules Engine & Deterministic Automation** — **PASS / COMPLETE**
 
 Estado por historia:
 
@@ -20,6 +20,7 @@ Estado por historia:
 - E08-S04 — Automation Triggers & Inbound Event Dispatcher Bridge: **PASS** (ADR-0034).
 - E08-S05 — Human Takeover and Assignment Routing Policies: **PASS** (ADR-0035).
 - E08-S06 — Inactivity Timers, Auto-Close and Business Hours Schedules: **PASS** (ADR-0036).
+- E08-S07 — Rules Engine Web UI Management and Console Client: **PASS** (ADR-0037).
 
 Tareas transversales:
 
@@ -67,6 +68,24 @@ Epics base:
 - E01-S05 — Audit foundation: **PASS**.
 
 ## Completed
+
+- E08-S07 — Rules Engine Web UI Management and Console Client: **PASS** (ADR-0037).
+  - View model desacoplado de cliente `rules-view-model.ts`:
+    - Tipos completos para reglas (`RuleItem`, `RuleConditionForm`, `RuleActionForm`, `RuleFormData`, `RuleListFilter`).
+    - Métodos de API REST tipados (`fetchRules`, `fetchRuleDetail`, `createRule`, `updateRule`, `deleteRule`, `toggleRuleStatus`).
+    - Conversión bidireccional y parsing de operadores (`ruleToFormData`, `formDataToCreatePayload`, `formDataToUpdatePayload`).
+    - Generador de oraciones en lenguaje natural en tiempo real (`generateRuleSentencePreview`).
+    - Formatters y helpers de estado (`triggerLabel`, `operatorLabel`, `actionTypeLabel`, `executionModeLabel`, `statusBadgeDetails`).
+  - Componentes de interfaz de usuario de consola (`apps/web/app/app/rules/`):
+    - `RulesList` (`rules-list.tsx`): Tabla y filtros interactivos por disparador y estado, búsqueda en vivo, interruptor rápido de activación/pausa, badges de prioridad/lógica y confirmación de borrado accesible.
+    - `RuleFormModal` (`rule-form-modal.tsx`): Modal/drawer lateral con formulario de configuración general, constructor dinámico de condiciones ("cuándo") y constructor dinámico de acciones ("qué hacer") con chips de variables (`{{contact.name}}`), panel lateral de resumen y vista previa de oraciones.
+    - `RulesClient` (`rules-client.tsx`): Orquestador cliente con guards de módulo (`module.automation.basic`), permisos (`rules.read`, `rules.manage`), carga de opciones de canales, unidades y usuarios, y alertas accesibles.
+    - `TenantRulesPage` (`page.tsx`): Ruta `/app/rules` montada en el App Shell de inquilino.
+  - Navegación de workspace (`tenant-app-navigation.ts`):
+    - Enlace `/app/rules` habilitado para el ítem `automations` protegido por `module.automation.basic` y `rules.read`.
+  - Estilos CSS completos en `apps/web/app/globals.css`.
+  - Reconciliación documental E08-S07 en ADR-0037.
+  - Verificación E08-S07: 21 pruebas unitarias en `rules-view-model.test.ts` (100% PASS); 6 pruebas de navegación en `tenant-app-navigation.test.ts` (100% PASS); suite completa monorepo Vitest (27 archivos, 203 pruebas) 100% PASS; TypeScript typecheck (0 errores); Biome check (0 errores en 6 archivos de rules).
 
 - E08-S06 — Inactivity Timers, Auto-Close and Business Hours Schedules: **PASS** (ADR-0036).
   - Módulo `business-hours-evaluator.ts` con función pura `isWithinBusinessHours`:

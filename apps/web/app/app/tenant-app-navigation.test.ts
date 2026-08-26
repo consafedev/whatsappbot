@@ -59,4 +59,22 @@ describe("tenant app navigation", () => {
     ).flatMap((group) => group.items);
     expect(withBoth.find((item) => item.id === "inbox")?.href).toBe("/app/inbox");
   });
+
+  it("exposes automations /app/rules route when module.automation.basic and rules.read permission are granted", () => {
+    const withoutModule = resolveTenantNavigation([], ["rules.read"]).flatMap(
+      (group) => group.items,
+    );
+    expect(withoutModule.some((item) => item.id === "automations")).toBe(false);
+
+    const withoutPerm = resolveTenantNavigation(["module.automation.basic"], []).flatMap(
+      (group) => group.items,
+    );
+    expect(withoutPerm.some((item) => item.id === "automations")).toBe(false);
+
+    const withBoth = resolveTenantNavigation(
+      ["module.automation.basic"],
+      ["rules.read"],
+    ).flatMap((group) => group.items);
+    expect(withBoth.find((item) => item.id === "automations")?.href).toBe("/app/rules");
+  });
 });

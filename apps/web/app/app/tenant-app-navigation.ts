@@ -86,7 +86,7 @@ const navigation: readonly TenantAppNavigationGroup[] = Object.freeze([
     label: "Configuración",
     items: [
       {
-        href: null,
+        href: "/app/rules",
         id: "automations",
         label: "Automatizaciones",
         requiredModule: "module.automation.basic",

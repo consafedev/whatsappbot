@@ -73,7 +73,7 @@ export function isWithinBusinessHours(
 
   // Find schedule for current weekday
   const schedule = config.schedules.find((s) => s.dayOfWeek === dayOfWeek);
-  if (!schedule || !schedule.isOpen) {
+  if (!schedule?.isOpen) {
     return false;
   }
 
