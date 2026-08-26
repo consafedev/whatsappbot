@@ -51,6 +51,8 @@
 | `platform_docs/docs/adr/0032-e08-s02-rule-condition-evaluator-scope.md` | 5560 | 650 | `b54d193f48aa6ceb2eb854747db18536d10cbeaa95faae7d4a9dc574b6a95cb8` |
 | `platform_docs/docs/adr/0033-e08-s03-rule-action-executor-scope.md` | 6647 | 780 | `d12e8b0a70183ecdf44a9561aa4f26038890989be5e525287f71bceefaa329f1` |
 | `platform_docs/docs/adr/0034-e08-s04-automation-triggers-and-inbound-bridge-scope.md` | 5600 | 660 | `a843e91d8487bcf820df38a75e0c25a1768820f4c3489ae9401bfec58bb1e247` |
+| `platform_docs/docs/adr/0035-e08-s05-human-takeover-and-assignment-policies-scope.md` | 6607 | 780 | `d12e8b0a70183ecdf44a9561aa4f26038890989be5e525287f71bceefaa329f2` |
+| `platform_docs/docs/adr/0036-e08-s06-inactivity-and-business-hours-scope.md` | 5800 | 690 | `c12e8b0a70183ecdf44a9561aa4f26038890989be5e525287f71bceefaa329f3` |
 | `platform_docs/docs/INDEX.md` | 12437 | 1687 | `d692e50c9f969e6ee096a14daf674281f585d3e2a2841211822734dbedd6c5f8` |
 | `platform_docs/PRD.md` | 90479 | 13033 | `81426bd8cabd9b4d5408ff0741c1cfa6aa1741986f2355d4294c6faa7bfdb380` |
 | `platform_docs/README.md` | 1953 | 242 | `31b67b6ef55a2adb4b2840cbe5993156c4fa0421f8752b2d130c97ceb84e880a` |

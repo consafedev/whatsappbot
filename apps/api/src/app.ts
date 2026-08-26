@@ -7,6 +7,7 @@ import {
   createAssignmentPolicyEngine,
   createChannelAccountManager,
   createContactManager,
+  createInactivityManager,
   createInboundEventManager,
   createInboxMutationManager,
   createInboxQueryManager,
@@ -43,6 +44,7 @@ import {
 } from "./inbound-webhooks";
 import {
   ASSIGNMENT_POLICY_ENGINE,
+  INACTIVITY_MANAGER,
   INBOX_MUTATION_MANAGER,
   INBOX_QUERY_MANAGER,
   InboxController,
@@ -252,6 +254,10 @@ export async function createApiApplication(
       {
         provide: ASSIGNMENT_POLICY_ENGINE,
         useFactory: () => createAssignmentPolicyEngine(getPlatformDatabaseClient()),
+      },
+      {
+        provide: INACTIVITY_MANAGER,
+        useFactory: () => createInactivityManager(getPlatformDatabaseClient()),
       },
       {
         provide: INBOX_REALTIME_BROADCASTER,

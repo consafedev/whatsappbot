@@ -403,4 +403,18 @@ export {
   InvalidAssignmentPolicyError,
   resolveAssignmentByPolicy,
 } from "./assignment-policy-engine";
+export {
+  type BusinessHoursConfig,
+  type DaySchedule,
+  isWithinBusinessHours,
+} from "./business-hours-evaluator";
+export {
+  createInactivityManager,
+  type InactivityManager,
+  type InactivityManagerDatabase,
+  type InactivityProcessResult,
+  type InactivityTimeoutOptions,
+  InvalidInactivityTimeoutOptionError,
+  processInactivityTimeouts,
+} from "./inactivity-manager";
 

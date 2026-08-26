@@ -32,6 +32,8 @@ export const RULE_OPERATORS = [
 
 export type RuleOperator = (typeof RULE_OPERATORS)[number];
 
+import type { BusinessHoursConfig } from "./business-hours-evaluator";
+
 export interface RuleEvaluationContext {
   message?: {
     textBody?: string | null;
@@ -55,6 +57,8 @@ export interface RuleEvaluationContext {
   channel?: {
     channelAccountId?: string;
     providerType?: string;
+    isWithinBusinessHours?: boolean;
+    businessHours?: BusinessHoursConfig | null;
   };
   now?: Date;
   [key: string]: unknown;

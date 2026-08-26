@@ -19,6 +19,7 @@ Estado por historia:
 - E08-S03 — Rule Action Execution Engine & Mutation Pipeline: **PASS** (ADR-0033).
 - E08-S04 — Automation Triggers & Inbound Event Dispatcher Bridge: **PASS** (ADR-0034).
 - E08-S05 — Human Takeover and Assignment Routing Policies: **PASS** (ADR-0035).
+- E08-S06 — Inactivity Timers, Auto-Close and Business Hours Schedules: **PASS** (ADR-0036).
 
 Tareas transversales:
 
@@ -66,6 +67,22 @@ Epics base:
 - E01-S05 — Audit foundation: **PASS**.
 
 ## Completed
+
+- E08-S06 — Inactivity Timers, Auto-Close and Business Hours Schedules: **PASS** (ADR-0036).
+  - Módulo `business-hours-evaluator.ts` con función pura `isWithinBusinessHours`:
+    - Esquema fuertemente tipado: `DaySchedule` (0=Domingo..6=Sábado, `openTime`, `closeTime` 24h `HH:mm`) y `BusinessHoursConfig` (zona horaria, schedules, feriados en array `holidays` YYYY-MM-DD).
+    - Resolución de zona horaria con `Intl.DateTimeFormat` y degradación segura a `UTC` ante zonas IANA no válidas.
+    - Soporte para ventanas continuas 24/7 (configuración vacía/nula), ventanas diurnas y turnos nocturnos (`closeTime < openTime`).
+    - Soporte del trigger `ON_OUT_OF_BUSINESS_HOURS` en `RULE_TRIGGER_TYPES` y contexto `isWithinBusinessHours` en `RuleEvaluationContext`.
+  - Módulo `inactivity-manager.ts` con función `processInactivityTimeouts` y fábrica `createInactivityManager`:
+    - Auto-cierre transaccional de conversaciones inactivas (`open` o `pending`) superando `inactivityMinutes`, fijando `status: "closed"`, `closedAt: now` y `metadata.closedReason`.
+    - Liberación de takeover (`HUMAN -> AUTO`) al superar `releaseTakeoverMinutes`, reseteando `automationPausedAt: null` y registrando `automationPausedReason: "inactivity_release"`.
+    - Registro de auditoría `AuditLog` (`conversation.auto_closed`, `conversation.automation_mode_updated`) y eventos de outbox `DomainEventOutbox` (`conversation.status_updated`, `conversation.automation_mode_updated`).
+    - Bloqueo consultivo PostgreSQL `lockConversationInTransaction` y aislamiento multi-inquilino estricto por `tenantId`.
+  - Exposición en API REST (`inbox.ts`, `app.ts`):
+    - `POST /api/v1/inbox/conversations/process-inactivity` protegido con RBAC (`conversations.assign`), `TenantEntitlementGuard` (`module.messaging.basic`, `module.crm_lite`) y DTO validado.
+  - Reconciliación documental E08-S06 en ADR-0036.
+  - Verificación E08-S06: suite unitaria `business-hours-evaluator.test.ts` (14 pruebas 100% PASS), suite de integración `inactivity-manager.integration.ts` (3 pruebas PASS), extensión de integración `inbox.integration.ts` (3 pruebas PASS). No requiere migration.
 
 - E08-S05 — Human Takeover and Assignment Routing Policies: **PASS** (ADR-0035).
   - Módulo `takeover-manager.ts` con función `setConversationAutomationMode` y fábrica `createTakeoverManager`:

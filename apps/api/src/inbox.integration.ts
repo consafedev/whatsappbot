@@ -952,4 +952,39 @@ describe.sequential("E07 inbox API", () => {
     );
     expect(crossTenantRes.status).toBe(404);
   });
+
+  it("processes inactivity timeouts via POST /process-inactivity", async () => {
+    // 1. Success response 200
+    const res = await postJson(
+      "/api/v1/inbox/conversations/process-inactivity",
+      {
+        closeReason: "inactivity_timeout_api_test",
+        inactivityMinutes: 60,
+        releaseTakeoverMinutes: 30,
+      },
+      ownerACookie,
+      "req-api-inactivity-process",
+    );
+    expect(res.status).toBe(200);
+    const json = (await res.json()) as Record<string, unknown>;
+    expect(typeof json.closedCount).toBe("number");
+    expect(typeof json.releasedCount).toBe("number");
+    expect(Array.isArray(json.processedConversationIds)).toBe(true);
+
+    // 2. 400 Bad Request on invalid body
+    const invalidRes = await postJson(
+      "/api/v1/inbox/conversations/process-inactivity",
+      { inactivityMinutes: -10 },
+      ownerACookie,
+    );
+    expect(invalidRes.status).toBe(400);
+
+    // 3. 403 Forbidden without entitlement
+    const noEntitlementRes = await postJson(
+      "/api/v1/inbox/conversations/process-inactivity",
+      { inactivityMinutes: 60 },
+      ownerWithoutCrmCookie,
+    );
+    expect(noEntitlementRes.status).toBe(403);
+  });
 });

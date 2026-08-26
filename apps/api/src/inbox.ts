@@ -25,6 +25,8 @@ import type {
   AssignmentPolicyEngine,
   AssignmentPolicyResult,
   ConversationAutomationMode,
+  InactivityManager,
+  InactivityProcessResult,
   InboxConversationDetail,
   InboxConversationItem,
   InboxMessageItem,
@@ -49,6 +51,7 @@ import {
   InvalidConversationAssignmentError,
   InvalidConversationAutomationModeError,
   InvalidConversationStateTransitionError,
+  InvalidInactivityTimeoutOptionError,
   OrganizationUnitNotFoundError,
   OutboundConversationMessageActorNotFoundError,
   OutboundConversationMessageIdempotencyConflictError,
@@ -78,6 +81,7 @@ export const OUTBOUND_CONVERSATION_MESSAGE_MANAGER = Symbol(
 export const INBOX_MUTATION_MANAGER = Symbol("INBOX_MUTATION_MANAGER");
 export const TAKEOVER_MANAGER = Symbol("TAKEOVER_MANAGER");
 export const ASSIGNMENT_POLICY_ENGINE = Symbol("ASSIGNMENT_POLICY_ENGINE");
+export const INACTIVITY_MANAGER = Symbol("INACTIVITY_MANAGER");
 
 const UUID_V7_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const MAX_TEXT_LENGTH = 4_096;
@@ -435,6 +439,57 @@ function parseAutoAssignMutation(body: unknown): ParsedAutoAssignMutation {
   };
 }
 
+type ParsedInactivityTimeoutMutation = Readonly<{
+  inactivityMinutes: number;
+  releaseTakeoverMinutes?: number;
+  closeReason?: string;
+}>;
+
+function parseInactivityTimeoutMutation(body: unknown): ParsedInactivityTimeoutMutation {
+  const value = mutationObject(body, "Invalid inactivity timeout request");
+  if (
+    Object.keys(value).some(
+      (key) => !new Set(["inactivityMinutes", "releaseTakeoverMinutes", "closeReason"]).has(key),
+    )
+  ) {
+    throw new BadRequestException("Invalid inactivity timeout request");
+  }
+  if (
+    typeof value.inactivityMinutes !== "number" ||
+    !Number.isInteger(value.inactivityMinutes) ||
+    value.inactivityMinutes <= 0 ||
+    value.inactivityMinutes > 43_200
+  ) {
+    throw new BadRequestException("Inactivity minutes must be an integer between 1 and 43200");
+  }
+
+  let releaseTakeoverMinutes: number | undefined;
+  if (value.releaseTakeoverMinutes !== undefined) {
+    if (
+      typeof value.releaseTakeoverMinutes !== "number" ||
+      !Number.isInteger(value.releaseTakeoverMinutes) ||
+      value.releaseTakeoverMinutes <= 0 ||
+      value.releaseTakeoverMinutes > 43_200
+    ) {
+      throw new BadRequestException(
+        "Release takeover minutes must be an integer between 1 and 43200",
+      );
+    }
+    releaseTakeoverMinutes = value.releaseTakeoverMinutes;
+  }
+
+  const closeReason =
+    value.closeReason === undefined
+      ? undefined
+      : cleanMessageString(value.closeReason, MAX_REASON_LENGTH, "close reason");
+
+  return {
+    inactivityMinutes: value.inactivityMinutes,
+    ...(releaseTakeoverMinutes === undefined ? {} : { releaseTakeoverMinutes }),
+    ...(closeReason === undefined ? {} : { closeReason }),
+  };
+}
+
 function conversationId(value: string): string {
   if (!UUID_V7_PATTERN.test(value)) throw new NotFoundException("Conversation not found");
   return value.toLowerCase();
@@ -698,6 +753,9 @@ function mapError(error: unknown): never {
   if (error instanceof InvalidAssignmentPolicyError) {
     throw new BadRequestException(error.message);
   }
+  if (error instanceof InvalidInactivityTimeoutOptionError) {
+    throw new BadRequestException(error.message);
+  }
   if (error instanceof InboxQueryValidationError) {
     throw new BadRequestException(error.message);
   }
@@ -733,6 +791,8 @@ export class InboxService {
     private readonly takeoverManager: TakeoverManager,
     @Inject(ASSIGNMENT_POLICY_ENGINE)
     private readonly assignmentPolicyEngine: AssignmentPolicyEngine,
+    @Inject(INACTIVITY_MANAGER)
+    private readonly inactivityManager: InactivityManager,
     @Inject(INBOX_REALTIME_BROADCASTER)
     private readonly realtimeBroadcaster: InboxRealtimeBroadcaster,
   ) {}
@@ -901,6 +961,26 @@ export class InboxService {
     }
   }
 
+  async processInactivity(
+    context: TenantContext,
+    identity: TenantSessionIdentity,
+    requestIdValue: string,
+    body: unknown,
+  ): Promise<InactivityProcessResult> {
+    const parsed = parseInactivityTimeoutMutation(body);
+    try {
+      return await this.inactivityManager.processInactivityTimeouts(context, {
+        actorId: identity.userId,
+        closeReason: parsed.closeReason,
+        inactivityMinutes: parsed.inactivityMinutes,
+        releaseTakeoverMinutes: parsed.releaseTakeoverMinutes,
+        requestId: requestIdValue,
+      });
+    } catch (error) {
+      return mapError(error);
+    }
+  }
+
   events(context: TenantContext): Observable<MessageEvent> {
     return this.realtimeBroadcaster.subscribeTenantInboxEvents(context.tenantId);
   }
@@ -1017,6 +1097,29 @@ export class InboxController {
       identity,
       requestId(request),
       conversationIdValue,
+      body,
+    );
+  }
+
+  @Post("conversations/process-inactivity")
+  @HttpCode(200)
+  @RequirePermissions("conversations.assign")
+  @UseGuards(
+    TenantUserSessionGuard,
+    TenantContextGuard,
+    TenantPermissionGuard,
+    TenantEntitlementGuard,
+  )
+  processInactivity(
+    @CurrentTenantContext() context: TenantContext,
+    @CurrentTenantIdentity() identity: TenantSessionIdentity,
+    @Req() request: TenantAuthenticationRequest,
+    @Body() body: unknown,
+  ): Promise<InactivityProcessResult> {
+    return this.service.processInactivity(
+      context,
+      identity,
+      requestId(request),
       body,
     );
   }
