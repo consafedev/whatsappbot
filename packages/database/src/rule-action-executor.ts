@@ -794,7 +794,7 @@ export async function executeRuleActions(
     // Update rule timestamp
     await tx.rule.update({
       data: { updatedAt: now },
-      where: { id: rule.id },
+      where: { id: rule.id, tenantId },
     });
 
     // Record rule.executed audit log

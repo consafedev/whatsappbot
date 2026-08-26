@@ -8,6 +8,8 @@ import {
 } from "./platform";
 import {
   executeRuleActions,
+  RuleActionContactNotFoundError,
+  RuleActionConversationNotFoundError,
   RuleActionInvalidStateTransitionError,
   RuleActionUserNotFoundError,
   type RuleExecutionContext,
@@ -586,12 +588,12 @@ describe("RuleActionExecutor (integration)", () => {
     // Attempt to target Contact B with Tenant A context
     await expect(
       executeRuleActions(tenantCtxA, ruleA, { contactId: contactBId }, prisma, metadata),
-    ).rejects.toThrow();
+    ).rejects.toThrow(RuleActionContactNotFoundError);
 
     // Attempt to target Conversation B with Tenant A context
     await expect(
       executeRuleActions(tenantCtxA, ruleA, { conversationId: conversationBId }, prisma, metadata),
-    ).rejects.toThrow();
+    ).rejects.toThrow(RuleActionConversationNotFoundError);
 
     // Verify Contact B and Conversation B remain untouched
     const contactB = await prisma.contact.findUnique({ where: { id: contactBId } });
