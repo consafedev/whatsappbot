@@ -71,10 +71,26 @@ describe("tenant app navigation", () => {
     );
     expect(withoutPerm.some((item) => item.id === "automations")).toBe(false);
 
-    const withBoth = resolveTenantNavigation(
-      ["module.automation.basic"],
-      ["rules.read"],
-    ).flatMap((group) => group.items);
+    const withBoth = resolveTenantNavigation(["module.automation.basic"], ["rules.read"]).flatMap(
+      (group) => group.items,
+    );
     expect(withBoth.find((item) => item.id === "automations")?.href).toBe("/app/rules");
+  });
+
+  it("exposes channels /app/channels route when module.messaging.basic and channels.read permission are granted", () => {
+    const withoutModule = resolveTenantNavigation([], ["channels.read"]).flatMap(
+      (group) => group.items,
+    );
+    expect(withoutModule.some((item) => item.id === "channels")).toBe(false);
+
+    const withoutPerm = resolveTenantNavigation(["module.messaging.basic"], []).flatMap(
+      (group) => group.items,
+    );
+    expect(withoutPerm.some((item) => item.id === "channels")).toBe(false);
+
+    const withBoth = resolveTenantNavigation(["module.messaging.basic"], ["channels.read"]).flatMap(
+      (group) => group.items,
+    );
+    expect(withBoth.find((item) => item.id === "channels")?.href).toBe("/app/channels");
   });
 });

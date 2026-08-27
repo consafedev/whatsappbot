@@ -93,7 +93,7 @@ const navigation: readonly TenantAppNavigationGroup[] = Object.freeze([
         requiredPermission: "rules.read",
       },
       {
-        href: null,
+        href: "/app/channels",
         id: "channels",
         label: "Canales",
         requiredModule: "module.messaging.basic",

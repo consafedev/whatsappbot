@@ -8,6 +8,24 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Added
 
+- E09-S03 implementa la consola web y componentes de interfaz de usuario para la gestión de canales de WhatsApp y el modal de emparejamiento QR en tiempo real (`WhatsApp Channel Web UI Management & Live QR Pairing Modal`) en `apps/web`:
+  - View model desacoplado de cliente `channels-view-model.ts` en `apps/web/app/app/channels/`:
+    - Tipos fuertemente tipados (`ChannelItem`, `ChannelHealthDiagnostic`, `QrPairingState`, `CreateChannelPayload`, `StatusBadgeDetails`, `QrTtlRemaining`).
+    - Clientes REST desacoplados con manejo de errores `ChannelApiError` (`fetchChannels`, `createChannel`, `initiateChannelPairing`, `fetchChannelQr`, `disconnectChannel`, `fetchChannelHealth`).
+    - Funciones puras y testeables (`formatChannelStatus`, `calculateQrTtlRemaining` para TTL de 30s con temporizador regresivo `mm:ss` y detección `isExpired`, `formatLatency`, `formatSocketStatus`, `formatRelativeTime`).
+  - Componentes de interfaz de usuario de consola (`apps/web/app/app/channels/`):
+    - `ChannelQrModal` (`channel-qr-modal.tsx`): Modal interactivo de emparejamiento con guía paso a paso, renderizado procedural SVG de QR con esquinas y patrones de alineación, temporizador de cuenta regresiva de 30s con barra de progreso, sondeo periódico inteligente cada 2 segundos con cancelación inmediata al cerrar o conectar, estado de expiración con regeneración de QR y pantalla de confirmación exitosa.
+    - `ChannelHealthModal` (`channel-health-modal.tsx`): Modal de diagnóstico con cuadrícula de 4 estadísticas operativas (latencia ms, estado del socket, intentos de reconexión, último latido relativo/exacto), metadatos del canal y refresco en vivo.
+    - `ChannelCreateModal` (`channel-create-modal.tsx`): Modal de registro de nueva línea con validación de nombre, unidad organizativa y proveedor (Baileys), abriendo automáticamente el modal QR.
+    - `ChannelsList` (`channels-list.tsx`): Catálogo en cuadrícula responsiva con tarjetas de canal interactivas, badges de estado con indicadores de color, fila de metadatos de telemetría, accesos directos a "Vincular / Escanear QR", "Diagnóstico de Salud" y diálogo accesible de confirmación de desconexión segura. Incluye skeletons y empty states.
+    - `ChannelsClient` (`channels-client.tsx`): Orquestador principal que valida permisos (`channels.read`, `channels.manage`) y derecho de módulo (`module.messaging.basic`), gestiona estados globales, notificaciones toast y control de modales.
+    - `ChannelsPage` (`page.tsx`): Ruta canónica Next.js `/app/channels`.
+  - Navegación de workspace (`apps/web/app/app/tenant-app-navigation.ts`):
+    - Enlace canónico `/app/channels` habilitado para el ítem `channels` protegido por `module.messaging.basic` y `channels.read`.
+  - Estilos CSS completos en `apps/web/app/globals.css`.
+  - Reconciliación documental E09-S03 en ADR-0040.
+  - Verificación E09-S03: 20 pruebas unitarias en `channels-view-model.test.ts` (100% PASS); 7 pruebas de navegación en `tenant-app-navigation.test.ts` (100% PASS); suite general Vitest monorepo (29 archivos, 230 pruebas unitarias) 100% PASS; Biome check (0 errores en 332 archivos); TypeScript typecheck (18 workspaces) 100% PASS; Next.js production build (`/app/channels`) 100% PASS. No requiere migration.
+
 - E09-S02 implementa el monitor y gestor de salud de canales, política de reconexión con retroceso exponencial y endpoint de diagnóstico (`Channel Health Checks, Keep-Alive & Reconnection Engine`) en `packages/database`, `packages/messaging` y `apps/api`:
   - Gestor de salud y monitor `channel-health-manager.ts` en `packages/database`:
     - `recordChannelHeartbeat`: valida operatividad del tenant y persiste `lastHeartbeatAt`, `lastLatencyMs`, `socketStatus` (`"open" | "connecting" | "closed"`), restableciendo `isDegraded = false` y `healthStatus = "healthy"`.

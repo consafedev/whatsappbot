@@ -1,8 +1,8 @@
 # STATUS.md — Estado operativo actual del proyecto
 
-**Actualizado:** 2026-08-26
+**Actualizado:** 2026-08-27
 **Versión de producto:** `0.0.0`  
-**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; **Epic 09 — Channel Management — IN PROGRESS (E09-S01, E09-S02 PASS)**.
+**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; **Epic 09 — Channel Management — IN PROGRESS (E09-S01, E09-S02, E09-S03 PASS)**.
 
 ## Current milestone
 
@@ -16,6 +16,7 @@ Estado por historia:
 
 - E09-S01 — WhatsApp Channel QR Pairing Lifecycle and Session API: **PASS** (ADR-0038).
 - E09-S02 — Channel Health Checks, Keep-Alive & Reconnection Engine: **PASS** (ADR-0039).
+- E09-S03 — WhatsApp Channel Web UI Management & Live QR Pairing Modal: **PASS** (ADR-0040).
 
 Epics anteriores:
 
@@ -74,6 +75,23 @@ Epics base:
 - E01-S05 — Audit foundation: **PASS**.
 
 ## Completed
+
+- E09-S03 — WhatsApp Channel Web UI Management & Live QR Pairing Modal: **PASS** (ADR-0040).
+  - View model desacoplado `channels-view-model.ts` (`apps/web/app/app/channels/`):
+    - Tipos fuertemente tipados (`ChannelItem`, `ChannelHealthDiagnostic`, `QrPairingState`, `CreateChannelPayload`, `StatusBadgeDetails`, `QrTtlRemaining`).
+    - Clientes REST desacoplados con manejo de errores `ChannelApiError` (`fetchChannels`, `createChannel`, `initiateChannelPairing`, `fetchChannelQr`, `disconnectChannel`, `fetchChannelHealth`).
+    - Funciones puras y testeables (`formatChannelStatus`, `calculateQrTtlRemaining` para TTL de 30s con temporizador regresivo `mm:ss` y detección `isExpired`, `formatLatency`, `formatSocketStatus`, `formatRelativeTime`).
+  - Componentes visuales responsivos y accesibles (`apps/web/app/app/channels/`):
+    - `channel-qr-modal.tsx`: Modal interactivo de emparejamiento con guía paso a paso, renderizado procedural SVG de QR con esquinas y patrones de alineación, temporizador de cuenta regresiva de 30s con barra de progreso, sondeo periódico inteligente cada 2 segundos con cancelación inmediata al cerrar o conectar, estado de expiración con regeneración de QR y pantalla de confirmación exitosa.
+    - `channel-health-modal.tsx`: Modal de diagnóstico con cuadrícula de 4 estadísticas operativas (latencia ms, estado del socket, intentos de reconexión, último latido relativo/exacto), metadatos del canal y refresco en vivo.
+    - `channel-create-modal.tsx`: Modal de registro de nueva línea con validación de nombre, unidad organizativa y proveedor (Baileys), abriendo automáticamente el modal QR.
+    - `channels-list.tsx`: Catálogo en cuadrícula responsiva con tarjetas de canal interactivas, badges de estado con indicadores de color, fila de metadatos de telemetría, accesos directos a "Vincular / Escanear QR", "Diagnóstico de Salud" y diálogo accesible de confirmación de desconexión segura. Incluye skeletons y empty states.
+    - `channels-client.tsx`: Orquestador principal que valida permisos (`channels.read`, `channels.manage`) y derecho de módulo (`module.messaging.basic`), gestiona estados globales, notificaciones toast y control de modales.
+    - `page.tsx`: Ruta canónica Next.js `/app/channels`.
+  - Navegación de workspace (`apps/web/app/app/tenant-app-navigation.ts`):
+    - Actualización del enlace canónico `channels` hacia `href: "/app/channels"`, con control de acceso por `module.messaging.basic` y `channels.read`.
+  - Reconciliación documental E09-S03 en ADR-0040.
+  - Verificación E09-S03: 20 pruebas unitarias en `channels-view-model.test.ts` (100% PASS); 7 pruebas de navegación en `tenant-app-navigation.test.ts` (100% PASS); suite general Vitest monorepo (29 archivos, 230 pruebas unitarias) 100% PASS; Biome check (0 errores en 332 archivos); TypeScript typecheck (18 workspaces) 100% PASS; Next.js production build (`/app/channels`) 100% PASS. No requiere migration.
 
 - E09-S02 — Channel Health Checks, Keep-Alive & Reconnection Engine: **PASS** (ADR-0039).
   - Gestor de salud y monitor de canales `channel-health-manager.ts` (`@whatsapp-platform/database`):
