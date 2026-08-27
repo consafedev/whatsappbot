@@ -234,4 +234,117 @@ describe.sequential("E05-S01 tenant channels API", () => {
     });
     expect(health.status).toBe(409);
   });
+
+  it("manages pairing lifecycle: initiate, retrieve QR with 30s TTL, and disconnect", async () => {
+    // 1. Create a fresh channel in Tenant A for pairing tests
+    const created = await jsonRequest("/api/v1/channels", ownerACookie, "POST", {
+      name: "Línea QR Pairing",
+      phoneNumber: "+52 155 7777 8888",
+      providerType: "baileys",
+    });
+    expect(created.status).toBe(201);
+    const channel = (await created.json()) as { id: string };
+    const pairingChannelId = channel.id;
+
+    // 2. Initiate pairing -> 200 OK with status CONNECTING
+    const initiateRes = await request(
+      `/api/v1/channels/${pairingChannelId}/pair/initiate`,
+      ownerACookie,
+      { method: "POST" },
+    );
+    expect(initiateRes.status).toBe(200);
+    const initiateBody = (await initiateRes.json()) as Record<string, unknown>;
+    expect(initiateBody).toMatchObject({
+      channelAccountId: pairingChannelId,
+      status: "CONNECTING",
+    });
+
+    // 3. Simulate QR code generation (e.g. from provider worker)
+    const qrRaw = "2@baileys-test-qr-payload-string";
+    const nowIso = new Date().toISOString();
+    await prisma.channelAccount.update({
+      data: {
+        settings: {
+          latestQrRaw: qrRaw,
+          metadata: { latestQrRaw: qrRaw, qrGeneratedAt: nowIso },
+          qrGeneratedAt: nowIso,
+        },
+        status: "QR_READY",
+      },
+      where: { id: pairingChannelId },
+    });
+
+    // 4. Retrieve QR code -> 200 OK with safe payload and isExpired = false
+    const qrRes = await request(`/api/v1/channels/${pairingChannelId}/pair/qr`, ownerACookie);
+    expect(qrRes.status).toBe(200);
+    const qrBody = (await qrRes.json()) as Record<string, unknown>;
+    expect(qrBody).toMatchObject({
+      isExpired: false,
+      qrGeneratedAt: nowIso,
+      qrRaw,
+      status: "QR_READY",
+    });
+    expect(JSON.stringify(qrBody)).not.toContain("credentialsCiphertext");
+    expect(JSON.stringify(qrBody)).not.toContain("credentials");
+
+    // 5. Test QR expiration with timestamp > 30 seconds ago
+    const expiredTimestamp = new Date(Date.now() - 35_000).toISOString();
+    await prisma.channelAccount.update({
+      data: {
+        settings: {
+          latestQrRaw: qrRaw,
+          metadata: { latestQrRaw: qrRaw, qrGeneratedAt: expiredTimestamp },
+          qrGeneratedAt: expiredTimestamp,
+        },
+      },
+      where: { id: pairingChannelId },
+    });
+
+    const expiredQrRes = await request(
+      `/api/v1/channels/${pairingChannelId}/pair/qr`,
+      ownerACookie,
+    );
+    expect(expiredQrRes.status).toBe(200);
+    const expiredQrBody = (await expiredQrRes.json()) as Record<string, unknown>;
+    expect(expiredQrBody.isExpired).toBe(true);
+    expect(expiredQrBody.qrRaw).toBeNull();
+
+    // 6. Disconnect channel -> 200 OK with status DISCONNECTED
+    const disconnectRes = await jsonRequest(
+      `/api/v1/channels/${pairingChannelId}/disconnect`,
+      ownerACookie,
+      "POST",
+      { reason: "manual_user_logout" },
+    );
+    expect(disconnectRes.status).toBe(200);
+    const disconnectBody = (await disconnectRes.json()) as Record<string, unknown>;
+    expect(disconnectBody).toMatchObject({
+      channelAccountId: pairingChannelId,
+      status: "DISCONNECTED",
+    });
+
+    // 7. Multi-tenant A/B isolation tests: Tenant B cannot initiate, read QR or disconnect Tenant A channel
+    expect(
+      (
+        await request(`/api/v1/channels/${pairingChannelId}/pair/initiate`, ownerBCookie, {
+          method: "POST",
+        })
+      ).status,
+    ).toBe(404);
+
+    expect(
+      (await request(`/api/v1/channels/${pairingChannelId}/pair/qr`, ownerBCookie)).status,
+    ).toBe(404);
+
+    expect(
+      (
+        await jsonRequest(
+          `/api/v1/channels/${pairingChannelId}/disconnect`,
+          ownerBCookie,
+          "POST",
+          {},
+        )
+      ).status,
+    ).toBe(404);
+  });
 });

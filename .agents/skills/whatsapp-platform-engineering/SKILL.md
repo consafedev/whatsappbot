@@ -661,3 +661,18 @@ Este archivo cumple su función si una IA nueva puede:
 - dejar un estado claro para la siguiente IA;
 - priorizar el MVP que puede venderse;
 - evitar convertir el producto en variantes por cliente.
+
+---
+
+# 32. Metodología de desarrollo durante la vida del proyecto
+
+Antes de cada cambio, la IA debe:
+
+- Investigar el estado actual del repositorio y la documentación;
+- En;
+- encontrar la fuente correcta;
+- implementar sin inventar;
+- validar aislamiento y seguridad;
+- dejar un estado claro para la siguiente IA;
+- priorizar el MVP que puede venderse;
+- evitar convertir el producto en variantes por cliente.

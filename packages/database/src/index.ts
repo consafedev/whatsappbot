@@ -1,4 +1,20 @@
+export {
+  ASSIGNMENT_POLICIES,
+  type AssignmentPolicy,
+  type AssignmentPolicyEngine,
+  type AssignmentPolicyEngineDatabase,
+  type AssignmentPolicyOptions,
+  type AssignmentPolicyResult,
+  createAssignmentPolicyEngine,
+  InvalidAssignmentPolicyError,
+  resolveAssignmentByPolicy,
+} from "./assignment-policy-engine";
 export type { AuditEntryInput, AuditWriter } from "./audit";
+export {
+  type BusinessHoursConfig,
+  type DaySchedule,
+  isWithinBusinessHours,
+} from "./business-hours-evaluator";
 export {
   CHANNEL_ACCOUNT_STATUSES,
   type ChannelAccountCreateInput,
@@ -17,6 +33,17 @@ export {
   type ChannelAccountUpdateInput,
   createChannelAccountManager,
 } from "./channel-account-manager";
+export {
+  ChannelAlreadyConnectedError,
+  type ChannelPairingConnectionDetails,
+  type ChannelPairingManager,
+  type ChannelPairingManagerDatabase,
+  confirmChannelConnected,
+  createChannelPairingManager,
+  disconnectChannel,
+  initiateChannelPairing,
+  updateChannelQrCode,
+} from "./channel-pairing-manager";
 export {
   CONTACT_STATUSES,
   type ContactCreateInput,
@@ -110,6 +137,15 @@ export type {
   UserRole,
 } from "./generated/prisma/client";
 export * from "./generated/prisma/enums";
+export {
+  createInactivityManager,
+  type InactivityManager,
+  type InactivityManagerDatabase,
+  type InactivityProcessResult,
+  type InactivityTimeoutOptions,
+  InvalidInactivityTimeoutOptionError,
+  processInactivityTimeouts,
+} from "./inactivity-manager";
 export {
   createInboundEventDispatcher,
   InboundEventDispatchDeferredError,
@@ -298,6 +334,13 @@ export {
   type RuleTriggerDispatchResult,
 } from "./rule-trigger-dispatcher";
 export {
+  createTakeoverManager,
+  InvalidConversationAutomationModeError,
+  setConversationAutomationMode,
+  type TakeoverManager,
+  type TakeoverManagerDatabase,
+} from "./takeover-manager";
+export {
   createTenantAppBootstrap,
   type TenantAppBootstrap,
   type TenantAppBootstrapDatabase,
@@ -385,36 +428,3 @@ export {
   type UserUpdateStatusInput,
   type UserUsage,
 } from "./user-management-manager";
-export {
-  createTakeoverManager,
-  InvalidConversationAutomationModeError,
-  setConversationAutomationMode,
-  type TakeoverManager,
-  type TakeoverManagerDatabase,
-} from "./takeover-manager";
-export {
-  ASSIGNMENT_POLICIES,
-  type AssignmentPolicy,
-  type AssignmentPolicyEngine,
-  type AssignmentPolicyEngineDatabase,
-  type AssignmentPolicyOptions,
-  type AssignmentPolicyResult,
-  createAssignmentPolicyEngine,
-  InvalidAssignmentPolicyError,
-  resolveAssignmentByPolicy,
-} from "./assignment-policy-engine";
-export {
-  type BusinessHoursConfig,
-  type DaySchedule,
-  isWithinBusinessHours,
-} from "./business-hours-evaluator";
-export {
-  createInactivityManager,
-  type InactivityManager,
-  type InactivityManagerDatabase,
-  type InactivityProcessResult,
-  type InactivityTimeoutOptions,
-  InvalidInactivityTimeoutOptionError,
-  processInactivityTimeouts,
-} from "./inactivity-manager";
-

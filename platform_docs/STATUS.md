@@ -2,25 +2,30 @@
 
 **Actualizado:** 2026-08-26
 **Versión de producto:** `0.0.0`  
-**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; **Epic 08 — Rules Engine & Deterministic Automation — PASS / COMPLETE**.
+**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; **Epic 09 — Channel Management — IN PROGRESS (E09-S01 PASS)**.
 
 ## Current milestone
 
-Epic 08 — Rules Engine & Deterministic Automation Complete.
+Epic 09 — Channel Management & WhatsApp Infrastructure.
 
 ## Current epic
 
-**Epic 08 — Rules Engine & Deterministic Automation** — **PASS / COMPLETE**
+**Epic 09 — Channel Management** — **IN PROGRESS**
 
 Estado por historia:
 
-- E08-S01 — Rules Engine Foundation, Data Model & Catalog Management API: **PASS** (ADR-0031).
-- E08-S02 — Rule Condition Evaluator & Predicate Execution Engine: **PASS** (ADR-0032).
-- E08-S03 — Rule Action Execution Engine & Mutation Pipeline: **PASS** (ADR-0033).
-- E08-S04 — Automation Triggers & Inbound Event Dispatcher Bridge: **PASS** (ADR-0034).
-- E08-S05 — Human Takeover and Assignment Routing Policies: **PASS** (ADR-0035).
-- E08-S06 — Inactivity Timers, Auto-Close and Business Hours Schedules: **PASS** (ADR-0036).
-- E08-S07 — Rules Engine Web UI Management and Console Client: **PASS** (ADR-0037).
+- E09-S01 — WhatsApp Channel QR Pairing Lifecycle and Session API: **PASS** (ADR-0038).
+
+Epics anteriores:
+
+- Epic 08 — Rules Engine & Deterministic Automation: **PASS / COMPLETE**.
+  - E08-S01 — Rules Engine Foundation, Data Model & Catalog Management API: **PASS** (ADR-0031).
+  - E08-S02 — Rule Condition Evaluator & Predicate Execution Engine: **PASS** (ADR-0032).
+  - E08-S03 — Rule Action Execution Engine & Mutation Pipeline: **PASS** (ADR-0033).
+  - E08-S04 — Automation Triggers & Inbound Event Dispatcher Bridge: **PASS** (ADR-0034).
+  - E08-S05 — Human Takeover and Assignment Routing Policies: **PASS** (ADR-0035).
+  - E08-S06 — Inactivity Timers, Auto-Close and Business Hours Schedules: **PASS** (ADR-0036).
+  - E08-S07 — Rules Engine Web UI Management and Console Client: **PASS** (ADR-0037).
 
 Tareas transversales:
 
@@ -68,6 +73,21 @@ Epics base:
 - E01-S05 — Audit foundation: **PASS**.
 
 ## Completed
+
+- E09-S01 — WhatsApp Channel QR Pairing Lifecycle and Session API: **PASS** (ADR-0038).
+  - Gestor de emparejamiento QR determinista `channel-pairing-manager.ts` (`@whatsapp-platform/database`):
+    - Transiciones de estado completas: `DISCONNECTED -> CONNECTING -> QR_READY -> CONNECTED`.
+    - `initiateChannelPairing`: revalida tenant operativo y `module.messaging.basic`, rechaza canales ya conectados (`ChannelAlreadyConnectedError`), fija estado `CONNECTING`, emite evento outbox `channel.pairing_requested` y registra `AuditLog` (`channel.pairing_initiated`).
+    - `updateChannelQrCode`: fija estado `QR_READY`, persiste `latestQrRaw` y `qrGeneratedAt` en metadata, y emite evento outbox `channel.qr_generated`.
+    - `confirmChannelConnected`: fija estado `CONNECTED`, actualiza `phoneNumber` y `phoneNumberUniqueKey` para unicidad activa, opcionalmente `credentialsCiphertext`, fija `lastConnectedAt`, limpia QR temporal, emite outbox `channel.connected` y registra `AuditLog` (`channel.connected`).
+    - `disconnectChannel`: fija estado `DISCONNECTED`, limpia QR, fija `lastDisconnectedAt` y `disconnectReason`, emite outbox `channel.disconnected` y registra `AuditLog` (`channel.disconnected`).
+  - Endpoints REST en API (`apps/api/src/tenant-channels.ts`):
+    - `POST /api/v1/channels/:channelAccountId/pair/initiate` (200 OK con estado `CONNECTING`, requiere `channels.manage`).
+    - `GET /api/v1/channels/:channelAccountId/pair/qr` (200 OK con `{ status, qrRaw, qrGeneratedAt, isExpired }` con TTL estricto de 30 segundos; nunca expone credenciales ni claves, requiere `channels.read`).
+    - `POST /api/v1/channels/:channelAccountId/disconnect` (200 OK con estado `DISCONNECTED`, requiere `channels.manage`).
+    - Aislamiento multi-inquilino estricto 404 ante intentos cross-tenant.
+  - Reconciliación documental E09-S01 en ADR-0038.
+  - Verificación E09-S01: 5 pruebas de integración PostgreSQL en `channel-pairing-manager.integration.ts` (100% PASS); 6 pruebas de integración de API en `tenant-channels.integration.ts` (100% PASS); suite general Vitest monorepo (27 archivos, 202 pruebas unitarias) 100% PASS; Biome check (0 errores en 320 archivos); TypeScript typecheck (18 workspaces) 100% PASS. No requiere migration.
 
 - E08-S07 — Rules Engine Web UI Management and Console Client: **PASS** (ADR-0037).
   - View model desacoplado de cliente `rules-view-model.ts`:

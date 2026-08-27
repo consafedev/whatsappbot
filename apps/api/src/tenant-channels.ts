@@ -26,6 +26,7 @@ import type {
   ChannelAccountManager,
   ChannelAccountPage,
   ChannelAccountStatus,
+  ChannelPairingManager,
   TenantContext,
 } from "@whatsapp-platform/database";
 import {
@@ -35,6 +36,7 @@ import {
   ChannelAccountNotFoundError,
   ChannelAccountOrganizationUnitNotFoundError,
   ChannelAccountPhoneConflictError,
+  ChannelAlreadyConnectedError,
 } from "@whatsapp-platform/database";
 import {
   getMessagingProvider,
@@ -52,6 +54,7 @@ import { RequireEntitlements, TenantEntitlementGuard } from "./tenant-entitlemen
 import { TenantAuthorized } from "./tenant-rbac";
 
 export const CHANNEL_ACCOUNT_MANAGER = Symbol("CHANNEL_ACCOUNT_MANAGER");
+export const CHANNEL_PAIRING_MANAGER = Symbol("CHANNEL_PAIRING_MANAGER");
 export const MESSAGING_CREDENTIAL_CIPHER = Symbol("MESSAGING_CREDENTIAL_CIPHER");
 
 const UUID_V7_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -82,6 +85,29 @@ type JsonValue = JsonPrimitive | JsonObject | JsonValue[];
 type JsonObject = { [key: string]: JsonValue };
 
 export type ChannelResponse = ChannelAccountItem & Readonly<{ name: string }>;
+
+export type ChannelPairingInitiateResponse = Readonly<{
+  channelAccountId: string;
+  status: string;
+  displayName: string;
+  phoneNumber: string | null;
+  updatedAt: string;
+}>;
+
+export type ChannelPairingQrResponse = Readonly<{
+  status: string;
+  qrRaw: string | null;
+  qrGeneratedAt: string | null;
+  isExpired: boolean;
+}>;
+
+export type ChannelDisconnectResponse = Readonly<{
+  channelAccountId: string;
+  status: string;
+  displayName: string;
+  phoneNumber: string | null;
+  updatedAt: string;
+}>;
 
 export type ChannelTestConnectionResponse = Readonly<{
   status: "OK" | "ERROR";
@@ -294,6 +320,14 @@ function mapError(error: unknown): never {
   if (error instanceof ChannelAccountOrganizationUnitNotFoundError) {
     throw new NotFoundException("Organization unit not found");
   }
+  if (error instanceof ChannelAlreadyConnectedError) {
+    throw new ConflictException({
+      code: "CHANNEL_ALREADY_CONNECTED",
+      error: "Conflict",
+      message: "Channel account is already connected",
+      statusCode: 409,
+    });
+  }
   if (error instanceof ChannelAccountPhoneConflictError) {
     throw new ConflictException({
       code: "CHANNEL_PHONE_CONFLICT",
@@ -341,6 +375,8 @@ export class TenantChannelsService {
     @Inject(CHANNEL_ACCOUNT_MANAGER) private readonly manager: ChannelAccountManager,
     @Inject(MESSAGING_CREDENTIAL_CIPHER)
     private readonly credentialCipher: MessagingCredentialCipher | null,
+    @Inject(CHANNEL_PAIRING_MANAGER)
+    private readonly pairingManager?: ChannelPairingManager,
   ) {}
 
   list(
@@ -420,6 +456,115 @@ export class TenantChannelsService {
         requestId: requestIdValue,
       });
       return response(item);
+    } catch (error) {
+      return mapError(error);
+    }
+  }
+
+  async initiatePairing(
+    context: TenantContext,
+    identity: TenantSessionIdentity,
+    requestIdValue: string,
+    channelId: string,
+  ): Promise<ChannelPairingInitiateResponse> {
+    const id = this.channelId(channelId);
+    try {
+      if (!this.pairingManager) {
+        throw new ServiceUnavailableException("Channel pairing manager is not configured");
+      }
+      const result = await this.pairingManager.initiateChannelPairing(
+        context,
+        id,
+        identity.userId,
+        requestIdValue,
+      );
+      return {
+        channelAccountId: result.id,
+        displayName: result.displayName,
+        phoneNumber: result.phoneNumber,
+        status: result.status,
+        updatedAt: result.updatedAt.toISOString(),
+      };
+    } catch (error) {
+      return mapError(error);
+    }
+  }
+
+  async getPairingQr(context: TenantContext, channelId: string): Promise<ChannelPairingQrResponse> {
+    const id = this.channelId(channelId);
+    const item = await this.manager.findById(context, id);
+    if (item === null) throw new NotFoundException("Channel not found");
+
+    const settings =
+      item.settings !== null && typeof item.settings === "object" && !Array.isArray(item.settings)
+        ? (item.settings as Record<string, unknown>)
+        : {};
+    const metadata =
+      settings.metadata !== null &&
+      typeof settings.metadata === "object" &&
+      !Array.isArray(settings.metadata)
+        ? (settings.metadata as Record<string, unknown>)
+        : {};
+
+    const rawQr =
+      (metadata.latestQrRaw as string | undefined) ??
+      (settings.latestQrRaw as string | undefined) ??
+      null;
+    const generatedAt =
+      (metadata.qrGeneratedAt as string | undefined) ??
+      (settings.qrGeneratedAt as string | undefined) ??
+      null;
+
+    let isExpired = true;
+    if (rawQr !== null && generatedAt !== null) {
+      const timestamp = new Date(generatedAt).getTime();
+      const elapsed = Date.now() - timestamp;
+      if (!Number.isNaN(timestamp) && elapsed >= 0 && elapsed <= 30_000) {
+        isExpired = false;
+      }
+    }
+
+    return {
+      isExpired,
+      qrGeneratedAt: generatedAt,
+      qrRaw: isExpired ? null : rawQr,
+      status: item.status,
+    };
+  }
+
+  async disconnect(
+    context: TenantContext,
+    identity: TenantSessionIdentity,
+    requestIdValue: string,
+    channelId: string,
+    body?: unknown,
+  ): Promise<ChannelDisconnectResponse> {
+    const id = this.channelId(channelId);
+    let reason: string | undefined;
+    if (body !== undefined && body !== null && typeof body === "object" && !Array.isArray(body)) {
+      const parsedBody = body as Record<string, unknown>;
+      if (typeof parsedBody.reason === "string" && parsedBody.reason.trim().length > 0) {
+        reason = parsedBody.reason.trim();
+      }
+    }
+    try {
+      if (!this.pairingManager) {
+        throw new ServiceUnavailableException("Channel pairing manager is not configured");
+      }
+      const result = await this.pairingManager.disconnectChannel(
+        context,
+        id,
+        identity.userId,
+        reason,
+        requestIdValue,
+      );
+      return {
+        channelAccountId: result.id,
+        displayName: result.displayName,
+        phoneNumber: result.phoneNumber,
+        status: result.status,
+        updatedAt: result.updatedAt.toISOString(),
+      };
     } catch (error) {
       return mapError(error);
     }
@@ -523,6 +668,40 @@ export class TenantChannelsController {
     @Req() request: TenantAuthenticationRequest,
   ): Promise<ChannelResponse> {
     return this.service.archive(context, identity, requestId(request), channelId);
+  }
+
+  @Post(":channelId/pair/initiate")
+  @HttpCode(200)
+  @messagingAuthorized("channels.manage")
+  initiatePairing(
+    @Param("channelId") channelId: string,
+    @CurrentTenantContext() context: TenantContext,
+    @CurrentTenantIdentity() identity: TenantSessionIdentity,
+    @Req() request: TenantAuthenticationRequest,
+  ): Promise<ChannelPairingInitiateResponse> {
+    return this.service.initiatePairing(context, identity, requestId(request), channelId);
+  }
+
+  @Get(":channelId/pair/qr")
+  @messagingAuthorized("channels.read")
+  getPairingQr(
+    @Param("channelId") channelId: string,
+    @CurrentTenantContext() context: TenantContext,
+  ): Promise<ChannelPairingQrResponse> {
+    return this.service.getPairingQr(context, channelId);
+  }
+
+  @Post(":channelId/disconnect")
+  @HttpCode(200)
+  @messagingAuthorized("channels.manage")
+  disconnect(
+    @Param("channelId") channelId: string,
+    @CurrentTenantContext() context: TenantContext,
+    @CurrentTenantIdentity() identity: TenantSessionIdentity,
+    @Req() request: TenantAuthenticationRequest,
+    @Body() body?: unknown,
+  ): Promise<ChannelDisconnectResponse> {
+    return this.service.disconnect(context, identity, requestId(request), channelId, body);
   }
 
   @Post(":channelId/test-connection")

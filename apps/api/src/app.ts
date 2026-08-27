@@ -6,6 +6,7 @@ import type { NonSecretConfig } from "@whatsapp-platform/config";
 import {
   createAssignmentPolicyEngine,
   createChannelAccountManager,
+  createChannelPairingManager,
   createContactManager,
   createInactivityManager,
   createInboundEventManager,
@@ -113,6 +114,7 @@ import {
 } from "./tenant-auth";
 import {
   CHANNEL_ACCOUNT_MANAGER,
+  CHANNEL_PAIRING_MANAGER,
   MESSAGING_CREDENTIAL_CIPHER,
   TenantChannelsController,
   TenantChannelsService,
@@ -222,6 +224,10 @@ export async function createApiApplication(
       {
         provide: CHANNEL_ACCOUNT_MANAGER,
         useFactory: () => createChannelAccountManager(getPlatformDatabaseClient()),
+      },
+      {
+        provide: CHANNEL_PAIRING_MANAGER,
+        useFactory: () => createChannelPairingManager(getPlatformDatabaseClient()),
       },
       {
         provide: CONTACT_MANAGER,

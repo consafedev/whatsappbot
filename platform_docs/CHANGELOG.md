@@ -8,6 +8,21 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Added
 
+- E09-S01 implementa el gestor de ciclo de vida de emparejamiento QR para WhatsApp y los endpoints REST de sesión (`WhatsApp Channel QR Pairing Lifecycle and Session API`) en `packages/database` y `apps/api`:
+  - Gestor de emparejamiento `channel-pairing-manager.ts` en `packages/database`:
+    - Transiciones de estado deterministas: `DISCONNECTED -> CONNECTING -> QR_READY -> CONNECTED`.
+    - `initiateChannelPairing`: revalida tenant operativo y `module.messaging.basic`, comprueba que no se encuentre ya conectado (`ChannelAlreadyConnectedError`), actualiza a `CONNECTING`, emite outbox `channel.pairing_requested` y registra auditoría `channel.pairing_initiated`.
+    - `updateChannelQrCode`: actualiza a `QR_READY`, persiste el código QR en `settings.latestQrRaw` y fecha de generación `settings.qrGeneratedAt`, y emite outbox `channel.qr_generated`.
+    - `confirmChannelConnected`: actualiza a `CONNECTED`, asigna `phoneNumber`, `phoneNumberUniqueKey` para unicidad activa, opcionalmente `credentialsCiphertext`, limpia el código QR, fija `lastConnectedAt`, emite outbox `channel.connected` y registra auditoría `channel.connected`.
+    - `disconnectChannel`: actualiza a `DISCONNECTED`, limpia el código QR, fija `lastDisconnectedAt` y `disconnectReason`, emite outbox `channel.disconnected` y registra auditoría `channel.disconnected`.
+  - Endpoints REST en `apps/api/src/tenant-channels.ts`:
+    - `POST /api/v1/channels/:channelAccountId/pair/initiate` (200 OK con estado `CONNECTING`, requiere `channels.manage`).
+    - `GET /api/v1/channels/:channelAccountId/pair/qr` (200 OK con `{ status, qrRaw, qrGeneratedAt, isExpired }` con TTL estricto de 30 segundos; sin exposición de claves ni credenciales cifradas, requiere `channels.read`).
+    - `POST /api/v1/channels/:channelAccountId/disconnect` (200 OK con estado `DISCONNECTED`, requiere `channels.manage`).
+    - Aislamiento multi-inquilino estricto 404 ante accesos o mutaciones cross-tenant.
+  - Reconciliación documental E09-S01 en ADR-0038.
+  - Verificación: 5 pruebas de integración PostgreSQL en `channel-pairing-manager.integration.ts` (100% PASS); 6 pruebas de integración de API en `tenant-channels.integration.ts` (100% PASS); suite general Vitest monorepo (27 archivos, 202 pruebas unitarias) 100% PASS; Biome check (0 errores en 320 archivos); TypeScript typecheck (18 workspaces) 100% PASS. No requiere migration.
+
 - E08-S07 implementa la consola web y cliente frontend para la gestión del motor de reglas y automatizaciones (`Rules Engine Web UI Management & Console Client`) en `apps/web`:
   - View model desacoplado de cliente `apps/web/app/app/rules/rules-view-model.ts`:
     - Tipos completos para reglas (`RuleItem`, `RuleConditionForm`, `RuleActionForm`, `RuleFormData`, `RuleListFilter`).
