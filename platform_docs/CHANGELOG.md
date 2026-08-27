@@ -8,6 +8,22 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Added
 
+- E09-S04 implementa el flujo de eventos en tiempo real vía Server-Sent Events (SSE), sincronización reactiva de códigos QR y sistema de alertas en vivo de canales (`WhatsApp Channel Realtime Events Stream, Live QR Updates & Alerting`) en `apps/api` y `apps/web`:
+  - Servicio SSE de canales `ChannelRealtimeService` y `ChannelRealtimeBroadcaster` en `apps/api/src/channel-realtime.service.ts`:
+    - Almacenamiento en memoria de escuchas RxJS y clientes directos indexados por `tenantId` con aislamiento multi-inquilino estricto.
+    - Método `broadcastToTenant(tenantId, event)` / `publishTenantChannelEvent(tenantId, event)` para eventos `channel.qr_generated`, `channel.connected`, `channel.disconnected`, `channel.reconnecting` y `channel.health_updated`.
+    - Método `subscribeTenantChannelEvents(tenantId, heartbeatIntervalMs = 15_000)` con evento inicial `{ status: "connected" }` y latidos `event: "ping"` cada 15 segundos.
+    - Método `addClient(tenantId, res)` con desuscripción y limpieza automática en eventos HTTP `close` y `finish`.
+    - Componente puente `ChannelRealtimeOutboxBridge` (`apps/api/src/channel-realtime.service.ts`) con sondeo periódico cada 250ms a la tabla `DomainEventOutbox` para retransmitir eventos de outbox de canales de forma asíncrona.
+  - Endpoint SSE de canales en `apps/api/src/tenant-channels.ts`:
+    - `GET /api/v1/channels/events/stream` con cabeceras `Content-Type: text/event-stream`, `Cache-Control: no-cache`, `Connection: keep-alive`, `X-Accel-Buffering: no`, protegido por `TenantUserSessionGuard`, `TenantContextGuard`, `channels.read` y `module.messaging.basic`.
+  - Integración en frontend React / Next.js (`apps/web/app/app/channels/`):
+    - `channels-view-model.ts`: función de suscripción `subscribeToChannelEvents` mediante `EventSource` con `withCredentials: true`.
+    - `channel-qr-modal.tsx`: actualización instantánea del código QR y su temporizador TTL de 30 segundos ante `channel.qr_generated` y transición inmediata a estado conectado exitoso ante `channel.connected`.
+    - `channels-client.tsx`: suscripción de fondo a eventos SSE para actualizar el catálogo de canales y desplegar alertas toast inmediatas en reconexiones, desconexiones y conexiones exitosas.
+  - Reconciliación documental E09-S04 en ADR-0041 y cierre de **Epic 09 (WhatsApp Channel Management)** al 100%.
+  - Verificación E09-S04: 16 pruebas en `tenant-channels.integration.ts` y `channel-realtime.service.test.ts` (100% PASS); 21 pruebas en `channels-view-model.test.ts` (100% PASS); suite general Vitest monorepo (29 archivos, 231 pruebas) 100% PASS; Biome check (0 errores en 334 archivos); TypeScript typecheck (18 workspaces) 100% PASS; Next.js production build (`/app/channels`) 100% PASS. No requiere migration.
+
 - E09-S03 implementa la consola web y componentes de interfaz de usuario para la gestión de canales de WhatsApp y el modal de emparejamiento QR en tiempo real (`WhatsApp Channel Web UI Management & Live QR Pairing Modal`) en `apps/web`:
   - View model desacoplado de cliente `channels-view-model.ts` en `apps/web/app/app/channels/`:
     - Tipos fuertemente tipados (`ChannelItem`, `ChannelHealthDiagnostic`, `QrPairingState`, `CreateChannelPayload`, `StatusBadgeDetails`, `QrTtlRemaining`).

@@ -434,3 +434,86 @@ export async function fetchChannelHealth(
 
   return (await response.json()) as ChannelHealthDiagnostic;
 }
+
+export type ChannelRealtimeEvent = Readonly<{
+  type:
+    | "channel.qr_generated"
+    | "channel.connected"
+    | "channel.disconnected"
+    | "channel.reconnecting"
+    | "channel.health_updated"
+    | "connected"
+    | "ping"
+    | (string & {});
+  channelAccountId?: string | undefined;
+  qrRaw?: string | null | undefined;
+  qrGeneratedAt?: string | null | undefined;
+  ttlSeconds?: number | undefined;
+  phoneNumber?: string | null | undefined;
+  connectedAt?: string | null | undefined;
+  disconnectReason?: string | null | undefined;
+  disconnectedAt?: string | null | undefined;
+  attemptCount?: number | undefined;
+  reconnectingAt?: string | null | undefined;
+  isHealthy?: boolean | undefined;
+  lastLatencyMs?: number | null | undefined;
+  socketStatus?: ("open" | "connecting" | "closed") | undefined;
+  isDegraded?: boolean | undefined;
+  [key: string]: unknown;
+}>;
+
+/**
+ * Subscribes to real-time channel events via Server-Sent Events (SSE).
+ */
+export function subscribeToChannelEvents(
+  apiBaseUrl: string,
+  onEvent: (event: ChannelRealtimeEvent) => void,
+  onError?: (event: unknown) => void,
+): () => void {
+  const url = `${apiBaseUrl}/api/v1/channels/events/stream`;
+  const eventSource = new EventSource(url, { withCredentials: true });
+
+  const handleMessage = (e: { data?: unknown; type?: string }) => {
+    try {
+      const parsed =
+        typeof e.data === "string" ? (JSON.parse(e.data) as Record<string, unknown>) : {};
+      onEvent({
+        type: e.type || (parsed.type as string) || "message",
+        ...parsed,
+      });
+    } catch {
+      // Ignore JSON parse errors on ping/keepalive
+    }
+  };
+
+  eventSource.addEventListener("channel.qr_generated", (e) =>
+    handleMessage(e as { data?: unknown; type?: string }),
+  );
+  eventSource.addEventListener("channel.connected", (e) =>
+    handleMessage(e as { data?: unknown; type?: string }),
+  );
+  eventSource.addEventListener("channel.disconnected", (e) =>
+    handleMessage(e as { data?: unknown; type?: string }),
+  );
+  eventSource.addEventListener("channel.reconnecting", (e) =>
+    handleMessage(e as { data?: unknown; type?: string }),
+  );
+  eventSource.addEventListener("channel.health_updated", (e) =>
+    handleMessage(e as { data?: unknown; type?: string }),
+  );
+  eventSource.addEventListener("connected", (e) =>
+    handleMessage(e as { data?: unknown; type?: string }),
+  );
+  eventSource.addEventListener("ping", (e) =>
+    handleMessage(e as { data?: unknown; type?: string }),
+  );
+  eventSource.onmessage = (e) => handleMessage(e as { data?: unknown; type?: string });
+
+  if (onError) {
+    eventSource.onerror = (e) => onError(e);
+  }
+
+  return () => {
+    eventSource.close();
+  };
+}

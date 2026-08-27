@@ -2,21 +2,22 @@
 
 **Actualizado:** 2026-08-27
 **Versión de producto:** `0.0.0`  
-**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; **Epic 09 — Channel Management — IN PROGRESS (E09-S01, E09-S02, E09-S03 PASS)**.
+**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; **Epic 09 — Channel Management — PASS / COMPLETE (E09-S01, E09-S02, E09-S03, E09-S04 PASS)**.
 
 ## Current milestone
 
-Epic 09 — Channel Management & WhatsApp Infrastructure.
+Epic 09 — Channel Management & WhatsApp Infrastructure (COMPLETE).
 
 ## Current epic
 
-**Epic 09 — Channel Management** — **IN PROGRESS**
+**Epic 09 — Channel Management** — **PASS / COMPLETE**
 
 Estado por historia:
 
 - E09-S01 — WhatsApp Channel QR Pairing Lifecycle and Session API: **PASS** (ADR-0038).
 - E09-S02 — Channel Health Checks, Keep-Alive & Reconnection Engine: **PASS** (ADR-0039).
 - E09-S03 — WhatsApp Channel Web UI Management & Live QR Pairing Modal: **PASS** (ADR-0040).
+- E09-S04 — WhatsApp Channel Realtime Events Stream, Live QR Updates & Alerting: **PASS** (ADR-0041).
 
 Epics anteriores:
 

@@ -12,6 +12,7 @@ import {
   formatRelativeTime,
   formatSocketStatus,
   initiateChannelPairing,
+  subscribeToChannelEvents,
 } from "./channels-view-model";
 
 describe("channels view model", () => {
@@ -369,6 +370,88 @@ describe("channels view model", () => {
         code: "CHANNEL_ALREADY_CONNECTED",
         statusCode: 409,
       });
+    });
+  });
+
+  describe("subscribeToChannelEvents", () => {
+    it("creates EventSource, listens to SSE events, and handles cleanup", () => {
+      const listeners = new Map<string, (e: MessageEvent) => void>();
+      let closeCalled = false;
+
+      class MockEventSource {
+        url: string;
+        options: Record<string, unknown>;
+        onmessage: ((e: MessageEvent) => void) | null = null;
+        onerror: ((e: Event) => void) | null = null;
+
+        constructor(url: string, options: Record<string, unknown>) {
+          this.url = url;
+          this.options = options;
+        }
+
+        addEventListener(type: string, listener: (e: MessageEvent) => void) {
+          listeners.set(type, listener);
+        }
+
+        close() {
+          closeCalled = true;
+        }
+      }
+
+      vi.stubGlobal("EventSource", MockEventSource);
+
+      const receivedEvents: Record<string, unknown>[] = [];
+      const cleanup = subscribeToChannelEvents("http://localhost:3001", (event) => {
+        receivedEvents.push(event);
+      });
+
+      expect(listeners.has("channel.qr_generated")).toBe(true);
+      expect(listeners.has("channel.connected")).toBe(true);
+      expect(listeners.has("channel.disconnected")).toBe(true);
+      expect(listeners.has("channel.reconnecting")).toBe(true);
+      expect(listeners.has("channel.health_updated")).toBe(true);
+
+      // Trigger channel.qr_generated
+      const qrHandler = listeners.get("channel.qr_generated");
+      qrHandler?.({
+        data: JSON.stringify({
+          channelAccountId: "ch-1",
+          qrRaw: "2@sample-qr",
+          ttlSeconds: 30,
+        }),
+        type: "channel.qr_generated",
+      } as MessageEvent);
+
+      expect(receivedEvents).toHaveLength(1);
+      expect(receivedEvents[0]).toMatchObject({
+        channelAccountId: "ch-1",
+        qrRaw: "2@sample-qr",
+        ttlSeconds: 30,
+        type: "channel.qr_generated",
+      });
+
+      // Trigger channel.connected
+      const connectedHandler = listeners.get("channel.connected");
+      connectedHandler?.({
+        data: JSON.stringify({
+          channelAccountId: "ch-1",
+          phoneNumber: "+524771234567",
+        }),
+        type: "channel.connected",
+      } as MessageEvent);
+
+      expect(receivedEvents).toHaveLength(2);
+      expect(receivedEvents[1]).toMatchObject({
+        channelAccountId: "ch-1",
+        phoneNumber: "+524771234567",
+        type: "channel.connected",
+      });
+
+      // Clean up
+      cleanup();
+      expect(closeCalled).toBe(true);
+
+      vi.unstubAllGlobals();
     });
   });
 });

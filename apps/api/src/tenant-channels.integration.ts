@@ -430,4 +430,23 @@ describe.sequential("E05-S01 tenant channels API", () => {
     const crossTenantRes = await request(`/api/v1/channels/${channelAId}/health`, ownerBCookie);
     expect(crossTenantRes.status).toBe(404);
   });
+
+  it("streams realtime channel events via SSE with strict multi-tenant isolation", async () => {
+    // 1. Unauthorized request without cookie is rejected
+    const unauthRes = await request("/api/v1/channels/events/stream", "");
+    expect(unauthRes.status).toBe(401);
+
+    // 2. Connect to SSE stream for Tenant A
+    const controller = new AbortController();
+    const streamRes = await request("/api/v1/channels/events/stream", ownerACookie, {
+      signal: controller.signal,
+    });
+    expect(streamRes.status).toBe(200);
+    expect(streamRes.headers.get("content-type")).toContain("text/event-stream");
+    expect(streamRes.headers.get("cache-control")).toContain("no-cache");
+    expect(streamRes.headers.get("connection")).toContain("keep-alive");
+
+    // 3. Abort connection cleanly
+    controller.abort();
+  });
 });

@@ -34,6 +34,13 @@ import {
   type TenantAuthRepository,
 } from "@whatsapp-platform/database/platform";
 import { createMessagingCredentialCipher } from "@whatsapp-platform/messaging";
+import {
+  CHANNEL_REALTIME_BROADCASTER,
+  CHANNEL_REALTIME_OUTBOX_DATABASE,
+  CHANNEL_REALTIME_SERVICE,
+  ChannelRealtimeOutboxBridge,
+  ChannelRealtimeService,
+} from "./channel-realtime.service";
 import { CONTACT_MANAGER, ContactsController, ContactsService } from "./contacts";
 import { EntitlementTestProbeController } from "./entitlement-test-probe";
 import {
@@ -208,6 +215,8 @@ export async function createApiApplication(
       InboxService,
       InboxRealtimeBroadcaster,
       InboxRealtimeOutboxBridge,
+      ChannelRealtimeService,
+      ChannelRealtimeOutboxBridge,
       InboundWebhookService,
       {
         provide: RULE_CATALOG_MANAGER,
@@ -271,6 +280,18 @@ export async function createApiApplication(
       },
       {
         provide: INBOX_REALTIME_OUTBOX_DATABASE,
+        useFactory: getPlatformDatabaseClient,
+      },
+      {
+        provide: CHANNEL_REALTIME_SERVICE,
+        useExisting: ChannelRealtimeService,
+      },
+      {
+        provide: CHANNEL_REALTIME_BROADCASTER,
+        useExisting: ChannelRealtimeService,
+      },
+      {
+        provide: CHANNEL_REALTIME_OUTBOX_DATABASE,
         useFactory: getPlatformDatabaseClient,
       },
       {

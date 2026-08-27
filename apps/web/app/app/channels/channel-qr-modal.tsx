@@ -3,11 +3,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   type ChannelItem,
+  type ChannelRealtimeEvent,
   calculateQrTtlRemaining,
   fetchChannelQr,
   initiateChannelPairing,
   type QrPairingState,
   type QrTtlRemaining,
+  subscribeToChannelEvents,
 } from "./channels-view-model";
 
 type ChannelQrModalProps = Readonly<{
@@ -155,8 +157,31 @@ export function ChannelQrModal({
 
   useEffect(() => {
     isMountedRef.current = true;
+    let unsubscribeSse: (() => void) | undefined;
+
     if (isOpen && channel) {
       void startPairing(channel.id);
+
+      unsubscribeSse = subscribeToChannelEvents(base, (event: ChannelRealtimeEvent) => {
+        if (!isMountedRef.current || event.channelAccountId !== channel.id) return;
+
+        if (event.type === "channel.qr_generated" && event.qrRaw) {
+          const generatedAt = event.qrGeneratedAt ?? new Date().toISOString();
+          setQrState({
+            isExpired: false,
+            qrGeneratedAt: generatedAt,
+            qrRaw: event.qrRaw,
+            status: "QR_READY",
+          });
+          setTtl(calculateQrTtlRemaining(generatedAt));
+        } else if (event.type === "channel.connected") {
+          setIsConnected(true);
+          stopTimers();
+          if (onConnected) {
+            onConnected(channel.id);
+          }
+        }
+      });
     } else {
       stopTimers();
       setQrState(null);
@@ -167,8 +192,11 @@ export function ChannelQrModal({
     return () => {
       isMountedRef.current = false;
       stopTimers();
+      if (unsubscribeSse) {
+        unsubscribeSse();
+      }
     };
-  }, [isOpen, channel, startPairing, stopTimers]);
+  }, [isOpen, channel, base, startPairing, stopTimers, onConnected]);
 
   // Handle escape key
   useEffect(() => {

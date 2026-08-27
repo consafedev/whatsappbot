@@ -11,13 +11,16 @@ import {
   HttpCode,
   Inject,
   Injectable,
+  type MessageEvent,
   NotFoundException,
   Param,
   Patch,
   Post,
   Query,
   Req,
+  Res,
   ServiceUnavailableException,
+  Sse,
   UseGuards,
 } from "@nestjs/common";
 import type {
@@ -44,6 +47,8 @@ import {
   MessagingCredentialCipherError,
   MessagingProviderError,
 } from "@whatsapp-platform/messaging";
+import { type Observable, of } from "rxjs";
+import { CHANNEL_REALTIME_SERVICE, type ChannelRealtimeService } from "./channel-realtime.service";
 import {
   CurrentTenantContext,
   CurrentTenantIdentity,
@@ -83,6 +88,7 @@ const MAX_SETTINGS_BYTES = 16 * 1024;
 type JsonPrimitive = string | number | boolean | null;
 type JsonValue = JsonPrimitive | JsonObject | JsonValue[];
 type JsonObject = { [key: string]: JsonValue };
+type ApiResponse = { setHeader(name: string, value: string): void };
 
 export type ChannelResponse = ChannelAccountItem & Readonly<{ name: string }>;
 
@@ -387,7 +393,16 @@ export class TenantChannelsService {
     private readonly credentialCipher: MessagingCredentialCipher | null,
     @Inject(CHANNEL_PAIRING_MANAGER)
     private readonly pairingManager?: ChannelPairingManager,
+    @Inject(CHANNEL_REALTIME_SERVICE)
+    private readonly realtimeService?: ChannelRealtimeService,
   ) {}
+
+  events(context: TenantContext): Observable<MessageEvent> {
+    if (this.realtimeService) {
+      return this.realtimeService.subscribeTenantChannelEvents(context.tenantId);
+    }
+    return of({ data: "{}", type: "ping" });
+  }
 
   list(
     context: TenantContext,
@@ -702,6 +717,19 @@ export class TenantChannelsController {
     @CurrentTenantContext() context: TenantContext,
   ): Promise<ChannelAccountPage> {
     return this.service.list(context, query);
+  }
+
+  @Sse("events/stream")
+  @messagingAuthorized("channels.read")
+  events(
+    @CurrentTenantContext() context: TenantContext,
+    @Res({ passthrough: true }) response: ApiResponse,
+  ): Observable<MessageEvent> {
+    response.setHeader("Content-Type", "text/event-stream");
+    response.setHeader("Cache-Control", "no-cache");
+    response.setHeader("Connection", "keep-alive");
+    response.setHeader("X-Accel-Buffering", "no");
+    return this.service.events(context);
   }
 
   @Post()

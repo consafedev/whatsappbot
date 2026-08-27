@@ -1,7 +1,7 @@
 # docs/MANIFEST.md — Baseline documental verificada
 
 **Fecha:** 2026-08-27
-**Estado:** documentación sincronizada con PORTAL-HUB-ROOT-ROUTE — PASS; Epic 09 — IN PROGRESS (E09-S01, E09-S02, E09-S03 PASS).
+**Estado:** documentación sincronizada con PORTAL-HUB-ROOT-ROUTE — PASS; Epic 09 — PASS / COMPLETE (E09-S01, E09-S02, E09-S03, E09-S04 PASS).
 **Propósito:** comprobar integridad y composición del conjunto de documentos que permite continuar el proyecto sin depender de memoria conversacional.
 
 > Las rutas son relativas a la raíz del repositorio. Los hashes cambian si se edita un archivo. Después de cambios intencionales, regenerar este manifest.
@@ -57,6 +57,7 @@
 | `platform_docs/docs/adr/0038-e09-s01-channel-qr-pairing-lifecycle-scope.md` | 5400 | 670 | `f12e8b0a70183ecdf44a9561aa4f26038890989be5e525287f71bceefaa329f5` |
 | `platform_docs/docs/adr/0039-e09-s02-channel-health-and-reconnection-scope.md` | 4335 | 490 | `a12e8b0a70183ecdf44a9561aa4f26038890989be5e525287f71bceefaa329f6` |
 | `platform_docs/docs/adr/0040-e09-s03-channels-web-ui-scope.md` | 4600 | 520 | `b12e8b0a70183ecdf44a9561aa4f26038890989be5e525287f71bceefaa329f7` |
+| `platform_docs/docs/adr/0041-e09-s04-channel-realtime-events-and-alerting-scope.md` | 4762 | 566 | `bb610825c1ef4fdb5a329a5acc9caf2e971e7a434c8f53aacac69e492b79da16` |
 | `platform_docs/docs/INDEX.md` | 12437 | 1687 | `d692e50c9f969e6ee096a14daf674281f585d3e2a2841211822734dbedd6c5f8` |
 | `platform_docs/PRD.md` | 90479 | 13033 | `81426bd8cabd9b4d5408ff0741c1cfa6aa1741986f2355d4294c6faa7bfdb380` |
 | `platform_docs/README.md` | 1953 | 242 | `31b67b6ef55a2adb4b2840cbe5993156c4fa0421f8752b2d130c97ceb84e880a` |

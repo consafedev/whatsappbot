@@ -6,7 +6,13 @@ import { ChannelCreateModal } from "./channel-create-modal";
 import { ChannelHealthModal } from "./channel-health-modal";
 import { ChannelQrModal } from "./channel-qr-modal";
 import { ChannelsList } from "./channels-list";
-import { type ChannelItem, disconnectChannel, fetchChannels } from "./channels-view-model";
+import {
+  type ChannelItem,
+  type ChannelRealtimeEvent,
+  disconnectChannel,
+  fetchChannels,
+  subscribeToChannelEvents,
+} from "./channels-view-model";
 
 type OrganizationUnitOption = Readonly<{
   id: string;
@@ -36,10 +42,10 @@ export function ChannelsClient({ apiBaseUrl }: ChannelsClientProps) {
   const hasReadPermission = bootstrap.effectivePermissions.includes("channels.read");
   const hasManagePermission = bootstrap.effectivePermissions.includes("channels.manage");
 
-  const showToast = (msg: string) => {
+  const showToast = useCallback((msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 4000);
-  };
+  }, []);
 
   const loadChannels = useCallback(async () => {
     setLoading(true);
@@ -75,6 +81,52 @@ export function ChannelsClient({ apiBaseUrl }: ChannelsClientProps) {
       void loadUnits();
     }
   }, [base, hasMessagingModule, hasReadPermission, loadChannels]);
+
+  // Subscribe to realtime channel events via SSE
+  useEffect(() => {
+    if (!hasMessagingModule || !hasReadPermission) return;
+
+    const unsubscribe = subscribeToChannelEvents(base, (event: ChannelRealtimeEvent) => {
+      if (event.type === "channel.connected") {
+        setChannels((prev) =>
+          prev.map((ch) =>
+            ch.id === event.channelAccountId
+              ? {
+                  ...ch,
+                  phoneNumber: event.phoneNumber ?? ch.phoneNumber,
+                  status: "connected",
+                }
+              : ch,
+          ),
+        );
+        showToast(
+          `¡Canal conectado con WhatsApp!${event.phoneNumber ? ` (${event.phoneNumber})` : ""}`,
+        );
+      } else if (event.type === "channel.disconnected") {
+        setChannels((prev) =>
+          prev.map((ch) =>
+            ch.id === event.channelAccountId ? { ...ch, status: "disconnected" } : ch,
+          ),
+        );
+        showToast(`Canal desconectado: ${event.disconnectReason ?? "Sesión finalizada"}`);
+      } else if (event.type === "channel.reconnecting") {
+        setChannels((prev) =>
+          prev.map((ch) =>
+            ch.id === event.channelAccountId ? { ...ch, status: "connecting" } : ch,
+          ),
+        );
+        showToast(`Reconectando canal (intento ${event.attemptCount ?? 1})...`);
+      } else if (event.type === "channel.qr_generated") {
+        setChannels((prev) =>
+          prev.map((ch) => (ch.id === event.channelAccountId ? { ...ch, status: "qr_ready" } : ch)),
+        );
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [base, hasMessagingModule, hasReadPermission, showToast]);
 
   const handleDisconnect = async (channelId: string) => {
     setError(null);
