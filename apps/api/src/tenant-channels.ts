@@ -109,6 +109,16 @@ export type ChannelDisconnectResponse = Readonly<{
   updatedAt: string;
 }>;
 
+export type ChannelHealthResponse = Readonly<{
+  status: string;
+  isHealthy: boolean;
+  lastHeartbeatAt: string | null;
+  lastLatencyMs: number | null;
+  socketStatus: "open" | "connecting" | "closed";
+  isDegraded: boolean;
+  reconnectAttempts: number;
+}>;
+
 export type ChannelTestConnectionResponse = Readonly<{
   status: "OK" | "ERROR";
   latencyMs: number;
@@ -570,6 +580,74 @@ export class TenantChannelsService {
     }
   }
 
+  async getHealth(context: TenantContext, channelId: string): Promise<ChannelHealthResponse> {
+    const id = this.channelId(channelId);
+    const item = await this.manager.findById(context, id);
+    if (item === null) {
+      throw new NotFoundException("Channel not found");
+    }
+
+    const settings =
+      item.settings !== null && typeof item.settings === "object" && !Array.isArray(item.settings)
+        ? (item.settings as Record<string, unknown>)
+        : {};
+    const metadata =
+      settings.metadata !== null &&
+      typeof settings.metadata === "object" &&
+      !Array.isArray(settings.metadata)
+        ? (settings.metadata as Record<string, unknown>)
+        : {};
+
+    const lastHeartbeatAt =
+      (metadata.lastHeartbeatAt as string | undefined) ??
+      (settings.lastHeartbeatAt as string | undefined) ??
+      null;
+
+    const lastLatencyMs =
+      typeof metadata.lastLatencyMs === "number"
+        ? metadata.lastLatencyMs
+        : typeof settings.lastLatencyMs === "number"
+          ? settings.lastLatencyMs
+          : null;
+
+    const rawSocketStatus =
+      (metadata.socketStatus as string | undefined) ??
+      (settings.socketStatus as string | undefined);
+    const socketStatus: "open" | "connecting" | "closed" =
+      rawSocketStatus === "open" || rawSocketStatus === "connecting" || rawSocketStatus === "closed"
+        ? rawSocketStatus
+        : item.status.toLowerCase() === "connected"
+          ? "open"
+          : item.status.toLowerCase() === "connecting" ||
+              item.status.toLowerCase() === "pairing" ||
+              item.status.toLowerCase() === "qr_ready"
+            ? "connecting"
+            : "closed";
+
+    const isDegraded = metadata.isDegraded === true || settings.isDegraded === true;
+
+    const reconnectAttempts =
+      typeof metadata.reconnectAttempts === "number"
+        ? metadata.reconnectAttempts
+        : typeof settings.reconnectAttempts === "number"
+          ? settings.reconnectAttempts
+          : 0;
+
+    const isConnected = item.status.toLowerCase() === "connected" || item.status === "CONNECTED";
+
+    const isHealthy = isConnected && !isDegraded && socketStatus === "open";
+
+    return {
+      isDegraded,
+      isHealthy,
+      lastHeartbeatAt,
+      lastLatencyMs,
+      reconnectAttempts,
+      socketStatus,
+      status: item.status,
+    };
+  }
+
   async testConnection(
     context: TenantContext,
     channelId: string,
@@ -702,6 +780,15 @@ export class TenantChannelsController {
     @Body() body?: unknown,
   ): Promise<ChannelDisconnectResponse> {
     return this.service.disconnect(context, identity, requestId(request), channelId, body);
+  }
+
+  @Get(":channelId/health")
+  @messagingAuthorized("channels.read")
+  getHealth(
+    @Param("channelId") channelId: string,
+    @CurrentTenantContext() context: TenantContext,
+  ): Promise<ChannelHealthResponse> {
+    return this.service.getHealth(context, channelId);
   }
 
   @Post(":channelId/test-connection")

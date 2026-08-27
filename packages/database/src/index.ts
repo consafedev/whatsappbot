@@ -34,6 +34,16 @@ export {
   createChannelAccountManager,
 } from "./channel-account-manager";
 export {
+  type ChannelConnectionFailure,
+  type ChannelHealthManager,
+  type ChannelHealthManagerDatabase,
+  type ChannelHeartbeatMetrics,
+  checkStaleChannels,
+  createChannelHealthManager,
+  handleChannelConnectionFailure,
+  recordChannelHeartbeat,
+} from "./channel-health-manager";
+export {
   ChannelAlreadyConnectedError,
   type ChannelPairingConnectionDetails,
   type ChannelPairingManager,

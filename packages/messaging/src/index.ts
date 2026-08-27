@@ -1,5 +1,6 @@
 export type MessagingBoundary = "messaging";
 
+export * from "./channel-reconnection-policy";
 export * from "./credentials";
 export * from "./inbound-normalizer";
 export * from "./inbound-provider";

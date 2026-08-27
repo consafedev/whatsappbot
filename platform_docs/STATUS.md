@@ -2,7 +2,7 @@
 
 **Actualizado:** 2026-08-26
 **Versión de producto:** `0.0.0`  
-**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; **Epic 09 — Channel Management — IN PROGRESS (E09-S01 PASS)**.
+**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; **Epic 09 — Channel Management — IN PROGRESS (E09-S01, E09-S02 PASS)**.
 
 ## Current milestone
 
@@ -15,6 +15,7 @@ Epic 09 — Channel Management & WhatsApp Infrastructure.
 Estado por historia:
 
 - E09-S01 — WhatsApp Channel QR Pairing Lifecycle and Session API: **PASS** (ADR-0038).
+- E09-S02 — Channel Health Checks, Keep-Alive & Reconnection Engine: **PASS** (ADR-0039).
 
 Epics anteriores:
 
@@ -73,6 +74,22 @@ Epics base:
 - E01-S05 — Audit foundation: **PASS**.
 
 ## Completed
+
+- E09-S02 — Channel Health Checks, Keep-Alive & Reconnection Engine: **PASS** (ADR-0039).
+  - Gestor de salud y monitor de canales `channel-health-manager.ts` (`@whatsapp-platform/database`):
+    - `recordChannelHeartbeat`: valida operatividad del inquilino y persiste `lastHeartbeatAt`, `lastLatencyMs`, `socketStatus` (`"open" | "connecting" | "closed"`), restableciendo `isDegraded = false` y `healthStatus = "healthy"`.
+    - `handleChannelConnectionFailure`:
+      - Falla fatal (401 Logged Out, etc.): purga inmediata de `credentialsCiphertext = null` y `credentialsKeyVersion = null`, fija estado `DISCONNECTED`, emite outbox `channel.disconnected` y registra `AuditLog`.
+      - Falla transitoria (503, pérdidas temporales): transiciona a `CONNECTING`, `healthStatus = "degraded"`, actualiza `reconnectAttempts` y `lastReconnectAttemptAt`, y emite outbox `channel.reconnecting`.
+    - `checkStaleChannels`: detecta canales `CONNECTED` sin latidos en más de `staleThresholdSeconds` (default 90s) y los marca como `isDegraded = true` y `healthStatus = "degraded"`.
+  - Abstracción de políticas de reconexión `channel-reconnection-policy.ts` (`@whatsapp-platform/messaging`):
+    - `calculateBackoffDelay`: backoff exponencial con full-jitter determinista acotado a `maxMs`.
+    - `isFatalDisconnectError`: clasificador determinista de desconexiones Baileys/WhatsApp (fatales 401, 403, 410, loggedOut, bad-mac vs transitorias 503, connectionLost, timedOut).
+  - Endpoints REST en API (`apps/api/src/tenant-channels.ts`):
+    - `GET /api/v1/channels/:channelAccountId/health` (200 OK con métricas diagnósticas `{ status, isHealthy, lastHeartbeatAt, lastLatencyMs, socketStatus, isDegraded, reconnectAttempts }`, sin exposición de secretos ni claves, requiere `channels.read`).
+    - Aislamiento multi-inquilino estricto 404 ante consultas cross-tenant.
+  - Reconciliación documental E09-S02 en ADR-0039.
+  - Verificación E09-S02: 6 pruebas unitarias en `channel-reconnection-policy.test.ts` (100% PASS); 5 pruebas de integración PostgreSQL en `channel-health-manager.integration.ts` (100% PASS); 7 pruebas de integración de API en `tenant-channels.integration.ts` (100% PASS); suite general Vitest monorepo (28 archivos, 208 pruebas unitarias) 100% PASS; Biome check (0 errores en 324 archivos); TypeScript typecheck (18 workspaces) 100% PASS. No requiere migration.
 
 - E09-S01 — WhatsApp Channel QR Pairing Lifecycle and Session API: **PASS** (ADR-0038).
   - Gestor de emparejamiento QR determinista `channel-pairing-manager.ts` (`@whatsapp-platform/database`):

@@ -347,4 +347,87 @@ describe.sequential("E05-S01 tenant channels API", () => {
       ).status,
     ).toBe(404);
   });
+
+  it("retrieves channel health diagnostics and protects against cross-tenant queries", async () => {
+    // 1. Check health on initial active channel
+    const initialHealthRes = await request(`/api/v1/channels/${channelAId}/health`, ownerACookie);
+    expect(initialHealthRes.status).toBe(200);
+    const initialHealth = (await initialHealthRes.json()) as Record<string, unknown>;
+    expect(initialHealth).toMatchObject({
+      isDegraded: false,
+      reconnectAttempts: 0,
+    });
+    expect(initialHealth.status).toBeDefined();
+
+    // 2. Update with heartbeat metadata
+    const heartbeatIso = new Date().toISOString();
+    await prisma.channelAccount.update({
+      data: {
+        healthStatus: "healthy",
+        settings: {
+          isDegraded: false,
+          lastHeartbeatAt: heartbeatIso,
+          lastLatencyMs: 42,
+          metadata: {
+            isDegraded: false,
+            lastHeartbeatAt: heartbeatIso,
+            lastLatencyMs: 42,
+            socketStatus: "open",
+          },
+          socketStatus: "open",
+        },
+        status: "CONNECTED",
+      },
+      where: { id: channelAId },
+    });
+
+    const healthyRes = await request(`/api/v1/channels/${channelAId}/health`, ownerACookie);
+    expect(healthyRes.status).toBe(200);
+    const healthyBody = (await healthyRes.json()) as Record<string, unknown>;
+    expect(healthyBody).toMatchObject({
+      isDegraded: false,
+      isHealthy: true,
+      lastHeartbeatAt: heartbeatIso,
+      lastLatencyMs: 42,
+      reconnectAttempts: 0,
+      socketStatus: "open",
+      status: "CONNECTED",
+    });
+
+    // 3. Mark degraded
+    await prisma.channelAccount.update({
+      data: {
+        healthStatus: "degraded",
+        settings: {
+          isDegraded: true,
+          lastHeartbeatAt: heartbeatIso,
+          metadata: {
+            isDegraded: true,
+            lastHeartbeatAt: heartbeatIso,
+            reconnectAttempts: 3,
+            socketStatus: "connecting",
+          },
+          reconnectAttempts: 3,
+          socketStatus: "connecting",
+        },
+        status: "CONNECTING",
+      },
+      where: { id: channelAId },
+    });
+
+    const degradedRes = await request(`/api/v1/channels/${channelAId}/health`, ownerACookie);
+    expect(degradedRes.status).toBe(200);
+    const degradedBody = (await degradedRes.json()) as Record<string, unknown>;
+    expect(degradedBody).toMatchObject({
+      isDegraded: true,
+      isHealthy: false,
+      reconnectAttempts: 3,
+      socketStatus: "connecting",
+      status: "CONNECTING",
+    });
+
+    // 4. Multi-tenant A/B isolation: Tenant B receives 404 when querying Tenant A channel health
+    const crossTenantRes = await request(`/api/v1/channels/${channelAId}/health`, ownerBCookie);
+    expect(crossTenantRes.status).toBe(404);
+  });
 });

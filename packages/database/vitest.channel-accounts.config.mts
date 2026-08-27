@@ -7,6 +7,7 @@ export default defineConfig({
     include: [
       "src/channel-account-manager.integration.ts",
       "src/channel-pairing-manager.integration.ts",
+      "src/channel-health-manager.integration.ts",
     ],
     testTimeout: 30_000,
   },

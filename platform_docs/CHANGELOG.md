@@ -8,6 +8,22 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Added
 
+- E09-S02 implementa el monitor y gestor de salud de canales, política de reconexión con retroceso exponencial y endpoint de diagnóstico (`Channel Health Checks, Keep-Alive & Reconnection Engine`) en `packages/database`, `packages/messaging` y `apps/api`:
+  - Gestor de salud y monitor `channel-health-manager.ts` en `packages/database`:
+    - `recordChannelHeartbeat`: valida operatividad del tenant y persiste `lastHeartbeatAt`, `lastLatencyMs`, `socketStatus` (`"open" | "connecting" | "closed"`), restableciendo `isDegraded = false` y `healthStatus = "healthy"`.
+    - `handleChannelConnectionFailure`:
+      - Falla fatal (401 Logged Out, etc.): purga inmediata de `credentialsCiphertext = null` y `credentialsKeyVersion = null`, fija estado `DISCONNECTED`, emite evento outbox `channel.disconnected` y registra auditoría en `AuditLog`.
+      - Falla transitoria (503, pérdidas de conexión): transiciona a `CONNECTING`, `healthStatus = "degraded"`, actualiza `reconnectAttempts` y `lastReconnectAttemptAt`, y emite evento outbox `channel.reconnecting`.
+    - `checkStaleChannels`: detecta canales `CONNECTED` sin latidos en más de `staleThresholdSeconds` (default 90s) y los marca como `isDegraded = true` y `healthStatus = "degraded"`.
+  - Abstracción de reconexión `channel-reconnection-policy.ts` en `packages/messaging`:
+    - `calculateBackoffDelay`: backoff exponencial con full-jitter determinista acotado a `maxMs`.
+    - `isFatalDisconnectError`: clasificador determinista de desconexiones Baileys/WhatsApp (fatales 401, 403, 410, loggedOut, bad-mac vs transitorias 503, connectionLost, timedOut).
+  - Endpoints REST en `apps/api/src/tenant-channels.ts`:
+    - `GET /api/v1/channels/:channelAccountId/health` (200 OK con métricas diagnósticas `{ status, isHealthy, lastHeartbeatAt, lastLatencyMs, socketStatus, isDegraded, reconnectAttempts }`, sin exposición de secretos ni claves, requiere `channels.read`).
+    - Aislamiento multi-inquilino estricto 404 ante consultas cross-tenant.
+  - Reconciliación documental E09-S02 en ADR-0039.
+  - Verificación E09-S02: 6 pruebas unitarias en `channel-reconnection-policy.test.ts` (100% PASS); 5 pruebas de integración PostgreSQL en `channel-health-manager.integration.ts` (100% PASS); 7 pruebas de integración de API en `tenant-channels.integration.ts` (100% PASS); suite general Vitest monorepo (28 archivos, 208 pruebas unitarias) 100% PASS; Biome check (0 errores en 324 archivos); TypeScript typecheck (18 workspaces) 100% PASS. No requiere migration.
+
 - E09-S01 implementa el gestor de ciclo de vida de emparejamiento QR para WhatsApp y los endpoints REST de sesión (`WhatsApp Channel QR Pairing Lifecycle and Session API`) en `packages/database` y `apps/api`:
   - Gestor de emparejamiento `channel-pairing-manager.ts` en `packages/database`:
     - Transiciones de estado deterministas: `DISCONNECTED -> CONNECTING -> QR_READY -> CONNECTED`.

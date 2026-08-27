@@ -1,12 +1,12 @@
 import { loadDatabaseConfig } from "@whatsapp-platform/config";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import type { Prisma, PrismaClient } from "./generated/prisma/client";
 import {
   ChannelAccountNotFoundError,
   ChannelAlreadyConnectedError,
   type ChannelPairingManager,
   createChannelPairingManager,
 } from "./index";
-import type { Prisma, PrismaClient } from "./generated/prisma/client";
 import {
   createPlatformDatabaseClient,
   createPlatformTenantProvisioningRepository,
