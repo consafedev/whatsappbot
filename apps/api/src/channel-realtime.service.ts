@@ -222,7 +222,7 @@ export class ChannelRealtimeService {
 
       // Initial connected event followed by pings
       const initialMessage: MessageEvent = {
-        data: JSON.stringify({ status: "connected", tenantId }),
+        data: JSON.stringify({ status: "connected" }),
         type: "connected",
       };
       subscriber.next(initialMessage);
@@ -248,7 +248,7 @@ export class ChannelRealtimeService {
     this.directClients.set(tenantId, clients);
 
     // Initial connected event
-    res.write(`event: connected\ndata: ${JSON.stringify({ status: "connected", tenantId })}\n\n`);
+    res.write(`event: connected\ndata: ${JSON.stringify({ status: "connected" })}\n\n`);
 
     // Ping interval
     const pingTimer = setInterval(() => {
