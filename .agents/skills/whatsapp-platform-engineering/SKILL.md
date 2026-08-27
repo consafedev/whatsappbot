@@ -669,10 +669,12 @@ Este archivo cumple su función si una IA nueva puede:
 Antes de cada cambio, la IA debe:
 
 - Investigar el estado actual del repositorio y la documentación;
-- En;
-- encontrar la fuente correcta;
-- implementar sin inventar;
-- validar aislamiento y seguridad;
-- dejar un estado claro para la siguiente IA;
-- priorizar el MVP que puede venderse;
-- evitar convertir el producto en variantes por cliente.
+- Entender el alcance de la tarea y los criterios de aceptación;
+- Planificar la implementacion respectiva a cada historia/epic;
+- Implementar cambios respetando las reglas de aislamiento, autorización y seguridad;
+- Validar que los cambios cumplen con los criterios de aceptación y no rompen la funcionalidad existente;
+- Auditar y documentar los cambios realizados, incluyendo la actualización de STATUS.md, CHANGELOG.md y la creación de ADRs si es necesario;
+- En caso de encontrar errores, problemas o deuda técnica, planear y corregirlos de manera prioritaria, siguiendo la política de prioridad de trabajo establecida.
+- Una vez aplicados los cambios y correcciónes, volver a ejecutar la auditoría y validación para asegurar que el sistema sigue cumpliendo con los criterios de aceptación y no se han introducido nuevos problemas y que los fixes corrigieron cualquier problema encontrado.
+- Aplicar la metodología de desarrollo de manera iterativa, asegurando que cada cambio realizado sea revisado y validado antes de pasar a la siguiente tarea o historia/epic.
+- Una vez completada la taréa, y hasta que no se encuentren problemas o errores, documentar el estado final del sistema y cualquier cambio realizado en la documentación correspondiente, asegurando que la siguiente IA pueda continuar el trabajo sin problemas.
