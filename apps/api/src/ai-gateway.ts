@@ -3,6 +3,7 @@ import {
   Body,
   Controller,
   Get,
+  Headers,
   HttpCode,
   HttpException,
   HttpStatus,
@@ -239,7 +240,7 @@ export class AiGatewayController {
     @Query("providerType") providerType?: string,
     @Query("providerConfigId") providerConfigId?: string,
     @Query("baseUrl") baseUrl?: string,
-    @Query("apiKey") apiKey?: string,
+    @Headers("x-provider-api-key") apiKey?: string,
   ): Promise<{ models: string[] }> {
     return this.service.discoverModels(context, {
       providerType,

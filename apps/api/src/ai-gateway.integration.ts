@@ -157,10 +157,11 @@ describe.sequential("AI Gateway API Integration", () => {
   });
 
   it("GET /api/v1/ai/models/discover returns available models for mock provider", async () => {
-    const response = await fetch(`${baseUrl}/api/v1/ai/models/discover?providerType=mock&apiKey=mock-key`, {
+    const response = await fetch(`${baseUrl}/api/v1/ai/models/discover?providerType=mock`, {
       method: "GET",
       headers: {
         Cookie: ownerACookie,
+        "x-provider-api-key": "mock-key",
       },
     });
 
