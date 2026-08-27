@@ -2,24 +2,28 @@
 
 **Actualizado:** 2026-08-27
 **Versión de producto:** `0.0.0`  
-**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; **Epic 09 — Channel Management — PASS / COMPLETE (E09-S01, E09-S02, E09-S03, E09-S04 PASS)**.
+**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; **Epic 10 — AI Gateway Foundation — IN PROGRESS (E10-S01 PASS)**.
 
 ## Current milestone
 
-Epic 09 — Channel Management & WhatsApp Infrastructure (COMPLETE).
+Epic 10 — AI Gateway Foundation & Intelligent Automation.
 
 ## Current epic
 
-**Epic 09 — Channel Management** — **PASS / COMPLETE**
+**Epic 10 — AI Gateway Foundation** — **IN PROGRESS**
 
 Estado por historia:
 
-- E09-S01 — WhatsApp Channel QR Pairing Lifecycle and Session API: **PASS** (ADR-0038).
-- E09-S02 — Channel Health Checks, Keep-Alive & Reconnection Engine: **PASS** (ADR-0039).
-- E09-S03 — WhatsApp Channel Web UI Management & Live QR Pairing Modal: **PASS** (ADR-0040).
-- E09-S04 — WhatsApp Channel Realtime Events Stream, Live QR Updates & Alerting: **PASS** (ADR-0041).
+- E10-S01 — AI Gateway Universal Provider Abstraction, Key Pooling & Token Ledger: **PASS** (ADR-0042).
+- E10-S02 — Resilient Multi-Model Routing, Failover Cascade & Tenant Virtual Aliases: *PENDING*.
+- E10-S03 — pgvector Semantic Embeddings & Tenant Document Store: *PENDING*.
+- E10-S04 — Multi-Tenant RAG Engine & Knowledge Retrieval Pipeline: *PENDING*.
+- E10-S05 — AI Inbound Triage Bridge & Automated Action Dispatcher: *PENDING*.
+- E10-S06 — AI Gateway Web UI Management & Model Configuration Console: *PENDING*.
 
 Epics anteriores:
+
+- Epic 09 — Channel Management: **PASS / COMPLETE** (ADR-0038, ADR-0039, ADR-0040, ADR-0041).
 
 - Epic 08 — Rules Engine & Deterministic Automation: **PASS / COMPLETE**.
   - E08-S01 — Rules Engine Foundation, Data Model & Catalog Management API: **PASS** (ADR-0031).
@@ -76,6 +80,26 @@ Epics base:
 - E01-S05 — Audit foundation: **PASS**.
 
 ## Completed
+
+- E10-S01 — AI Gateway Universal Provider Abstraction, Key Pooling & Token Ledger: **PASS** (ADR-0042).
+  - Abstracción Universal y Adaptadores (`services/ai-gateway/src/`):
+    - `AiProvider`: Interfaz unificada con `generateCompletion` y `fetchAvailableModels`.
+    - `OpenAiCompatibleProvider`: Cliente universal para cualquier endpoint compatible con OpenAI `/v1` (OpenAI, DeepSeek, Groq, OpenRouter, vLLM, Ollama) con timeout estricto de 15s (`AbortSignal.timeout(15000)`).
+    - `GoogleGeminiProvider`: Adaptador para Google Gemini API (`:generateContent` y descubrimiento de modelos).
+    - `MockAiProvider`: Adaptador determinista offline para pruebas continuas y CI.
+    - `KeyPoolSelector`: Mecanismo de selección que prioriza claves activas con menor conteo de llamadas (`totalCalls`), respetando estados de deshabilitación y períodos de enfriamiento por rate limit (`rateLimitedUntil`).
+    - Criptografía segura: Encriptación simétrica AES-256-GCM (`v1.iv.tag.ciphertext`) y enmascaramiento estricto (`maskApiKey`).
+  - Base de datos y migración (`packages/database/prisma/` & `@whatsapp-platform/database`):
+    - Migración `20260827180000_add_ai_gateway_foundation` creando `ai_provider_config`, `ai_key_pool` y `ai_usage_log`.
+    - Gestor `ai-gateway-manager.ts` con funciones de aislamiento multi-inquilino (`createAiProviderConfig`, `addKeyToPool`, `updateKeyStatus`, `resolveProviderAndKey`, `recordAiUsage`, `getTenantAiUsageSummary`).
+    - Resolución con fallback: prioriza clave BYOK del inquilino antes de recurrir a la clave compartida de plataforma configurada por Super Admin.
+  - Endpoints REST en NestJS (`apps/api/src/ai-gateway.ts`):
+    - `GET /api/v1/ai/models/discover`: Descubrimiento en vivo de modelos disponibles.
+    - `POST /api/v1/ai/completions/test`: Generación rápida y registro transaccional en el ledger.
+    - `GET /api/v1/ai/usage/summary`: Resumen de tokens y costos estimado.
+    - Protegidos con `TenantUserSessionGuard`, `TenantContextGuard`, `TenantPermissionGuard` (`ai.settings.manage`) y `TenantEntitlementGuard` (`module.ai`).
+  - Verificación: 16 pruebas unitarias en `ai-providers.test.ts` (100% PASS); 4 pruebas de integración en `ai-gateway-manager.integration.ts` (100% PASS); 5 pruebas de integración de API en `ai-gateway.integration.ts` (100% PASS).
+
 
 - E09-S03 — WhatsApp Channel Web UI Management & Live QR Pairing Modal: **PASS** (ADR-0040).
   - View model desacoplado `channels-view-model.ts` (`apps/web/app/app/channels/`):

@@ -8,6 +8,27 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Added
 
+- E10-S01 implementa la capa fundacional del AI Gateway, abstracción universal de proveedores de modelos de lenguaje, pooling dinámico de claves con balanceo y registro transaccional de consumo de tokens (`AI Gateway Universal Provider Abstraction, Key Pooling & Token Usage Ledger`) en `services/ai-gateway`, `packages/database` y `apps/api`:
+  - Abstracción desacoplada de proveedores (`services/ai-gateway/src/`):
+    - Interfaz `AiProvider` con soporte unificado de `generateCompletion` y `fetchAvailableModels`.
+    - `OpenAiCompatibleProvider`: Adaptador HTTP universal para cualquier API compatible con OpenAI `/v1` (OpenAI oficial, DeepSeek, Groq, OpenRouter, vLLM, Ollama local) con timeout estricto de 15 segundos (`AbortSignal.timeout(15000)`).
+    - `GoogleGeminiProvider`: Adaptador para la API de Google Gemini (`:generateContent` y consulta de modelos).
+    - `MockAiProvider`: Adaptador determinista offline para ejecución en pruebas y entornos de CI.
+    - `KeyPoolSelector`: Algoritmo de selección que prioriza claves activas con menor conteo de llamadas (`totalCalls`), respetando estados deshabilitados y períodos de enfriamiento por rate limit (`rateLimitedUntil`).
+    - Criptografía AES-256-GCM (`v1.iv.tag.ciphertext`) para almacenamiento seguro de API keys y enmascaramiento estricto (`maskApiKey`).
+  - Base de datos y migración Prisma (`packages/database/prisma/` & `@whatsapp-platform/database`):
+    - Migración `20260827180000_add_ai_gateway_foundation` creando las tablas `ai_provider_config`, `ai_key_pool` y `ai_usage_log`.
+    - Gestor `ai-gateway-manager.ts` con funciones de gestión multi-inquilino (`createAiProviderConfig`, `addKeyToPool`, `updateKeyStatus`, `resolveProviderAndKey`, `recordAiUsage`, `getTenantAiUsageSummary`).
+    - Jerarquía de resolución: evalúa primero la clave BYOK configurada para el inquilino antes de recurrir a la clave compartida de plataforma configurada por Super Admin.
+  - Endpoints REST en NestJS (`apps/api/src/ai-gateway.ts`):
+    - `GET /api/v1/ai/models/discover`: Descubrimiento en vivo de modelos disponibles.
+    - `POST /api/v1/ai/completions/test`: Prueba rápida de generación con registro automático en el ledger.
+    - `GET /api/v1/ai/usage/summary`: Resumen agregado de consumo de tokens y costos en USD.
+    - Protegidos por `TenantUserSessionGuard`, `TenantContextGuard`, `TenantPermissionGuard` (`ai.settings.manage`) y `TenantEntitlementGuard` (`module.ai`).
+  - Documentación normativa en ADR-0042.
+  - Verificación E10-S01: 16 pruebas unitarias en `ai-providers.test.ts` (100% PASS); 4 pruebas de integración en `ai-gateway-manager.integration.ts` (100% PASS); 5 pruebas de integración de API en `ai-gateway.integration.ts` (100% PASS); suite general Vitest monorepo (30 archivos, 247 pruebas) 100% PASS; Biome check (0 errores); TypeScript typecheck (18 workspaces) 100% PASS.
+
+
 - E09-S04 implementa el flujo de eventos en tiempo real vía Server-Sent Events (SSE), sincronización reactiva de códigos QR y sistema de alertas en vivo de canales (`WhatsApp Channel Realtime Events Stream, Live QR Updates & Alerting`) en `apps/api` y `apps/web`:
   - Servicio SSE de canales `ChannelRealtimeService` y `ChannelRealtimeBroadcaster` en `apps/api/src/channel-realtime.service.ts`:
     - Almacenamiento en memoria de escuchas RxJS y clientes directos indexados por `tenantId` con aislamiento multi-inquilino estricto.

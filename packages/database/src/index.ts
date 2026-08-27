@@ -438,3 +438,20 @@ export {
   type UserUpdateStatusInput,
   type UserUsage,
 } from "./user-management-manager";
+export {
+  addKeyToPool,
+  createAiProviderConfig,
+  getTenantAiUsageSummary,
+  recordAiUsage,
+  resolveProviderAndKey,
+  updateKeyStatus,
+  type AddKeyToPoolInput,
+  type AiGatewayDatabase,
+  type CreateAiProviderConfigInput,
+  type GetTenantAiUsageSummaryInput,
+  type RecordAiUsageInput,
+  type ResolveProviderAndKeyInput,
+  type ResolvedProviderAndKey,
+  type TenantAiUsageSummary,
+  type UpdateKeyStatusInput,
+} from "./ai-gateway-manager";

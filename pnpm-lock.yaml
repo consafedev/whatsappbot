@@ -32,6 +32,9 @@ importers:
       '@nestjs/platform-express':
         specifier: 11.1.29
         version: 11.1.29(@nestjs/common@11.1.29(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.29)
+      '@whatsapp-platform/ai-gateway':
+        specifier: workspace:*
+        version: link:../../services/ai-gateway
       '@whatsapp-platform/auth':
         specifier: workspace:*
         version: link:../../packages/auth
@@ -119,6 +122,9 @@ importers:
       '@prisma/client':
         specifier: 7.9.1
         version: 7.9.1(prisma@7.9.1(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(typescript@6.0.3)
+      '@whatsapp-platform/ai-gateway':
+        specifier: workspace:*
+        version: link:../../services/ai-gateway
       '@whatsapp-platform/config':
         specifier: workspace:*
         version: link:../config

@@ -26,6 +26,7 @@
     "db:validate": "prisma validate --config prisma.config.ts",
     "rbac:sync-permissions": "pnpm --filter @whatsapp-platform/rbac build && pnpm build && node dist/rbac-sync.js",
     "test:integration": "pnpm --filter @whatsapp-platform/config build && pnpm --filter @whatsapp-platform/rbac build && pnpm --filter @whatsapp-platform/themes build && vitest run --config vitest.integration.config.mts",
+    "test:integration:ai-gateway": "pnpm --filter @whatsapp-platform/config build && pnpm --filter @whatsapp-platform/ai-gateway build && vitest run --config vitest.ai-gateway.config.mts",
     "test:integration:theme-engine": "pnpm --filter @whatsapp-platform/config build && pnpm --filter @whatsapp-platform/themes build && vitest run --config vitest.theme-engine.config.mts",
     "test:integration:organization-units": "pnpm --filter @whatsapp-platform/config build && vitest run --config vitest.organization-units.config.mts",
     "test:integration:user-management": "pnpm --filter @whatsapp-platform/config build && vitest run --config vitest.user-management.config.mts",
@@ -56,6 +57,7 @@
   "dependencies": {
     "@prisma/adapter-pg": "7.9.1",
     "@prisma/client": "7.9.1",
+    "@whatsapp-platform/ai-gateway": "workspace:*",
     "@whatsapp-platform/config": "workspace:*",
     "@whatsapp-platform/messaging": "workspace:*",
     "@whatsapp-platform/rbac": "workspace:*",

@@ -35,6 +35,12 @@ import {
 } from "@whatsapp-platform/database/platform";
 import { createMessagingCredentialCipher } from "@whatsapp-platform/messaging";
 import {
+  AI_GATEWAY_DATABASE,
+  AI_GATEWAY_SECRET,
+  AiGatewayController,
+  AiGatewayService,
+} from "./ai-gateway";
+import {
   CHANNEL_REALTIME_BROADCASTER,
   CHANNEL_REALTIME_OUTBOX_DATABASE,
   CHANNEL_REALTIME_SERVICE,
@@ -184,6 +190,7 @@ export async function createApiApplication(
       OutboundMessagesController,
       InboxController,
       InboundWebhookController,
+      AiGatewayController,
       ...(config.environment === "test" ? [EntitlementTestProbeController] : []),
     ],
     providers: [
@@ -218,6 +225,12 @@ export async function createApiApplication(
       ChannelRealtimeService,
       ChannelRealtimeOutboxBridge,
       InboundWebhookService,
+      AiGatewayService,
+      { provide: AI_GATEWAY_DATABASE, useFactory: getPlatformDatabaseClient },
+      {
+        provide: AI_GATEWAY_SECRET,
+        useValue: dependencies.messagingCredentialsKey ?? "default-dev-secret-key-32-bytes!",
+      },
       {
         provide: RULE_CATALOG_MANAGER,
         useFactory: () => createRuleCatalogManager(getPlatformDatabaseClient()),
