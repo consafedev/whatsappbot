@@ -1,8 +1,11 @@
+import { MockEmbeddingProvider } from "@whatsapp-platform/ai-gateway";
 import { generateOpaqueToken, hashOpaqueToken } from "@whatsapp-platform/auth";
 import { loadNonSecretConfig } from "@whatsapp-platform/config";
 import {
   addKeyToPool,
   createAiProviderConfig,
+  createKnowledgeDocument,
+  indexKnowledgeDocument,
   seedDefaultPlatformAliases,
   type ModuleEntitlementKey,
 } from "@whatsapp-platform/database";
@@ -170,6 +173,20 @@ describe.sequential("AI Gateway API Integration", () => {
 
     await seedDefaultPlatformAliases(prisma, platformProviderId);
 
+    // Ingest knowledge document for tenant A
+    const docA = await createKnowledgeDocument(prisma, {
+      tenantId: tenantAId,
+      title: "Guía de Soporte y Garantía",
+      sourceType: "markdown",
+      rawContent: "Para solicitar garantía se requiere comprobante de compra y número de serie del producto.",
+    });
+
+    await indexKnowledgeDocument(prisma, {
+      tenantId: tenantAId,
+      documentId: docA.id,
+      embeddingProvider: new MockEmbeddingProvider(),
+    });
+
     app = await createApiApplication(loadNonSecretConfig({ NODE_ENV: "test" }), {
       messagingCredentialsKey: secret,
     });
@@ -302,6 +319,50 @@ describe.sequential("AI Gateway API Integration", () => {
     expect(data.tenantId).toBe(tenantAId);
     expect(data.totalRequests).toBeGreaterThanOrEqual(1);
     expect(data.totalTokens).toBeGreaterThanOrEqual(1);
+  });
+
+  it("POST /api/v1/ai/completions/rag executes completion with retrieved citations", async () => {
+    const response = await fetch(`${baseUrl}/api/v1/ai/completions/rag`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: ownerACookie,
+      },
+      body: JSON.stringify({
+        aliasKey: "platform-smart",
+        queryText:
+          "Para solicitar garantía se requiere comprobante de compra y número de serie del producto.",
+        prompt: "¿Qué necesito para pedir garantía?",
+        minScore: 0.5,
+        topK: 2,
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    const data = (await response.json()) as {
+      content: string;
+      citations: Array<{
+        documentTitle: string;
+        chunkIndex: number;
+        content: string;
+        score: number;
+      }>;
+      totalTokens: number;
+      modelUsed: string;
+      providerUsed: string;
+      usage: {
+        promptTokens: number;
+        completionTokens: number;
+        embeddingTokens: number;
+        totalTokens: number;
+      };
+    };
+
+    expect(data.content).toBeDefined();
+    expect(data.citations.length).toBeGreaterThan(0);
+    expect(data.citations[0]?.documentTitle).toBe("Guía de Soporte y Garantía");
+    expect(data.totalTokens).toBeGreaterThan(0);
+    expect(data.usage.embeddingTokens).toBeGreaterThan(0);
   });
 
   it("enforces module.ai entitlement guard (403 when entitlement is missing)", async () => {

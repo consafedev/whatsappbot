@@ -1,4 +1,4 @@
-﻿import {
+import {
   BadRequestException,
   Body,
   Controller,
@@ -25,7 +25,11 @@ import {
   type AiMessage,
   type AiProviderType,
   type AiRoutedCompletionResponse,
+  type RagCitation,
+  buildRagContextPrompt,
   createAiProvider,
+  createEmbeddingProvider,
+  injectRagContextIntoMessages,
 } from "@whatsapp-platform/ai-gateway";
 import {
   getTenantAiUsageSummary,
@@ -33,6 +37,7 @@ import {
   recordAiUsage,
   resolveProviderAndKey,
   resolveRoutesForAlias,
+  searchKnowledgeChunks,
   updateKeyStatus,
   type AiGatewayDatabase,
   type TenantAiUsageSummary,
@@ -90,6 +95,23 @@ export interface RouteCompletionPayload {
   readonly temperature?: number | undefined;
   readonly maxTokens?: number | undefined;
   readonly purpose?: string | undefined;
+}
+
+export interface RagCompletionPayload {
+  readonly aliasKey?: string | undefined;
+  readonly targetModelId?: string | undefined;
+  readonly prompt?: string | undefined;
+  readonly queryText?: string | undefined;
+  readonly messages?: Array<{ role: "system" | "user" | "assistant"; content: string }> | undefined;
+  readonly minScore?: number | undefined;
+  readonly topK?: number | undefined;
+  readonly documentIds?: string[] | undefined;
+  readonly temperature?: number | undefined;
+  readonly maxTokens?: number | undefined;
+  readonly purpose?: string | undefined;
+  readonly embeddingProviderType?: string | undefined;
+  readonly embeddingApiKey?: string | undefined;
+  readonly embeddingBaseUrl?: string | undefined;
 }
 
 @Injectable()
@@ -354,6 +376,80 @@ export class AiGatewayService {
     };
   }
 
+  async ragCompletion(
+    context: TenantContext,
+    payload: RagCompletionPayload,
+    identity: TenantSessionIdentity,
+  ): Promise<Record<string, unknown>> {
+    const lastUserMessage = payload.messages?.filter((m) => m.role === "user").slice(-1)[0]?.content;
+    const searchText = (payload.queryText || payload.prompt || lastUserMessage || "consulta").trim();
+
+    const embeddingProvider = createEmbeddingProvider(payload.embeddingProviderType ?? "mock");
+    const embeddingRes = await embeddingProvider.generateEmbeddings(
+      { input: searchText },
+      {
+        apiKey: payload.embeddingApiKey ?? "mock-key",
+        baseUrl: payload.embeddingBaseUrl,
+      },
+    );
+
+    const queryEmbedding = embeddingRes.embeddings[0] ?? [];
+    const embeddingTokens = embeddingRes.totalTokens;
+
+    let citations: RagCitation[] = [];
+    if (queryEmbedding.length > 0) {
+      citations = await searchKnowledgeChunks(this.database, {
+        tenantId: context.tenantId,
+        queryEmbedding,
+        topK: payload.topK ?? 3,
+        minScore: payload.minScore ?? 0.7,
+        documentIds: payload.documentIds,
+      });
+    }
+
+    const ragContext = buildRagContextPrompt(citations);
+
+    const baseMessages: readonly AiMessage[] =
+      payload.messages && payload.messages.length > 0
+        ? payload.messages
+        : [{ role: "user", content: payload.prompt || searchText }];
+
+    const enrichedMessages = injectRagContextIntoMessages(baseMessages, ragContext);
+
+    const aliasKey = payload.aliasKey ?? "platform-smart";
+    const routeResult = await this.routeCompletion(
+      context,
+      {
+        aliasKey,
+        targetModelId: payload.targetModelId,
+        messages: [...enrichedMessages],
+        temperature: payload.temperature,
+        maxTokens: payload.maxTokens,
+        purpose: payload.purpose ?? "smart_reply",
+      },
+      identity,
+    );
+
+    const totalTokens = embeddingTokens + Number(routeResult.totalTokens ?? 0);
+
+    return {
+      content: routeResult.content,
+      citations,
+      modelUsed: routeResult.modelUsed,
+      providerUsed: routeResult.providerUsed,
+      attemptsCount: routeResult.attemptsCount,
+      totalTokens,
+      latencyMs: routeResult.latencyMs,
+      usage: {
+        ...(routeResult.usage as Record<string, unknown>),
+        embeddingTokens,
+        totalTokens,
+      },
+      finishReason: routeResult.finishReason,
+      routingAttempts: routeResult.routingAttempts,
+    };
+  }
+
   async getUsageSummary(
     context: TenantContext,
     since?: Date | undefined,
@@ -417,6 +513,17 @@ export class AiGatewayController {
     return this.service.routeCompletion(context, payload, identity);
   }
 
+  @Post("completions/rag")
+  @HttpCode(200)
+  @aiAuthorized("ai.settings.manage")
+  async ragCompletion(
+    @CurrentTenantContext() context: TenantContext,
+    @CurrentTenantIdentity() identity: TenantSessionIdentity,
+    @Body() payload: RagCompletionPayload,
+  ): Promise<Record<string, unknown>> {
+    return this.service.ragCompletion(context, payload, identity);
+  }
+
   @Get("usage/summary")
   @aiAuthorized("ai.settings.manage")
   async getUsageSummary(
@@ -427,3 +534,4 @@ export class AiGatewayController {
     return this.service.getUsageSummary(context, since);
   }
 }
+

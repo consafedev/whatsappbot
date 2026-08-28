@@ -1,4 +1,4 @@
-import {
+﻿import {
   BadRequestException,
   Body,
   Controller,
@@ -17,6 +17,7 @@ import {
 } from "@nestjs/common";
 import {
   type ChunkTextOptions,
+  type RagCitation,
   createEmbeddingProvider,
 } from "@whatsapp-platform/ai-gateway";
 import {
@@ -26,6 +27,7 @@ import {
   getKnowledgeDocumentDetail,
   indexKnowledgeDocument,
   listKnowledgeDocuments,
+  searchKnowledgeChunks,
   type AiGatewayDatabase,
   type KnowledgeDocumentDetail,
   type KnowledgeDocumentSummary,
@@ -57,6 +59,16 @@ export interface CreateKnowledgeDocumentDto {
   readonly rawContent: string;
   readonly metadata?: Record<string, unknown> | undefined;
   readonly chunkOptions?: ChunkTextOptions | undefined;
+  readonly embeddingProviderType?: string | undefined;
+  readonly embeddingApiKey?: string | undefined;
+  readonly embeddingBaseUrl?: string | undefined;
+}
+
+export interface QueryKnowledgeDto {
+  readonly queryText: string;
+  readonly topK?: number | undefined;
+  readonly minScore?: number | undefined;
+  readonly documentIds?: string[] | undefined;
   readonly embeddingProviderType?: string | undefined;
   readonly embeddingApiKey?: string | undefined;
   readonly embeddingBaseUrl?: string | undefined;
@@ -122,6 +134,44 @@ export class KnowledgeBaseService {
       charCount: created.charCount,
       chunksCount: indexResult.chunksIndexed,
       totalTokens: indexResult.totalTokens,
+    };
+  }
+
+  async queryKnowledge(
+    context: TenantContext,
+    dto: QueryKnowledgeDto,
+  ): Promise<{ query: string; results: RagCitation[] }> {
+    if (!dto.queryText?.trim()) {
+      throw new BadRequestException("queryText is required");
+    }
+
+    const provider = createEmbeddingProvider(dto.embeddingProviderType ?? "mock");
+    const credentials = {
+      apiKey: dto.embeddingApiKey ?? "mock-key",
+      baseUrl: dto.embeddingBaseUrl,
+    };
+
+    const embeddingRes = await provider.generateEmbeddings(
+      { input: dto.queryText.trim() },
+      credentials,
+    );
+
+    const queryEmbedding = embeddingRes.embeddings[0];
+    if (!queryEmbedding) {
+      return { query: dto.queryText, results: [] };
+    }
+
+    const citations = await searchKnowledgeChunks(this.database, {
+      tenantId: context.tenantId,
+      queryEmbedding,
+      topK: dto.topK ?? 3,
+      minScore: dto.minScore ?? 0.7,
+      documentIds: dto.documentIds,
+    });
+
+    return {
+      query: dto.queryText.trim(),
+      results: citations,
     };
   }
 
@@ -206,6 +256,16 @@ export class KnowledgeBaseController {
     totalTokens: number;
   }> {
     return this.service.createAndIndexDocument(context, dto);
+  }
+
+  @Post("query")
+  @HttpCode(HttpStatus.OK)
+  @kbAuthorized("ai.settings.manage")
+  async queryKnowledge(
+    @CurrentTenantContext() context: TenantContext,
+    @Body() dto: QueryKnowledgeDto,
+  ): Promise<{ query: string; results: RagCitation[] }> {
+    return this.service.queryKnowledge(context, dto);
   }
 
   @Get()

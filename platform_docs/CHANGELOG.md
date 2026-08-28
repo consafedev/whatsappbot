@@ -8,6 +8,20 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Added
 
+- E10-S04 implementa el motor de Generación Aumentada por Recuperación (RAG), cálculo de similitud de coseno, inyección contextual con citas estructuradas y endpoints de consulta semántica (`Multi-Tenant RAG Engine, Vector Similarity Search & Knowledge Retrieval Pipeline`) en `services/ai-gateway`, `packages/database` y `apps/api`:
+  - Motor Matemático y Formateador RAG (`services/ai-gateway/src/`):
+    - `cosineSimilarity` y `rankChunksBySimilarity` (`vector-math.ts`): Cálculo puro de producto punto y magnitudes euclidianas normalizadas, filtrado por umbral `minScore` y ordenamiento top-K.
+    - `buildRagContextPrompt` e `injectRagContextIntoMessages` (`rag-context-builder.ts`): Formateo de bloques delimitados de contexto con metadatos de cita (`documentTitle`, `chunkIndex`, `score` %) e inyección en mensajes de sistema.
+  - Gestor de Búsqueda Semántica en Base de Datos (`packages/database/src/knowledge-search-manager.ts`):
+    - `searchKnowledgeChunks`: Recuperación vectorial condicionada por `tenantId` y estado `INDEXED`, garantizando aislamiento A/B estricto.
+  - Endpoints REST en API (`apps/api/src/`):
+    - `POST /api/v1/ai/knowledge/documents/query`: Consulta semántica directa para diagnóstico.
+    - `POST /api/v1/ai/completions/rag`: Orquestación RAG completa con embedding de consulta, búsqueda vectorial, inyección de citas, completado resiliente y registro de tokens en `AiUsageLog`.
+    - Protegidos por `TenantUserSessionGuard`, `TenantContextGuard`, `TenantPermissionGuard` (`ai.settings.manage`) y `TenantEntitlementGuard` (`module.ai`).
+  - Documentación normativa en ADR-0045.
+  - Verificación E10-S04: 6 pruebas unitarias en `vector-math.test.ts` (100% PASS); 5 pruebas unitarias en `rag-context-builder.test.ts` (100% PASS); 2 pruebas de integración en `knowledge-search-manager.integration.ts` (100% PASS); 16 pruebas de integración en `knowledge-base.integration.ts` y `ai-gateway.integration.ts` (100% PASS).
+
+
 - E10-S03 implementa la ingesta de documentos de base de conocimiento, particionado semántico recursivo, adaptadores de embedding y persistencia vectorial (`Knowledge Base Document Ingestion, Chunking & Vector Embeddings`) en `services/ai-gateway`, `packages/database` y `apps/api`:
   - Particionado Semántico y Abstracción de Embeddings (`services/ai-gateway/src/`):
     - `chunkText` (`text-chunker.ts`): Particionador recursivo sensible a estructura (párrafos, saltos de línea, terminaciones de oración y palabras) con solapamiento (*overlap*) configurable y sanitización de caracteres nulos (`\0`).

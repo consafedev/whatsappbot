@@ -8,6 +8,7 @@ export default defineConfig({
       "src/ai-gateway-manager.integration.ts",
       "src/ai-routing-manager.integration.ts",
       "src/knowledge-base-manager.integration.ts",
+      "src/knowledge-search-manager.integration.ts",
     ],
     testTimeout: 30_000,
   },

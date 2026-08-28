@@ -1,4 +1,4 @@
-﻿import { generateOpaqueToken, hashOpaqueToken } from "@whatsapp-platform/auth";
+import { generateOpaqueToken, hashOpaqueToken } from "@whatsapp-platform/auth";
 import { loadNonSecretConfig } from "@whatsapp-platform/config";
 import type { ModuleEntitlementKey } from "@whatsapp-platform/database";
 import {
@@ -233,6 +233,38 @@ describe.sequential("Knowledge Base API Integration", () => {
     expect(data.status).toBe("INDEXED");
     expect(data.chunks.length).toBeGreaterThan(1);
     expect(data.chunks[0]?.modelId).toBe("mock-embed");
+  });
+
+  it("POST /api/v1/ai/knowledge/documents/query searches chunks semantically", async () => {
+    const response = await fetch(`${baseUrl}/api/v1/ai/knowledge/documents/query`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: ownerACookie,
+      },
+      body: JSON.stringify({
+        queryText:
+          "# Bienvenidos a Nuestra Plataforma\n\nOfrecemos soluciones integrales de automatización de WhatsApp.",
+        topK: 3,
+        minScore: 0.5,
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    const data = (await response.json()) as {
+      query: string;
+      results: Array<{
+        documentTitle: string;
+        chunkIndex: number;
+        content: string;
+        score: number;
+      }>;
+    };
+
+    expect(data.query).toContain("Bienvenidos a Nuestra Plataforma");
+    expect(data.results.length).toBeGreaterThan(0);
+    expect(data.results[0]?.documentTitle).toBe("Guía de Bienvenida");
+    expect(data.results[0]?.score).toBeGreaterThan(0.7);
   });
 
   it("DELETE /api/v1/ai/knowledge/documents/:documentId deletes document and chunks", async () => {

@@ -2,7 +2,7 @@
 
 **Actualizado:** 2026-08-27
 **Versión de producto:** `0.0.0`  
-**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; **Epic 10 — AI Gateway Foundation — IN PROGRESS (E10-S01, E10-S02, E10-S03 PASS)**.
+**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; **Epic 10 — AI Gateway Foundation — IN PROGRESS (E10-S01, E10-S02, E10-S03, E10-S04 PASS)**.
 
 ## Current milestone
 
@@ -17,7 +17,7 @@ Estado por historia:
 - E10-S01 — AI Gateway Universal Provider Abstraction, Key Pooling & Token Ledger: **PASS** (ADR-0042).
 - E10-S02 — Resilient Multi-Model Routing, Failover Cascade & Tenant Virtual Aliases: **PASS** (ADR-0043).
 - E10-S03 — Knowledge Base Document Ingestion, Chunking & Vector Embeddings: **PASS** (ADR-0044).
-- E10-S04 — Multi-Tenant RAG Engine & Knowledge Retrieval Pipeline: *PENDING*.
+- E10-S04 — Multi-Tenant RAG Engine, Vector Similarity Search & Knowledge Retrieval Pipeline: **PASS** (ADR-0045).
 - E10-S05 — AI Inbound Triage Bridge & Automated Action Dispatcher: *PENDING*.
 - E10-S06 — AI Gateway Web UI Management & Model Configuration Console: *PENDING*.
 
@@ -80,6 +80,19 @@ Epics base:
 - E01-S05 — Audit foundation: **PASS**.
 
 ## Completed
+
+- E10-S04 — Multi-Tenant RAG Engine, Vector Similarity Search & Knowledge Retrieval Pipeline: **PASS** (ADR-0045).
+  - Motor Matemático y Formateador RAG (`services/ai-gateway/src/`):
+    - `cosineSimilarity` y `rankChunksBySimilarity` (`vector-math.ts`): Cálculo puro de similitud de coseno, producto punto y magnitudes euclidianas, filtrado por umbral `minScore` y ordenamiento top-K.
+    - `buildRagContextPrompt` e `injectRagContextIntoMessages` (`rag-context-builder.ts`): Ensamblado de bloques Markdown delimitados con metadatos de cita (`documentTitle`, `chunkIndex`, `score` %) e inyección contextual en mensajes de sistema.
+  - Gestor de Búsqueda Semántica en Base de Datos (`packages/database/src/knowledge-search-manager.ts`):
+    - `searchKnowledgeChunks`: Búsqueda vectorial filtrando por `tenantId` y estado `INDEXED`, con aislamiento A/B estricto.
+  - Endpoints REST en API Gateway (`apps/api/src/`):
+    - `POST /api/v1/ai/knowledge/documents/query`: Búsqueda semántica directa de fragmentos y diagnóstico.
+    - `POST /api/v1/ai/completions/rag`: Generación de respuestas con RAG integrado, extracción de consulta, búsqueda vectorial, inyección de contexto, enrutamiento resiliente y contabilidad de tokens en `AiUsageLog`.
+    - Protegidos con `TenantUserSessionGuard`, `TenantContextGuard`, `TenantPermissionGuard` (`ai.settings.manage`) y `TenantEntitlementGuard` (`module.ai`).
+  - Verificación: 6 pruebas unitarias en `vector-math.test.ts` (100% PASS); 5 pruebas unitarias en `rag-context-builder.test.ts` (100% PASS); 2 pruebas de integración en `knowledge-search-manager.integration.ts` (100% PASS); pruebas de integración en `knowledge-base.integration.ts` y `ai-gateway.integration.ts` (16/16 tests PASS).
+
 
 - E10-S03 — Knowledge Base Document Ingestion, Chunking & Vector Embeddings: **PASS** (ADR-0044).
   - Particionado Semántico y Abstracción de Embeddings (`services/ai-gateway/src/`):

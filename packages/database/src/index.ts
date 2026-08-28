@@ -487,4 +487,9 @@ export {
   type KnowledgeDocumentSummary,
   type ListKnowledgeDocumentsInput,
 } from "./knowledge-base-manager";
+export {
+  searchKnowledgeChunks,
+  type SearchKnowledgeChunksInput,
+} from "./knowledge-search-manager";
+
 
