@@ -1,4 +1,4 @@
-﻿import {
+import {
   KeyPoolSelector,
   decryptApiKey,
   encryptApiKey,
@@ -9,7 +9,7 @@ import { Prisma, type PrismaClient } from "./generated/prisma/client";
 
 export type AiGatewayDatabase = Pick<
   PrismaClient,
-  "aiProviderConfig" | "aiKeyPool" | "aiUsageLog" | "tenant"
+  "aiProviderConfig" | "aiKeyPool" | "aiUsageLog" | "aiVirtualAlias" | "aiModelRoute" | "tenant" | "$transaction"
 >;
 
 export interface CreateAiProviderConfigInput {

@@ -455,3 +455,19 @@ export {
   type TenantAiUsageSummary,
   type UpdateKeyStatusInput,
 } from "./ai-gateway-manager";
+export {
+  createVirtualAlias,
+  listTenantAliases,
+  resolveRoutesForAlias,
+  seedDefaultPlatformAliases,
+  updateVirtualAliasRoutes,
+  VirtualAliasConflictError,
+  VirtualAliasNotFoundError,
+  type AiRoutingDatabase,
+  type CreateModelRouteInput,
+  type CreateVirtualAliasInput,
+  type ResolveRoutesForAliasInput,
+  type ResolvedVirtualAlias,
+  type UpdateVirtualAliasRoutesInput,
+  type VirtualAliasListItem,
+} from "./ai-routing-manager";

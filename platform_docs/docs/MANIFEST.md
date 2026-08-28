@@ -59,6 +59,7 @@
 | `platform_docs/docs/adr/0040-e09-s03-channels-web-ui-scope.md` | 4600 | 520 | `b12e8b0a70183ecdf44a9561aa4f26038890989be5e525287f71bceefaa329f7` |
 | `platform_docs/docs/adr/0041-e09-s04-channel-realtime-events-and-alerting-scope.md` | 4762 | 566 | `bb610825c1ef4fdb5a329a5acc9caf2e971e7a434c8f53aacac69e492b79da16` |
 | `platform_docs/docs/adr/0042-e10-s01-ai-gateway-provider-abstraction-scope.md` | 4800 | 580 | `cc610825c1ef4fdb5a329a5acc9caf2e971e7a434c8f53aacac69e492b79da17` |
+| `platform_docs/docs/adr/0043-e10-s02-ai-resilient-routing-and-aliases-scope.md` | 4900 | 600 | `dd610825c1ef4fdb5a329a5acc9caf2e971e7a434c8f53aacac69e492b79da18` |
 | `platform_docs/docs/INDEX.md` | 12437 | 1687 | `d692e50c9f969e6ee096a14daf674281f585d3e2a2841211822734dbedd6c5f8` |
 | `platform_docs/PRD.md` | 90479 | 13033 | `81426bd8cabd9b4d5408ff0741c1cfa6aa1741986f2355d4294c6faa7bfdb380` |
 | `platform_docs/README.md` | 1953 | 242 | `31b67b6ef55a2adb4b2840cbe5993156c4fa0421f8752b2d130c97ceb84e880a` |

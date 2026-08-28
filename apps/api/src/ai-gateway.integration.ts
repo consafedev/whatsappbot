@@ -1,6 +1,11 @@
 import { generateOpaqueToken, hashOpaqueToken } from "@whatsapp-platform/auth";
 import { loadNonSecretConfig } from "@whatsapp-platform/config";
-import type { ModuleEntitlementKey } from "@whatsapp-platform/database";
+import {
+  addKeyToPool,
+  createAiProviderConfig,
+  seedDefaultPlatformAliases,
+  type ModuleEntitlementKey,
+} from "@whatsapp-platform/database";
 import {
   createPlatformDatabaseClient,
   createPlatformTenantProvisioningRepository,
@@ -10,7 +15,8 @@ import {
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApiApplication } from "./app";
 
-const prefix = "e10-s01-ai-api";
+const prefix = "e10-s02-ai-api";
+const secret = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 let prisma: PrismaClient;
 let app: Awaited<ReturnType<typeof createApiApplication>>;
 let baseUrl = "";
@@ -20,6 +26,7 @@ let ownerAId = "";
 let ownerNoEntitlementId = "";
 let ownerACookie = "";
 let ownerNoEntitlementCookie = "";
+let platformProviderId = "";
 
 function binary(value: Buffer): Uint8Array<ArrayBuffer> {
   return new Uint8Array(value);
@@ -44,20 +51,46 @@ async function cleanup(): Promise<void> {
     where: { slug: { startsWith: prefix } },
   });
   const ids = tenants.map(({ id }) => id);
-  if (ids.length === 0) return;
-  await prisma.aiUsageLog.deleteMany({ where: { tenantId: { in: ids } } });
-  await prisma.aiProviderConfig.deleteMany({ where: { tenantId: { in: ids } } });
-  await prisma.userSession.deleteMany({ where: { tenantId: { in: ids } } });
-  await prisma.userPasswordResetToken.deleteMany({ where: { tenantId: { in: ids } } });
-  await prisma.userRole.deleteMany({ where: { tenantId: { in: ids } } });
-  await prisma.rolePermission.deleteMany({ where: { role: { tenantId: { in: ids } } } });
-  await prisma.role.deleteMany({ where: { tenantId: { in: ids } } });
-  await prisma.auditLog.deleteMany({ where: { tenantId: { in: ids } } });
-  await prisma.domainEventOutbox.deleteMany({ where: { tenantId: { in: ids } } });
-  await prisma.tenantEntitlement.deleteMany({ where: { tenantId: { in: ids } } });
-  await prisma.organizationUnit.deleteMany({ where: { tenantId: { in: ids } } });
-  await prisma.user.deleteMany({ where: { tenantId: { in: ids } } });
-  await prisma.tenant.deleteMany({ where: { id: { in: ids } } });
+  if (ids.length > 0) {
+    await prisma.aiModelRoute.deleteMany({
+      where: {
+        virtualAlias: {
+          tenantId: { in: ids },
+        },
+      },
+    });
+    await prisma.aiVirtualAlias.deleteMany({
+      where: { tenantId: { in: ids } },
+    });
+    await prisma.aiUsageLog.deleteMany({ where: { tenantId: { in: ids } } });
+    await prisma.aiKeyPool.deleteMany({
+      where: { providerConfig: { tenantId: { in: ids } } },
+    });
+    await prisma.aiProviderConfig.deleteMany({ where: { tenantId: { in: ids } } });
+    await prisma.userSession.deleteMany({ where: { tenantId: { in: ids } } });
+    await prisma.userPasswordResetToken.deleteMany({ where: { tenantId: { in: ids } } });
+    await prisma.userRole.deleteMany({ where: { tenantId: { in: ids } } });
+    await prisma.rolePermission.deleteMany({ where: { role: { tenantId: { in: ids } } } });
+    await prisma.role.deleteMany({ where: { tenantId: { in: ids } } });
+    await prisma.auditLog.deleteMany({ where: { tenantId: { in: ids } } });
+    await prisma.domainEventOutbox.deleteMany({ where: { tenantId: { in: ids } } });
+    await prisma.tenantEntitlement.deleteMany({ where: { tenantId: { in: ids } } });
+    await prisma.organizationUnit.deleteMany({ where: { tenantId: { in: ids } } });
+    await prisma.user.deleteMany({ where: { tenantId: { in: ids } } });
+    await prisma.tenant.deleteMany({ where: { id: { in: ids } } });
+  }
+
+    await prisma.aiModelRoute.deleteMany({
+      where: { virtualAlias: { tenantId: null } },
+    });
+    await prisma.aiVirtualAlias.deleteMany({
+      where: { tenantId: null },
+    });
+
+  if (platformProviderId) {
+    await prisma.aiKeyPool.deleteMany({ where: { providerConfigId: platformProviderId } });
+    await prisma.aiProviderConfig.deleteMany({ where: { id: platformProviderId } });
+  }
 }
 
 async function provision(
@@ -119,7 +152,27 @@ describe.sequential("AI Gateway API Integration", () => {
     ownerACookie = await session(tenantAId, ownerAId);
     ownerNoEntitlementCookie = await session(tenantNoEntitlementId, ownerNoEntitlementId);
 
-    app = await createApiApplication(loadNonSecretConfig({ NODE_ENV: "test" }));
+    // Setup global platform provider config with mock
+    const platformConfig = await createAiProviderConfig(prisma, {
+      tenantId: null,
+      name: "Platform Global Mock AI",
+      providerType: "mock",
+      isEnabled: true,
+    });
+    platformProviderId = platformConfig.id;
+
+    await addKeyToPool(prisma, {
+      providerConfigId: platformProviderId,
+      plainApiKey: "mock-platform-key",
+      encryptionSecret: secret,
+      priority: 1,
+    });
+
+    await seedDefaultPlatformAliases(prisma, platformProviderId);
+
+    app = await createApiApplication(loadNonSecretConfig({ NODE_ENV: "test" }), {
+      messagingCredentialsKey: secret,
+    });
     await app.listen(0, "127.0.0.1");
     baseUrl = await app.getUrl();
   });
@@ -130,6 +183,67 @@ describe.sequential("AI Gateway API Integration", () => {
       await cleanup();
       await prisma.$disconnect();
     }
+  });
+
+  it("GET /api/v1/ai/aliases returns available virtual aliases for active tenant", async () => {
+    const response = await fetch(`${baseUrl}/api/v1/ai/aliases`, {
+      method: "GET",
+      headers: {
+        Cookie: ownerACookie,
+      },
+    });
+
+    expect(response.status).toBe(200);
+    const data = (await response.json()) as Array<{ aliasKey: string; name: string }>;
+    expect(Array.isArray(data)).toBe(true);
+    expect(data.some((a) => a.aliasKey === "platform-fast")).toBe(true);
+    expect(data.some((a) => a.aliasKey === "platform-smart")).toBe(true);
+  });
+
+  it("POST /api/v1/ai/completions/route executes completion via virtual alias", async () => {
+    const response = await fetch(`${baseUrl}/api/v1/ai/completions/route`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: ownerACookie,
+      },
+      body: JSON.stringify({
+        aliasKey: "platform-fast",
+        prompt: "Clasifica este mensaje de cliente",
+        purpose: "triage",
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    const data = (await response.json()) as {
+      content: string;
+      modelUsed: string;
+      providerUsed: string;
+      attemptsCount: number;
+      totalTokens: number;
+      routingAttempts: Array<{ status: string }>;
+    };
+    expect(data.content).toContain("Clasifica este mensaje de cliente");
+    expect(data.providerUsed).toBe("mock");
+    expect(data.attemptsCount).toBe(1);
+    expect(data.routingAttempts[0]?.status).toBe("success");
+    expect(data.totalTokens).toBeGreaterThan(0);
+  });
+
+  it("POST /api/v1/ai/completions/route returns 404 when alias does not exist", async () => {
+    const response = await fetch(`${baseUrl}/api/v1/ai/completions/route`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: ownerACookie,
+      },
+      body: JSON.stringify({
+        aliasKey: "non-existent-alias",
+        prompt: "Hola",
+      }),
+    });
+
+    expect(response.status).toBe(404);
   });
 
   it("POST /api/v1/ai/completions/test returns 200 with test completion response", async () => {
@@ -191,13 +305,14 @@ describe.sequential("AI Gateway API Integration", () => {
   });
 
   it("enforces module.ai entitlement guard (403 when entitlement is missing)", async () => {
-    const response = await fetch(`${baseUrl}/api/v1/ai/completions/test`, {
+    const response = await fetch(`${baseUrl}/api/v1/ai/completions/route`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Cookie: ownerNoEntitlementCookie,
       },
       body: JSON.stringify({
+        aliasKey: "platform-fast",
         prompt: "Debe fallar por falta de entitlement",
       }),
     });
@@ -206,12 +321,13 @@ describe.sequential("AI Gateway API Integration", () => {
   });
 
   it("enforces session authentication guard (401 when unauthenticated)", async () => {
-    const response = await fetch(`${baseUrl}/api/v1/ai/completions/test`, {
+    const response = await fetch(`${baseUrl}/api/v1/ai/completions/route`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
+        aliasKey: "platform-fast",
         prompt: "Debe fallar por falta de sesion",
       }),
     });

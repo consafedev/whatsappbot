@@ -186,6 +186,7 @@ model Tenant {
   rules               Rule[]
   aiProviderConfigs   AiProviderConfig[]
   aiUsageLogs         AiUsageLog[]
+  aiVirtualAliases    AiVirtualAlias[]
 
   @@index([status], map: "tenant_status_idx")
   @@index([deploymentId], map: "tenant_deployment_id_idx")
@@ -651,18 +652,19 @@ model Rule {
 }
 
 model AiProviderConfig {
-  id           String      @id @default(dbgenerated("uuidv7()")) @db.Uuid
-  tenantId     String?     @map("tenant_id") @db.Uuid
+  id           String         @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  tenantId     String?        @map("tenant_id") @db.Uuid
   name         String
-  providerType String      @map("provider_type")
-  baseUrl      String?     @map("base_url")
-  isEnabled    Boolean     @default(true) @map("is_enabled")
-  isDefault    Boolean     @default(false) @map("is_default")
-  settings     Json?       @default("{}") @db.JsonB
-  createdAt    DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt    DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  providerType String         @map("provider_type")
+  baseUrl      String?        @map("base_url")
+  isEnabled    Boolean        @default(true) @map("is_enabled")
+  isDefault    Boolean        @default(false) @map("is_default")
+  settings     Json?          @default("{}") @db.JsonB
+  createdAt    DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
   keyPool      AiKeyPool[]
-  tenant       Tenant?     @relation(fields: [tenantId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  modelRoutes  AiModelRoute[]
+  tenant       Tenant?        @relation(fields: [tenantId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@index([tenantId, isEnabled], map: "ai_provider_config_tenant_enabled_idx")
   @@map("ai_provider_config")
@@ -682,6 +684,39 @@ model AiKeyPool {
 
   @@index([providerConfigId, status], map: "ai_key_pool_config_status_idx")
   @@map("ai_key_pool")
+}
+
+model AiVirtualAlias {
+  id          String         @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  tenantId    String?        @map("tenant_id") @db.Uuid
+  aliasKey    String         @map("alias_key")
+  name        String
+  description String?
+  createdAt   DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  routes      AiModelRoute[]
+  tenant      Tenant?        @relation(fields: [tenantId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([tenantId, aliasKey], map: "ai_virtual_alias_tenant_alias_key")
+  @@index([tenantId], map: "ai_virtual_alias_tenant_idx")
+  @@map("ai_virtual_alias")
+}
+
+model AiModelRoute {
+  id               String           @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  virtualAliasId   String           @map("virtual_alias_id") @db.Uuid
+  providerConfigId String           @map("provider_config_id") @db.Uuid
+  targetModelId    String           @map("target_model_id")
+  priority         Int              @default(1)
+  timeoutMs        Int              @default(10000) @map("timeout_ms")
+  maxRetries       Int              @default(2) @map("max_retries")
+  isEnabled        Boolean          @default(true) @map("is_enabled")
+  createdAt        DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  virtualAlias     AiVirtualAlias   @relation(fields: [virtualAliasId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  providerConfig   AiProviderConfig @relation(fields: [providerConfigId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([virtualAliasId, priority], map: "ai_model_route_alias_priority_idx")
+  @@map("ai_model_route")
 }
 
 model AiUsageLog {
@@ -706,4 +741,5 @@ model AiUsageLog {
   @@index([tenantId, createdAt], map: "ai_usage_log_tenant_created_idx")
   @@map("ai_usage_log")
 }
+
 

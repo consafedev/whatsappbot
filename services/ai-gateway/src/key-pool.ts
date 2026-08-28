@@ -4,6 +4,7 @@ export interface KeyPoolEntry {
   readonly id: string;
   readonly providerConfigId?: string | undefined;
   readonly encryptedKey: string;
+  readonly rawApiKey?: string | undefined;
   readonly keyMask: string;
   readonly status: AiKeyStatus | string;
   readonly rateLimitedUntil?: Date | null | undefined;

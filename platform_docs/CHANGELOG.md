@@ -8,6 +8,25 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Added
 
+- E10-S02 implementa el motor de enrutamiento resiliente de modelos, cascada de failover entre rutas primarias y secundarias, gestión de límites de tarifa (429) con rotación y períodos de enfriamiento de claves y catálogo de alias virtuales (`Resilient Multi-Model Routing, Failover Cascade & Tenant Virtual Aliases`) en `services/ai-gateway`, `packages/database` y `apps/api`:
+  - Enrutador de Resiliencia y Cascada de Failover (`services/ai-gateway/src/resilient-router.ts`):
+    - `AiResilientRouter`: Ejecuta solicitudes ordenando rutas por `priority ASC` (1 = primario, 2 = secundario/fallback).
+    - Rotación dinámica de API key ante error 429 con cooldown automático (60s) reintentando con la siguiente clave disponible en la bolsa sin conmutar de proveedor.
+    - Conmutación automática a ruta secundaria ante errores de servidor (500), caídas de red o timeouts (`AiTimeoutError`).
+    - Registro de cada intento intermedio `AiRoutingAttempt` y error normalizado `AiAllProvidersFailedError`.
+  - Base de datos y migración Prisma (`packages/database/prisma/` & `@whatsapp-platform/database`):
+    - Migración `20260827190000_add_ai_routing_and_aliases` creando las tablas `ai_virtual_alias` y `ai_model_route`.
+    - Gestor `ai-routing-manager.ts` con funciones `createVirtualAlias`, `updateVirtualAliasRoutes`, `resolveRoutesForAlias`, `listTenantAliases` y `seedDefaultPlatformAliases`.
+    - Sembrado automático de alias globales de plataforma: `platform-fast`, `platform-smart` y `platform-reasoning`.
+    - Jerarquía de resolución: evalúa primero overrides del inquilino antes de los alias globales compartidos de plataforma.
+  - Endpoints REST en NestJS (`apps/api/src/ai-gateway.ts`):
+    - `GET /api/v1/ai/aliases`: Consulta de catálogo de alias disponibles para el inquilino.
+    - `POST /api/v1/ai/completions/route`: Ejecución de completado con resolución automática de alias y failover en cascada.
+    - Protegidos por `TenantUserSessionGuard`, `TenantContextGuard`, `TenantPermissionGuard` (`ai.settings.manage`) y `TenantEntitlementGuard` (`module.ai`).
+  - Documentación normativa en ADR-0043.
+  - Verificación E10-S02: 5 pruebas unitarias en `ai-resilient-router.test.ts` (100% PASS); 5 pruebas de integración en `ai-routing-manager.integration.ts` (100% PASS); 8 pruebas de integración de API en `ai-gateway.integration.ts` (100% PASS); suite general Vitest monorepo (31 archivos, 252 pruebas) 100% PASS; Biome check (0 errores); TypeScript typecheck (18 workspaces) 100% PASS.
+
+
 - E10-S01 implementa la capa fundacional del AI Gateway, abstracción universal de proveedores de modelos de lenguaje, pooling dinámico de claves con balanceo y registro transaccional de consumo de tokens (`AI Gateway Universal Provider Abstraction, Key Pooling & Token Usage Ledger`) en `services/ai-gateway`, `packages/database` y `apps/api`:
   - Abstracción desacoplada de proveedores (`services/ai-gateway/src/`):
     - Interfaz `AiProvider` con soporte unificado de `generateCompletion` y `fetchAvailableModels`.

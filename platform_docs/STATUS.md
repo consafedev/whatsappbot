@@ -2,7 +2,7 @@
 
 **Actualizado:** 2026-08-27
 **Versión de producto:** `0.0.0`  
-**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; **Epic 10 — AI Gateway Foundation — IN PROGRESS (E10-S01 PASS)**.
+**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; **Epic 10 — AI Gateway Foundation — IN PROGRESS (E10-S01, E10-S02 PASS)**.
 
 ## Current milestone
 
@@ -15,7 +15,7 @@ Epic 10 — AI Gateway Foundation & Intelligent Automation.
 Estado por historia:
 
 - E10-S01 — AI Gateway Universal Provider Abstraction, Key Pooling & Token Ledger: **PASS** (ADR-0042).
-- E10-S02 — Resilient Multi-Model Routing, Failover Cascade & Tenant Virtual Aliases: *PENDING*.
+- E10-S02 — Resilient Multi-Model Routing, Failover Cascade & Tenant Virtual Aliases: **PASS** (ADR-0043).
 - E10-S03 — pgvector Semantic Embeddings & Tenant Document Store: *PENDING*.
 - E10-S04 — Multi-Tenant RAG Engine & Knowledge Retrieval Pipeline: *PENDING*.
 - E10-S05 — AI Inbound Triage Bridge & Automated Action Dispatcher: *PENDING*.
@@ -80,6 +80,21 @@ Epics base:
 - E01-S05 — Audit foundation: **PASS**.
 
 ## Completed
+
+- E10-S02 — Resilient Multi-Model Routing, Failover Cascade & Tenant Virtual Aliases: **PASS** (ADR-0043).
+  - Enrutador de Resiliencia y Cascada de Reintentos (`services/ai-gateway/src/resilient-router.ts`):
+    - `AiResilientRouter`: Orquestador con conmutación por error en dos niveles (rotación de claves ante 429 rate limit con período de enfriamiento de 60s + conmutación a ruta secundaria `priority: 2` ante errores 500/timeout).
+    - Registro de telemetría de intentos `AiRoutingAttempt` y error normalizado `AiAllProvidersFailedError`.
+  - Base de datos y migración Prisma (`packages/database/prisma/` & `@whatsapp-platform/database`):
+    - Modelos `AiVirtualAlias` y `AiModelRoute` en migración `20260827190000_add_ai_routing_and_aliases`.
+    - Gestor `ai-routing-manager.ts` (`createVirtualAlias`, `updateVirtualAliasRoutes`, `resolveRoutesForAlias`, `listTenantAliases`, `seedDefaultPlatformAliases`).
+    - Jerarquía de resolución: evalúa primero overrides específicos del inquilino antes del alias global predeterminado de plataforma (`platform-fast`, `platform-smart`, `platform-reasoning`).
+  - Endpoints REST en API (`apps/api/src/ai-gateway.ts`):
+    - `GET /api/v1/ai/aliases`: Listado de alias virtuales disponibles para el inquilino.
+    - `POST /api/v1/ai/completions/route`: Completado inteligente con enrutamiento por alias y failover automático.
+    - Protegidos con `TenantUserSessionGuard`, `TenantContextGuard`, `TenantPermissionGuard` y `TenantEntitlementGuard` (`module.ai`).
+  - Verificación: 5 pruebas unitarias en `ai-resilient-router.test.ts` (100% PASS); 5 pruebas de integración en `ai-routing-manager.integration.ts` (100% PASS); 8 pruebas de integración en `ai-gateway.integration.ts` (100% PASS).
+
 
 - E10-S01 — AI Gateway Universal Provider Abstraction, Key Pooling & Token Ledger: **PASS** (ADR-0042).
   - Abstracción Universal y Adaptadores (`services/ai-gateway/src/`):

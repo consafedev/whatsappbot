@@ -1,4 +1,4 @@
-import {
+﻿import {
   BadRequestException,
   Body,
   Controller,
@@ -17,20 +17,27 @@ import {
   applyDecorators,
 } from "@nestjs/common";
 import {
+  AiAllProvidersFailedError,
   AiAuthenticationError,
   AiRateLimitError,
+  AiResilientRouter,
   type AiCompletionResponse,
   type AiMessage,
   type AiProviderType,
+  type AiRoutedCompletionResponse,
   createAiProvider,
 } from "@whatsapp-platform/ai-gateway";
 import {
   getTenantAiUsageSummary,
+  listTenantAliases,
   recordAiUsage,
   resolveProviderAndKey,
+  resolveRoutesForAlias,
+  updateKeyStatus,
   type AiGatewayDatabase,
   type TenantAiUsageSummary,
   type TenantContext,
+  type VirtualAliasListItem,
 } from "@whatsapp-platform/database";
 import type { PermissionKey } from "@whatsapp-platform/rbac";
 import { TenantUserSessionGuard } from "./tenant-auth";
@@ -73,6 +80,16 @@ export interface TestCompletionPayload {
   readonly providerConfigId?: string | undefined;
   readonly temperature?: number | undefined;
   readonly maxTokens?: number | undefined;
+}
+
+export interface RouteCompletionPayload {
+  readonly aliasKey?: string | undefined;
+  readonly targetModelId?: string | undefined;
+  readonly prompt?: string | undefined;
+  readonly messages?: Array<{ role: "system" | "user" | "assistant"; content: string }> | undefined;
+  readonly temperature?: number | undefined;
+  readonly maxTokens?: number | undefined;
+  readonly purpose?: string | undefined;
 }
 
 @Injectable()
@@ -176,6 +193,7 @@ export class AiGatewayService {
         modelId: model,
         promptTokens: 0,
         completionTokens: 0,
+        totalTokens: 0,
         costEstimatedUsd: 0,
         latencyMs: 0,
         purpose: "test",
@@ -217,6 +235,125 @@ export class AiGatewayService {
     };
   }
 
+  async listAliases(context: TenantContext): Promise<VirtualAliasListItem[]> {
+    return listTenantAliases(this.database, context.tenantId);
+  }
+
+  async routeCompletion(
+    context: TenantContext,
+    payload: RouteCompletionPayload,
+    _identity: TenantSessionIdentity,
+  ): Promise<Record<string, unknown>> {
+    const aliasKey = payload.aliasKey ?? "platform-fast";
+    const resolvedAlias = await resolveRoutesForAlias(this.database, {
+      tenantId: context.tenantId,
+      aliasKey,
+      encryptionSecret: this.secret,
+    });
+
+    if (!resolvedAlias || resolvedAlias.routes.length === 0) {
+      throw new NotFoundException(`No active routes found for AI virtual alias '${aliasKey}'`);
+    }
+
+    const messages: readonly AiMessage[] =
+      payload.messages && payload.messages.length > 0
+        ? payload.messages
+        : [{ role: "user", content: payload.prompt || "Hola, prueba de completado con enrutamiento" }];
+
+    const router = new AiResilientRouter({
+      onKeyRateLimited: async (keyId, cooldownUntil) => {
+        await updateKeyStatus(this.database, {
+          keyId,
+          status: "rate_limited",
+          rateLimitedUntil: cooldownUntil,
+        });
+      },
+    });
+
+    let response: AiRoutedCompletionResponse;
+    try {
+      response = await router.routeCompletion({
+        aliasKey,
+        targetModelId: payload.targetModelId,
+        messages,
+        temperature: payload.temperature,
+        maxTokens: payload.maxTokens,
+        purpose: payload.purpose ?? "triage",
+        routes: resolvedAlias.routes,
+      });
+    } catch (err: unknown) {
+      if (err instanceof AiAllProvidersFailedError) {
+        for (const attempt of err.attempts) {
+          await recordAiUsage(this.database, {
+            tenantId: context.tenantId,
+            providerType: attempt.providerType,
+            modelId: attempt.modelId,
+            promptTokens: 0,
+            completionTokens: 0,
+            totalTokens: 0,
+            costEstimatedUsd: 0,
+            latencyMs: attempt.latencyMs,
+            purpose: payload.purpose ?? "triage",
+            status: attempt.status,
+            errorMessage: attempt.errorMessage ?? null,
+            keyId: attempt.keyId,
+          });
+        }
+        throw new HttpException(
+          `All AI provider routes failed: ${err.message}`,
+          HttpStatus.BAD_GATEWAY,
+        );
+      }
+      throw new BadRequestException(err instanceof Error ? err.message : String(err));
+    }
+
+    const successfulAttempt = response.routingAttempts.find((a) => a.status === "success");
+    await recordAiUsage(this.database, {
+      tenantId: context.tenantId,
+      providerType: response.providerUsed,
+      modelId: response.modelUsed,
+      promptTokens: response.usage.promptTokens,
+      completionTokens: response.usage.completionTokens,
+      totalTokens: response.usage.totalTokens,
+      costEstimatedUsd: 0.00001 * response.usage.totalTokens,
+      latencyMs: response.latencyMs,
+      purpose: payload.purpose ?? "triage",
+      status: "success",
+      keyId: successfulAttempt?.keyId,
+    });
+
+    for (const attempt of response.routingAttempts) {
+      if (attempt.status !== "success") {
+        await recordAiUsage(this.database, {
+          tenantId: context.tenantId,
+          providerType: attempt.providerType,
+          modelId: attempt.modelId,
+          promptTokens: 0,
+          completionTokens: 0,
+          totalTokens: 0,
+          costEstimatedUsd: 0,
+          latencyMs: attempt.latencyMs,
+          purpose: payload.purpose ?? "triage",
+          status: attempt.status,
+          errorMessage: attempt.errorMessage ?? null,
+          keyId: attempt.keyId,
+        });
+      }
+    }
+
+    return {
+      content: response.content,
+      modelUsed: response.modelUsed,
+      providerUsed: response.providerUsed,
+      attemptsCount: response.attemptsCount,
+      totalTokens: response.totalTokens,
+      latencyMs: response.latencyMs,
+      usage: response.usage,
+      finishReason: response.finishReason,
+      routingAttempts: response.routingAttempts,
+    };
+  }
+
   async getUsageSummary(
     context: TenantContext,
     since?: Date | undefined,
@@ -232,6 +369,14 @@ export class AiGatewayService {
 @RequireEntitlements("module.ai")
 export class AiGatewayController {
   constructor(private readonly service: AiGatewayService) {}
+
+  @Get("aliases")
+  @aiAuthorized("ai.settings.manage")
+  async listAliases(
+    @CurrentTenantContext() context: TenantContext,
+  ): Promise<VirtualAliasListItem[]> {
+    return this.service.listAliases(context);
+  }
 
   @Get("models/discover")
   @aiAuthorized("ai.settings.manage")
@@ -259,6 +404,17 @@ export class AiGatewayController {
     @Body() payload: TestCompletionPayload,
   ): Promise<Record<string, unknown>> {
     return this.service.testCompletion(context, payload, identity);
+  }
+
+  @Post("completions/route")
+  @HttpCode(200)
+  @aiAuthorized("ai.settings.manage")
+  async routeCompletion(
+    @CurrentTenantContext() context: TenantContext,
+    @CurrentTenantIdentity() identity: TenantSessionIdentity,
+    @Body() payload: RouteCompletionPayload,
+  ): Promise<Record<string, unknown>> {
+    return this.service.routeCompletion(context, payload, identity);
   }
 
   @Get("usage/summary")
