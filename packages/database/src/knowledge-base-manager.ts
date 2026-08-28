@@ -6,6 +6,8 @@
   sanitizeText,
 } from "@whatsapp-platform/ai-gateway";
 import type { Prisma, PrismaClient } from "./generated/prisma/client";
+import { createTenantContext } from "./tenant-context";
+import { assertTenantOperational } from "./tenant-operational";
 
 export type KnowledgeBaseDatabase = Pick<
   PrismaClient,
@@ -94,6 +96,8 @@ export async function createKnowledgeDocument(
     throw new Error("Document content cannot be empty");
   }
 
+  await assertTenantOperational(createTenantContext(input.tenantId), db);
+
   const created = await db.knowledgeDocument.create({
     data: {
       tenantId: input.tenantId,
@@ -134,8 +138,10 @@ export async function indexKnowledgeDocument(
     throw new KnowledgeDocumentNotFoundError(input.documentId, input.tenantId);
   }
 
+  await assertTenantOperational(createTenantContext(input.tenantId), db);
+
   await db.knowledgeDocument.update({
-    where: { id: document.id },
+    where: { id: document.id, tenantId: input.tenantId },
     data: { status: "PROCESSING", errorMessage: null },
   });
 
@@ -147,7 +153,7 @@ export async function indexKnowledgeDocument(
 
     if (chunks.length === 0) {
       await db.knowledgeDocument.update({
-        where: { id: document.id },
+        where: { id: document.id, tenantId: input.tenantId },
         data: {
           status: "INDEXED",
           tokenCount: 0,
@@ -195,7 +201,7 @@ export async function indexKnowledgeDocument(
 
       // Mark document as INDEXED
       await tx.knowledgeDocument.update({
-        where: { id: document.id },
+        where: { id: document.id, tenantId: input.tenantId },
         data: {
           status: "INDEXED",
           tokenCount: embeddingResponse.totalTokens,
@@ -214,7 +220,7 @@ export async function indexKnowledgeDocument(
   } catch (err: unknown) {
     const errorMessage = err instanceof Error ? err.message : String(err);
     await db.knowledgeDocument.update({
-      where: { id: document.id },
+      where: { id: document.id, tenantId: input.tenantId },
       data: {
         status: "FAILED",
         errorMessage,

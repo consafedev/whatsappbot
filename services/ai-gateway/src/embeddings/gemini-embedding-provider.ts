@@ -20,6 +20,9 @@ export class GoogleGeminiEmbeddingProvider implements AiEmbeddingProvider {
     const inputs = Array.isArray(request.input) ? request.input : [request.input];
     const model = request.model ?? "text-embedding-004";
     const baseUrl = credentials.baseUrl?.replace(/\/+$/, "") ?? "https://generativelanguage.googleapis.com/v1beta";
+    // SECURITY: Gemini API requires ?key= query authentication; the API key will appear
+    // in access logs of intermediary proxies and load balancers. This is inherent to the
+    // Google Generative AI API design and cannot be avoided without a backend proxy.
     const endpoint = `${baseUrl}/models/${model}:batchEmbedContents?key=${credentials.apiKey}`;
 
     const body = {
