@@ -471,3 +471,20 @@ export {
   type UpdateVirtualAliasRoutesInput,
   type VirtualAliasListItem,
 } from "./ai-routing-manager";
+export {
+  createKnowledgeDocument,
+  deleteKnowledgeDocument,
+  getKnowledgeDocumentDetail,
+  indexKnowledgeDocument,
+  listKnowledgeDocuments,
+  KnowledgeDocumentNotFoundError,
+  type CreateKnowledgeDocumentInput,
+  type DeleteKnowledgeDocumentInput,
+  type GetKnowledgeDocumentDetailInput,
+  type IndexKnowledgeDocumentInput,
+  type KnowledgeBaseDatabase,
+  type KnowledgeDocumentDetail,
+  type KnowledgeDocumentSummary,
+  type ListKnowledgeDocumentsInput,
+} from "./knowledge-base-manager";
+

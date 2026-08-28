@@ -2,7 +2,7 @@
 
 **Actualizado:** 2026-08-27
 **Versión de producto:** `0.0.0`  
-**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; **Epic 10 — AI Gateway Foundation — IN PROGRESS (E10-S01, E10-S02 PASS)**.
+**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; **Epic 10 — AI Gateway Foundation — IN PROGRESS (E10-S01, E10-S02, E10-S03 PASS)**.
 
 ## Current milestone
 
@@ -16,7 +16,7 @@ Estado por historia:
 
 - E10-S01 — AI Gateway Universal Provider Abstraction, Key Pooling & Token Ledger: **PASS** (ADR-0042).
 - E10-S02 — Resilient Multi-Model Routing, Failover Cascade & Tenant Virtual Aliases: **PASS** (ADR-0043).
-- E10-S03 — pgvector Semantic Embeddings & Tenant Document Store: *PENDING*.
+- E10-S03 — Knowledge Base Document Ingestion, Chunking & Vector Embeddings: **PASS** (ADR-0044).
 - E10-S04 — Multi-Tenant RAG Engine & Knowledge Retrieval Pipeline: *PENDING*.
 - E10-S05 — AI Inbound Triage Bridge & Automated Action Dispatcher: *PENDING*.
 - E10-S06 — AI Gateway Web UI Management & Model Configuration Console: *PENDING*.
@@ -80,6 +80,23 @@ Epics base:
 - E01-S05 — Audit foundation: **PASS**.
 
 ## Completed
+
+- E10-S03 — Knowledge Base Document Ingestion, Chunking & Vector Embeddings: **PASS** (ADR-0044).
+  - Particionado Semántico y Abstracción de Embeddings (`services/ai-gateway/src/`):
+    - `chunkText` (`text-chunker.ts`): Particionador recursivo sensible a estructura (párrafos, saltos de línea, terminaciones de oración y palabras) con solapamiento (*overlap*) configurable y sanitización de caracteres nulos (`\0`).
+    - Adaptadores `AiEmbeddingProvider` (`services/ai-gateway/src/embeddings/`): `MockEmbeddingProvider` (vectores normalizados deterministas basados en hash), `OpenAiCompatibleEmbeddingProvider` (cliente para `/v1/embeddings` con timeout estricto de 15s) y `GoogleGeminiEmbeddingProvider` (`:batchEmbedContents`).
+    - Fábrica `createEmbeddingProvider` unificando resolución de proveedores.
+  - Base de datos y migración Prisma (`packages/database/prisma/` & `@whatsapp-platform/database`):
+    - Modelos `KnowledgeDocument` y `KnowledgeChunk` con claves compuestas `[tenantId, id]` para aislamiento estricto en migración `20260827200000_add_knowledge_base`.
+    - Gestor `knowledge-base-manager.ts` (`createKnowledgeDocument`, `indexKnowledgeDocument` con `$transaction` atómica, `getKnowledgeDocumentDetail`, `listKnowledgeDocuments`, `deleteKnowledgeDocument`).
+  - Endpoints REST en API (`apps/api/src/knowledge-base.ts`):
+    - `POST /api/v1/ai/knowledge/documents`: Creación e indexación automática con retorno 201 Created.
+    - `GET /api/v1/ai/knowledge/documents`: Listado paginado con contador de fragmentos por documento.
+    - `GET /api/v1/ai/knowledge/documents/:documentId`: Detalle del documento y vista previa de sus fragmentos.
+    - `DELETE /api/v1/ai/knowledge/documents/:documentId`: Eliminación en cascada de documento y fragmentos.
+    - Protegidos por `TenantUserSessionGuard`, `TenantContextGuard`, `TenantPermissionGuard` (`ai.settings.manage`) y `TenantEntitlementGuard` (`module.ai`).
+  - Verificación: 5 pruebas unitarias en `text-chunker.test.ts` (100% PASS); 7 pruebas unitarias en `embedding-providers.test.ts` (100% PASS); 5 pruebas de integración en `knowledge-base-manager.integration.ts` (100% PASS); 6 pruebas de integración en `knowledge-base.integration.ts` (100% PASS).
+
 
 - E10-S02 — Resilient Multi-Model Routing, Failover Cascade & Tenant Virtual Aliases: **PASS** (ADR-0043).
   - Enrutador de Resiliencia y Cascada de Reintentos (`services/ai-gateway/src/resilient-router.ts`):

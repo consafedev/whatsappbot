@@ -187,6 +187,8 @@ model Tenant {
   aiProviderConfigs   AiProviderConfig[]
   aiUsageLogs         AiUsageLog[]
   aiVirtualAliases    AiVirtualAlias[]
+  knowledgeDocuments  KnowledgeDocument[]
+  knowledgeChunks     KnowledgeChunk[]
 
   @@index([status], map: "tenant_status_idx")
   @@index([deploymentId], map: "tenant_deployment_id_idx")
@@ -740,4 +742,46 @@ model AiUsageLog {
   @@unique([tenantId, id], map: "ai_usage_log_tenant_id_key")
   @@index([tenantId, createdAt], map: "ai_usage_log_tenant_created_idx")
   @@map("ai_usage_log")
+}
+
+model KnowledgeDocument {
+  id           String           @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  tenantId     String           @map("tenant_id") @db.Uuid
+  title        String
+  sourceType   String           @map("source_type")
+  sourceUrl    String?          @map("source_url")
+  status       String           @default("PENDING")
+  rawContent   String           @map("raw_content") @db.Text
+  charCount    Int              @default(0) @map("char_count")
+  tokenCount   Int              @default(0) @map("token_count")
+  errorMessage String?          @map("error_message")
+  metadata     Json?            @default("{}") @db.JsonB
+  createdAt    DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  chunks       KnowledgeChunk[]
+  tenant       Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([tenantId, id], map: "knowledge_document_tenant_id_key")
+  @@index([tenantId, status], map: "knowledge_document_tenant_status_idx")
+  @@map("knowledge_document")
+}
+
+model KnowledgeChunk {
+  id         String            @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  tenantId   String            @map("tenant_id") @db.Uuid
+  documentId String            @map("document_id") @db.Uuid
+  chunkIndex Int               @map("chunk_index")
+  content    String            @db.Text
+  tokenCount Int               @default(0) @map("token_count")
+  embedding  Json?             @db.JsonB
+  modelId    String            @map("model_id")
+  metadata   Json?             @default("{}") @db.JsonB
+  createdAt  DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  document   KnowledgeDocument @relation(fields: [documentId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  tenant     Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([tenantId, id], map: "knowledge_chunk_tenant_id_key")
+  @@index([tenantId, documentId], map: "knowledge_chunk_tenant_document_idx")
+  @@index([documentId, chunkIndex], map: "knowledge_chunk_document_index_idx")
+  @@map("knowledge_chunk")
 }

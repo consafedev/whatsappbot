@@ -8,6 +8,24 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Added
 
+- E10-S03 implementa la ingesta de documentos de base de conocimiento, particionado semántico recursivo, adaptadores de embedding y persistencia vectorial (`Knowledge Base Document Ingestion, Chunking & Vector Embeddings`) en `services/ai-gateway`, `packages/database` y `apps/api`:
+  - Particionado Semántico y Abstracción de Embeddings (`services/ai-gateway/src/`):
+    - `chunkText` (`text-chunker.ts`): Particionador recursivo sensible a estructura (párrafos, saltos de línea, terminaciones de oración y palabras) con solapamiento (*overlap*) configurable y sanitización de caracteres nulos (`\0`).
+    - Adaptadores `AiEmbeddingProvider` (`services/ai-gateway/src/embeddings/`): `MockEmbeddingProvider` (vectores normalizados deterministas basados en hash), `OpenAiCompatibleEmbeddingProvider` (cliente para `/v1/embeddings` con timeout estricto de 15s) y `GoogleGeminiEmbeddingProvider` (`:batchEmbedContents`).
+    - Fábrica `createEmbeddingProvider` unificando resolución de proveedores.
+  - Base de datos y migración Prisma (`packages/database/prisma/` & `@whatsapp-platform/database`):
+    - Migración `20260827200000_add_knowledge_base` creando las tablas `knowledge_document` y `knowledge_chunk` con claves compuestas `[tenantId, id]` para aislamiento estricto.
+    - Gestor `knowledge-base-manager.ts` (`createKnowledgeDocument`, `indexKnowledgeDocument` con `$transaction` atómica, `getKnowledgeDocumentDetail`, `listKnowledgeDocuments`, `deleteKnowledgeDocument`).
+  - Endpoints REST en API (`apps/api/src/knowledge-base.ts`):
+    - `POST /api/v1/ai/knowledge/documents`: Creación e indexación automática con retorno 201 Created.
+    - `GET /api/v1/ai/knowledge/documents`: Listado paginado con contador de fragmentos por documento.
+    - `GET /api/v1/ai/knowledge/documents/:documentId`: Detalle del documento y vista previa de sus fragmentos.
+    - `DELETE /api/v1/ai/knowledge/documents/:documentId`: Eliminación en cascada de documento y fragmentos.
+    - Protegidos por `TenantUserSessionGuard`, `TenantContextGuard`, `TenantPermissionGuard` (`ai.settings.manage`) y `TenantEntitlementGuard` (`module.ai`).
+  - Documentación normativa en ADR-0044.
+  - Verificación E10-S03: 5 pruebas unitarias en `text-chunker.test.ts` (100% PASS); 7 pruebas unitarias en `embedding-providers.test.ts` (100% PASS); 5 pruebas de integración en `knowledge-base-manager.integration.ts` (100% PASS); 6 pruebas de integración en `knowledge-base.integration.ts` (100% PASS).
+
+
 - E10-S02 implementa el motor de enrutamiento resiliente de modelos, cascada de failover entre rutas primarias y secundarias, gestión de límites de tarifa (429) con rotación y períodos de enfriamiento de claves y catálogo de alias virtuales (`Resilient Multi-Model Routing, Failover Cascade & Tenant Virtual Aliases`) en `services/ai-gateway`, `packages/database` y `apps/api`:
   - Enrutador de Resiliencia y Cascada de Failover (`services/ai-gateway/src/resilient-router.ts`):
     - `AiResilientRouter`: Ejecuta solicitudes ordenando rutas por `priority ASC` (1 = primario, 2 = secundario/fallback).

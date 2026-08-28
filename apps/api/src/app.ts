@@ -41,6 +41,10 @@ import {
   AiGatewayService,
 } from "./ai-gateway";
 import {
+  KnowledgeBaseController,
+  KnowledgeBaseService,
+} from "./knowledge-base";
+import {
   CHANNEL_REALTIME_BROADCASTER,
   CHANNEL_REALTIME_OUTBOX_DATABASE,
   CHANNEL_REALTIME_SERVICE,
@@ -191,6 +195,7 @@ export async function createApiApplication(
       InboxController,
       InboundWebhookController,
       AiGatewayController,
+      KnowledgeBaseController,
       ...(config.environment === "test" ? [EntitlementTestProbeController] : []),
     ],
     providers: [
@@ -226,6 +231,7 @@ export async function createApiApplication(
       ChannelRealtimeOutboxBridge,
       InboundWebhookService,
       AiGatewayService,
+      KnowledgeBaseService,
       { provide: AI_GATEWAY_DATABASE, useFactory: getPlatformDatabaseClient },
       {
         provide: AI_GATEWAY_SECRET,

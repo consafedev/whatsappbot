@@ -9,7 +9,7 @@ import { Prisma, type PrismaClient } from "./generated/prisma/client";
 
 export type AiGatewayDatabase = Pick<
   PrismaClient,
-  "aiProviderConfig" | "aiKeyPool" | "aiUsageLog" | "aiVirtualAlias" | "aiModelRoute" | "tenant" | "$transaction"
+  "aiProviderConfig" | "aiKeyPool" | "aiUsageLog" | "aiVirtualAlias" | "aiModelRoute" | "knowledgeDocument" | "knowledgeChunk" | "tenant" | "$transaction"
 >;
 
 export interface CreateAiProviderConfigInput {

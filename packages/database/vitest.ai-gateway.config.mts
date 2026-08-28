@@ -7,6 +7,7 @@ export default defineConfig({
     include: [
       "src/ai-gateway-manager.integration.ts",
       "src/ai-routing-manager.integration.ts",
+      "src/knowledge-base-manager.integration.ts",
     ],
     testTimeout: 30_000,
   },
