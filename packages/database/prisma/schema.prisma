@@ -741,5 +741,3 @@ model AiUsageLog {
   @@index([tenantId, createdAt], map: "ai_usage_log_tenant_created_idx")
   @@map("ai_usage_log")
 }
-
-

@@ -80,12 +80,12 @@ async function cleanup(): Promise<void> {
     await prisma.tenant.deleteMany({ where: { id: { in: ids } } });
   }
 
-    await prisma.aiModelRoute.deleteMany({
-      where: { virtualAlias: { tenantId: null } },
-    });
-    await prisma.aiVirtualAlias.deleteMany({
-      where: { tenantId: null },
-    });
+  await prisma.aiModelRoute.deleteMany({
+    where: { virtualAlias: { tenantId: null } },
+  });
+  await prisma.aiVirtualAlias.deleteMany({
+    where: { tenantId: null },
+  });
 
   if (platformProviderId) {
     await prisma.aiKeyPool.deleteMany({ where: { providerConfigId: platformProviderId } });
