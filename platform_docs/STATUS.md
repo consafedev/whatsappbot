@@ -1,16 +1,16 @@
 # STATUS.md — Estado operativo actual del proyecto
 
-**Actualizado:** 2026-08-27
+**Actualizado:** 2026-09-02
 **Versión de producto:** `0.0.0`  
-**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; **Epic 10 — AI Gateway Foundation — IN PROGRESS (E10-S01, E10-S02, E10-S03, E10-S04 PASS)**.
+**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; **Epic 10 — AI Gateway Foundation & Intelligent Automation — PASS / COMPLETE (E10-S01 a E10-S06 PASS)**.
 
 ## Current milestone
 
-Epic 10 — AI Gateway Foundation & Intelligent Automation.
+Epic 11 — Campaign Engine & Audience Broadcasts.
 
 ## Current epic
 
-**Epic 10 — AI Gateway Foundation** — **IN PROGRESS**
+**Epic 10 — AI Gateway Foundation & Intelligent Automation** — **PASS / COMPLETE** (ADR-0042, ADR-0043, ADR-0044, ADR-0045, ADR-0046, ADR-0047)
 
 Estado por historia:
 
@@ -18,8 +18,8 @@ Estado por historia:
 - E10-S02 — Resilient Multi-Model Routing, Failover Cascade & Tenant Virtual Aliases: **PASS** (ADR-0043).
 - E10-S03 — Knowledge Base Document Ingestion, Chunking & Vector Embeddings: **PASS** (ADR-0044).
 - E10-S04 — Multi-Tenant RAG Engine, Vector Similarity Search & Knowledge Retrieval Pipeline: **PASS** (ADR-0045).
-- E10-S05 — AI Inbound Triage Bridge & Automated Action Dispatcher: *PENDING*.
-- E10-S06 — AI Gateway Web UI Management & Model Configuration Console: *PENDING*.
+- E10-S05 — Autonomous WhatsApp Agent, Triage Policy & Knowledge Directives: **PASS** (ADR-0046).
+- E10-S06 — AI Console, Knowledge Base Management & Agent Settings Web UI: **PASS** (ADR-0047).
 
 Epics anteriores:
 
@@ -80,6 +80,21 @@ Epics base:
 - E01-S05 — Audit foundation: **PASS**.
 
 ## Completed
+
+- E10-S06 — AI Console, Knowledge Base Management & Agent Settings Web UI: **PASS** (ADR-0047).
+  - Modelado y Clientes REST (`apps/web/app/app/ai/ai-view-model.ts`):
+    - Tipado completo de configuración de agente, documentos y fragmentos vectoriales, y métricas de consumo de tokens.
+    - Clientes HTTP para endpoints `/api/v1/ai/agent/config`, `/api/v1/ai/knowledge/documents` y `/api/v1/ai/usage/summary`.
+    - Formateadores de estados de indexación, tokens, costos en USD y parseo bidireccional de keywords.
+  - Componentes de Consola de IA (`apps/web/app/app/ai/`):
+    - `ai-client.tsx` & `page.tsx`: Orquestador principal en `/app/ai` con protección de módulo `module.ai` y permiso `ai.settings.manage`, toasts accesibles y navegación por 3 pestañas.
+    - `ai-agent-settings-tab.tsx`: Formulario de directivas, toggle de activación, selector de modos (`RULES_ONLY`, `HYBRID_RULES_AI`, `FULL_AI`), alias virtual, slider de confianza mínima, editor de palabras clave de traspaso humano y mensaje fuera de horario.
+    - `ai-knowledge-tab.tsx` & `knowledge-document-modal.tsx`: Listado con búsqueda de documentos, modal de carga e indexación inmediata, visor modal de fragmentos vectorizados y diálogo de confirmación para eliminación en cascada.
+    - `ai-usage-tab.tsx`: Tarjetas de telemetría de consumo de peticiones, tokens in/out, total de tokens, costo estimado USD y latencia promedio.
+  - Integración en Navegación (`apps/web/app/app/tenant-app-navigation.ts`):
+    - Enlace `/app/ai` ("Inteligencia Artificial") añadido y protegido por `module.ai` y `ai.settings.manage`.
+  - Verificación: 13 pruebas unitarias en `ai-view-model.test.ts` (100% PASS); pruebas de navegación en `tenant-app-navigation.test.ts` (100% PASS); 289 pruebas unitarias de monorepo PASS; compilación de producción de Next.js (`next build`) exitosa; typecheck y lint en 0 errores.
+
 
 - E10-S05 — Autonomous WhatsApp Agent, Triage Policy & Knowledge Directives: **PASS** (ADR-0046).
   - Configuración del Agente Autónomo (`packages/database/prisma/` & `@whatsapp-platform/database`):

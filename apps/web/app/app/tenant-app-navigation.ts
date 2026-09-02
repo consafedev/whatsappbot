@@ -100,6 +100,13 @@ const navigation: readonly TenantAppNavigationGroup[] = Object.freeze([
         requiredPermission: "channels.read",
       },
       {
+        href: "/app/ai",
+        id: "ai",
+        label: "Inteligencia Artificial",
+        requiredModule: "module.ai",
+        requiredPermission: "ai.settings.manage",
+      },
+      {
         href: null,
         id: "integrations",
         label: "Integraciones",

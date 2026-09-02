@@ -8,6 +8,22 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Added
 
+- E10-S06 implementa la consola web de gestión de IA, administración de la base de conocimiento vectorial y configuración del agente autónomo (`AI Console, Knowledge Base Management & Agent Settings Web UI`) en `apps/web`:
+  - Modelado y Clientes REST (`apps/web/app/app/ai/ai-view-model.ts`):
+    - Tipado completo de configuración de agente, documentos y fragmentos vectoriales, y métricas de consumo de tokens.
+    - Clientes HTTP para endpoints `/api/v1/ai/agent/config`, `/api/v1/ai/knowledge/documents` y `/api/v1/ai/usage/summary`.
+    - Formateadores de estados de indexación, tokens, costos en USD y parseo bidireccional de keywords.
+  - Componentes de Consola de IA (`apps/web/app/app/ai/`):
+    - `ai-client.tsx` & `page.tsx`: Orquestador principal en `/app/ai` con protección de módulo `module.ai` y permiso `ai.settings.manage`, toasts accesibles y navegación por 3 pestañas.
+    - `ai-agent-settings-tab.tsx`: Formulario de directivas, toggle de activación, selector de modos (`RULES_ONLY`, `HYBRID_RULES_AI`, `FULL_AI`), alias virtual, slider de confianza mínima, editor de palabras clave de traspaso humano y mensaje fuera de horario.
+    - `ai-knowledge-tab.tsx` & `knowledge-document-modal.tsx`: Listado con búsqueda de documentos, modal de carga e indexación inmediata, visor modal de fragmentos vectorizados y diálogo de confirmación para eliminación en cascada.
+    - `ai-usage-tab.tsx`: Tarjetas de telemetría de consumo de peticiones, tokens in/out, total de tokens, costo estimado USD y latencia promedio.
+  - Integración en Navegación (`apps/web/app/app/tenant-app-navigation.ts`):
+    - Enlace `/app/ai` ("Inteligencia Artificial") añadido y protegido por `module.ai` y `ai.settings.manage`.
+  - Documentación normativa en ADR-0047, marcando Epic 10 como completado.
+  - Verificación E10-S06: 13 pruebas unitarias en `ai-view-model.test.ts` (100% PASS); pruebas de navegación en `tenant-app-navigation.test.ts` (100% PASS); 289 pruebas unitarias del monorepo PASS; compilación de producción de Next.js (`next build`) exitosa; typecheck y lint en 0 errores.
+
+
 - E10-S05 implementa el agente autónomo de WhatsApp, políticas de triaje, directivas de conocimiento y traspaso a operadores humanos (`Autonomous WhatsApp Agent, Triage Policy & Knowledge Directives`) en `packages/database` y `apps/api`:
   - Configuración del Agente Autónomo (`packages/database/prisma/` & `@whatsapp-platform/database`):
     - Modelo `TenantAiAgentConfig` en migración `20260902140000_add_tenant_ai_agent_config` (`automationMode`, `systemDirectives`, `virtualAliasKey`, `minConfidenceScore`, `humanHandoffKeywords`, `outOfHoursReply`, `isEnabled`).

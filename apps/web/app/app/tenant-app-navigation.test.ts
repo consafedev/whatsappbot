@@ -93,4 +93,21 @@ describe("tenant app navigation", () => {
     );
     expect(withBoth.find((item) => item.id === "channels")?.href).toBe("/app/channels");
   });
+
+  it("exposes ai /app/ai route when module.ai and ai.settings.manage permission are granted", () => {
+    const withoutModule = resolveTenantNavigation([], ["ai.settings.manage"]).flatMap(
+      (group) => group.items,
+    );
+    expect(withoutModule.some((item) => item.id === "ai")).toBe(false);
+
+    const withoutPerm = resolveTenantNavigation(["module.ai"], []).flatMap(
+      (group) => group.items,
+    );
+    expect(withoutPerm.some((item) => item.id === "ai")).toBe(false);
+
+    const withBoth = resolveTenantNavigation(["module.ai"], ["ai.settings.manage"]).flatMap(
+      (group) => group.items,
+    );
+    expect(withBoth.find((item) => item.id === "ai")?.href).toBe("/app/ai");
+  });
 });
