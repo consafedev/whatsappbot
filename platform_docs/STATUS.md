@@ -81,6 +81,24 @@ Epics base:
 
 ## Completed
 
+- E10-S05 — Autonomous WhatsApp Agent, Triage Policy & Knowledge Directives: **PASS** (ADR-0046).
+  - Configuración del Agente Autónomo (`packages/database/prisma/` & `@whatsapp-platform/database`):
+    - Modelo `TenantAiAgentConfig` en migración `20260902140000_add_tenant_ai_agent_config` (`automationMode`, `systemDirectives`, `virtualAliasKey`, `minConfidenceScore`, `humanHandoffKeywords`, `outOfHoursReply`, `isEnabled`).
+    - Gestor `ai-agent-config-manager.ts` (`getTenantAiAgentConfig`, `upsertTenantAiAgentConfig`).
+  - Orquestador del Agente de IA (`packages/database/src/ai-agent-dispatcher.ts`):
+    - `processInboundAiTurn`: Evaluación del turno entrante con guards operacionales y de módulo `module.ai`.
+    - Coexistencia con Takeover Humano: Si la conversación está en `automationMode === "HUMAN"` o `humanTakeoverUntil > now`, la IA se abstiene de intervenir.
+    - Detección de Handoff a Humano: Reconoce keywords configuradas (`"humano"`, `"asesor"`, `"agente"`), conmuta modo a `HUMAN`, emite `conversation.takeover_requested` en outbox y envía mensaje de aviso de traspaso sin respuesta de IA.
+    - Generación RAG: Carga historial de mensajes (últimos 6), recupera fragmentos semánticos relevantes, inyecta citas en system prompt, enruta completion con `AiResilientRouter`, encola mensaje saliente atómico con `actorType: "AI_BOT"` y `metadata: { senderType: "AI_BOT", citations }`, y registra tokens en `AiUsageLog`.
+  - Integración en Inbound Pipeline (`packages/database/src/inbound-event-dispatcher.ts`):
+    - Flujo: Mensaje entrante -> Reglas deterministas -> Si las reglas no enviaron mensaje y el agente está habilitado en `HYBRID_RULES_AI` o `FULL_AI` -> `processInboundAiTurn`.
+  - Endpoints REST en API Gateway (`apps/api/src/ai-agent-config.ts`):
+    - `GET /api/v1/ai/agent/config`: Consulta de configuración del agente del inquilino.
+    - `PUT /api/v1/ai/agent/config`: Actualización de directivas, umbrales y palabras clave de traspaso.
+    - Protegidos por `TenantUserSessionGuard`, `TenantContextGuard`, `TenantPermissionGuard` (`ai.settings.manage`) y `TenantEntitlementGuard` (`module.ai`).
+  - Verificación: 4 pruebas de integración en `ai-agent-dispatcher.integration.ts` (100% PASS); 5 pruebas de integración en `ai-agent-config.integration.ts` (100% PASS); 275/275 pruebas unitarias del monorepo PASS; typecheck y lint en 0 errores.
+
+
 - E10-S04 — Multi-Tenant RAG Engine, Vector Similarity Search & Knowledge Retrieval Pipeline: **PASS** (ADR-0045).
   - Motor Matemático y Formateador RAG (`services/ai-gateway/src/`):
     - `cosineSimilarity` y `rankChunksBySimilarity` (`vector-math.ts`): Cálculo puro de similitud de coseno, producto punto y magnitudes euclidianas, filtrado por umbral `minScore` y ordenamiento top-K.

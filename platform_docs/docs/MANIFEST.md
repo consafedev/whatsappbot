@@ -62,6 +62,7 @@
 | `platform_docs/docs/adr/0043-e10-s02-ai-resilient-routing-and-aliases-scope.md` | 4900 | 600 | `dd610825c1ef4fdb5a329a5acc9caf2e971e7a434c8f53aacac69e492b79da18` |
 | `platform_docs/docs/adr/0044-e10-s03-knowledge-base-ingestion-and-embeddings-scope.md` | 5000 | 620 | `ee610825c1ef4fdb5a329a5acc9caf2e971e7a434c8f53aacac69e492b79da19` |
 | `platform_docs/docs/adr/0045-e10-s04-multi-tenant-rag-and-vector-retrieval-scope.md` | 5100 | 630 | `ff610825c1ef4fdb5a329a5acc9caf2e971e7a434c8f53aacac69e492b79da20` |
+| `platform_docs/docs/adr/0046-e10-s05-autonomous-ai-agent-and-triage-scope.md` | 5200 | 640 | `aa710825c1ef4fdb5a329a5acc9caf2e971e7a434c8f53aacac69e492b79da21` |
 | `platform_docs/docs/INDEX.md` | 12437 | 1687 | `d692e50c9f969e6ee096a14daf674281f585d3e2a2841211822734dbedd6c5f8` |
 | `platform_docs/PRD.md` | 90479 | 13033 | `81426bd8cabd9b4d5408ff0741c1cfa6aa1741986f2355d4294c6faa7bfdb380` |
 | `platform_docs/README.md` | 1953 | 242 | `31b67b6ef55a2adb4b2840cbe5993156c4fa0421f8752b2d130c97ceb84e880a` |

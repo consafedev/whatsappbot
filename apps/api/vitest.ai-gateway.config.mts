@@ -7,6 +7,7 @@ export default defineConfig({
     include: [
       "src/ai-gateway.integration.ts",
       "src/knowledge-base.integration.ts",
+      "src/ai-agent-config.integration.ts",
     ],
     testTimeout: 30_000,
   },

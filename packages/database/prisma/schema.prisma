@@ -189,6 +189,7 @@ model Tenant {
   aiVirtualAliases    AiVirtualAlias[]
   knowledgeDocuments  KnowledgeDocument[]
   knowledgeChunks     KnowledgeChunk[]
+  aiAgentConfig       TenantAiAgentConfig?
 
   @@index([status], map: "tenant_status_idx")
   @@index([deploymentId], map: "tenant_deployment_id_idx")
@@ -785,3 +786,23 @@ model KnowledgeChunk {
   @@index([documentId, chunkIndex], map: "knowledge_chunk_document_index_idx")
   @@map("knowledge_chunk")
 }
+
+model TenantAiAgentConfig {
+  id                   String   @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  tenantId             String   @unique(map: "tenant_ai_agent_config_tenant_id_key") @map("tenant_id") @db.Uuid
+  automationMode       String   @default("HYBRID_RULES_AI") @map("automation_mode")
+  systemDirectives     String?  @map("system_directives") @db.Text
+  virtualAliasKey      String   @default("platform-smart") @map("virtual_alias_key")
+  minConfidenceScore   Decimal  @default(0.70) @map("min_confidence_score") @db.Decimal(3, 2)
+  humanHandoffKeywords Json?    @default("[\"humano\", \"asesor\", \"persona\", \"agente\", \"ayuda\"]") @map("human_handoff_keywords") @db.JsonB
+  outOfHoursReply      String?  @map("out_of_hours_reply") @db.Text
+  isEnabled            Boolean  @default(false) @map("is_enabled")
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt            DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  tenant               Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([tenantId, id], map: "tenant_ai_agent_config_tenant_id_id_key")
+  @@index([tenantId, isEnabled], map: "tenant_ai_agent_config_tenant_enabled_idx")
+  @@map("tenant_ai_agent_config")
+}
+

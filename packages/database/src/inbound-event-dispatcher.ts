@@ -32,6 +32,7 @@ import {
 } from "./rule-trigger-dispatcher";
 import { createTenantContext, type TenantContext } from "./tenant-context";
 import { TenantModuleEntitlementRequiredError } from "./tenant-entitlements";
+import { processInboundAiTurn, type AiTurnResult } from "./ai-agent-dispatcher";
 
 export type InboundEventDispatcherDatabase = ConversationManagerDatabase &
   Pick<
@@ -52,6 +53,7 @@ export type InboundEventDispatchResult = Readonly<
       kind: "inbound";
       result: InboundMessagePersistResult;
       ruleDispatchResults?: RuleTriggerDispatchResult[];
+      aiTurnResult?: AiTurnResult;
     }
   | { kind: "echo"; result: OutboundEchoReconcileResult }
   | { kind: "external_human"; result: ExternalHumanMessageResult }
@@ -210,6 +212,7 @@ export interface InboundEventDispatcher {
 
 export function createInboundEventDispatcher(
   database: InboundEventDispatcherDatabase,
+  options?: { encryptionSecret?: string | Uint8Array },
 ): InboundEventDispatcher {
   const inboundMessages: InboundMessageManager = createInboundMessageManager(database);
   const outboundEchoes: OutboundEchoManager = createOutboundEchoManager(database);
@@ -314,13 +317,40 @@ export function createInboundEventDispatcher(
               throw error;
             }
           }
-        }
 
-        return {
-          kind: "inbound",
-          result: persistResult,
-          ...(ruleDispatchResults.length > 0 ? { ruleDispatchResults } : {}),
-        };
+          const rulesSentMessage = ruleDispatchResults.some((r) =>
+            r.results.some((exec) => exec.actionsApplied.includes("SEND_MESSAGE")),
+          );
+
+          let aiTurnResult: AiTurnResult | undefined;
+          if (!rulesSentMessage && persistResult.message.textBody) {
+            try {
+              aiTurnResult = await processInboundAiTurn(
+                database as unknown as PrismaClient,
+                {
+                  tenantId: tenant.tenantId,
+                  conversationId: persistResult.conversationId,
+                  channelAccountId: persistResult.message.channelAccountId,
+                  contactId: resolvedContactId ?? "",
+                  inboundMessageId: persistResult.message.id,
+                  inboundText: persistResult.message.textBody,
+                  encryptionSecret:
+                    options?.encryptionSecret ??
+                    "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+                },
+              );
+            } catch {
+              // Gracefully continue so inbound persist does not fail
+            }
+          }
+
+          return {
+            kind: "inbound",
+            result: persistResult,
+            ...(ruleDispatchResults.length > 0 ? { ruleDispatchResults } : {}),
+            ...(aiTurnResult?.handled ? { aiTurnResult } : {}),
+          };
+        }
       }
       if (event.providerMessageId === null) throw new OutboundEchoNotMatchedError();
       const echoInput = {

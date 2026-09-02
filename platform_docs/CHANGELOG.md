@@ -8,6 +8,25 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Added
 
+- E10-S05 implementa el agente autónomo de WhatsApp, políticas de triaje, directivas de conocimiento y traspaso a operadores humanos (`Autonomous WhatsApp Agent, Triage Policy & Knowledge Directives`) en `packages/database` y `apps/api`:
+  - Configuración del Agente Autónomo (`packages/database/prisma/` & `@whatsapp-platform/database`):
+    - Modelo `TenantAiAgentConfig` en migración `20260902140000_add_tenant_ai_agent_config` (`automationMode`, `systemDirectives`, `virtualAliasKey`, `minConfidenceScore`, `humanHandoffKeywords`, `outOfHoursReply`, `isEnabled`).
+    - Gestor `ai-agent-config-manager.ts` (`getTenantAiAgentConfig`, `upsertTenantAiAgentConfig`).
+  - Orquestador del Agente de IA (`packages/database/src/ai-agent-dispatcher.ts`):
+    - `processInboundAiTurn`: Evaluación del turno entrante con validación operacional y derecho `module.ai`.
+    - Coexistencia con Takeover Humano: Si la conversación está en `automationMode === "HUMAN"` o con pausa activa, la IA se abstiene de intervenir.
+    - Detección de Handoff a Humano: Identifica keywords configuradas (`"humano"`, `"asesor"`, `"agente"`), conmuta la conversación a `HUMAN`, emite `conversation.takeover_requested` en outbox y envía mensaje de aviso de traspaso sin respuesta de IA.
+    - Generación RAG: Carga historial de mensajes (últimos 6), recupera fragmentos semánticos relevantes, inyecta citas en system prompt, enruta completion con `AiResilientRouter`, encola mensaje saliente atómico con `actorType: "AI_BOT"` y `metadata: { senderType: "AI_BOT", citations }`, y registra tokens en `AiUsageLog`.
+  - Integración en Inbound Pipeline (`packages/database/src/inbound-event-dispatcher.ts`):
+    - Flujo: Mensaje entrante -> Reglas deterministas -> Si las reglas no enviaron mensaje y el agente está habilitado en `HYBRID_RULES_AI` o `FULL_AI` -> `processInboundAiTurn`.
+  - Endpoints REST en API Gateway (`apps/api/src/ai-agent-config.ts`):
+    - `GET /api/v1/ai/agent/config`: Consulta de configuración del agente del inquilino.
+    - `PUT /api/v1/ai/agent/config`: Actualización de directivas, umbrales y palabras clave de traspaso.
+    - Protegidos por `TenantUserSessionGuard`, `TenantContextGuard`, `TenantPermissionGuard` (`ai.settings.manage`) y `TenantEntitlementGuard` (`module.ai`).
+  - Documentación normativa en ADR-0046.
+  - Verificación E10-S05: 4 pruebas de integración en `ai-agent-dispatcher.integration.ts` (100% PASS); 5 pruebas de integración en `ai-agent-config.integration.ts` (100% PASS); 275 pruebas unitarias del monorepo PASS; typecheck y lint en 0 errores.
+
+
 - E10-S04 implementa el motor de Generación Aumentada por Recuperación (RAG), cálculo de similitud de coseno, inyección contextual con citas estructuradas y endpoints de consulta semántica (`Multi-Tenant RAG Engine, Vector Similarity Search & Knowledge Retrieval Pipeline`) en `services/ai-gateway`, `packages/database` y `apps/api`:
   - Motor Matemático y Formateador RAG (`services/ai-gateway/src/`):
     - `cosineSimilarity` y `rankChunksBySimilarity` (`vector-math.ts`): Cálculo puro de producto punto y magnitudes euclidianas normalizadas, filtrado por umbral `minScore` y ordenamiento top-K.

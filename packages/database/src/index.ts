@@ -491,5 +491,22 @@ export {
   searchKnowledgeChunks,
   type SearchKnowledgeChunksInput,
 } from "./knowledge-search-manager";
+export {
+  getTenantAiAgentConfig,
+  upsertTenantAiAgentConfig,
+  AI_AGENT_AUTOMATION_MODES,
+  DEFAULT_HUMAN_HANDOFF_KEYWORDS,
+  type AiAgentAutomationMode,
+  type AiAgentConfigDatabase,
+  type TenantAiAgentConfigData,
+  type UpsertTenantAiAgentConfigInput,
+} from "./ai-agent-config-manager";
+export {
+  processInboundAiTurn,
+  type AiAgentDispatcherDatabase,
+  type AiTurnResult,
+  type ProcessAiTurnParams,
+} from "./ai-agent-dispatcher";
+
 
 
