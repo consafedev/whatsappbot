@@ -16,7 +16,7 @@ import {
   getTenantAiAgentConfig,
   upsertTenantAiAgentConfig,
   type AiAgentAutomationMode,
-  type AiGatewayDatabase,
+  type AiAgentConfigDatabase,
   type TenantAiAgentConfigData,
   type TenantContext,
 } from "@whatsapp-platform/database";
@@ -51,7 +51,7 @@ export interface UpdateAiAgentConfigDto {
 
 @Injectable()
 export class AiAgentConfigService {
-  constructor(@Inject(AI_GATEWAY_DATABASE) private readonly db: AiGatewayDatabase) {}
+  constructor(@Inject(AI_GATEWAY_DATABASE) private readonly db: AiAgentConfigDatabase) {}
 
   async getConfig(tenant: TenantContext): Promise<TenantAiAgentConfigData> {
     return getTenantAiAgentConfig(this.db, tenant.tenantId);

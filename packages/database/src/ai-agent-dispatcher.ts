@@ -7,7 +7,7 @@
   injectRagContextIntoMessages,
 } from "@whatsapp-platform/ai-gateway";
 import { getTenantAiAgentConfig } from "./ai-agent-config-manager";
-import { recordAiUsage } from "./ai-gateway-manager";
+import { recordAiUsage, resolveProviderAndKey } from "./ai-gateway-manager";
 import { resolveRoutesForAlias } from "./ai-routing-manager";
 import type { PrismaClient } from "./generated/prisma/client";
 import { searchKnowledgeChunks } from "./knowledge-search-manager";
@@ -170,22 +170,30 @@ export async function processInboundAiTurn(
       },
     );
 
-    await db.message.update({
-      where: { id: sentNotice.message.id },
-      data: {
-        actorType: "AI_BOT",
-        metadata: { senderType: "AI_BOT", handoff: true },
-      },
-    });
+    await db.$transaction([
+      db.message.update({
+        where: { id: sentNotice.message.id },
+        data: {
+          actorType: "AI_BOT",
+          metadata: { senderType: "AI_BOT", handoff: true },
+        },
+      }),
+    ]);
 
     return { handled: true, action: "human_handoff", noticeSent: true };
   }
 
-  // 5. RAG Retrieval
-  const embeddingProvider = createEmbeddingProvider("mock");
+  // 5. RAG Retrieval — resolve embedding provider from tenant config
+  const resolvedProvider = await resolveProviderAndKey(db, {
+    tenantId: params.tenantId,
+    encryptionSecret: params.encryptionSecret,
+  });
+  const embeddingType = resolvedProvider?.config.providerType ?? "mock";
+  const embeddingApiKey = resolvedProvider?.decryptedApiKey ?? "mock-key";
+  const embeddingProvider = createEmbeddingProvider(embeddingType);
   const embeddingRes = await embeddingProvider.generateEmbeddings(
     { input: trimmedInput },
-    { apiKey: "mock-key" },
+    { apiKey: embeddingApiKey },
   );
   const queryEmbedding = embeddingRes.embeddings[0] ?? [];
   const embeddingTokens = embeddingRes.totalTokens;
@@ -255,7 +263,7 @@ export async function processInboundAiTurn(
 
   const totalTokens = embeddingTokens + routedCompletion.totalTokens;
 
-  // 8. Enqueue Outbound Message with senderType: "AI_BOT"
+  // 8. Enqueue Outbound Message with senderType: "AI_BOT" — atomic send + metadata
   const outboundManager = createOutboundConversationMessageManager(db);
   const sentReply = await outboundManager.sendConversationMessage(
     tenantContext,
@@ -269,21 +277,23 @@ export async function processInboundAiTurn(
     },
   );
 
-  await db.message.update({
-    where: { id: sentReply.message.id },
-    data: {
-      actorType: "AI_BOT",
-      metadata: {
-        senderType: "AI_BOT",
-        citations: citations.map((c) => ({
-          documentId: c.documentId,
-          documentTitle: c.documentTitle,
-          chunkIndex: c.chunkIndex,
-          score: c.score,
-        })),
+  await db.$transaction([
+    db.message.update({
+      where: { id: sentReply.message.id },
+      data: {
+        actorType: "AI_BOT",
+        metadata: {
+          senderType: "AI_BOT",
+          citations: citations.map((c) => ({
+            documentId: c.documentId,
+            documentTitle: c.documentTitle,
+            chunkIndex: c.chunkIndex,
+            score: c.score,
+          })),
+        },
       },
-    },
-  });
+    }),
+  ]);
 
   // 9. Record Token Usage
   await recordAiUsage(db, {
