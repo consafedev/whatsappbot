@@ -1,8 +1,8 @@
 # STATUS.md — Estado operativo actual del proyecto
 
-**Actualizado:** 2026-09-02
+**Actualizado:** 2026-09-03
 **Versión de producto:** `0.0.0`  
-**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; **Epic 11 — Campaign Engine & Audience Broadcasts — IN PROGRESS (E11-S01 PASS)**.
+**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; **Epic 11 — Campaign Engine & Audience Broadcasts — IN PROGRESS (E11-S01, E11-S02 PASS)**.
 
 ## Current milestone
 
@@ -10,9 +10,30 @@ Epic 11 — Campaign Engine & Audience Broadcasts.
 
 ## Current epic
 
-**Epic 11 — Campaign Engine & Audience Broadcasts** — **IN PROGRESS** (ADR-0048)
+**Epic 11 — Campaign Engine & Audience Broadcasts** — **IN PROGRESS** (ADR-0048, ADR-0049)
 
 Estado por historia:
+
+- E11-S02 — Campaign Execution Dispatcher, Rate Limiting & Outbox Delivery: **PASS** (ADR-0049).
+  - Máquina de Estados y Ciclo de Vida (`packages/database/src/campaign-manager.ts`):
+    - `startCampaign`: Transición desde `DRAFT` o `PAUSED` a `RUNNING`, validación de `totalRecipients > 0` y registro de `startedAt`.
+    - `pauseCampaign`: Suspensión segura de campaña activa de `RUNNING` a `PAUSED`.
+    - `cancelCampaign`: Cancelación definitiva a `CANCELLED` impidiendo despachos adicionales.
+    - Validación de inquilino operativo mediante `assertTenantOperational`.
+  - Motor de Despacho de Lotes (`packages/database/src/campaign-execution-dispatcher.ts`):
+    - `dispatchCampaignBatch`: Procesamiento de miembros en estado `PENDING` acotado por `batchSize` o `rateLimitPerMinute` (default 30 msgs/min).
+    - Interpolación de variables de plantilla determinista mediante `renderTemplate`.
+    - Integración atómica con cola de salida (`outboundMessage`) en `$transaction` con clave de idempotencia `campaign:${campaign.id}:member:${member.id}`, metadatos de trazabilidad `{ source: "CAMPAIGN" }` y actualización de estado del miembro a `SENT` con `sentAt`.
+    - Incremento atómico del contador acumulado `campaign.sentCount`.
+    - Transición automática de la campaña a `COMPLETED` con marca `completedAt` al agotar los destinatarios pendientes.
+  - Endpoints REST en NestJS API Gateway (`apps/api/src/campaigns.ts`):
+    - `POST /api/v1/campaigns/:id/start` (200 OK) — Inicio / reanudación de campaña.
+    - `POST /api/v1/campaigns/:id/pause` (200 OK) — Pausa de campaña en ejecución.
+    - `POST /api/v1/campaigns/:id/cancel` (200 OK) — Cancelación de campaña.
+    - `POST /api/v1/campaigns/:id/dispatch-batch` (200 OK) — Despacho de lote de miembros pendientes.
+    - Protegidos por `@RequireEntitlements("module.campaigns")`, `TenantPermissionGuard` (`campaigns.manage`), `TenantContextGuard` y `TenantUserSessionGuard`.
+    - Aislamiento A/B estricto con rechazo 404 ante accesos cruzados entre inquilinos.
+  - Verificación: 8/8 pruebas de integración de base de datos PASS; 13/13 pruebas de integración de API PASS; monorepo typecheck y Biome en 0 errores.
 
 - E11-S01 — Campaign Data Model, Audience Segmentation & Message Templates: **PASS** (ADR-0048).
   - Esquema Relacional y Migración Prisma (`packages/database/prisma/`):

@@ -65,11 +65,21 @@ export {
   isWithinBusinessHours,
 } from "./business-hours-evaluator";
 export {
+  type CampaignExecutionDatabase,
+  type DispatchCampaignBatchInput,
+  type DispatchCampaignBatchResult,
+  dispatchCampaignBatch,
+} from "./campaign-execution-dispatcher";
+export {
   CampaignChannelAccountNotFoundError,
   type CampaignDatabase,
+  CampaignEmptyAudienceError,
+  CampaignInvalidStatusTransitionError,
   CampaignNotFoundError,
+  CampaignNotRunningError,
   type CreateCampaignInput,
   type CreateMessageTemplateInput,
+  cancelCampaign,
   createCampaign,
   createMessageTemplate,
   getCampaignDetail,
@@ -78,8 +88,10 @@ export {
   listCampaigns,
   listMessageTemplates,
   MessageTemplateNotFoundError,
+  pauseCampaign,
   type SegmentAudienceInput,
   segmentAndPopulateAudience,
+  startCampaign,
 } from "./campaign-manager";
 export {
   CHANNEL_ACCOUNT_STATUSES,

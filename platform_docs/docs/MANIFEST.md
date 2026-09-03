@@ -65,6 +65,7 @@
 | `platform_docs/docs/adr/0046-e10-s05-autonomous-ai-agent-and-triage-scope.md` | 5200 | 640 | `aa710825c1ef4fdb5a329a5acc9caf2e971e7a434c8f53aacac69e492b79da21` |
 | `platform_docs/docs/adr/0047-e10-s06-ai-console-and-management-ui-scope.md` | 5300 | 650 | `bb710825c1ef4fdb5a329a5acc9caf2e971e7a434c8f53aacac69e492b79da22` |
 | `platform_docs/docs/adr/0048-e11-s01-campaign-data-model-and-segmentation-scope.md` | 6667 | 820 | `5f3d6df66c9cbb3eaabe2f74076e09d6b6a3fa10269e905d1d4a906ec2fb8a75` |
+| `platform_docs/docs/adr/0049-e11-s02-campaign-execution-dispatcher-and-rate-limiting-scope.md` | 5099 | 640 | `8b868f3a0d39854d680c78bc35a64dc2cade54a1f1b988088ce304601c1ebff3` |
 | `platform_docs/docs/INDEX.md` | 12437 | 1687 | `d692e50c9f969e6ee096a14daf674281f585d3e2a2841211822734dbedd6c5f8` |
 | `platform_docs/PRD.md` | 90479 | 13033 | `81426bd8cabd9b4d5408ff0741c1cfa6aa1741986f2355d4294c6faa7bfdb380` |
 | `platform_docs/README.md` | 1953 | 242 | `31b67b6ef55a2adb4b2840cbe5993156c4fa0421f8752b2d130c97ceb84e880a` |

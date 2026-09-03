@@ -16,15 +16,22 @@ import {
 } from "@nestjs/common";
 import {
   CampaignChannelAccountNotFoundError,
-  type CampaignDatabase,
+  CampaignEmptyAudienceError,
+  type CampaignExecutionDatabase,
+  CampaignInvalidStatusTransitionError,
   CampaignNotFoundError,
+  CampaignNotRunningError,
+  cancelCampaign,
   createCampaign,
   createMessageTemplate,
+  dispatchCampaignBatch,
   getCampaignDetail,
   listCampaigns,
   listMessageTemplates,
   MessageTemplateNotFoundError,
+  pauseCampaign,
   segmentAndPopulateAudience,
+  startCampaign,
   type TenantContext,
 } from "@whatsapp-platform/database";
 import type { PermissionKey } from "@whatsapp-platform/rbac";
@@ -78,7 +85,7 @@ export interface ListCampaignsQuery {
 
 @Injectable()
 export class CampaignsService {
-  constructor(@Inject(CAMPAIGNS_DATABASE) private readonly database: CampaignDatabase) {}
+  constructor(@Inject(CAMPAIGNS_DATABASE) private readonly database: CampaignExecutionDatabase) {}
 
   async createTemplate(context: TenantContext, dto: CreateMessageTemplateDto) {
     if (!dto.name?.trim()) {
@@ -175,6 +182,78 @@ export class CampaignsService {
       offset,
     });
   }
+
+  async startCampaign(context: TenantContext, campaignId: string) {
+    try {
+      return await startCampaign(this.database, {
+        tenantId: context.tenantId,
+        campaignId,
+      });
+    } catch (err: unknown) {
+      if (err instanceof CampaignNotFoundError) {
+        throw new NotFoundException(err.message);
+      }
+      if (
+        err instanceof CampaignInvalidStatusTransitionError ||
+        err instanceof CampaignEmptyAudienceError
+      ) {
+        throw new BadRequestException(err.message);
+      }
+      throw err;
+    }
+  }
+
+  async pauseCampaign(context: TenantContext, campaignId: string) {
+    try {
+      return await pauseCampaign(this.database, {
+        tenantId: context.tenantId,
+        campaignId,
+      });
+    } catch (err: unknown) {
+      if (err instanceof CampaignNotFoundError) {
+        throw new NotFoundException(err.message);
+      }
+      if (err instanceof CampaignInvalidStatusTransitionError) {
+        throw new BadRequestException(err.message);
+      }
+      throw err;
+    }
+  }
+
+  async cancelCampaign(context: TenantContext, campaignId: string) {
+    try {
+      return await cancelCampaign(this.database, {
+        tenantId: context.tenantId,
+        campaignId,
+      });
+    } catch (err: unknown) {
+      if (err instanceof CampaignNotFoundError) {
+        throw new NotFoundException(err.message);
+      }
+      if (err instanceof CampaignInvalidStatusTransitionError) {
+        throw new BadRequestException(err.message);
+      }
+      throw err;
+    }
+  }
+
+  async dispatchBatch(context: TenantContext, campaignId: string, batchSize?: number) {
+    try {
+      return await dispatchCampaignBatch(this.database, {
+        tenantId: context.tenantId,
+        campaignId,
+        batchSize,
+      });
+    } catch (err: unknown) {
+      if (err instanceof CampaignNotFoundError) {
+        throw new NotFoundException(err.message);
+      }
+      if (err instanceof CampaignNotRunningError) {
+        throw new BadRequestException(err.message);
+      }
+      throw err;
+    }
+  }
 }
 
 @Controller("api/v1/campaigns")
@@ -243,5 +322,50 @@ export class CampaignsController {
   ) {
     const campaign = await this.service.getCampaign(context, campaignId);
     return { success: true, data: campaign };
+  }
+
+  @Post(":id/start")
+  @HttpCode(HttpStatus.OK)
+  @campaignsAuthorized("campaigns.manage")
+  async startCampaign(
+    @CurrentTenantContext() context: TenantContext,
+    @Param("id") campaignId: string,
+  ) {
+    const campaign = await this.service.startCampaign(context, campaignId);
+    return { success: true, data: campaign };
+  }
+
+  @Post(":id/pause")
+  @HttpCode(HttpStatus.OK)
+  @campaignsAuthorized("campaigns.manage")
+  async pauseCampaign(
+    @CurrentTenantContext() context: TenantContext,
+    @Param("id") campaignId: string,
+  ) {
+    const campaign = await this.service.pauseCampaign(context, campaignId);
+    return { success: true, data: campaign };
+  }
+
+  @Post(":id/cancel")
+  @HttpCode(HttpStatus.OK)
+  @campaignsAuthorized("campaigns.manage")
+  async cancelCampaign(
+    @CurrentTenantContext() context: TenantContext,
+    @Param("id") campaignId: string,
+  ) {
+    const campaign = await this.service.cancelCampaign(context, campaignId);
+    return { success: true, data: campaign };
+  }
+
+  @Post(":id/dispatch-batch")
+  @HttpCode(HttpStatus.OK)
+  @campaignsAuthorized("campaigns.manage")
+  async dispatchBatch(
+    @CurrentTenantContext() context: TenantContext,
+    @Param("id") campaignId: string,
+    @Body() body?: { batchSize?: number },
+  ) {
+    const result = await this.service.dispatchBatch(context, campaignId, body?.batchSize);
+    return { success: true, data: result };
   }
 }

@@ -8,6 +8,28 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Added
 
+- E11-S02 implementa el despachador de ejecución de campañas masivas, limitación de tasa y entrega mediante outbox transaccional (`Campaign Execution Dispatcher, Rate Limiting & Outbox Delivery`) en `packages/database` y `apps/api`:
+  - Máquina de Estados y Ciclo de Vida (`packages/database/src/campaign-manager.ts`):
+    - `startCampaign`: Transición desde `DRAFT` o `PAUSED` a `RUNNING`, validación de `totalRecipients > 0` y registro de `startedAt`.
+    - `pauseCampaign`: Suspensión segura de campaña activa de `RUNNING` a `PAUSED`.
+    - `cancelCampaign`: Cancelación definitiva a `CANCELLED` impidiendo despachos adicionales.
+    - Validación de inquilino operativo mediante `assertTenantOperational`.
+  - Motor de Despacho de Lotes (`packages/database/src/campaign-execution-dispatcher.ts`):
+    - `dispatchCampaignBatch`: Procesamiento de miembros en estado `PENDING` acotado por `batchSize` o `rateLimitPerMinute` (default 30 msgs/min).
+    - Interpolación de variables de plantilla determinista mediante `renderTemplate`.
+    - Integración atómica con cola de salida (`outboundMessage`) en `$transaction` con clave de idempotencia `campaign:${campaign.id}:member:${member.id}`, metadatos de trazabilidad `{ source: "CAMPAIGN" }` y actualización de estado del miembro a `SENT` con `sentAt`.
+    - Incremento atómico del contador acumulado `campaign.sentCount`.
+    - Transición automática de la campaña a `COMPLETED` con marca `completedAt` al agotar los destinatarios pendientes.
+  - Endpoints REST en NestJS API Gateway (`apps/api/src/campaigns.ts`):
+    - `POST /api/v1/campaigns/:id/start` (200 OK) — Inicio / reanudación de campaña.
+    - `POST /api/v1/campaigns/:id/pause` (200 OK) — Pausa de campaña en ejecución.
+    - `POST /api/v1/campaigns/:id/cancel` (200 OK) — Cancelación de campaña.
+    - `POST /api/v1/campaigns/:id/dispatch-batch` (200 OK) — Despacho de lote de miembros pendientes.
+    - Protegidos por `@RequireEntitlements("module.campaigns")`, `TenantPermissionGuard` (`campaigns.manage`), `TenantContextGuard` y `TenantUserSessionGuard`.
+    - Aislamiento A/B estricto con rechazo 404 ante accesos cruzados entre inquilinos.
+  - Documentación normativa en ADR-0049 (`0049-e11-s02-campaign-execution-dispatcher-and-rate-limiting-scope.md`).
+  - Verificación E11-S02: 8/8 pruebas de integración de base de datos PASS; 13/13 pruebas de integración de API PASS; monorepo typecheck y Biome en 0 errores.
+
 - E11-S01 implementa el modelo relacional de campañas, motor de segmentación de audiencias y gestión de plantillas de mensajes (`Campaign Data Model, Audience Segmentation & Message Templates`) en `packages/database`, `packages/rbac` y `apps/api`:
   - Esquema Relacional y Migración Prisma (`packages/database/prisma/`):
     - Modelos `MessageTemplate`, `Campaign` y `CampaignAudienceMember` mapeados a tablas en snake_case con IDs UUIDv7.

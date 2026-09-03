@@ -38,6 +38,32 @@ export class CampaignChannelAccountNotFoundError extends Error {
   }
 }
 
+export class CampaignInvalidStatusTransitionError extends Error {
+  readonly code = "CAMPAIGN_INVALID_STATUS_TRANSITION";
+  constructor(campaignId: string, currentStatus: string, targetStatus: string, reason?: string) {
+    super(
+      `Cannot transition campaign '${campaignId}' from status '${currentStatus}' to '${targetStatus}'${reason ? `: ${reason}` : ""}`,
+    );
+    this.name = "CampaignInvalidStatusTransitionError";
+  }
+}
+
+export class CampaignEmptyAudienceError extends Error {
+  readonly code = "CAMPAIGN_EMPTY_AUDIENCE";
+  constructor(campaignId: string) {
+    super(`Campaign '${campaignId}' has no audience members (totalRecipients is 0)`);
+    this.name = "CampaignEmptyAudienceError";
+  }
+}
+
+export class CampaignNotRunningError extends Error {
+  readonly code = "CAMPAIGN_NOT_RUNNING";
+  constructor(campaignId: string, currentStatus: string) {
+    super(`Campaign '${campaignId}' is not running (current status: '${currentStatus}')`);
+    this.name = "CampaignNotRunningError";
+  }
+}
+
 export interface CreateMessageTemplateInput {
   readonly tenantId: string;
   readonly name: string;
@@ -323,4 +349,132 @@ export async function listCampaigns(database: CampaignDatabase, input: ListCampa
   ]);
 
   return { campaigns, total, limit, offset };
+}
+
+export async function startCampaign(
+  database: CampaignDatabase,
+  input: { tenantId: string; campaignId: string },
+) {
+  await assertTenantOperational(createTenantContext(input.tenantId), database);
+
+  const campaign = await database.campaign.findUnique({
+    where: {
+      tenantId_id: {
+        tenantId: input.tenantId,
+        id: input.campaignId,
+      },
+    },
+  });
+
+  if (!campaign) {
+    throw new CampaignNotFoundError(input.campaignId);
+  }
+
+  if (campaign.status !== "DRAFT" && campaign.status !== "PAUSED") {
+    throw new CampaignInvalidStatusTransitionError(
+      input.campaignId,
+      campaign.status,
+      "RUNNING",
+      "Campaign must be in DRAFT or PAUSED state to start",
+    );
+  }
+
+  if (campaign.totalRecipients <= 0) {
+    throw new CampaignEmptyAudienceError(input.campaignId);
+  }
+
+  return database.campaign.update({
+    where: {
+      tenantId_id: {
+        tenantId: input.tenantId,
+        id: input.campaignId,
+      },
+    },
+    data: {
+      status: "RUNNING",
+      startedAt: campaign.startedAt ?? new Date(),
+    },
+  });
+}
+
+export async function pauseCampaign(
+  database: CampaignDatabase,
+  input: { tenantId: string; campaignId: string },
+) {
+  await assertTenantOperational(createTenantContext(input.tenantId), database);
+
+  const campaign = await database.campaign.findUnique({
+    where: {
+      tenantId_id: {
+        tenantId: input.tenantId,
+        id: input.campaignId,
+      },
+    },
+  });
+
+  if (!campaign) {
+    throw new CampaignNotFoundError(input.campaignId);
+  }
+
+  if (campaign.status !== "RUNNING") {
+    throw new CampaignInvalidStatusTransitionError(
+      input.campaignId,
+      campaign.status,
+      "PAUSED",
+      "Only RUNNING campaigns can be paused",
+    );
+  }
+
+  return database.campaign.update({
+    where: {
+      tenantId_id: {
+        tenantId: input.tenantId,
+        id: input.campaignId,
+      },
+    },
+    data: {
+      status: "PAUSED",
+    },
+  });
+}
+
+export async function cancelCampaign(
+  database: CampaignDatabase,
+  input: { tenantId: string; campaignId: string },
+) {
+  await assertTenantOperational(createTenantContext(input.tenantId), database);
+
+  const campaign = await database.campaign.findUnique({
+    where: {
+      tenantId_id: {
+        tenantId: input.tenantId,
+        id: input.campaignId,
+      },
+    },
+  });
+
+  if (!campaign) {
+    throw new CampaignNotFoundError(input.campaignId);
+  }
+
+  if (campaign.status === "COMPLETED" || campaign.status === "CANCELLED") {
+    throw new CampaignInvalidStatusTransitionError(
+      input.campaignId,
+      campaign.status,
+      "CANCELLED",
+      "Cannot cancel an already completed or cancelled campaign",
+    );
+  }
+
+  return database.campaign.update({
+    where: {
+      tenantId_id: {
+        tenantId: input.tenantId,
+        id: input.campaignId,
+      },
+    },
+    data: {
+      status: "CANCELLED",
+    },
+  });
 }
