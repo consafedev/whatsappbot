@@ -241,7 +241,7 @@ export async function segmentAndPopulateAudience(
   });
 
   await database.campaign.update({
-    where: { id: input.campaignId },
+    where: { tenantId_id: { tenantId: input.tenantId, id: input.campaignId } },
     data: { totalRecipients },
   });
 
