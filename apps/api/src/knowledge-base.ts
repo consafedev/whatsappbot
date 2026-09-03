@@ -1,4 +1,5 @@
 ﻿import {
+  applyDecorators,
   BadRequestException,
   Body,
   Controller,
@@ -13,24 +14,23 @@
   Post,
   Query,
   UseGuards,
-  applyDecorators,
 } from "@nestjs/common";
 import {
   type ChunkTextOptions,
-  type RagCitation,
   createEmbeddingProvider,
+  type RagCitation,
 } from "@whatsapp-platform/ai-gateway";
 import {
-  KnowledgeDocumentNotFoundError,
+  type AiGatewayDatabase,
   createKnowledgeDocument,
   deleteKnowledgeDocument,
   getKnowledgeDocumentDetail,
   indexKnowledgeDocument,
+  type KnowledgeDocumentDetail,
+  KnowledgeDocumentNotFoundError,
+  type KnowledgeDocumentSummary,
   listKnowledgeDocuments,
   searchKnowledgeChunks,
-  type AiGatewayDatabase,
-  type KnowledgeDocumentDetail,
-  type KnowledgeDocumentSummary,
   type TenantContext,
 } from "@whatsapp-platform/database";
 import type { PermissionKey } from "@whatsapp-platform/rbac";
@@ -82,9 +82,7 @@ export interface ListKnowledgeDocumentsQuery {
 
 @Injectable()
 export class KnowledgeBaseService {
-  constructor(
-    @Inject(AI_GATEWAY_DATABASE) private readonly database: AiGatewayDatabase,
-  ) {}
+  constructor(@Inject(AI_GATEWAY_DATABASE) private readonly database: AiGatewayDatabase) {}
 
   async createAndIndexDocument(
     context: TenantContext,

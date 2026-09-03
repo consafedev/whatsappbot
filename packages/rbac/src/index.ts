@@ -26,6 +26,8 @@ export const PERMISSION_CATALOG = [
   { key: "rules.read", description: "Read automation rules" },
   { key: "rules.manage", description: "Manage automation rules" },
   { key: "ai.settings.manage", description: "Manage AI settings" },
+  { key: "campaigns.read", description: "Read campaigns and templates" },
+  { key: "campaigns.manage", description: "Manage campaigns and templates" },
   { key: "integrations.manage", description: "Manage integrations" },
   { key: "reports.read", description: "Read reports" },
   { key: "audit.read", description: "Read tenant audit records" },

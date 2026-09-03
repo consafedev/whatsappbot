@@ -1,9 +1,4 @@
-import {
-  AiAuthenticationError,
-  AiGatewayError,
-  AiRateLimitError,
-  AiTimeoutError,
-} from "../types";
+import { AiAuthenticationError, AiGatewayError, AiRateLimitError, AiTimeoutError } from "../types";
 import type { AiEmbeddingProvider, EmbeddingRequest, EmbeddingResponse } from "./types";
 
 interface OpenAiEmbeddingApiResponse {
@@ -66,7 +61,9 @@ export class OpenAiCompatibleEmbeddingProvider implements AiEmbeddingProvider {
       }
 
       if (response.status === 401 || response.status === 403) {
-        throw new AiAuthenticationError(`OpenAI Compatible embedding authentication failed: ${errorBody}`);
+        throw new AiAuthenticationError(
+          `OpenAI Compatible embedding authentication failed: ${errorBody}`,
+        );
       }
       if (response.status === 429) {
         throw new AiRateLimitError(`OpenAI Compatible embedding rate limit exceeded: ${errorBody}`);
@@ -86,7 +83,8 @@ export class OpenAiCompatibleEmbeddingProvider implements AiEmbeddingProvider {
 
     const sortedData = [...data.data].sort((a, b) => a.index - b.index);
     const embeddings = sortedData.map((d) => d.embedding);
-    const totalTokens = data.usage?.total_tokens ?? inputs.reduce((acc, t) => acc + Math.ceil(t.length / 4), 0);
+    const totalTokens =
+      data.usage?.total_tokens ?? inputs.reduce((acc, t) => acc + Math.ceil(t.length / 4), 0);
 
     return {
       embeddings,

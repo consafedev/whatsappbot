@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import {
-  type TenantAiAgentConfig,
-  type UpdateAiAgentConfigInput,
   formatKeywordsOutput,
   parseKeywordsInput,
+  type TenantAiAgentConfig,
+  type UpdateAiAgentConfigInput,
   updateAiAgentConfig,
 } from "./ai-view-model";
 
@@ -23,13 +23,15 @@ export function AiAgentSettingsTab({
   showToast,
 }: AiAgentSettingsTabProps) {
   const [isEnabled, setIsEnabled] = useState(config.isEnabled);
-  const [automationMode, setAutomationMode] = useState<"RULES_ONLY" | "HYBRID_RULES_AI" | "FULL_AI">(
-    config.automationMode,
-  );
+  const [automationMode, setAutomationMode] = useState<
+    "RULES_ONLY" | "HYBRID_RULES_AI" | "FULL_AI"
+  >(config.automationMode);
   const [systemDirectives, setSystemDirectives] = useState(config.systemDirectives ?? "");
   const [virtualAliasKey, setVirtualAliasKey] = useState(config.virtualAliasKey);
   const [minConfidenceScore, setMinConfidenceScore] = useState(config.minConfidenceScore);
-  const [keywordsText, setKeywordsText] = useState(formatKeywordsOutput(config.humanHandoffKeywords));
+  const [keywordsText, setKeywordsText] = useState(
+    formatKeywordsOutput(config.humanHandoffKeywords),
+  );
   const [outOfHoursReply, setOutOfHoursReply] = useState(config.outOfHoursReply ?? "");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -78,7 +80,8 @@ export function AiAgentSettingsTab({
               Estado del Agente Autónomo
             </h3>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-              Habilita o deshabilita la intervención del bot de IA en las conversaciones entrantes de WhatsApp.
+              Habilita o deshabilita la intervención del bot de IA en las conversaciones entrantes
+              de WhatsApp.
             </p>
           </div>
           <label className="relative inline-flex items-center cursor-pointer">
@@ -124,7 +127,8 @@ export function AiAgentSettingsTab({
               </span>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
-              Evalúa primero las reglas deterministas. Si ninguna regla envía un mensaje, la IA responde con RAG.
+              Evalúa primero las reglas deterministas. Si ninguna regla envía un mensaje, la IA
+              responde con RAG.
             </p>
           </label>
 
@@ -149,7 +153,8 @@ export function AiAgentSettingsTab({
               </span>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
-              El agente de IA atiende todas las consultas de los clientes que no estén tomadas por un operador.
+              El agente de IA atiende todas las consultas de los clientes que no estén tomadas por
+              un operador.
             </p>
           </label>
 
@@ -174,7 +179,8 @@ export function AiAgentSettingsTab({
               </span>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
-              Desactiva las respuestas generativas de IA y opera exclusivamente con automatizaciones deterministas.
+              Desactiva las respuestas generativas de IA y opera exclusivamente con automatizaciones
+              deterministas.
             </p>
           </label>
         </div>
@@ -186,7 +192,8 @@ export function AiAgentSettingsTab({
           Personalidad y Directivas del Asistente
         </h3>
         <p className="text-sm text-slate-500 dark:text-slate-400">
-          Instrucciones persistentes inyectadas en el prompt de sistema para controlar el tono, restricciones y directrices de atención.
+          Instrucciones persistentes inyectadas en el prompt de sistema para controlar el tono,
+          restricciones y directrices de atención.
         </p>
 
         <div>
@@ -259,7 +266,8 @@ export function AiAgentSettingsTab({
           Traspaso a Operador Humano (Human Handoff)
         </h3>
         <p className="text-sm text-slate-500 dark:text-slate-400">
-          Si el contacto escribe alguna de estas palabras clave, el bot transfiere inmediatamente la conversación a un asesor humano y detiene las respuestas de IA.
+          Si el contacto escribe alguna de estas palabras clave, el bot transfiere inmediatamente la
+          conversación a un asesor humano y detiene las respuestas de IA.
         </p>
 
         <div>

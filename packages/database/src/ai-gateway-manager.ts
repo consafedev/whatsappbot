@@ -1,15 +1,24 @@
 import {
-  KeyPoolSelector,
   decryptApiKey,
   encryptApiKey,
-  maskApiKey,
   type KeyPoolEntry,
+  KeyPoolSelector,
+  maskApiKey,
 } from "@whatsapp-platform/ai-gateway";
 import { Prisma, type PrismaClient } from "./generated/prisma/client";
 
 export type AiGatewayDatabase = Pick<
   PrismaClient,
-  "aiProviderConfig" | "aiKeyPool" | "aiUsageLog" | "aiVirtualAlias" | "aiModelRoute" | "knowledgeDocument" | "knowledgeChunk" | "tenantAiAgentConfig" | "tenant" | "$transaction"
+  | "aiProviderConfig"
+  | "aiKeyPool"
+  | "aiUsageLog"
+  | "aiVirtualAlias"
+  | "aiModelRoute"
+  | "knowledgeDocument"
+  | "knowledgeChunk"
+  | "tenantAiAgentConfig"
+  | "tenant"
+  | "$transaction"
 >;
 
 export interface CreateAiProviderConfigInput {
@@ -125,10 +134,7 @@ export async function createAiProviderConfig(
   });
 }
 
-export async function addKeyToPool(
-  database: AiGatewayDatabase,
-  input: AddKeyToPoolInput,
-) {
+export async function addKeyToPool(database: AiGatewayDatabase, input: AddKeyToPoolInput) {
   const encryptedKey = encryptApiKey(input.plainApiKey, input.encryptionSecret);
   const keyMask = maskApiKey(input.plainApiKey);
 
@@ -144,10 +150,7 @@ export async function addKeyToPool(
   });
 }
 
-export async function updateKeyStatus(
-  database: AiGatewayDatabase,
-  input: UpdateKeyStatusInput,
-) {
+export async function updateKeyStatus(database: AiGatewayDatabase, input: UpdateKeyStatusInput) {
   return database.aiKeyPool.update({
     where: { id: input.keyId },
     data: {
@@ -164,9 +167,7 @@ export async function resolveProviderAndKey(
 ): Promise<ResolvedProviderAndKey | null> {
   const now = input.now ?? new Date();
 
-  let config:
-    | (Prisma.AiProviderConfigGetPayload<{ include: { keyPool: true } }>)
-    | null = null;
+  let config: Prisma.AiProviderConfigGetPayload<{ include: { keyPool: true } }> | null = null;
 
   if (input.providerConfigId) {
     config = await database.aiProviderConfig.findFirst({
@@ -277,10 +278,7 @@ export async function resolveProviderAndKey(
   };
 }
 
-export async function recordAiUsage(
-  database: AiGatewayDatabase,
-  input: RecordAiUsageInput,
-) {
+export async function recordAiUsage(database: AiGatewayDatabase, input: RecordAiUsageInput) {
   const totalTokens = input.totalTokens ?? input.promptTokens + input.completionTokens;
   const cost =
     input.costEstimatedUsd !== undefined

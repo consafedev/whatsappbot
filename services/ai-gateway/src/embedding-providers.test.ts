@@ -2,10 +2,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   AiAuthenticationError,
   AiRateLimitError,
+  createEmbeddingProvider,
   GoogleGeminiEmbeddingProvider,
   MockEmbeddingProvider,
   OpenAiCompatibleEmbeddingProvider,
-  createEmbeddingProvider,
 } from "./index";
 
 describe("Embedding Providers Unit Tests", () => {
@@ -57,9 +57,7 @@ describe("Embedding Providers Unit Tests", () => {
         new Response(
           JSON.stringify({
             object: "list",
-            data: [
-              { object: "embedding", index: 0, embedding: [0.1, 0.2, 0.3] },
-            ],
+            data: [{ object: "embedding", index: 0, embedding: [0.1, 0.2, 0.3] }],
             model: "text-embedding-3-small",
             usage: { prompt_tokens: 5, total_tokens: 5 },
           }),
@@ -115,9 +113,7 @@ describe("Embedding Providers Unit Tests", () => {
       globalThis.fetch = vi.fn().mockResolvedValue(
         new Response(
           JSON.stringify({
-            embeddings: [
-              { values: [0.5, 0.6, 0.7] },
-            ],
+            embeddings: [{ values: [0.5, 0.6, 0.7] }],
           }),
           { status: 200, headers: { "Content-Type": "application/json" } },
         ),
@@ -137,8 +133,12 @@ describe("Embedding Providers Unit Tests", () => {
   describe("createEmbeddingProvider Factory", () => {
     it("instantiates correct provider by type name", () => {
       expect(createEmbeddingProvider("mock")).toBeInstanceOf(MockEmbeddingProvider);
-      expect(createEmbeddingProvider("openai_compatible")).toBeInstanceOf(OpenAiCompatibleEmbeddingProvider);
-      expect(createEmbeddingProvider("google_gemini")).toBeInstanceOf(GoogleGeminiEmbeddingProvider);
+      expect(createEmbeddingProvider("openai_compatible")).toBeInstanceOf(
+        OpenAiCompatibleEmbeddingProvider,
+      );
+      expect(createEmbeddingProvider("google_gemini")).toBeInstanceOf(
+        GoogleGeminiEmbeddingProvider,
+      );
     });
   });
 });

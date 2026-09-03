@@ -28,7 +28,9 @@ describe("RAG Context Builder Unit Tests", () => {
     const prompt = buildRagContextPrompt(citations);
 
     expect(prompt).toContain("--- CONTEXTO DE LA BASE DE CONOCIMIENTO ---");
-    expect(prompt).toContain("[Fuente: Política de Devoluciones | Fragmento #0 | Relevancia: 94.2%]");
+    expect(prompt).toContain(
+      "[Fuente: Política de Devoluciones | Fragmento #0 | Relevancia: 94.2%]",
+    );
     expect(prompt).toContain("Las devoluciones son gratuitas dentro de los primeros 30 días.");
     expect(prompt).toContain("[Fuente: Preguntas Frecuentes | Fragmento #2 | Relevancia: 81.5%]");
     expect(prompt).toContain("El tiempo estimado de entrega es de 24 a 48 horas hábiles.");

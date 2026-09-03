@@ -29,6 +29,8 @@ const documentedPermissionKeys = [
   "rules.read",
   "rules.manage",
   "ai.settings.manage",
+  "campaigns.read",
+  "campaigns.manage",
   "integrations.manage",
   "reports.read",
   "audit.read",
@@ -40,7 +42,7 @@ describe("RBAC catalogs", () => {
     const actual = PERMISSION_CATALOG.map(({ key }) => key);
     expect(actual).toEqual(documentedPermissionKeys);
     expect(new Set(actual).size).toBe(actual.length);
-    expect(actual).toHaveLength(31);
+    expect(actual).toHaveLength(33);
   });
 
   it("recognizes only canonical permission keys", () => {

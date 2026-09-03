@@ -54,7 +54,14 @@ export class AiGatewayError extends Error {
   readonly statusCode?: number | undefined;
   readonly isRetryable: boolean;
 
-  constructor(message: string, options?: { statusCode?: number | undefined; isRetryable?: boolean | undefined; cause?: unknown }) {
+  constructor(
+    message: string,
+    options?: {
+      statusCode?: number | undefined;
+      isRetryable?: boolean | undefined;
+      cause?: unknown;
+    },
+  ) {
     super(message, { cause: options?.cause });
     this.statusCode = options?.statusCode;
     this.isRetryable = options?.isRetryable ?? false;

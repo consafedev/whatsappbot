@@ -11,6 +11,7 @@ export const MODULE_ENTITLEMENT_KEYS = [
   "module.documents",
   "module.customer_portal",
   "module.ai",
+  "module.campaigns",
   "module.integrations",
   "module.white_label",
 ] as const;

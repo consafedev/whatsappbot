@@ -1,4 +1,53 @@
 export {
+  AI_AGENT_AUTOMATION_MODES,
+  type AiAgentAutomationMode,
+  type AiAgentConfigDatabase,
+  DEFAULT_HUMAN_HANDOFF_KEYWORDS,
+  getTenantAiAgentConfig,
+  type TenantAiAgentConfigData,
+  type UpsertTenantAiAgentConfigInput,
+  upsertTenantAiAgentConfig,
+} from "./ai-agent-config-manager";
+export {
+  type AiAgentDispatcherDatabase,
+  type AiTurnResult,
+  type ProcessAiTurnParams,
+  processInboundAiTurn,
+} from "./ai-agent-dispatcher";
+export {
+  type AddKeyToPoolInput,
+  type AiGatewayDatabase,
+  addKeyToPool,
+  type CreateAiProviderConfigInput,
+  createAiProviderConfig,
+  type GetTenantAiUsageSummaryInput,
+  getTenantAiUsageSummary,
+  type RecordAiUsageInput,
+  type ResolvedProviderAndKey,
+  type ResolveProviderAndKeyInput,
+  recordAiUsage,
+  resolveProviderAndKey,
+  type TenantAiUsageSummary,
+  type UpdateKeyStatusInput,
+  updateKeyStatus,
+} from "./ai-gateway-manager";
+export {
+  type AiRoutingDatabase,
+  type CreateModelRouteInput,
+  type CreateVirtualAliasInput,
+  createVirtualAlias,
+  listTenantAliases,
+  type ResolvedVirtualAlias,
+  type ResolveRoutesForAliasInput,
+  resolveRoutesForAlias,
+  seedDefaultPlatformAliases,
+  type UpdateVirtualAliasRoutesInput,
+  updateVirtualAliasRoutes,
+  VirtualAliasConflictError,
+  type VirtualAliasListItem,
+  VirtualAliasNotFoundError,
+} from "./ai-routing-manager";
+export {
   ASSIGNMENT_POLICIES,
   type AssignmentPolicy,
   type AssignmentPolicyEngine,
@@ -15,6 +64,23 @@ export {
   type DaySchedule,
   isWithinBusinessHours,
 } from "./business-hours-evaluator";
+export {
+  CampaignChannelAccountNotFoundError,
+  type CampaignDatabase,
+  CampaignNotFoundError,
+  type CreateCampaignInput,
+  type CreateMessageTemplateInput,
+  createCampaign,
+  createMessageTemplate,
+  getCampaignDetail,
+  type ListCampaignsInput,
+  type ListMessageTemplatesInput,
+  listCampaigns,
+  listMessageTemplates,
+  MessageTemplateNotFoundError,
+  type SegmentAudienceInput,
+  segmentAndPopulateAudience,
+} from "./campaign-manager";
 export {
   CHANNEL_ACCOUNT_STATUSES,
   type ChannelAccountCreateInput,
@@ -215,6 +281,26 @@ export {
   InboxQueryValidationError,
 } from "./inbox-query-manager";
 export {
+  type CreateKnowledgeDocumentInput,
+  createKnowledgeDocument,
+  type DeleteKnowledgeDocumentInput,
+  deleteKnowledgeDocument,
+  type GetKnowledgeDocumentDetailInput,
+  getKnowledgeDocumentDetail,
+  type IndexKnowledgeDocumentInput,
+  indexKnowledgeDocument,
+  type KnowledgeBaseDatabase,
+  type KnowledgeDocumentDetail,
+  KnowledgeDocumentNotFoundError,
+  type KnowledgeDocumentSummary,
+  type ListKnowledgeDocumentsInput,
+  listKnowledgeDocuments,
+} from "./knowledge-base-manager";
+export {
+  type SearchKnowledgeChunksInput,
+  searchKnowledgeChunks,
+} from "./knowledge-search-manager";
+export {
   createOrganizationUnitManager,
   ORGANIZATION_UNIT_MAX_DEPTH,
   OrganizationUnitCompanyTypeReservedError,
@@ -351,6 +437,10 @@ export {
   type TakeoverManagerDatabase,
 } from "./takeover-manager";
 export {
+  extractTemplateVariables,
+  renderTemplate,
+} from "./template-renderer";
+export {
   createTenantAppBootstrap,
   type TenantAppBootstrap,
   type TenantAppBootstrapDatabase,
@@ -438,75 +528,3 @@ export {
   type UserUpdateStatusInput,
   type UserUsage,
 } from "./user-management-manager";
-export {
-  addKeyToPool,
-  createAiProviderConfig,
-  getTenantAiUsageSummary,
-  recordAiUsage,
-  resolveProviderAndKey,
-  updateKeyStatus,
-  type AddKeyToPoolInput,
-  type AiGatewayDatabase,
-  type CreateAiProviderConfigInput,
-  type GetTenantAiUsageSummaryInput,
-  type RecordAiUsageInput,
-  type ResolveProviderAndKeyInput,
-  type ResolvedProviderAndKey,
-  type TenantAiUsageSummary,
-  type UpdateKeyStatusInput,
-} from "./ai-gateway-manager";
-export {
-  createVirtualAlias,
-  listTenantAliases,
-  resolveRoutesForAlias,
-  seedDefaultPlatformAliases,
-  updateVirtualAliasRoutes,
-  VirtualAliasConflictError,
-  VirtualAliasNotFoundError,
-  type AiRoutingDatabase,
-  type CreateModelRouteInput,
-  type CreateVirtualAliasInput,
-  type ResolveRoutesForAliasInput,
-  type ResolvedVirtualAlias,
-  type UpdateVirtualAliasRoutesInput,
-  type VirtualAliasListItem,
-} from "./ai-routing-manager";
-export {
-  createKnowledgeDocument,
-  deleteKnowledgeDocument,
-  getKnowledgeDocumentDetail,
-  indexKnowledgeDocument,
-  listKnowledgeDocuments,
-  KnowledgeDocumentNotFoundError,
-  type CreateKnowledgeDocumentInput,
-  type DeleteKnowledgeDocumentInput,
-  type GetKnowledgeDocumentDetailInput,
-  type IndexKnowledgeDocumentInput,
-  type KnowledgeBaseDatabase,
-  type KnowledgeDocumentDetail,
-  type KnowledgeDocumentSummary,
-  type ListKnowledgeDocumentsInput,
-} from "./knowledge-base-manager";
-export {
-  searchKnowledgeChunks,
-  type SearchKnowledgeChunksInput,
-} from "./knowledge-search-manager";
-export {
-  getTenantAiAgentConfig,
-  upsertTenantAiAgentConfig,
-  AI_AGENT_AUTOMATION_MODES,
-  DEFAULT_HUMAN_HANDOFF_KEYWORDS,
-  type AiAgentAutomationMode,
-  type AiAgentConfigDatabase,
-  type TenantAiAgentConfigData,
-  type UpsertTenantAiAgentConfigInput,
-} from "./ai-agent-config-manager";
-export {
-  processInboundAiTurn,
-  type AiAgentDispatcherDatabase,
-  type AiTurnResult,
-  type ProcessAiTurnParams,
-} from "./ai-agent-dispatcher";
-
-
-

@@ -1,5 +1,6 @@
 import { loadDatabaseConfig } from "@whatsapp-platform/config";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import type { PrismaClient } from "./generated/prisma/client";
 import {
   addKeyToPool,
   createAiProviderConfig,
@@ -10,7 +11,6 @@ import {
   updateVirtualAliasRoutes,
   VirtualAliasConflictError,
 } from "./index";
-import type { PrismaClient } from "./generated/prisma/client";
 import {
   createPlatformDatabaseClient,
   createPlatformTenantProvisioningRepository,

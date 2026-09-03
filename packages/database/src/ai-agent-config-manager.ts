@@ -5,11 +5,7 @@ export type AiAgentConfigDatabase = Pick<
   "tenantAiAgentConfig" | "tenant" | "$transaction"
 >;
 
-export const AI_AGENT_AUTOMATION_MODES = [
-  "RULES_ONLY",
-  "HYBRID_RULES_AI",
-  "FULL_AI",
-] as const;
+export const AI_AGENT_AUTOMATION_MODES = ["RULES_ONLY", "HYBRID_RULES_AI", "FULL_AI"] as const;
 
 export type AiAgentAutomationMode = (typeof AI_AGENT_AUTOMATION_MODES)[number];
 
@@ -115,7 +111,9 @@ export async function upsertTenantAiAgentConfig(
       systemDirectives: input.systemDirectives ?? null,
       virtualAliasKey: input.virtualAliasKey ?? "platform-smart",
       minConfidenceScore: input.minConfidenceScore ?? 0.7,
-      humanHandoffKeywords: (keywords ?? [...DEFAULT_HUMAN_HANDOFF_KEYWORDS]) as unknown as Prisma.InputJsonValue,
+      humanHandoffKeywords: (keywords ?? [
+        ...DEFAULT_HUMAN_HANDOFF_KEYWORDS,
+      ]) as unknown as Prisma.InputJsonValue,
       outOfHoursReply: input.outOfHoursReply ?? null,
       isEnabled: input.isEnabled ?? false,
     },
@@ -123,8 +121,12 @@ export async function upsertTenantAiAgentConfig(
       ...(input.automationMode !== undefined ? { automationMode: input.automationMode } : {}),
       ...(input.systemDirectives !== undefined ? { systemDirectives: input.systemDirectives } : {}),
       ...(input.virtualAliasKey !== undefined ? { virtualAliasKey: input.virtualAliasKey } : {}),
-      ...(input.minConfidenceScore !== undefined ? { minConfidenceScore: input.minConfidenceScore } : {}),
-      ...(keywords !== undefined ? { humanHandoffKeywords: keywords as unknown as Prisma.InputJsonValue } : {}),
+      ...(input.minConfidenceScore !== undefined
+        ? { minConfidenceScore: input.minConfidenceScore }
+        : {}),
+      ...(keywords !== undefined
+        ? { humanHandoffKeywords: keywords as unknown as Prisma.InputJsonValue }
+        : {}),
       ...(input.outOfHoursReply !== undefined ? { outOfHoursReply: input.outOfHoursReply } : {}),
       ...(input.isEnabled !== undefined ? { isEnabled: input.isEnabled } : {}),
       updatedAt: new Date(),

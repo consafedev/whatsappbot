@@ -6,8 +6,8 @@ import {
   createAiProviderConfig,
   createKnowledgeDocument,
   indexKnowledgeDocument,
-  seedDefaultPlatformAliases,
   type ModuleEntitlementKey,
+  seedDefaultPlatformAliases,
 } from "@whatsapp-platform/database";
 import {
   createPlatformDatabaseClient,
@@ -136,7 +136,9 @@ async function provision(
 describe.sequential("AI Gateway API Integration", () => {
   beforeAll(async () => {
     prisma = createPlatformDatabaseClient({
-      databaseUrl: process.env.DATABASE_URL ?? "postgresql://whatsapp_platform_dev:replace-with-a-local-development-password@localhost:5432/whatsapp_platform_dev",
+      databaseUrl:
+        process.env.DATABASE_URL ??
+        "postgresql://whatsapp_platform_dev:replace-with-a-local-development-password@localhost:5432/whatsapp_platform_dev",
     });
     await prisma.$connect();
     await cleanup();
@@ -178,7 +180,8 @@ describe.sequential("AI Gateway API Integration", () => {
       tenantId: tenantAId,
       title: "Guía de Soporte y Garantía",
       sourceType: "markdown",
-      rawContent: "Para solicitar garantía se requiere comprobante de compra y número de serie del producto.",
+      rawContent:
+        "Para solicitar garantía se requiere comprobante de compra y número de serie del producto.",
     });
 
     await indexKnowledgeDocument(prisma, {

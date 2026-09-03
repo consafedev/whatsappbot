@@ -1,4 +1,5 @@
 ﻿import {
+  applyDecorators,
   BadRequestException,
   Body,
   Controller,
@@ -9,16 +10,15 @@
   Injectable,
   Put,
   UseGuards,
-  applyDecorators,
 } from "@nestjs/common";
 import {
   AI_AGENT_AUTOMATION_MODES,
-  getTenantAiAgentConfig,
-  upsertTenantAiAgentConfig,
   type AiAgentAutomationMode,
   type AiAgentConfigDatabase,
+  getTenantAiAgentConfig,
   type TenantAiAgentConfigData,
   type TenantContext,
+  upsertTenantAiAgentConfig,
 } from "@whatsapp-platform/database";
 import type { PermissionKey } from "@whatsapp-platform/rbac";
 import { AI_GATEWAY_DATABASE } from "./ai-gateway";

@@ -5,7 +5,7 @@ import { useTenantAppBootstrap } from "../tenant-app-shell";
 import { AiAgentSettingsTab } from "./ai-agent-settings-tab";
 import { AiKnowledgeTab } from "./ai-knowledge-tab";
 import { AiUsageTab } from "./ai-usage-tab";
-import { type TenantAiAgentConfig, fetchAiAgentConfig } from "./ai-view-model";
+import { fetchAiAgentConfig, type TenantAiAgentConfig } from "./ai-view-model";
 
 type TabId = "agent" | "knowledge" | "usage";
 
@@ -59,7 +59,12 @@ export function AiClient({ apiBaseUrl }: AiClientProps) {
           Módulo de Inteligencia Artificial No Contratado
         </h2>
         <p className="text-sm text-slate-500 dark:text-slate-400">
-          Tu organización no cuenta con el módulo <code className="font-mono text-xs bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">module.ai</code> activado. Contacta al administrador de la plataforma para habilitar las funcionalidades de agente autónomo y base de conocimiento.
+          Tu organización no cuenta con el módulo{" "}
+          <code className="font-mono text-xs bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">
+            module.ai
+          </code>{" "}
+          activado. Contacta al administrador de la plataforma para habilitar las funcionalidades de
+          agente autónomo y base de conocimiento.
         </p>
       </div>
     );
@@ -75,7 +80,11 @@ export function AiClient({ apiBaseUrl }: AiClientProps) {
           Permiso Insuficiente
         </h2>
         <p className="text-sm text-slate-500 dark:text-slate-400">
-          Requieres el permiso <code className="font-mono text-xs bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">ai.settings.manage</code> para administrar el agente de IA y la base de conocimiento.
+          Requieres el permiso{" "}
+          <code className="font-mono text-xs bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">
+            ai.settings.manage
+          </code>{" "}
+          para administrar el agente de IA y la base de conocimiento.
         </p>
       </div>
     );
@@ -89,7 +98,8 @@ export function AiClient({ apiBaseUrl }: AiClientProps) {
           Consola de Inteligencia Artificial
         </h1>
         <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-          Gestiona las directivas del agente autónomo de WhatsApp, administra la base de conocimiento vectorial RAG y supervisa el consumo de tokens.
+          Gestiona las directivas del agente autónomo de WhatsApp, administra la base de
+          conocimiento vectorial RAG y supervisa el consumo de tokens.
         </p>
       </div>
 
@@ -165,9 +175,7 @@ export function AiClient({ apiBaseUrl }: AiClientProps) {
         </>
       )}
 
-      {activeTab === "knowledge" && (
-        <AiKnowledgeTab apiBaseUrl={base} showToast={showToast} />
-      )}
+      {activeTab === "knowledge" && <AiKnowledgeTab apiBaseUrl={base} showToast={showToast} />}
 
       {activeTab === "usage" && <AiUsageTab apiBaseUrl={base} />}
     </div>

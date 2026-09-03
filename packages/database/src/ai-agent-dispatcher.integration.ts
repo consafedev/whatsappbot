@@ -1,13 +1,14 @@
 import { MockEmbeddingProvider } from "@whatsapp-platform/ai-gateway";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
-  createAiProviderConfig,
   addKeyToPool,
-  createVirtualAlias,
+  createAiProviderConfig,
   createKnowledgeDocument,
+  createVirtualAlias,
   indexKnowledgeDocument,
-  upsertTenantAiAgentConfig,
-  processInboundAiTurn,
   type ModuleEntitlementKey,
+  processInboundAiTurn,
+  upsertTenantAiAgentConfig,
 } from "./index";
 import {
   createPlatformDatabaseClient,
@@ -15,7 +16,6 @@ import {
   type PrismaClient,
   syncPermissionCatalog,
 } from "./platform";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 const prefix = "e10-s05-ai-agent";
 const secret = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";

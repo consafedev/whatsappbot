@@ -31,7 +31,7 @@ import {
 } from "./tenant-context";
 import { TenantAuthorized, TenantPermissionGuard } from "./tenant-rbac";
 
-const origin = "http://localhost:3000";
+const origin = "http://localhost:3005";
 const prefix = "e03-s02-api";
 const adminEmail = `${prefix}-admin@example.invalid`;
 const adminPassword = "platform provisioning secure password";

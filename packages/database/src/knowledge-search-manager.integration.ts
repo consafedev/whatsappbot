@@ -1,9 +1,10 @@
 import { MockEmbeddingProvider } from "@whatsapp-platform/ai-gateway";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   createKnowledgeDocument,
   indexKnowledgeDocument,
-  searchKnowledgeChunks,
   type ModuleEntitlementKey,
+  searchKnowledgeChunks,
 } from "./index";
 import {
   createPlatformDatabaseClient,
@@ -11,7 +12,6 @@ import {
   type PrismaClient,
   syncPermissionCatalog,
 } from "./platform";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 const prefix = "e10-s04-kb-search";
 let prisma: PrismaClient;
@@ -136,7 +136,8 @@ describe.sequential("Knowledge Search Manager Database Integration", () => {
       tenantId: tenantBId,
       title: "Catálogo de Precios Tenant B",
       sourceType: "markdown",
-      rawContent: "El precio por unidad es de $50 USD. Descuentos por volumen superiores a 100 unidades.",
+      rawContent:
+        "El precio por unidad es de $50 USD. Descuentos por volumen superiores a 100 unidades.",
     });
 
     await indexKnowledgeDocument(prisma, {

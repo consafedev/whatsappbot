@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  type BusinessHoursConfig,
-  isWithinBusinessHours,
-} from "./business-hours-evaluator";
+import { type BusinessHoursConfig, isWithinBusinessHours } from "./business-hours-evaluator";
 
 describe("BusinessHoursEvaluator", () => {
   const standardWeekSchedule: BusinessHoursConfig = {

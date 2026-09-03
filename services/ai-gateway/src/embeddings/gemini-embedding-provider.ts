@@ -1,9 +1,4 @@
-import {
-  AiAuthenticationError,
-  AiGatewayError,
-  AiRateLimitError,
-  AiTimeoutError,
-} from "../types";
+import { AiAuthenticationError, AiGatewayError, AiRateLimitError, AiTimeoutError } from "../types";
 import type { AiEmbeddingProvider, EmbeddingRequest, EmbeddingResponse } from "./types";
 
 interface GeminiBatchEmbeddingApiResponse {
@@ -19,7 +14,9 @@ export class GoogleGeminiEmbeddingProvider implements AiEmbeddingProvider {
   ): Promise<EmbeddingResponse> {
     const inputs = Array.isArray(request.input) ? request.input : [request.input];
     const model = request.model ?? "text-embedding-004";
-    const baseUrl = credentials.baseUrl?.replace(/\/+$/, "") ?? "https://generativelanguage.googleapis.com/v1beta";
+    const baseUrl =
+      credentials.baseUrl?.replace(/\/+$/, "") ??
+      "https://generativelanguage.googleapis.com/v1beta";
     // SECURITY: Gemini API requires ?key= query authentication; the API key will appear
     // in access logs of intermediary proxies and load balancers. This is inherent to the
     // Google Generative AI API design and cannot be avoided without a backend proxy.
@@ -60,7 +57,9 @@ export class GoogleGeminiEmbeddingProvider implements AiEmbeddingProvider {
       }
 
       if (response.status === 401 || response.status === 403) {
-        throw new AiAuthenticationError(`Google Gemini embedding authentication failed: ${errorBody}`);
+        throw new AiAuthenticationError(
+          `Google Gemini embedding authentication failed: ${errorBody}`,
+        );
       }
       if (response.status === 429) {
         throw new AiRateLimitError(`Google Gemini embedding rate limit exceeded: ${errorBody}`);

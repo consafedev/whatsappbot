@@ -190,6 +190,9 @@ model Tenant {
   knowledgeDocuments  KnowledgeDocument[]
   knowledgeChunks     KnowledgeChunk[]
   aiAgentConfig       TenantAiAgentConfig?
+  messageTemplates    MessageTemplate[]
+  campaigns           Campaign[]
+  campaignAudienceMembers CampaignAudienceMember[]
 
   @@index([status], map: "tenant_status_idx")
   @@index([deploymentId], map: "tenant_deployment_id_idx")
@@ -454,6 +457,7 @@ model ChannelAccount {
   conversations         Conversation[]
   messages              Message[]
   rules                 Rule[]
+  campaigns             Campaign[]
 
   @@unique([tenantId, id], map: "channel_account_tenant_id_id_key")
   @@unique([tenantId, phoneNumberUniqueKey], map: "channel_account_tenant_phone_active_key")
@@ -536,6 +540,7 @@ model Contact {
   tenant           Tenant    @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   conversations    Conversation[]
   messages         Message[]
+  campaignAudienceMembers CampaignAudienceMember[]
 
   @@unique([tenantId, id], map: "contact_tenant_id_id_key")
   @@unique([tenantId, phoneNumber], map: "contact_tenant_phone_number_key")
@@ -804,5 +809,77 @@ model TenantAiAgentConfig {
   @@unique([tenantId, id], map: "tenant_ai_agent_config_tenant_id_id_key")
   @@index([tenantId, isEnabled], map: "tenant_ai_agent_config_tenant_enabled_idx")
   @@map("tenant_ai_agent_config")
+}
+
+model MessageTemplate {
+  id           String     @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  tenantId     String     @map("tenant_id") @db.Uuid
+  name         String
+  category     String     @default("MARKETING")
+  content      String     @db.Text
+  variables    Json?      @default("[]") @db.JsonB
+  mediaUrl     String?    @map("media_url")
+  mediaType    String?    @map("media_type")
+  createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  campaigns    Campaign[]
+  tenant       Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([tenantId, id], map: "message_template_tenant_id_key")
+  @@index([tenantId, category], map: "message_template_tenant_category_idx")
+  @@map("message_template")
+}
+
+model Campaign {
+  id                 String                   @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  tenantId           String                   @map("tenant_id") @db.Uuid
+  channelAccountId   String                   @map("channel_account_id") @db.Uuid
+  templateId         String?                  @map("template_id") @db.Uuid
+  name               String
+  status             String                   @default("DRAFT")
+  messageContent     String                   @map("message_content") @db.Text
+  rateLimitPerMinute Int                      @default(30) @map("rate_limit_per_minute")
+  audienceFilter     Json?                    @default("{}") @map("audience_filter") @db.JsonB
+  totalRecipients    Int                      @default(0) @map("total_recipients")
+  sentCount          Int                      @default(0) @map("sent_count")
+  deliveredCount     Int                      @default(0) @map("delivered_count")
+  failedCount        Int                      @default(0) @map("failed_count")
+  scheduledAt        DateTime?                @map("scheduled_at") @db.Timestamptz(3)
+  startedAt          DateTime?                @map("started_at") @db.Timestamptz(3)
+  completedAt        DateTime?                @map("completed_at") @db.Timestamptz(3)
+  createdAt          DateTime                 @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime                 @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  template           MessageTemplate?         @relation(fields: [templateId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  tenant             Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  channelAccount     ChannelAccount           @relation(fields: [tenantId, channelAccountId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade)
+  audienceMembers    CampaignAudienceMember[]
+
+  @@unique([tenantId, id], map: "campaign_tenant_id_key")
+  @@index([tenantId, status], map: "campaign_tenant_status_idx")
+  @@index([tenantId, scheduledAt], map: "campaign_tenant_scheduled_at_idx")
+  @@map("campaign")
+}
+
+model CampaignAudienceMember {
+  id           String    @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  tenantId     String    @map("tenant_id") @db.Uuid
+  campaignId   String    @map("campaign_id") @db.Uuid
+  contactId    String    @map("contact_id") @db.Uuid
+  status       String    @default("PENDING")
+  variables    Json?     @default("{}") @db.JsonB
+  errorMessage String?   @map("error_message")
+  sentAt       DateTime? @map("sent_at") @db.Timestamptz(3)
+  deliveredAt  DateTime? @map("delivered_at") @db.Timestamptz(3)
+  readAt       DateTime? @map("read_at") @db.Timestamptz(3)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  campaign     Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  contact      Contact   @relation(fields: [tenantId, contactId], references: [tenantId, id], onDelete: Cascade, onUpdate: Cascade)
+  tenant       Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([tenantId, id], map: "campaign_audience_member_tenant_id_key")
+  @@unique([campaignId, contactId], map: "campaign_audience_unique_recipient")
+  @@index([tenantId, status], map: "campaign_audience_member_tenant_status_idx")
+  @@index([campaignId, status], map: "campaign_audience_member_campaign_status_idx")
+  @@map("campaign_audience_member")
 }
 

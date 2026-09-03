@@ -14,7 +14,7 @@ import {
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApiApplication } from "./app";
 
-const origin = "http://localhost:3000";
+const origin = "http://localhost:3005";
 const prefix = "e03-s04-api";
 const adminEmail = `${prefix}-admin@example.invalid`;
 const adminPassword = "module activation platform password";

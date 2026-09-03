@@ -99,9 +99,12 @@ describe("ai-view-model", () => {
 
       const result = await fetchAiAgentConfig(BASE_URL);
       expect(result).toEqual(mockConfig);
-      expect(fetch).toHaveBeenCalledWith(`${BASE_URL}/api/v1/ai/agent/config`, expect.objectContaining({
-        credentials: "include",
-      }));
+      expect(fetch).toHaveBeenCalledWith(
+        `${BASE_URL}/api/v1/ai/agent/config`,
+        expect.objectContaining({
+          credentials: "include",
+        }),
+      );
     });
 
     it("updateAiAgentConfig calls PUT endpoint with payload", async () => {
@@ -266,10 +269,7 @@ describe("ai-view-model", () => {
 
       const result = await fetchAiUsageSummary(BASE_URL);
       expect(result).toEqual(summary);
-      expect(fetch).toHaveBeenCalledWith(
-        `${BASE_URL}/api/v1/ai/usage/summary`,
-        expect.anything(),
-      );
+      expect(fetch).toHaveBeenCalledWith(`${BASE_URL}/api/v1/ai/usage/summary`, expect.anything());
     });
 
     it("throws a descriptive error when fetch response is not ok", async () => {

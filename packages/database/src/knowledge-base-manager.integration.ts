@@ -1,10 +1,11 @@
-﻿import {
+﻿import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import {
   createKnowledgeDocument,
   deleteKnowledgeDocument,
   getKnowledgeDocumentDetail,
   indexKnowledgeDocument,
-  listKnowledgeDocuments,
   KnowledgeDocumentNotFoundError,
+  listKnowledgeDocuments,
   type ModuleEntitlementKey,
 } from "./index";
 import {
@@ -13,7 +14,6 @@ import {
   type PrismaClient,
   syncPermissionCatalog,
 } from "./platform";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 const prefix = "e10-s03-kb-test";
 let prisma: PrismaClient;
@@ -118,7 +118,8 @@ describe.sequential("Knowledge Base Manager Database Integration", () => {
   });
 
   it("creates a knowledge document in PENDING status", async () => {
-    const rawContent = "Preguntas Frecuentes sobre envíos.\nLos envíos tardan 24 a 48 horas en llegar a domicilio.";
+    const rawContent =
+      "Preguntas Frecuentes sobre envíos.\nLos envíos tardan 24 a 48 horas en llegar a domicilio.";
     const created = await createKnowledgeDocument(prisma, {
       tenantId: tenantAId,
       title: "FAQ Envíos",

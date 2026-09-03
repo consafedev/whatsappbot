@@ -1,8 +1,8 @@
 ﻿import {
   AiAuthenticationError,
-  AiGatewayError,
   type AiCompletionRequest,
   type AiCompletionResponse,
+  AiGatewayError,
   type AiProvider,
   type AiProviderCredentials,
   type AiProviderType,
@@ -62,9 +62,13 @@ export class OpenAiCompatibleProvider implements AiProvider {
       });
     } catch (error: unknown) {
       if (error instanceof Error && error.name === "TimeoutError") {
-        throw new AiTimeoutError(`OpenAI-compatible request timed out after ${this.timeoutMs}ms`, { cause: error });
+        throw new AiTimeoutError(`OpenAI-compatible request timed out after ${this.timeoutMs}ms`, {
+          cause: error,
+        });
       }
-      throw new AiGatewayError("Network error calling OpenAI-compatible provider", { cause: error });
+      throw new AiGatewayError("Network error calling OpenAI-compatible provider", {
+        cause: error,
+      });
     }
 
     const latencyMs = Date.now() - startTime;
@@ -109,7 +113,7 @@ export class OpenAiCompatibleProvider implements AiProvider {
     const finishReason = choice?.finish_reason;
     const promptTokens = data.usage?.prompt_tokens ?? 0;
     const completionTokens = data.usage?.completion_tokens ?? 0;
-    const totalTokens = data.usage?.total_tokens ?? (promptTokens + completionTokens);
+    const totalTokens = data.usage?.total_tokens ?? promptTokens + completionTokens;
 
     return {
       id: data.id,
@@ -141,7 +145,9 @@ export class OpenAiCompatibleProvider implements AiProvider {
       });
     } catch (error: unknown) {
       if (error instanceof Error && error.name === "TimeoutError") {
-        throw new AiTimeoutError(`Model discovery timed out after ${this.timeoutMs}ms`, { cause: error });
+        throw new AiTimeoutError(`Model discovery timed out after ${this.timeoutMs}ms`, {
+          cause: error,
+        });
       }
       throw new AiGatewayError("Network error fetching models from provider", { cause: error });
     }
@@ -173,7 +179,9 @@ export class OpenAiCompatibleProvider implements AiProvider {
     };
 
     if (Array.isArray(data.data)) {
-      return data.data.map((m) => m.id).filter((id): id is string => typeof id === "string" && id.length > 0);
+      return data.data
+        .map((m) => m.id)
+        .filter((id): id is string => typeof id === "string" && id.length > 0);
     }
     if (Array.isArray(data.models)) {
       return data.models

@@ -3,8 +3,8 @@
 import { useState } from "react";
 import {
   type CreateKnowledgeDocumentInput,
-  type KnowledgeDocumentItem,
   createKnowledgeDocument,
+  type KnowledgeDocumentItem,
 } from "./ai-view-model";
 
 type KnowledgeDocumentModalProps = Readonly<{
@@ -162,7 +162,8 @@ export function KnowledgeDocumentModal({
               className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm font-mono text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
             />
             <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              El contenido será particionado recursivamente e indexado vectorialmente de forma automática.
+              El contenido será particionado recursivamente e indexado vectorialmente de forma
+              automática.
             </p>
           </div>
 

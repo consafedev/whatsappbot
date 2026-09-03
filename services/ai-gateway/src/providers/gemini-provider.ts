@@ -1,8 +1,8 @@
 ﻿import {
   AiAuthenticationError,
-  AiGatewayError,
   type AiCompletionRequest,
   type AiCompletionResponse,
+  AiGatewayError,
   type AiProvider,
   type AiProviderCredentials,
   type AiProviderType,
@@ -68,7 +68,9 @@ export class GoogleGeminiProvider implements AiProvider {
       });
     } catch (error: unknown) {
       if (error instanceof Error && error.name === "TimeoutError") {
-        throw new AiTimeoutError(`Google Gemini request timed out after ${this.timeoutMs}ms`, { cause: error });
+        throw new AiTimeoutError(`Google Gemini request timed out after ${this.timeoutMs}ms`, {
+          cause: error,
+        });
       }
       throw new AiGatewayError("Network error calling Google Gemini provider", { cause: error });
     }
@@ -115,7 +117,7 @@ export class GoogleGeminiProvider implements AiProvider {
     const finishReason = candidate?.finishReason;
     const promptTokens = data.usageMetadata?.promptTokenCount ?? 0;
     const completionTokens = data.usageMetadata?.candidatesTokenCount ?? 0;
-    const totalTokens = data.usageMetadata?.totalTokenCount ?? (promptTokens + completionTokens);
+    const totalTokens = data.usageMetadata?.totalTokenCount ?? promptTokens + completionTokens;
 
     return {
       model,
@@ -143,7 +145,9 @@ export class GoogleGeminiProvider implements AiProvider {
       });
     } catch (error: unknown) {
       if (error instanceof Error && error.name === "TimeoutError") {
-        throw new AiTimeoutError(`Gemini model discovery timed out after ${this.timeoutMs}ms`, { cause: error });
+        throw new AiTimeoutError(`Gemini model discovery timed out after ${this.timeoutMs}ms`, {
+          cause: error,
+        });
       }
       throw new AiGatewayError("Network error fetching Gemini models", { cause: error });
     }

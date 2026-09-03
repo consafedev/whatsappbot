@@ -100,9 +100,7 @@ describe("tenant app navigation", () => {
     );
     expect(withoutModule.some((item) => item.id === "ai")).toBe(false);
 
-    const withoutPerm = resolveTenantNavigation(["module.ai"], []).flatMap(
-      (group) => group.items,
-    );
+    const withoutPerm = resolveTenantNavigation(["module.ai"], []).flatMap((group) => group.items);
     expect(withoutPerm.some((item) => item.id === "ai")).toBe(false);
 
     const withBoth = resolveTenantNavigation(["module.ai"], ["ai.settings.manage"]).flatMap(

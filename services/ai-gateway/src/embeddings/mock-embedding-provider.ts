@@ -14,7 +14,10 @@ export class MockEmbeddingProvider implements AiEmbeddingProvider {
     const modelId = request.model ?? "mock-embed";
 
     const embeddings = inputs.map((text) => this.generateVector(text, dimensions));
-    const totalTokens = inputs.reduce((acc, text) => acc + Math.max(1, Math.ceil(text.length / 4)), 0);
+    const totalTokens = inputs.reduce(
+      (acc, text) => acc + Math.max(1, Math.ceil(text.length / 4)),
+      0,
+    );
 
     return {
       embeddings,

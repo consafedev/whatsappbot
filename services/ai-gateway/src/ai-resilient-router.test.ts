@@ -1,9 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import {
-  AiAllProvidersFailedError,
-  AiResilientRouter,
-  type AiResolvedRoute,
-} from "./index";
+import { AiAllProvidersFailedError, AiResilientRouter, type AiResolvedRoute } from "./index";
 
 describe("AiResilientRouter Unit Tests", () => {
   afterEach(() => {
@@ -78,7 +74,9 @@ describe("AiResilientRouter Unit Tests", () => {
     // Mock fetch to simulate 429 on key-1 and 200 on key-2
     const originalFetch = globalThis.fetch;
     globalThis.fetch = vi.fn().mockImplementation(async (_url: string, init?: RequestInit) => {
-      const authHeader = init?.headers ? (init.headers as Record<string, string>).Authorization : "";
+      const authHeader = init?.headers
+        ? (init.headers as Record<string, string>).Authorization
+        : "";
       if (authHeader?.includes("rate-limited-key")) {
         return new Response(JSON.stringify({ error: { message: "Quota exceeded" } }), {
           status: 429,

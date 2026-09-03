@@ -1,13 +1,13 @@
-import { selectNextKey, type KeyPoolEntry } from "./key-pool";
+import { createAiProvider } from "./index";
+import { type KeyPoolEntry, selectNextKey } from "./key-pool";
 import {
-  AiRateLimitError,
-  AiTimeoutError,
   type AiCompletionResponse,
   type AiMessage,
   type AiProviderType,
+  AiRateLimitError,
+  AiTimeoutError,
   type AiTokenUsage,
 } from "./types";
-import { createAiProvider } from "./index";
 
 export interface AiResolvedRoute {
   readonly routeId: string;
@@ -65,10 +65,7 @@ export class AiAllProvidersFailedError extends Error {
   }
 }
 
-export type OnKeyRateLimitedCallback = (
-  keyId: string,
-  cooldownUntil: Date,
-) => Promise<void> | void;
+export type OnKeyRateLimitedCallback = (keyId: string, cooldownUntil: Date) => Promise<void> | void;
 
 export class AiResilientRouter {
   constructor(
@@ -78,9 +75,7 @@ export class AiResilientRouter {
     } = {},
   ) {}
 
-  async routeCompletion(
-    request: AiRoutedCompletionRequest,
-  ): Promise<AiRoutedCompletionResponse> {
+  async routeCompletion(request: AiRoutedCompletionRequest): Promise<AiRoutedCompletionResponse> {
     if (!request.routes || request.routes.length === 0) {
       throw new AiAllProvidersFailedError("No active routes available for alias", []);
     }

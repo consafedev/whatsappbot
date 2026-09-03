@@ -118,12 +118,7 @@ export function createInactivityManager(database: InactivityManagerDatabase): In
 
     for (const item of eligibleForClose) {
       await database.$transaction(async (tx) => {
-        await lockConversationInTransaction(
-          tx,
-          tenantId,
-          item.channelAccountId,
-          item.contactId,
-        );
+        await lockConversationInTransaction(tx, tenantId, item.channelAccountId, item.contactId);
 
         const conv = await tx.conversation.findUnique({
           select: {
@@ -200,9 +195,7 @@ export function createInactivityManager(database: InactivityManagerDatabase): In
     // 2. Takeover Release: Check conversations in HUMAN mode exceeding releaseTakeoverMinutes
     let releasedCount = 0;
     if (options.releaseTakeoverMinutes && options.releaseTakeoverMinutes > 0) {
-      const releaseCutoff = new Date(
-        now.getTime() - options.releaseTakeoverMinutes * 60 * 1000,
-      );
+      const releaseCutoff = new Date(now.getTime() - options.releaseTakeoverMinutes * 60 * 1000);
 
       const eligibleForRelease = await database.conversation.findMany({
         orderBy: { lastMessageAt: "asc" },
@@ -226,12 +219,7 @@ export function createInactivityManager(database: InactivityManagerDatabase): In
         if (closedConversationIds.has(item.id)) continue;
 
         await database.$transaction(async (tx) => {
-          await lockConversationInTransaction(
-            tx,
-            tenantId,
-            item.channelAccountId,
-            item.contactId,
-          );
+          await lockConversationInTransaction(tx, tenantId, item.channelAccountId, item.contactId);
 
           const conv = await tx.conversation.findUnique({
             select: {

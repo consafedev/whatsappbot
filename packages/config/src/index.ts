@@ -6,9 +6,9 @@ const nonSecretEnvironmentSchema = z.object({
   API_PORT: portSchema.default(3001),
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
-  PLATFORM_WEB_ORIGIN: z.url({ protocol: /^https?$/ }).default("http://localhost:3000"),
-  TENANT_WEB_ORIGIN: z.url({ protocol: /^https?$/ }).default("http://localhost:3000"),
-  WEB_PORT: portSchema.default(3000),
+  PLATFORM_WEB_ORIGIN: z.url({ protocol: /^https?$/ }).default("http://localhost:3005"),
+  TENANT_WEB_ORIGIN: z.url({ protocol: /^https?$/ }).default("http://localhost:3005"),
+  WEB_PORT: portSchema.default(3005),
 });
 
 const secretEnvironmentSchema = z.object({

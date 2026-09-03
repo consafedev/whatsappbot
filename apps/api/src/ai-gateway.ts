@@ -1,4 +1,5 @@
 import {
+  applyDecorators,
   BadRequestException,
   Body,
   Controller,
@@ -14,34 +15,33 @@ import {
   Query,
   UnauthorizedException,
   UseGuards,
-  applyDecorators,
 } from "@nestjs/common";
 import {
   AiAllProvidersFailedError,
   AiAuthenticationError,
-  AiRateLimitError,
-  AiResilientRouter,
   type AiCompletionResponse,
   type AiMessage,
   type AiProviderType,
+  AiRateLimitError,
+  AiResilientRouter,
   type AiRoutedCompletionResponse,
-  type RagCitation,
   buildRagContextPrompt,
   createAiProvider,
   createEmbeddingProvider,
   injectRagContextIntoMessages,
+  type RagCitation,
 } from "@whatsapp-platform/ai-gateway";
 import {
+  type AiGatewayDatabase,
   getTenantAiUsageSummary,
   listTenantAliases,
   recordAiUsage,
   resolveProviderAndKey,
   resolveRoutesForAlias,
   searchKnowledgeChunks,
-  updateKeyStatus,
-  type AiGatewayDatabase,
   type TenantAiUsageSummary,
   type TenantContext,
+  updateKeyStatus,
   type VirtualAliasListItem,
 } from "@whatsapp-platform/database";
 import type { PermissionKey } from "@whatsapp-platform/rbac";
@@ -280,7 +280,12 @@ export class AiGatewayService {
     const messages: readonly AiMessage[] =
       payload.messages && payload.messages.length > 0
         ? payload.messages
-        : [{ role: "user", content: payload.prompt || "Hola, prueba de completado con enrutamiento" }];
+        : [
+            {
+              role: "user",
+              content: payload.prompt || "Hola, prueba de completado con enrutamiento",
+            },
+          ];
 
     const router = new AiResilientRouter({
       onKeyRateLimited: async (keyId, cooldownUntil) => {
@@ -381,8 +386,15 @@ export class AiGatewayService {
     payload: RagCompletionPayload,
     identity: TenantSessionIdentity,
   ): Promise<Record<string, unknown>> {
-    const lastUserMessage = payload.messages?.filter((m) => m.role === "user").slice(-1)[0]?.content;
-    const searchText = (payload.queryText || payload.prompt || lastUserMessage || "consulta").trim();
+    const lastUserMessage = payload.messages
+      ?.filter((m) => m.role === "user")
+      .slice(-1)[0]?.content;
+    const searchText = (
+      payload.queryText ||
+      payload.prompt ||
+      lastUserMessage ||
+      "consulta"
+    ).trim();
 
     const embeddingProvider = createEmbeddingProvider(payload.embeddingProviderType ?? "mock");
     const embeddingRes = await embeddingProvider.generateEmbeddings(
@@ -534,4 +546,3 @@ export class AiGatewayController {
     return this.service.getUsageSummary(context, since);
   }
 }
-

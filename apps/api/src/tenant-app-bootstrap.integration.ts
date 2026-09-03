@@ -12,7 +12,7 @@ import {
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApiApplication } from "./app";
 
-const origin = "http://localhost:3000";
+const origin = "http://localhost:3005";
 const prefix = "e04-s01-bootstrap";
 const password = "tenant app shell password";
 let prisma: PrismaClient;

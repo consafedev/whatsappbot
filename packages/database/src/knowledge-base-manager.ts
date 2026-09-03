@@ -1,8 +1,8 @@
 ﻿import {
   type AiEmbeddingProvider,
   type ChunkTextOptions,
-  MockEmbeddingProvider,
   chunkText,
+  MockEmbeddingProvider,
   sanitizeText,
 } from "@whatsapp-platform/ai-gateway";
 import type { Prisma, PrismaClient } from "./generated/prisma/client";
@@ -74,14 +74,16 @@ export interface KnowledgeDocumentSummary {
 
 export interface KnowledgeDocumentDetail extends KnowledgeDocumentSummary {
   readonly rawContent: string;
-  readonly chunks?: Array<{
-    readonly id: string;
-    readonly chunkIndex: number;
-    readonly content: string;
-    readonly tokenCount: number;
-    readonly modelId: string;
-    readonly createdAt: Date;
-  }> | undefined;
+  readonly chunks?:
+    | Array<{
+        readonly id: string;
+        readonly chunkIndex: number;
+        readonly content: string;
+        readonly tokenCount: number;
+        readonly modelId: string;
+        readonly createdAt: Date;
+      }>
+    | undefined;
 }
 
 /**
@@ -193,7 +195,8 @@ export async function indexKnowledgeDocument(
           chunkIndex: c.index,
           content: c.content,
           tokenCount: Math.max(1, Math.ceil(c.content.length / 4)),
-          embedding: (embeddingResponse.embeddings[idx] ?? null) as unknown as Prisma.InputJsonValue,
+          embedding: (embeddingResponse.embeddings[idx] ??
+            null) as unknown as Prisma.InputJsonValue,
           modelId: embeddingResponse.modelId,
           metadata: {},
         })),
@@ -282,7 +285,9 @@ export async function getKnowledgeDocumentDetail(
     chunksCount: doc._count.chunks,
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
-    chunks: input.includeChunks ? (doc as typeof doc & { chunks: NonNullable<KnowledgeDocumentDetail["chunks"]> }).chunks : undefined,
+    chunks: input.includeChunks
+      ? (doc as typeof doc & { chunks: NonNullable<KnowledgeDocumentDetail["chunks"]> }).chunks
+      : undefined,
   };
 }
 
@@ -314,7 +319,7 @@ export async function listKnowledgeDocuments(
     db.knowledgeDocument.count({ where }),
   ]);
 
-  const documents: KnowledgeDocumentSummary[] = docs.map((d: typeof docs[number]) => ({
+  const documents: KnowledgeDocumentSummary[] = docs.map((d: (typeof docs)[number]) => ({
     id: d.id,
     tenantId: d.tenantId,
     title: d.title,

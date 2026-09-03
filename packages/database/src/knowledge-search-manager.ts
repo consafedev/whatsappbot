@@ -1,7 +1,4 @@
-﻿import {
-  type RagCitation,
-  rankChunksBySimilarity,
-} from "@whatsapp-platform/ai-gateway";
+﻿import { type RagCitation, rankChunksBySimilarity } from "@whatsapp-platform/ai-gateway";
 import type { KnowledgeBaseDatabase } from "./knowledge-base-manager";
 
 export interface SearchKnowledgeChunksInput {
@@ -54,7 +51,7 @@ export async function searchKnowledgeChunks(
     return [];
   }
 
-  const chunksWithParsedEmbedding = chunks.map((c: typeof chunks[number]) => ({
+  const chunksWithParsedEmbedding = chunks.map((c: (typeof chunks)[number]) => ({
     id: c.id,
     documentId: c.documentId,
     documentTitle: c.document.title,
@@ -63,16 +60,12 @@ export async function searchKnowledgeChunks(
     embedding: Array.isArray(c.embedding) ? (c.embedding as number[]) : null,
   }));
 
-  const ranked = rankChunksBySimilarity(
-    input.queryEmbedding,
-    chunksWithParsedEmbedding,
-    {
-      topK: input.topK ?? 3,
-      minScore: input.minScore ?? 0.7,
-    },
-  );
+  const ranked = rankChunksBySimilarity(input.queryEmbedding, chunksWithParsedEmbedding, {
+    topK: input.topK ?? 3,
+    minScore: input.minScore ?? 0.7,
+  });
 
-  return ranked.map((r: typeof ranked[number]) => ({
+  return ranked.map((r: (typeof ranked)[number]) => ({
     documentId: r.documentId,
     documentTitle: r.documentTitle,
     chunkIndex: r.chunkIndex,

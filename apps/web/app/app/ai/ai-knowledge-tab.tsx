@@ -2,13 +2,13 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
-  type KnowledgeDocumentDetail,
-  type KnowledgeDocumentItem,
   deleteKnowledgeDocument,
   fetchKnowledgeDocumentDetail,
   fetchKnowledgeDocuments,
   formatDocumentStatus,
   formatTokens,
+  type KnowledgeDocumentDetail,
+  type KnowledgeDocumentItem,
 } from "./ai-view-model";
 import { KnowledgeDocumentModal } from "./knowledge-document-modal";
 
@@ -118,14 +118,17 @@ export function AiKnowledgeTab({ apiBaseUrl, showToast }: AiKnowledgeTabProps) {
       {/* Documents Table */}
       <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm">
         {loading ? (
-          <div className="p-8 text-center text-sm text-slate-500">Cargando base de conocimiento...</div>
+          <div className="p-8 text-center text-sm text-slate-500">
+            Cargando base de conocimiento...
+          </div>
         ) : filteredDocs.length === 0 ? (
           <div className="p-12 text-center">
             <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
               No hay documentos cargados
             </p>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              Carga tu primer documento de soporte, preguntas frecuentes o catálogo para habilitar respuestas RAG.
+              Carga tu primer documento de soporte, preguntas frecuentes o catálogo para habilitar
+              respuestas RAG.
             </p>
             <button
               type="button"
@@ -278,7 +281,8 @@ export function AiKnowledgeTab({ apiBaseUrl, showToast }: AiKnowledgeTabProps) {
               ¿Eliminar documento de la base de conocimiento?
             </h3>
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              Esta acción eliminará de forma permanente el documento y todos sus fragmentos vectoriales asociados en la base de datos.
+              Esta acción eliminará de forma permanente el documento y todos sus fragmentos
+              vectoriales asociados en la base de datos.
             </p>
             <div className="flex justify-end gap-3 pt-2">
               <button

@@ -14,7 +14,8 @@ export class MockAiProvider implements AiProvider {
     _credentials: AiProviderCredentials,
   ): Promise<AiCompletionResponse> {
     const startTime = Date.now();
-    const lastUserMessage = [...request.messages].reverse().find((m) => m.role === "user")?.content ?? "No message";
+    const lastUserMessage =
+      [...request.messages].reverse().find((m) => m.role === "user")?.content ?? "No message";
     const promptLen = request.messages.reduce((acc, m) => acc + m.content.length, 0);
     const promptTokens = Math.max(1, Math.ceil(promptLen / 4));
     const completionTokens = 16;

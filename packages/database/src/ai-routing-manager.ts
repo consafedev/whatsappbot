@@ -1,7 +1,7 @@
 import {
-  decryptApiKey,
   type AiProviderType,
   type AiResolvedRoute,
+  decryptApiKey,
   type KeyPoolEntry,
 } from "@whatsapp-platform/ai-gateway";
 import type { PrismaClient } from "./generated/prisma/client";
@@ -133,7 +133,9 @@ export async function updateVirtualAliasRoutes(
   }
 
   if (input.tenantId !== undefined && alias.tenantId !== input.tenantId) {
-    throw new VirtualAliasNotFoundError(`Virtual alias ${input.aliasId} not found in tenant context`);
+    throw new VirtualAliasNotFoundError(
+      `Virtual alias ${input.aliasId} not found in tenant context`,
+    );
   }
 
   await db.aiModelRoute.deleteMany({
@@ -303,7 +305,8 @@ export async function seedDefaultPlatformAliases(
     {
       aliasKey: "platform-fast",
       name: "Modelo Rápido (Triage)",
-      description: "Modelo optimizado para clasificación, enrutamiento y respuestas de baja latencia",
+      description:
+        "Modelo optimizado para clasificación, enrutamiento y respuestas de baja latencia",
       targetModelId: "mock-fast-model",
       timeoutMs: 10000,
       maxRetries: 2,

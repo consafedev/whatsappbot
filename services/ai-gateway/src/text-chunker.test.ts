@@ -24,9 +24,12 @@ describe("Text Chunker Unit Tests", () => {
   });
 
   it("splits long text into multiple chunks respecting paragraph boundaries", () => {
-    const p1 = "Primer párrafo con información detallada sobre el producto A y sus especificaciones técnicas de alta calidad.";
-    const p2 = "Segundo párrafo describiendo las políticas de garantía, devolución y tiempos de entrega estimados en 24 horas.";
-    const p3 = "Tercer párrafo con preguntas frecuentes y métodos de pago aceptados como transferencias y tarjetas de crédito.";
+    const p1 =
+      "Primer párrafo con información detallada sobre el producto A y sus especificaciones técnicas de alta calidad.";
+    const p2 =
+      "Segundo párrafo describiendo las políticas de garantía, devolución y tiempos de entrega estimados en 24 horas.";
+    const p3 =
+      "Tercer párrafo con preguntas frecuentes y métodos de pago aceptados como transferencias y tarjetas de crédito.";
     const longText = `${p1}\n\n${p2}\n\n${p3}`;
 
     const chunks = chunkText(longText, { maxChunkSize: 120, chunkOverlap: 20 });
@@ -37,7 +40,9 @@ describe("Text Chunker Unit Tests", () => {
   });
 
   it("throws validation errors for invalid chunking options", () => {
-    expect(() => chunkText("test", { maxChunkSize: 0 })).toThrow("maxChunkSize must be greater than 0");
+    expect(() => chunkText("test", { maxChunkSize: 0 })).toThrow(
+      "maxChunkSize must be greater than 0",
+    );
     expect(() => chunkText("test", { maxChunkSize: 100, chunkOverlap: 100 })).toThrow(
       "chunkOverlap must be non-negative and less than maxChunkSize",
     );

@@ -1,10 +1,7 @@
 import { loadDatabaseConfig } from "@whatsapp-platform/config";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { PrismaClient } from "./generated/prisma/client";
-import {
-  createInactivityManager,
-  type InactivityManager,
-} from "./inactivity-manager";
+import { createInactivityManager, type InactivityManager } from "./inactivity-manager";
 import {
   createPlatformDatabaseClient,
   createPlatformTenantProvisioningRepository,
@@ -215,9 +212,7 @@ describe.sequential("E08-S06 InactivityManager integration", () => {
     });
     expect(outbox).toBeDefined();
     expect((outbox?.payload as Record<string, unknown>)?.newStatus).toBe("closed");
-    expect((outbox?.payload as Record<string, unknown>)?.reason).toBe(
-      "inactivity_timeout_test",
-    );
+    expect((outbox?.payload as Record<string, unknown>)?.reason).toBe("inactivity_timeout_test");
   });
 
   it("releases takeover (HUMAN -> AUTO) for inactive operator conversations", async () => {
@@ -281,9 +276,7 @@ describe.sequential("E08-S06 InactivityManager integration", () => {
     expect(outbox).toBeDefined();
     expect((outbox?.payload as Record<string, unknown>)?.newMode).toBe("AUTO");
     expect((outbox?.payload as Record<string, unknown>)?.previousMode).toBe("HUMAN");
-    expect((outbox?.payload as Record<string, unknown>)?.reason).toBe(
-      "inactivity_release",
-    );
+    expect((outbox?.payload as Record<string, unknown>)?.reason).toBe("inactivity_release");
   });
 
   it("enforces strict A/B tenant isolation: Tenant A processing does not touch Tenant B conversations", async () => {

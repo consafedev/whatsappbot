@@ -414,7 +414,10 @@ function parseAutomationModeMutation(body: unknown): ParsedAutomationModeMutatio
     value.reason === undefined
       ? undefined
       : cleanMessageString(value.reason, MAX_REASON_LENGTH, "automation mode reason");
-  return { mode: value.mode as ConversationAutomationMode, ...(reason === undefined ? {} : { reason }) };
+  return {
+    mode: value.mode as ConversationAutomationMode,
+    ...(reason === undefined ? {} : { reason }),
+  };
 }
 
 function parseAutoAssignMutation(body: unknown): ParsedAutoAssignMutation {
@@ -430,9 +433,7 @@ function parseAutoAssignMutation(body: unknown): ParsedAutoAssignMutation {
     throw new BadRequestException("Invalid assignment policy");
   }
   const unitId =
-    value.unitId === undefined
-      ? undefined
-      : mutationAssignmentId(value.unitId, "assigned unit");
+    value.unitId === undefined ? undefined : mutationAssignmentId(value.unitId, "assigned unit");
   return {
     policy: value.policy as AssignmentPolicy,
     ...(unitId === undefined || unitId === null ? {} : { unitId }),
@@ -974,7 +975,9 @@ export class InboxService {
         inactivityMinutes: parsed.inactivityMinutes,
         requestId: requestIdValue,
         ...(parsed.closeReason === undefined ? {} : { closeReason: parsed.closeReason }),
-        ...(parsed.releaseTakeoverMinutes === undefined ? {} : { releaseTakeoverMinutes: parsed.releaseTakeoverMinutes }),
+        ...(parsed.releaseTakeoverMinutes === undefined
+          ? {}
+          : { releaseTakeoverMinutes: parsed.releaseTakeoverMinutes }),
       });
     } catch (error) {
       return mapError(error);
@@ -1116,12 +1119,7 @@ export class InboxController {
     @Req() request: TenantAuthenticationRequest,
     @Body() body: unknown,
   ): Promise<InactivityProcessResult> {
-    return this.service.processInactivity(
-      context,
-      identity,
-      requestId(request),
-      body,
-    );
+    return this.service.processInactivity(context, identity, requestId(request), body);
   }
 
   @Patch("conversations/:conversationId/assignment")

@@ -12,10 +12,7 @@ export interface ChunkWithEmbedding {
  * Calculates the cosine similarity between two vectors.
  * Returns a value between -1.0 and 1.0 (or 0.0 if vectors are empty or have zero norm).
  */
-export function cosineSimilarity(
-  vecA: readonly number[],
-  vecB: readonly number[],
-): number {
+export function cosineSimilarity(vecA: readonly number[], vecB: readonly number[]): number {
   if (vecA.length === 0 || vecB.length === 0 || vecA.length !== vecB.length) {
     return 0.0;
   }

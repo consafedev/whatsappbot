@@ -19,7 +19,7 @@ import {
   TenantAuthService,
 } from "./tenant-auth";
 
-const origin = "http://localhost:3000";
+const origin = "http://localhost:3005";
 const sharedEmail = "same-user@example.invalid";
 const tenantA = { slug: "e02-s02-a", password: "tenant A secure passphrase" };
 const tenantB = { slug: "e02-s02-b", password: "tenant B secure passphrase" };

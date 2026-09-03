@@ -36,7 +36,8 @@ export function encryptApiKey(apiKey: string, secret: Uint8Array | string): stri
     const key = normalizeKey(secret);
     const iv = randomBytes(12);
     const cipher = createCipheriv("aes-256-gcm", key, iv);
-    const value = cipher.update(JSON.stringify({ apiKey }), "utf8", "base64url") + cipher.final("base64url");
+    const value =
+      cipher.update(JSON.stringify({ apiKey }), "utf8", "base64url") + cipher.final("base64url");
     const tag = cipher.getAuthTag().toString("base64url");
     return `v1.${iv.toString("base64url")}.${tag}.${value}`;
   } catch (error) {

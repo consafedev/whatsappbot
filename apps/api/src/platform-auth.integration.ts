@@ -12,7 +12,7 @@ import { bootstrapPlatformAdmin } from "./platform-admin-create";
 
 const email = "e02-s01-admin@example.invalid";
 const password = "correct horse battery staple";
-const origin = "http://localhost:3000";
+const origin = "http://localhost:3005";
 let prisma: PrismaClient;
 let app: Awaited<ReturnType<typeof createApiApplication>>;
 let baseUrl: string;

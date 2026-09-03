@@ -93,7 +93,8 @@ export function AiUsageTab({ apiBaseUrl }: AiUsageTabProps) {
                 {formatTokens(summary.totalTokens)}
               </span>
               <span className="text-xs text-slate-500">
-                {formatTokens(summary.totalPromptTokens)} in / {formatTokens(summary.totalCompletionTokens)} out
+                {formatTokens(summary.totalPromptTokens)} in /{" "}
+                {formatTokens(summary.totalCompletionTokens)} out
               </span>
             </div>
           </div>
@@ -107,9 +108,7 @@ export function AiUsageTab({ apiBaseUrl }: AiUsageTabProps) {
               <span className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
                 {formatCostUsd(summary.totalEstimatedCostUsd)}
               </span>
-              <span className="text-xs text-slate-400 font-mono">
-                ~0.01$/1K tok
-              </span>
+              <span className="text-xs text-slate-400 font-mono">~0.01$/1K tok</span>
             </div>
           </div>
 

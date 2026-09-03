@@ -34,20 +34,14 @@ import {
   type TenantAuthRepository,
 } from "@whatsapp-platform/database/platform";
 import { createMessagingCredentialCipher } from "@whatsapp-platform/messaging";
+import { AiAgentConfigController, AiAgentConfigService } from "./ai-agent-config";
 import {
   AI_GATEWAY_DATABASE,
   AI_GATEWAY_SECRET,
   AiGatewayController,
   AiGatewayService,
 } from "./ai-gateway";
-import {
-  KnowledgeBaseController,
-  KnowledgeBaseService,
-} from "./knowledge-base";
-import {
-  AiAgentConfigController,
-  AiAgentConfigService,
-} from "./ai-agent-config";
+import { CAMPAIGNS_DATABASE, CampaignsController, CampaignsService } from "./campaigns";
 import {
   CHANNEL_REALTIME_BROADCASTER,
   CHANNEL_REALTIME_OUTBOX_DATABASE,
@@ -80,6 +74,7 @@ import {
   InboxRealtimeBroadcaster,
   InboxRealtimeOutboxBridge,
 } from "./inbox-realtime.service";
+import { KnowledgeBaseController, KnowledgeBaseService } from "./knowledge-base";
 import {
   OUTBOUND_MESSAGE_MANAGER,
   OutboundMessagesController,
@@ -201,6 +196,7 @@ export async function createApiApplication(
       AiGatewayController,
       KnowledgeBaseController,
       AiAgentConfigController,
+      CampaignsController,
       ...(config.environment === "test" ? [EntitlementTestProbeController] : []),
     ],
     providers: [
@@ -238,7 +234,9 @@ export async function createApiApplication(
       AiGatewayService,
       KnowledgeBaseService,
       AiAgentConfigService,
+      CampaignsService,
       { provide: AI_GATEWAY_DATABASE, useFactory: getPlatformDatabaseClient },
+      { provide: CAMPAIGNS_DATABASE, useFactory: getPlatformDatabaseClient },
       {
         provide: AI_GATEWAY_SECRET,
         useValue: dependencies.messagingCredentialsKey ?? "default-dev-secret-key-32-bytes!",

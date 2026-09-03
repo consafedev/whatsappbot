@@ -1,3 +1,4 @@
+import { type AiTurnResult, processInboundAiTurn } from "./ai-agent-dispatcher";
 import type { ConversationManagerDatabase } from "./conversation-manager";
 import {
   createDeliveryStatusManager,
@@ -32,7 +33,6 @@ import {
 } from "./rule-trigger-dispatcher";
 import { createTenantContext, type TenantContext } from "./tenant-context";
 import { TenantModuleEntitlementRequiredError } from "./tenant-entitlements";
-import { processInboundAiTurn, type AiTurnResult } from "./ai-agent-dispatcher";
 
 export type InboundEventDispatcherDatabase = ConversationManagerDatabase &
   Pick<
@@ -325,20 +325,17 @@ export function createInboundEventDispatcher(
           let aiTurnResult: AiTurnResult | undefined;
           if (!rulesSentMessage && persistResult.message.textBody) {
             try {
-              aiTurnResult = await processInboundAiTurn(
-                database as unknown as PrismaClient,
-                {
-                  tenantId: tenant.tenantId,
-                  conversationId: persistResult.conversationId,
-                  channelAccountId: persistResult.message.channelAccountId,
-                  contactId: resolvedContactId ?? "",
-                  inboundMessageId: persistResult.message.id,
-                  inboundText: persistResult.message.textBody,
-                  encryptionSecret:
-                    options?.encryptionSecret ??
-                    "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-                },
-              );
+              aiTurnResult = await processInboundAiTurn(database as unknown as PrismaClient, {
+                tenantId: tenant.tenantId,
+                conversationId: persistResult.conversationId,
+                channelAccountId: persistResult.message.channelAccountId,
+                contactId: resolvedContactId ?? "",
+                inboundMessageId: persistResult.message.id,
+                inboundText: persistResult.message.textBody,
+                encryptionSecret:
+                  options?.encryptionSecret ??
+                  "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+              });
             } catch {
               // Gracefully continue so inbound persist does not fail
             }

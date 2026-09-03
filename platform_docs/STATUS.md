@@ -2,7 +2,7 @@
 
 **Actualizado:** 2026-09-02
 **Versión de producto:** `0.0.0`  
-**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; **Epic 10 — AI Gateway Foundation & Intelligent Automation — PASS / COMPLETE (E10-S01 a E10-S06 PASS)**.
+**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; **Epic 11 — Campaign Engine & Audience Broadcasts — IN PROGRESS (E11-S01 PASS)**.
 
 ## Current milestone
 
@@ -10,7 +10,40 @@ Epic 11 — Campaign Engine & Audience Broadcasts.
 
 ## Current epic
 
-**Epic 10 — AI Gateway Foundation & Intelligent Automation** — **PASS / COMPLETE** (ADR-0042, ADR-0043, ADR-0044, ADR-0045, ADR-0046, ADR-0047)
+**Epic 11 — Campaign Engine & Audience Broadcasts** — **IN PROGRESS** (ADR-0048)
+
+Estado por historia:
+
+- E11-S01 — Campaign Data Model, Audience Segmentation & Message Templates: **PASS** (ADR-0048).
+  - Esquema Relacional y Migración Prisma (`packages/database/prisma/`):
+    - Modelos `MessageTemplate`, `Campaign` y `CampaignAudienceMember` mapeados a `snake_case` con IDs UUIDv7.
+    - Claves foráneas compuestas `[tenantId, channelAccountId]` y `[tenantId, contactId]` que garantizan aislamiento estricto por inquilino.
+    - Restricción de unicidad estricta `campaign_audience_unique_recipient` (`(campaign_id, contact_id)`) para impedir duplicidad de destinatarios.
+    - Migración SQL `20260902160000_add_campaigns_foundation` aplicada a PostgreSQL.
+  - Catálogo de Módulos y Permisos RBAC (`packages/rbac/`, `packages/database/`):
+    - Módulo funcional `module.campaigns` añadido a `MODULE_ENTITLEMENT_KEYS`.
+    - Permisos granulares `campaigns.read` y `campaigns.manage` registrados en `PERMISSION_CATALOG`.
+  - Motor de Interpolación de Plantillas (`packages/database/src/template-renderer.ts`):
+    - Función pura `renderTemplate(templateText, variables)` para sustitución determinista de variables mustache `{{variable}}`.
+    - `extractTemplateVariables(templateText)` para detección automática de variables.
+  - Gestor de Campañas y Segmentación (`packages/database/src/campaign-manager.ts`):
+    - `createMessageTemplate`, `listMessageTemplates`, `createCampaign`, `segmentAndPopulateAudience`, `getCampaignDetail`, `listCampaigns`.
+    - Segmentación por etiquetas (*tags*) con operador `hasSome` de PostgreSQL y población atómica e idempotente (`skipDuplicates: true`).
+  - Endpoints REST en NestJS API Gateway (`apps/api/src/campaigns.ts`):
+    - `POST /api/v1/campaigns/templates` (201 Created) — `campaigns.manage`.
+    - `GET /api/v1/campaigns/templates` (200 OK) — `campaigns.read`.
+    - `POST /api/v1/campaigns` (201 Created) — `campaigns.manage`.
+    - `POST /api/v1/campaigns/:id/audience/populate` (200 OK) — `campaigns.manage`.
+    - `GET /api/v1/campaigns` (200 OK) — `campaigns.read`.
+    - `GET /api/v1/campaigns/:id` (200 OK) — `campaigns.read`.
+    - Protegidos por `@RequireEntitlements("module.campaigns")`, `TenantPermissionGuard`, `TenantContextGuard` y `TenantUserSessionGuard`.
+  - Migración de Puerto Web:
+    - Puerto web actualizado de 3000 a 3005 (`WEB_PORT=3005`, `PLATFORM_WEB_ORIGIN=http://localhost:3005`, `TENANT_WEB_ORIGIN=http://localhost:3005`).
+  - Verificación: 8/8 pruebas unitarias en `template-renderer.test.ts` (100% PASS); 5/5 pruebas de integración en `campaign-manager.integration.ts` (100% PASS); 8/8 pruebas de integración en `campaigns.integration.ts` (100% PASS); monorepo typecheck y Biome en 0 errores.
+
+Epics anteriores:
+
+- **Epic 10 — AI Gateway Foundation & Intelligent Automation** — **PASS / COMPLETE** (ADR-0042, ADR-0043, ADR-0044, ADR-0045, ADR-0046, ADR-0047)
 
 Estado por historia:
 

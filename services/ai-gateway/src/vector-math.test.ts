@@ -52,9 +52,7 @@ describe("Vector Math Unit Tests", () => {
 
     it("returns empty array when no chunks meet minScore", () => {
       const query = [1, 0, 0];
-      const chunks = [
-        { id: "c1", embedding: [0, 1, 0], content: "Orthogonal" },
-      ];
+      const chunks = [{ id: "c1", embedding: [0, 1, 0], content: "Orthogonal" }];
 
       const results = rankChunksBySimilarity(query, chunks, { minScore: 0.5 });
       expect(results).toEqual([]);

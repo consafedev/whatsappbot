@@ -206,7 +206,7 @@ function put(
 function login(slug: string, email: string): Promise<Response> {
   return fetch(`${baseUrl}/auth/tenants/${slug}/login`, {
     body: JSON.stringify({ email, password }),
-    headers: { "content-type": "application/json", origin: "http://localhost:3000" },
+    headers: { "content-type": "application/json", origin: "http://localhost:3005" },
     method: "POST",
   });
 }

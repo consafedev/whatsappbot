@@ -90,7 +90,7 @@ class TenantRbacProbeController {
     },
     {
       provide: TENANT_AUTH_OPTIONS,
-      useValue: { cookie: tenantCookieConfig("test"), webOrigin: "http://localhost:3000" },
+      useValue: { cookie: tenantCookieConfig("test"), webOrigin: "http://localhost:3005" },
     },
     { provide: TENANT_DATA_ACCESS_DATABASE, useFactory: () => prisma },
   ],

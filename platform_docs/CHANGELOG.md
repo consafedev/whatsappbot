@@ -8,6 +8,34 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Added
 
+- E11-S01 implementa el modelo relacional de campañas, motor de segmentación de audiencias y gestión de plantillas de mensajes (`Campaign Data Model, Audience Segmentation & Message Templates`) en `packages/database`, `packages/rbac` y `apps/api`:
+  - Esquema Relacional y Migración Prisma (`packages/database/prisma/`):
+    - Modelos `MessageTemplate`, `Campaign` y `CampaignAudienceMember` mapeados a tablas en snake_case con IDs UUIDv7.
+    - Claves foráneas compuestas `[tenantId, channelAccountId]` y `[tenantId, contactId]` que garantizan aislamiento estricto por inquilino.
+    - Restricción de unicidad estricta `campaign_audience_unique_recipient` (`(campaign_id, contact_id)`) para impedir duplicidad de destinatarios.
+    - Migración SQL `20260902160000_add_campaigns_foundation` aplicada exitosamente a PostgreSQL.
+  - Catálogo de Módulos y Permisos RBAC (`packages/rbac/`, `packages/database/`):
+    - Módulo funcional `module.campaigns` añadido a `MODULE_ENTITLEMENT_KEYS`.
+    - Permisos granulares `campaigns.read` y `campaigns.manage` registrados en `PERMISSION_CATALOG`.
+  - Motor de Interpolación de Plantillas (`packages/database/src/template-renderer.ts`):
+    - Función pura `renderTemplate(templateText, variables)` para sustitución determinista de variables mustache `{{variable}}`.
+    - `extractTemplateVariables(templateText)` para detección automática de variables requeridas.
+  - Gestor de Campañas y Segmentación (`packages/database/src/campaign-manager.ts`):
+    - `createMessageTemplate`, `listMessageTemplates`, `createCampaign`, `segmentAndPopulateAudience`, `getCampaignDetail`, `listCampaigns`.
+    - Segmentación por etiquetas (*tags*) con operador `hasSome` de PostgreSQL y población atómica e idempotente (`skipDuplicates: true`).
+  - Endpoints REST en NestJS API Gateway (`apps/api/src/campaigns.ts`):
+    - `POST /api/v1/campaigns/templates` (201 Created) — Requiere `campaigns.manage`.
+    - `GET /api/v1/campaigns/templates` (200 OK) — Requiere `campaigns.read`.
+    - `POST /api/v1/campaigns` (201 Created) — Requiere `campaigns.manage`.
+    - `POST /api/v1/campaigns/:id/audience/populate` (200 OK) — Requiere `campaigns.manage`.
+    - `GET /api/v1/campaigns` (200 OK) — Requiere `campaigns.read`.
+    - `GET /api/v1/campaigns/:id` (200 OK) — Requiere `campaigns.read`.
+    - Protegidos por `@RequireEntitlements("module.campaigns")`, `TenantPermissionGuard`, `TenantContextGuard` y `TenantUserSessionGuard`.
+  - Migración de Puerto Web:
+    - Puerto web actualizado de 3000 a 3005 (`WEB_PORT=3005`, `PLATFORM_WEB_ORIGIN=http://localhost:3005`, `TENANT_WEB_ORIGIN=http://localhost:3005`) en `.env`, `.env.example`, `packages/config`, `apps/web/package.json` (`next dev -p 3005`), `compose.yaml` y pruebas de integración de API.
+  - Documentación normativa en ADR-0048 (`0048-e11-s01-campaign-data-model-and-segmentation-scope.md`).
+  - Verificación E11-S01: 8/8 pruebas unitarias en `template-renderer.test.ts` (100% PASS); 5/5 pruebas de integración en `campaign-manager.integration.ts` (100% PASS); 8/8 pruebas de integración en `campaigns.integration.ts` (100% PASS); monorepo typecheck y Biome en 0 errores.
+
 - E10-S06 implementa la consola web de gestión de IA, administración de la base de conocimiento vectorial y configuración del agente autónomo (`AI Console, Knowledge Base Management & Agent Settings Web UI`) en `apps/web`:
   - Modelado y Clientes REST (`apps/web/app/app/ai/ai-view-model.ts`):
     - Tipado completo de configuración de agente, documentos y fragmentos vectoriales, y métricas de consumo de tokens.
