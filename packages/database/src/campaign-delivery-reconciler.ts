@@ -71,13 +71,22 @@ export async function reconcileCampaignAudienceDeliveryStatus(
     const targetStatus = input.status;
     const timestamp = input.timestamp ?? new Date();
 
-    // If member is already READ
+    // Monotonicity: READ is terminal — do not degrade
     if (currentStatus === "READ") {
-      // Monotonicity: do not degrade to DELIVERED, idempotent if READ
       return {
         memberId: member.id,
         previousStatus: currentStatus,
         currentStatus: "READ",
+        updated: false,
+      };
+    }
+
+    // Monotonicity: FAILED is terminal — do not upgrade to DELIVERED/READ
+    if (currentStatus === "FAILED") {
+      return {
+        memberId: member.id,
+        previousStatus: currentStatus,
+        currentStatus: "FAILED",
         updated: false,
       };
     }
