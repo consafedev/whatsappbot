@@ -8,6 +8,22 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Added
 
+- E11-S03 implementa la reconciliación de acuses de recibo de campañas masivas, monotonicidad de estados y agregación cuantitativa de métricas (`Campaign Delivery Status Reconciliation & Bulk Metrics Aggregation`) en `packages/database` y `apps/api`:
+  - Reconciliación de Acuses de Recibo (`packages/database/src/campaign-delivery-reconciler.ts`):
+    - `reconcileCampaignAudienceDeliveryStatus`: Reconciliación monótona de acuses (`DELIVERED`, `READ`, `FAILED`) tolerante a eventos desordenados, impidiendo degradación desde `READ` e incrementando atómicamente `campaign.deliveredCount` y `campaign.failedCount` sin duplicaciones ante reintentos.
+    - `reconcileCampaignDeliveryFromOutboundMessage`: Puente automático desde mensajes del outbox con metadatos `{ source: "CAMPAIGN" }`.
+    - Validación de pertenencia mediante clave compuesta `tenantId_id`.
+  - Cálculo de Métricas y Consulta de Miembros (`packages/database/src/campaign-manager.ts`):
+    - `getCampaignMetrics`: Cálculo cuantitativo de totales y tasas de rendimiento (`deliveryRate`, `readRate`, `failureRate`).
+    - `listCampaignAudienceMembers`: Consulta paginada con filtrado opcional por `status` y proyección de datos del contacto.
+  - Endpoints REST en NestJS API Gateway (`apps/api/src/campaigns.ts`):
+    - `GET /api/v1/campaigns/:id/metrics` (200 OK) — Métricas cuantitativas y tasas de desempeño.
+    - `GET /api/v1/campaigns/:id/audience` (200 OK) — Miembros de audiencia paginados con filtrado.
+    - Protegidos por `@RequireEntitlements("module.campaigns")`, `TenantPermissionGuard` (`campaigns.read`), `TenantContextGuard` y `TenantUserSessionGuard`.
+    - Aislamiento A/B: Rechazo con 404 Not Found ante solicitudes cross-tenant.
+  - Documentación normativa en ADR-0050 (`0050-e11-s03-campaign-delivery-reconciliation-and-metrics-scope.md`).
+  - Verificación E11-S03: 11/11 pruebas de integración de base de datos PASS; 15/15 pruebas de integración de API PASS; monorepo typecheck y Biome en 0 errores.
+
 - E11-S02 implementa el despachador de ejecución de campañas masivas, limitación de tasa y entrega mediante outbox transaccional (`Campaign Execution Dispatcher, Rate Limiting & Outbox Delivery`) en `packages/database` y `apps/api`:
   - Máquina de Estados y Ciclo de Vida (`packages/database/src/campaign-manager.ts`):
     - `startCampaign`: Transición desde `DRAFT` o `PAUSED` a `RUNNING`, validación de `totalRecipients > 0` y registro de `startedAt`.

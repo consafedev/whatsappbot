@@ -102,6 +102,33 @@ export interface ListCampaignsInput {
   readonly offset?: number | undefined;
 }
 
+export interface GetCampaignMetricsInput {
+  readonly tenantId: string;
+  readonly campaignId: string;
+}
+
+export interface CampaignMetricsResult {
+  readonly campaignId: string;
+  readonly status: string;
+  readonly totalRecipients: number;
+  readonly sentCount: number;
+  readonly deliveredCount: number;
+  readonly readCount: number;
+  readonly failedCount: number;
+  readonly pendingCount: number;
+  readonly deliveryRate: number;
+  readonly readRate: number;
+  readonly failureRate: number;
+}
+
+export interface ListCampaignAudienceMembersInput {
+  readonly tenantId: string;
+  readonly campaignId: string;
+  readonly status?: string | undefined;
+  readonly limit?: number | undefined;
+  readonly offset?: number | undefined;
+}
+
 export async function createMessageTemplate(
   database: CampaignDatabase,
   input: CreateMessageTemplateInput,
@@ -477,4 +504,115 @@ export async function cancelCampaign(
       status: "CANCELLED",
     },
   });
+}
+
+export async function getCampaignMetrics(
+  database: CampaignDatabase,
+  input: GetCampaignMetricsInput,
+): Promise<CampaignMetricsResult> {
+  await assertTenantOperational(createTenantContext(input.tenantId), database);
+
+  const campaign = await database.campaign.findUnique({
+    where: {
+      tenantId_id: {
+        tenantId: input.tenantId,
+        id: input.campaignId,
+      },
+    },
+  });
+
+  if (!campaign) {
+    throw new CampaignNotFoundError(input.campaignId);
+  }
+
+  const [readCount, pendingCount] = await Promise.all([
+    database.campaignAudienceMember.count({
+      where: {
+        tenantId: input.tenantId,
+        campaignId: input.campaignId,
+        status: "READ",
+      },
+    }),
+    database.campaignAudienceMember.count({
+      where: {
+        tenantId: input.tenantId,
+        campaignId: input.campaignId,
+        status: "PENDING",
+      },
+    }),
+  ]);
+
+  const totalRecipients = campaign.totalRecipients;
+  const sentCount = campaign.sentCount;
+  const deliveredCount = campaign.deliveredCount;
+  const failedCount = campaign.failedCount;
+
+  const deliveryRate = sentCount > 0 ? Number(((deliveredCount / sentCount) * 100).toFixed(2)) : 0;
+  const readRate = deliveredCount > 0 ? Number(((readCount / deliveredCount) * 100).toFixed(2)) : 0;
+  const failureRate = sentCount > 0 ? Number(((failedCount / sentCount) * 100).toFixed(2)) : 0;
+
+  return {
+    campaignId: campaign.id,
+    status: campaign.status,
+    totalRecipients,
+    sentCount,
+    deliveredCount,
+    readCount,
+    failedCount,
+    pendingCount,
+    deliveryRate,
+    readRate,
+    failureRate,
+  };
+}
+
+export async function listCampaignAudienceMembers(
+  database: CampaignDatabase,
+  input: ListCampaignAudienceMembersInput,
+) {
+  await assertTenantOperational(createTenantContext(input.tenantId), database);
+
+  const campaign = await database.campaign.findUnique({
+    where: {
+      tenantId_id: {
+        tenantId: input.tenantId,
+        id: input.campaignId,
+      },
+    },
+  });
+
+  if (!campaign) {
+    throw new CampaignNotFoundError(input.campaignId);
+  }
+
+  const limit = input.limit ?? 50;
+  const offset = input.offset ?? 0;
+
+  const where: Prisma.CampaignAudienceMemberWhereInput = {
+    tenantId: input.tenantId,
+    campaignId: input.campaignId,
+    ...(input.status ? { status: input.status } : {}),
+  };
+
+  const [members, total] = await Promise.all([
+    database.campaignAudienceMember.findMany({
+      where,
+      orderBy: { createdAt: "asc" },
+      take: limit,
+      skip: offset,
+      include: {
+        contact: {
+          select: {
+            id: true,
+            name: true,
+            phoneNumber: true,
+            email: true,
+          },
+        },
+      },
+    }),
+    database.campaignAudienceMember.count({ where }),
+  ]);
+
+  return { members, total, limit, offset };
 }

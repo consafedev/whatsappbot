@@ -2,7 +2,7 @@
 
 **Actualizado:** 2026-09-03
 **Versión de producto:** `0.0.0`  
-**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; **Epic 11 — Campaign Engine & Audience Broadcasts — IN PROGRESS (E11-S01, E11-S02 PASS)**.
+**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; **Epic 11 — Campaign Engine & Audience Broadcasts — IN PROGRESS (E11-S01, E11-S02, E11-S03 PASS)**.
 
 ## Current milestone
 
@@ -10,9 +10,24 @@ Epic 11 — Campaign Engine & Audience Broadcasts.
 
 ## Current epic
 
-**Epic 11 — Campaign Engine & Audience Broadcasts** — **IN PROGRESS** (ADR-0048, ADR-0049)
+**Epic 11 — Campaign Engine & Audience Broadcasts** — **IN PROGRESS** (ADR-0048, ADR-0049, ADR-0050)
 
 Estado por historia:
+
+- E11-S03 — Campaign Delivery Status Reconciliation & Bulk Metrics Aggregation: **PASS** (ADR-0050).
+  - Reconciliación de Acuses de Recibo (`packages/database/src/campaign-delivery-reconciler.ts`):
+    - `reconcileCampaignAudienceDeliveryStatus`: Reconciliación monótona de acuses (`DELIVERED`, `READ`, `FAILED`) tolerante a eventos desordenados, impidiendo degradación desde `READ` e incrementando atómicamente `campaign.deliveredCount` y `campaign.failedCount` sin duplicaciones ante reintentos.
+    - `reconcileCampaignDeliveryFromOutboundMessage`: Puente automático desde mensajes del outbox con metadatos `{ source: "CAMPAIGN" }`.
+    - Validación de pertenencia mediante clave compuesta `tenantId_id`.
+  - Cálculo de Métricas y Consulta de Miembros (`packages/database/src/campaign-manager.ts`):
+    - `getCampaignMetrics`: Cálculo cuantitativo de totales y tasas de rendimiento (`deliveryRate`, `readRate`, `failureRate`).
+    - `listCampaignAudienceMembers`: Consulta paginada con filtrado opcional por `status` y proyección de datos del contacto.
+  - Endpoints REST en NestJS API Gateway (`apps/api/src/campaigns.ts`):
+    - `GET /api/v1/campaigns/:id/metrics` (200 OK) — Métricas cuantitativas y tasas de desempeño.
+    - `GET /api/v1/campaigns/:id/audience` (200 OK) — Miembros de audiencia paginados con filtrado.
+    - Protegidos por `@RequireEntitlements("module.campaigns")`, `TenantPermissionGuard` (`campaigns.read`), `TenantContextGuard` y `TenantUserSessionGuard`.
+    - Aislamiento A/B: Rechazo con 404 Not Found ante solicitudes cross-tenant.
+  - Verificación: 11/11 pruebas de integración de base de datos PASS; 15/15 pruebas de integración de API PASS; monorepo typecheck y Biome en 0 errores.
 
 - E11-S02 — Campaign Execution Dispatcher, Rate Limiting & Outbox Delivery: **PASS** (ADR-0049).
   - Máquina de Estados y Ciclo de Vida (`packages/database/src/campaign-manager.ts`):

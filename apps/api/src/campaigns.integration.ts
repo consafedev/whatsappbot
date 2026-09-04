@@ -482,5 +482,86 @@ describe.sequential("Campaigns API Integration", () => {
       },
     );
     expect(resDispatch.status).toBe(404);
+
+    // GET metrics -> 404
+    const resMetrics = await fetch(`${baseUrl}/api/v1/campaigns/${createdCampaignId}/metrics`, {
+      headers: {
+        cookie: ownerBCookie,
+        "x-tenant-id": tenantBId,
+      },
+    });
+    expect(resMetrics.status).toBe(404);
+
+    // GET audience -> 404
+    const resAudience = await fetch(`${baseUrl}/api/v1/campaigns/${createdCampaignId}/audience`, {
+      headers: {
+        cookie: ownerBCookie,
+        "x-tenant-id": tenantBId,
+      },
+    });
+    expect(resAudience.status).toBe(404);
+  });
+
+  it("GET /api/v1/campaigns/:id/metrics returns aggregated campaign performance metrics", async () => {
+    const res = await fetch(`${baseUrl}/api/v1/campaigns/${createdCampaignId}/metrics`, {
+      headers: {
+        cookie: ownerACookie,
+        "x-tenant-id": tenantAId,
+      },
+    });
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      success: boolean;
+      data: {
+        campaignId: string;
+        status: string;
+        totalRecipients: number;
+        sentCount: number;
+        deliveredCount: number;
+        readCount: number;
+        failedCount: number;
+        pendingCount: number;
+        deliveryRate: number;
+        readRate: number;
+        failureRate: number;
+      };
+    };
+    expect(body.success).toBe(true);
+    expect(body.data.campaignId).toBe(createdCampaignId);
+    expect(body.data.totalRecipients).toBe(1);
+    expect(body.data.sentCount).toBe(1);
+    expect(body.data.pendingCount).toBe(0);
+    expect(typeof body.data.deliveryRate).toBe("number");
+    expect(typeof body.data.readRate).toBe("number");
+    expect(typeof body.data.failureRate).toBe("number");
+  });
+
+  it("GET /api/v1/campaigns/:id/audience lists paginated audience members", async () => {
+    const res = await fetch(`${baseUrl}/api/v1/campaigns/${createdCampaignId}/audience`, {
+      headers: {
+        cookie: ownerACookie,
+        "x-tenant-id": tenantAId,
+      },
+    });
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      success: boolean;
+      data: {
+        members: Array<{
+          id: string;
+          status: string;
+          contact: { id: string; name: string; phoneNumber: string };
+        }>;
+        total: number;
+        limit: number;
+        offset: number;
+      };
+    };
+    expect(body.success).toBe(true);
+    expect(body.data.total).toBe(1);
+    expect(body.data.members.length).toBe(1);
+    expect(body.data.members[0]?.contact.name).toBe("Valeria VIP");
   });
 });

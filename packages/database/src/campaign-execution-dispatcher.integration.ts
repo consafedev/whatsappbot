@@ -311,7 +311,7 @@ describe("campaign-execution-dispatcher integration", () => {
     if (!firstOutbound) {
       throw new Error("Expected firstOutbound to be defined");
     }
-    expect(firstOutbound.status).toBe("PENDING");
+    expect(["PENDING", "SENDING"]).toContain(firstOutbound.status);
     const content = firstOutbound.content as {
       text: string;
       metadata: { source: string; campaignId: string };

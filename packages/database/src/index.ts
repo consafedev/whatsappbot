@@ -65,6 +65,15 @@ export {
   isWithinBusinessHours,
 } from "./business-hours-evaluator";
 export {
+  CampaignAudienceMemberNotFoundError,
+  type CampaignDeliveryReconcilerDatabase,
+  type CampaignDeliveryStatus,
+  type ReconcileCampaignDeliveryInput,
+  type ReconcileCampaignDeliveryResult,
+  reconcileCampaignAudienceDeliveryStatus,
+  reconcileCampaignDeliveryFromOutboundMessage,
+} from "./campaign-delivery-reconciler";
+export {
   type CampaignExecutionDatabase,
   type DispatchCampaignBatchInput,
   type DispatchCampaignBatchResult,
@@ -75,6 +84,7 @@ export {
   type CampaignDatabase,
   CampaignEmptyAudienceError,
   CampaignInvalidStatusTransitionError,
+  type CampaignMetricsResult,
   CampaignNotFoundError,
   CampaignNotRunningError,
   type CreateCampaignInput,
@@ -82,9 +92,13 @@ export {
   cancelCampaign,
   createCampaign,
   createMessageTemplate,
+  type GetCampaignMetricsInput,
   getCampaignDetail,
+  getCampaignMetrics,
+  type ListCampaignAudienceMembersInput,
   type ListCampaignsInput,
   type ListMessageTemplatesInput,
+  listCampaignAudienceMembers,
   listCampaigns,
   listMessageTemplates,
   MessageTemplateNotFoundError,

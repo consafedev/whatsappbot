@@ -26,6 +26,8 @@ import {
   createMessageTemplate,
   dispatchCampaignBatch,
   getCampaignDetail,
+  getCampaignMetrics,
+  listCampaignAudienceMembers,
   listCampaigns,
   listMessageTemplates,
   MessageTemplateNotFoundError,
@@ -78,6 +80,12 @@ export interface CreateCampaignDto {
 }
 
 export interface ListCampaignsQuery {
+  readonly status?: string | undefined;
+  readonly limit?: string | undefined;
+  readonly offset?: string | undefined;
+}
+
+export interface ListAudienceMembersQuery {
   readonly status?: string | undefined;
   readonly limit?: string | undefined;
   readonly offset?: string | undefined;
@@ -254,6 +262,43 @@ export class CampaignsService {
       throw err;
     }
   }
+
+  async getMetrics(context: TenantContext, campaignId: string) {
+    try {
+      return await getCampaignMetrics(this.database, {
+        tenantId: context.tenantId,
+        campaignId,
+      });
+    } catch (err: unknown) {
+      if (err instanceof CampaignNotFoundError) {
+        throw new NotFoundException(err.message);
+      }
+      throw err;
+    }
+  }
+
+  async listAudienceMembers(
+    context: TenantContext,
+    campaignId: string,
+    query: ListAudienceMembersQuery,
+  ) {
+    try {
+      const limit = query.limit ? Number.parseInt(query.limit, 10) : 50;
+      const offset = query.offset ? Number.parseInt(query.offset, 10) : 0;
+      return await listCampaignAudienceMembers(this.database, {
+        tenantId: context.tenantId,
+        campaignId,
+        status: query.status,
+        limit,
+        offset,
+      });
+    } catch (err: unknown) {
+      if (err instanceof CampaignNotFoundError) {
+        throw new NotFoundException(err.message);
+      }
+      throw err;
+    }
+  }
 }
 
 @Controller("api/v1/campaigns")
@@ -366,6 +411,27 @@ export class CampaignsController {
     @Body() body?: { batchSize?: number },
   ) {
     const result = await this.service.dispatchBatch(context, campaignId, body?.batchSize);
+    return { success: true, data: result };
+  }
+
+  @Get(":id/metrics")
+  @campaignsAuthorized("campaigns.read")
+  async getMetrics(
+    @CurrentTenantContext() context: TenantContext,
+    @Param("id") campaignId: string,
+  ) {
+    const metrics = await this.service.getMetrics(context, campaignId);
+    return { success: true, data: metrics };
+  }
+
+  @Get(":id/audience")
+  @campaignsAuthorized("campaigns.read")
+  async listAudienceMembers(
+    @CurrentTenantContext() context: TenantContext,
+    @Param("id") campaignId: string,
+    @Query() query: ListAudienceMembersQuery,
+  ) {
+    const result = await this.service.listAudienceMembers(context, campaignId, query);
     return { success: true, data: result };
   }
 }

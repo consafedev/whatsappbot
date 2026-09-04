@@ -7,6 +7,7 @@ export default defineConfig({
     include: [
       "src/campaign-manager.integration.ts",
       "src/campaign-execution-dispatcher.integration.ts",
+      "src/campaign-delivery-reconciler.integration.ts",
     ],
     testTimeout: 60_000,
   },
