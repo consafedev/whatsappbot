@@ -8,6 +8,26 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Added
 
+- E11-S04 implementa la interfaz web de gestión de campañas masivas y el asistente de creación en 4 pasos (`Campaign Management Web UI: Creation Wizard & Audience Segmenter`) en `apps/web`:
+  - Navegación y Entitlements (`apps/web/app/app/tenant-app-navigation.ts`):
+    - Inclusión de `"module.campaigns": "Campañas"` en `TENANT_MODULE_LABELS`.
+    - Habilitación de la ruta `/app/campaigns` bajo el grupo `operation`, protegida por `module.campaigns` y `campaigns.read`.
+  - View Model y Clientes REST (`apps/web/app/app/campaigns/campaigns-view-model.ts`):
+    - Definición de contratos TypeScript: `CampaignListItem`, `CampaignDetail`, `MessageTemplateItem`, `CampaignChannelItem`, `CreateCampaignInput`.
+    - Formateadores y utilidades: `formatCampaignStatus` (mapeo con badges de estado), `calculateProgress` (cálculo de 0 a 100 sin división por cero), `extractMustacheVariables` (detección en vivo de variables `{{variable}}`).
+    - Clientes REST: `fetchCampaigns`, `fetchCampaignDetail`, `createCampaign`, `startCampaign`, `pauseCampaign`, `cancelCampaign`, `populateAudience`, `fetchMessageTemplates`, `createMessageTemplate`, `fetchChannelsForCampaigns`.
+  - Asistente Modal de 4 Pasos (`apps/web/app/app/campaigns/campaign-wizard-modal.tsx`):
+    - Paso 1: Configuración general (nombre y canal de WhatsApp).
+    - Paso 2: Mensaje y plantilla (plantilla guardada o redacción libre con variables detectadas en vivo).
+    - Paso 3: Audiencia y segmentación (etiquetas interactivas y opción de poblado automático).
+    - Paso 4: Velocidad de envío (slider de 10 a 120 msgs/min, default 30) y resumen pre-confirmación.
+  - Interfaz de Campañas (`apps/web/app/app/campaigns/`):
+    - `campaigns-client.tsx`: Shell con búsqueda, selector de estados, gestión de toasts y avisos ante falta de módulo o permisos.
+    - `campaigns-list.tsx`: Tabla con barra de progreso, métricas de entregados (`✓✓`), leídos (`👁`), fallidos (`✕`), y acciones contextuales (`Iniciar`, `Pausar`, `Reanudar`, `Cancelar`, `Poblar Audiencia`) restringidas a `campaigns.manage`.
+    - `page.tsx`: Server component dinámico.
+  - Documentación normativa en ADR-0051 (`0051-e11-s04-campaign-management-web-ui-scope.md`).
+  - Verificación E11-S04: 145/145 pruebas unitarias de `apps/web` PASS (25 específicas de campañas); typecheck global y Biome en 0 errores.
+
 - E11-S03 implementa la reconciliación de acuses de recibo de campañas masivas, monotonicidad de estados y agregación cuantitativa de métricas (`Campaign Delivery Status Reconciliation & Bulk Metrics Aggregation`) en `packages/database` y `apps/api`:
   - Reconciliación de Acuses de Recibo (`packages/database/src/campaign-delivery-reconciler.ts`):
     - `reconcileCampaignAudienceDeliveryStatus`: Reconciliación monótona de acuses (`DELIVERED`, `READ`, `FAILED`) tolerante a eventos desordenados, impidiendo degradación desde `READ` e incrementando atómicamente `campaign.deliveredCount` y `campaign.failedCount` sin duplicaciones ante reintentos.

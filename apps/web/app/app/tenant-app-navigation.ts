@@ -28,6 +28,7 @@ export const TENANT_MODULE_LABELS: Readonly<Record<string, string>> = Object.fre
   "module.quotes": "Cotizaciones",
   "module.white_label": "White label",
   "module.ai": "IA",
+  "module.campaigns": "Campañas",
 });
 
 const navigation: readonly TenantAppNavigationGroup[] = Object.freeze([
@@ -42,6 +43,13 @@ const navigation: readonly TenantAppNavigationGroup[] = Object.freeze([
         label: "Inbox",
         requiredModule: "module.messaging.basic",
         requiredPermission: "conversations.read",
+      },
+      {
+        href: "/app/campaigns",
+        id: "campaigns",
+        label: "Campañas",
+        requiredModule: "module.campaigns",
+        requiredPermission: "campaigns.read",
       },
       { href: null, id: "contacts", label: "Contactos", requiredModule: "module.crm_lite" },
       {

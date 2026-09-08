@@ -1,8 +1,8 @@
 # STATUS.md — Estado operativo actual del proyecto
 
-**Actualizado:** 2026-09-03
+**Actualizado:** 2026-09-08
 **Versión de producto:** `0.0.0`  
-**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; **Epic 11 — Campaign Engine & Audience Broadcasts — IN PROGRESS (E11-S01, E11-S02, E11-S03 PASS)**.
+**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; **Epic 11 — Campaign Engine & Audience Broadcasts — IN PROGRESS (E11-S01, E11-S02, E11-S03, E11-S04 PASS)**.
 
 ## Current milestone
 
@@ -10,9 +10,28 @@ Epic 11 — Campaign Engine & Audience Broadcasts.
 
 ## Current epic
 
-**Epic 11 — Campaign Engine & Audience Broadcasts** — **IN PROGRESS** (ADR-0048, ADR-0049, ADR-0050)
+**Epic 11 — Campaign Engine & Audience Broadcasts** — **IN PROGRESS** (ADR-0048, ADR-0049, ADR-0050, ADR-0051)
 
 Estado por historia:
+
+- E11-S04 — Campaign Management Web UI: Creation Wizard & Audience Segmenter: **PASS** (ADR-0051).
+  - Navegación y Entitlements (`apps/web/app/app/tenant-app-navigation.ts`):
+    - Registro de `"module.campaigns": "Campañas"` en `TENANT_MODULE_LABELS` para el dashboard de módulos del tenant.
+    - Habilitación de la ruta `/app/campaigns` bajo el grupo `operation`, protegida por `module.campaigns` y `campaigns.read`.
+  - View Model y Clientes REST (`apps/web/app/app/campaigns/campaigns-view-model.ts`):
+    - Definición de tipos: `CampaignListItem`, `CampaignDetail`, `MessageTemplateItem`, `CampaignChannelItem`, `CreateCampaignInput`.
+    - Formateadores: `formatCampaignStatus` (mapeo a estados en español con badges Tailwind), `calculateProgress` (cálculo porcentual de 0 a 100 sin divisiones por cero), `extractMustacheVariables` (detección en tiempo real de variables `{{variable}}`).
+    - Clientes REST: `fetchCampaigns`, `fetchCampaignDetail`, `createCampaign`, `startCampaign`, `pauseCampaign`, `cancelCampaign`, `populateAudience`, `fetchMessageTemplates`, `createMessageTemplate`, `fetchChannelsForCampaigns`.
+  - Asistente Modal de 4 Pasos (`apps/web/app/app/campaigns/campaign-wizard-modal.tsx`):
+    - Paso 1: Configuración general (nombre y selector de canal de WhatsApp).
+    - Paso 2: Mensaje y plantilla (plantilla guardada o texto libre con detector de variables mustache).
+    - Paso 3: Audiencia y segmentación (etiquetas interactivas y opción de poblado automático).
+    - Paso 4: Velocidad de envío (slider de 10 a 120 msgs/min, por defecto 30 msgs/min) y confirmación con resumen.
+  - Interfaz de Campañas (`apps/web/app/app/campaigns/`):
+    - `campaigns-client.tsx`: Shell con barra de búsqueda, selector de estado ("ALL", "DRAFT", "SCHEDULED", "RUNNING", "PAUSED", "COMPLETED", "CANCELLED", "FAILED"), gestión de toasts y alertas de módulo/permiso no contratado.
+    - `campaigns-list.tsx`: Tabla con barra de progreso, métricas de entregados (`✓✓`), leídos (`👁`), fallidos (`✕`), tasa por minuto y botones de acción contextuales (`Iniciar`, `Pausar`, `Reanudar`, `Cancelar`, `Poblar Audiencia`) restringidos a `campaigns.manage`.
+    - `page.tsx`: Server component dinámico montando el cliente.
+  - Verificación: 145/145 pruebas unitarias de `apps/web` PASS (25 específicas de campañas); typecheck global y Biome en 0 errores.
 
 - E11-S03 — Campaign Delivery Status Reconciliation & Bulk Metrics Aggregation: **PASS** (ADR-0050).
   - Reconciliación de Acuses de Recibo (`packages/database/src/campaign-delivery-reconciler.ts`):

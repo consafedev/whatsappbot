@@ -108,4 +108,21 @@ describe("tenant app navigation", () => {
     );
     expect(withBoth.find((item) => item.id === "ai")?.href).toBe("/app/ai");
   });
+
+  it("exposes campaigns /app/campaigns route when module.campaigns and campaigns.read permission are granted", () => {
+    const withoutModule = resolveTenantNavigation([], ["campaigns.read"]).flatMap(
+      (group) => group.items,
+    );
+    expect(withoutModule.some((item) => item.id === "campaigns")).toBe(false);
+
+    const withoutPerm = resolveTenantNavigation(["module.campaigns"], []).flatMap(
+      (group) => group.items,
+    );
+    expect(withoutPerm.some((item) => item.id === "campaigns")).toBe(false);
+
+    const withBoth = resolveTenantNavigation(["module.campaigns"], ["campaigns.read"]).flatMap(
+      (group) => group.items,
+    );
+    expect(withBoth.find((item) => item.id === "campaigns")?.href).toBe("/app/campaigns");
+  });
 });

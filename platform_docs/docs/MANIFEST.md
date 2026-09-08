@@ -67,6 +67,7 @@
 | `platform_docs/docs/adr/0048-e11-s01-campaign-data-model-and-segmentation-scope.md` | 6667 | 820 | `5f3d6df66c9cbb3eaabe2f74076e09d6b6a3fa10269e905d1d4a906ec2fb8a75` |
 | `platform_docs/docs/adr/0049-e11-s02-campaign-execution-dispatcher-and-rate-limiting-scope.md` | 5099 | 640 | `8b868f3a0d39854d680c78bc35a64dc2cade54a1f1b988088ce304601c1ebff3` |
 | `platform_docs/docs/adr/0050-e11-s03-campaign-delivery-reconciliation-and-metrics-scope.md` | 4640 | 580 | `72c5b3b5865aca061dd53c591ac911eddc3782d3efdfe71256d104acc8917b19` |
+| `platform_docs/docs/adr/0051-e11-s04-campaign-management-web-ui-scope.md` | 4650 | 580 | `56bb6e46b317f36c08dd92b56d16f2fb22d8a3a6971e7a434c8f53aacac69e49` |
 | `platform_docs/docs/INDEX.md` | 12437 | 1687 | `d692e50c9f969e6ee096a14daf674281f585d3e2a2841211822734dbedd6c5f8` |
 | `platform_docs/PRD.md` | 90479 | 13033 | `81426bd8cabd9b4d5408ff0741c1cfa6aa1741986f2355d4294c6faa7bfdb380` |
 | `platform_docs/README.md` | 1953 | 242 | `31b67b6ef55a2adb4b2840cbe5993156c4fa0421f8752b2d130c97ceb84e880a` |
