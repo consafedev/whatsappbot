@@ -14,7 +14,7 @@ Epic 11 — Campaign Engine & Audience Broadcasts.
 
 Estado por historia:
 
-- E11-S04 — Campaign Management Web UI: Creation Wizard & Audience Segmenter: **PASS** (ADR-0051).
+- E11-S04 — Campaign Management Web UI: Creation Wizard & Audience Segmenter: **PASS** (ADR-0051). Fix de auditoría `026516d`: contratos del view-model alineados a las respuestas reales de la API (`totalAdded` en populate, relaciones anidadas `channelAccount`/`template` normalizadas a campos planos, `readCount` opcional pues no es columna de `campaign`); verificación 148/148 `apps/web`, typecheck monorepo y Biome en 0 errores.
   - Navegación y Entitlements (`apps/web/app/app/tenant-app-navigation.ts`):
     - Registro de `"module.campaigns": "Campañas"` en `TENANT_MODULE_LABELS` para el dashboard de módulos del tenant.
     - Habilitación de la ruta `/app/campaigns` bajo el grupo `operation`, protegida por `module.campaigns` y `campaigns.read`.

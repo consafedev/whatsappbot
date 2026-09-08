@@ -27,6 +27,7 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
     - `page.tsx`: Server component dinámico.
   - Documentación normativa en ADR-0051 (`0051-e11-s04-campaign-management-web-ui-scope.md`).
   - Verificación E11-S04: 145/145 pruebas unitarias de `apps/web` PASS (25 específicas de campañas); typecheck global y Biome en 0 errores.
+  - **Fixed** (auditoría, commit `026516d`): contratos del view-model de campañas alineados con las respuestas reales de la API — `populateAudience` consume `totalAdded` (no `populatedCount`); `normalizeCampaign` deriva `channelDisplayName`/`templateName` desde las relaciones anidadas `channelAccount`/`template` que devuelve la API; `readCount` es opcional en `CampaignListItem` porque no es columna de `campaign` (solo disponible vía endpoint de métricas). Verificación post-fix: 148/148 `apps/web`, typecheck monorepo y Biome en 0 errores.
 
 - E11-S03 implementa la reconciliación de acuses de recibo de campañas masivas, monotonicidad de estados y agregación cuantitativa de métricas (`Campaign Delivery Status Reconciliation & Bulk Metrics Aggregation`) en `packages/database` y `apps/api`:
   - Reconciliación de Acuses de Recibo (`packages/database/src/campaign-delivery-reconciler.ts`):
