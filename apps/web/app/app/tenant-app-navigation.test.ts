@@ -125,4 +125,21 @@ describe("tenant app navigation", () => {
     );
     expect(withBoth.find((item) => item.id === "campaigns")?.href).toBe("/app/campaigns");
   });
+
+  it("exposes contacts /app/contacts route when module.crm_lite and contacts.read permission are granted", () => {
+    const withoutModule = resolveTenantNavigation([], ["contacts.read"]).flatMap(
+      (group) => group.items,
+    );
+    expect(withoutModule.some((item) => item.id === "contacts")).toBe(false);
+
+    const withoutPerm = resolveTenantNavigation(["module.crm_lite"], []).flatMap(
+      (group) => group.items,
+    );
+    expect(withoutPerm.some((item) => item.id === "contacts")).toBe(false);
+
+    const withBoth = resolveTenantNavigation(["module.crm_lite"], ["contacts.read"]).flatMap(
+      (group) => group.items,
+    );
+    expect(withBoth.find((item) => item.id === "contacts")?.href).toBe("/app/contacts");
+  });
 });

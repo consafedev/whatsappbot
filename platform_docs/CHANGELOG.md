@@ -8,6 +8,21 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Added
 
+- E11-S04-patch implementa la consola web de libreta de contactos y activa su ruta en la navegación (`Contacts Management Web UI & Navigation Activation`) en `apps/web`:
+  - Navegación del Workspace (`apps/web/app/app/tenant-app-navigation.ts`):
+    - Activación de `/app/contacts` ("Contactos") bajo el grupo `operation`, cambiando `href: null` por `href: "/app/contacts"`.
+    - Gating defensivo estricto: requiere módulo `module.crm_lite` y permiso `contacts.read`.
+  - View Model y Clientes REST (`apps/web/app/app/contacts/contacts-view-model.ts`):
+    - Definición de tipos: `ContactItem`, `ContactPageResponse`, `CreateContactInput`, `UpdateContactInput`, `ContactApiError`.
+    - Utilidades puras: `parseTagsInput` (normalización de etiquetas a minúsculas sin duplicados) y `formatTagsOutput`.
+    - Clientes REST consumiendo directamente los endpoints de `apps/api/src/contacts.ts`: `fetchContacts`, `fetchContactDetail`, `createContact`, `updateContact`, `archiveContact`.
+  - Componentes de Interfaz (`apps/web/app/app/contacts/`):
+    - `contacts-client.tsx`: Contenedor principal con filtros por texto/etiquetas/estado, notificaciones toast y avisos ante falta de permisos o módulo.
+    - `contacts-list.tsx`: Tabla responsiva con columnas para Contacto (con avatar e iniciales), Teléfono, Email, Etiquetas, Estado (`ACTIVE` vs `ARCHIVED`) y acciones de edición y archivado contextuales restringidas a `contacts.write`.
+    - `contact-modal.tsx`: Modal accesible para creación y edición de contactos con selector interactivo de etiquetas.
+    - `page.tsx`: Server component dinámico.
+  - Verificación: 161/161 pruebas unitarias de `apps/web` PASS (12 específicas de contactos, 10 de navegación); typecheck monorepo y Biome en 0 errores.
+
 - E11-S04 implementa la interfaz web de gestión de campañas masivas y el asistente de creación en 4 pasos (`Campaign Management Web UI: Creation Wizard & Audience Segmenter`) en `apps/web`:
   - Navegación y Entitlements (`apps/web/app/app/tenant-app-navigation.ts`):
     - Inclusión de `"module.campaigns": "Campañas"` en `TENANT_MODULE_LABELS`.

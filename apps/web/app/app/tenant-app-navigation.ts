@@ -51,7 +51,13 @@ const navigation: readonly TenantAppNavigationGroup[] = Object.freeze([
         requiredModule: "module.campaigns",
         requiredPermission: "campaigns.read",
       },
-      { href: null, id: "contacts", label: "Contactos", requiredModule: "module.crm_lite" },
+      {
+        href: "/app/contacts",
+        id: "contacts",
+        label: "Contactos",
+        requiredModule: "module.crm_lite",
+        requiredPermission: "contacts.read",
+      },
       {
         href: null,
         id: "processes",

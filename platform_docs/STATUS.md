@@ -14,6 +14,21 @@ Epic 11 — Campaign Engine & Audience Broadcasts.
 
 Estado por historia:
 
+- E11-S04-patch — Contacts Management Web UI & Navigation Activation: **PASS**.
+  - Navegación del Workspace (`apps/web/app/app/tenant-app-navigation.ts`):
+    - Activación de la ruta `/app/contacts` ("Contactos") bajo el grupo `operation`, cambiando `href: null` por `href: "/app/contacts"`.
+    - Gating defensivo estricto: requiere módulo `module.crm_lite` y permiso `contacts.read`.
+  - View Model y Clientes REST (`apps/web/app/app/contacts/contacts-view-model.ts`):
+    - Definición de tipos: `ContactItem`, `ContactPageResponse`, `CreateContactInput`, `UpdateContactInput`, `ContactApiError`.
+    - Utilidades puras: `parseTagsInput` (normalización de etiquetas a minúsculas sin duplicados) y `formatTagsOutput`.
+    - Clientes REST: `fetchContacts`, `fetchContactDetail`, `createContact`, `updateContact`, `archiveContact`.
+  - Componentes de Interfaz (`apps/web/app/app/contacts/`):
+    - `contacts-client.tsx`: Contenedor principal con filtros por texto/etiquetas/estado, notificaciones toast y avisos ante falta de permisos o módulo.
+    - `contacts-list.tsx`: Tabla responsiva con columnas para Contacto (con avatar e iniciales), Teléfono, Email, Etiquetas, Estado (`ACTIVE` vs `ARCHIVED`) y acciones de edición y archivado restringidas a `contacts.write`.
+    - `contact-modal.tsx`: Modal accesible para creación y edición de contactos con selector interactivo de etiquetas.
+    - `page.tsx`: Server component dinámico.
+  - Verificación: 161/161 pruebas de `apps/web` PASS (12 específicas de contactos, 10 de navegación); typecheck monorepo y Biome en 0 errores.
+
 - E11-S04 — Campaign Management Web UI: Creation Wizard & Audience Segmenter: **PASS** (ADR-0051). Fix de auditoría `026516d`: contratos del view-model alineados a las respuestas reales de la API (`totalAdded` en populate, relaciones anidadas `channelAccount`/`template` normalizadas a campos planos, `readCount` opcional pues no es columna de `campaign`); verificación 148/148 `apps/web`, typecheck monorepo y Biome en 0 errores.
   - Navegación y Entitlements (`apps/web/app/app/tenant-app-navigation.ts`):
     - Registro de `"module.campaigns": "Campañas"` en `TENANT_MODULE_LABELS` para el dashboard de módulos del tenant.
