@@ -106,7 +106,7 @@ export function CampaignsClient({ apiBaseUrl }: CampaignsClientProps) {
     async (campaignId: string) => {
       try {
         const res = await populateAudience(base, campaignId);
-        showToast(`Audiencia poblada con éxito: ${res.populatedCount} contactos segmentados.`);
+        showToast(`Audiencia poblada con éxito: ${res.totalAdded} contactos segmentados.`);
         loadCampaigns();
       } catch (err) {
         showToast(err instanceof Error ? err.message : "Error al poblar audiencia.");

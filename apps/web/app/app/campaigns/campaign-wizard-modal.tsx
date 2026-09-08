@@ -166,7 +166,7 @@ export function CampaignWizardModal({
         try {
           const populateRes = await populateAudience(apiBaseUrl, created.id);
           showToast(
-            `Campaña creada con éxito. Se segmentaron ${populateRes.populatedCount} destinatarios.`,
+            `Campaña creada con éxito. Se segmentaron ${populateRes.totalAdded} destinatarios.`,
           );
         } catch {
           showToast("Campaña creada en borrador. Error al poblar audiencia automáticamente.");

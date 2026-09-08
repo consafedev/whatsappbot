@@ -11,10 +11,54 @@ import {
   fetchChannelsForCampaigns,
   fetchMessageTemplates,
   formatCampaignStatus,
+  normalizeCampaign,
   pauseCampaign,
   populateAudience,
   startCampaign,
 } from "./campaigns-view-model";
+
+describe("normalizeCampaign", () => {
+  it("derives flat display fields from nested API relations", () => {
+    const normalized = normalizeCampaign({
+      id: "cmp-1",
+      name: "Promo",
+      status: "DRAFT",
+      channelAccountId: "chn-1",
+      channelAccount: { id: "chn-1", displayName: "Ventas WhatsApp", phoneNumber: "+52" },
+      template: { id: "tpl-1", name: "Bienvenida", category: "MARKETING" },
+      totalRecipients: 10,
+      sentCount: 0,
+      deliveredCount: 0,
+      failedCount: 0,
+      rateLimitPerMinute: 30,
+      createdAt: "2026-09-08T00:00:00Z",
+      updatedAt: "2026-09-08T00:00:00Z",
+    });
+
+    expect(normalized.channelDisplayName).toBe("Ventas WhatsApp");
+    expect(normalized.templateName).toBe("Bienvenida");
+  });
+
+  it("keeps existing flat fields when nested relations are absent", () => {
+    const normalized = normalizeCampaign({
+      id: "cmp-2",
+      name: "Sin relaciones",
+      status: "RUNNING",
+      channelAccountId: "chn-2",
+      channelDisplayName: "Canal plano",
+      totalRecipients: 5,
+      sentCount: 1,
+      deliveredCount: 1,
+      failedCount: 0,
+      rateLimitPerMinute: 30,
+      createdAt: "2026-09-08T00:00:00Z",
+      updatedAt: "2026-09-08T00:00:00Z",
+    });
+
+    expect(normalized.channelDisplayName).toBe("Canal plano");
+    expect(normalized.templateName).toBeUndefined();
+  });
+});
 
 describe("campaigns-view-model", () => {
   describe("formatCampaignStatus", () => {
@@ -144,7 +188,6 @@ describe("campaigns-view-model", () => {
           totalRecipients: 100,
           sentCount: 0,
           deliveredCount: 0,
-          readCount: 0,
           failedCount: 0,
           rateLimitPerMinute: 30,
           createdAt: "2026-09-08T00:00:00Z",
@@ -167,6 +210,7 @@ describe("campaigns-view-model", () => {
       const res = await fetchCampaigns(base, { status: "DRAFT", limit: 20, offset: 0 });
       expect(res.campaigns).toHaveLength(1);
       expect(res.total).toBe(1);
+      expect(res.campaigns[0]?.channelDisplayName).toBeUndefined();
       expect(globalThis.fetch).toHaveBeenCalledWith(
         "http://localhost:3001/api/v1/campaigns?status=DRAFT&limit=20&offset=0",
         expect.objectContaining({ method: "GET" }),
@@ -246,7 +290,7 @@ describe("campaigns-view-model", () => {
         .mockResolvedValueOnce({
           ok: true,
           json: async () => ({
-            data: { campaignId: "cmp-1", populatedCount: 25, totalRecipients: 25 },
+            data: { totalAdded: 25, totalRecipients: 25 },
           }),
         });
 
@@ -260,7 +304,7 @@ describe("campaigns-view-model", () => {
       expect(cancelled.status).toBe("CANCELLED");
 
       const populated = await populateAudience(base, "cmp-1");
-      expect(populated.populatedCount).toBe(25);
+      expect(populated.totalAdded).toBe(25);
     });
 
     it("fetchMessageTemplates and createMessageTemplate work correctly", async () => {
@@ -309,6 +353,40 @@ describe("campaigns-view-model", () => {
       const channels = await fetchChannelsForCampaigns(base);
       expect(channels).toHaveLength(1);
       expect(channels[0]?.displayName).toBe("Ventas WhatsApp");
+    });
+
+    it("fetchCampaigns normalizes nested channelAccount/template relations into flat fields", async () => {
+      globalThis.fetch = vi.fn().mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          data: {
+            campaigns: [
+              {
+                id: "cmp-9",
+                name: "Campaña Anidada",
+                status: "RUNNING",
+                channelAccountId: "chn-9",
+                channelAccount: { id: "chn-9", displayName: "Soporte WA", phoneNumber: null },
+                template: { id: "tpl-9", name: "Promo Verano" },
+                totalRecipients: 3,
+                sentCount: 1,
+                deliveredCount: 1,
+                failedCount: 0,
+                rateLimitPerMinute: 60,
+                createdAt: "2026-09-08T00:00:00Z",
+                updatedAt: "2026-09-08T00:00:00Z",
+              },
+            ],
+            total: 1,
+            limit: 20,
+            offset: 0,
+          },
+        }),
+      });
+
+      const res = await fetchCampaigns(base);
+      expect(res.campaigns[0]?.channelDisplayName).toBe("Soporte WA");
+      expect(res.campaigns[0]?.templateName).toBe("Promo Verano");
     });
 
     it("handles API error responses and throws CampaignApiError", async () => {

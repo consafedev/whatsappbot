@@ -12,12 +12,34 @@ export interface CampaignListItem {
   readonly name: string;
   readonly status: CampaignStatus | string;
   readonly channelAccountId: string;
-  readonly channelDisplayName?: string | undefined;
+  /** Nested relation as returned by the API (listCampaigns / getCampaignDetail). */
+  readonly channelAccount?:
+    | {
+        readonly id: string;
+        readonly displayName: string;
+        readonly phoneNumber?: string | null | undefined;
+        readonly status?: string | undefined;
+      }
+    | undefined;
+  /** Flat display field derived from channelAccount by normalizeCampaign. */
+  readonly channelDisplayName?: string | null | undefined;
   readonly templateId?: string | null | undefined;
+  /** Nested relation as returned by the API. */
+  readonly template?:
+    | {
+        readonly id: string;
+        readonly name: string;
+        readonly category?: string | null | undefined;
+        readonly content?: string | undefined;
+      }
+    | undefined;
+  /** Flat display field derived from template by normalizeCampaign. */
+  readonly templateName?: string | null | undefined;
   readonly totalRecipients: number;
   readonly sentCount: number;
   readonly deliveredCount: number;
-  readonly readCount: number;
+  /** Not a campaign column; only available when derived from the metrics endpoint. */
+  readonly readCount?: number | undefined;
   readonly failedCount: number;
   readonly rateLimitPerMinute: number;
   readonly scheduledAt?: string | null | undefined;
@@ -74,8 +96,7 @@ export interface CampaignChannelItem {
 }
 
 export interface PopulateAudienceResult {
-  readonly campaignId: string;
-  readonly populatedCount: number;
+  readonly totalAdded: number;
   readonly totalRecipients: number;
 }
 
@@ -84,6 +105,23 @@ export interface CampaignsListResponse {
   readonly total: number;
   readonly limit: number;
   readonly offset: number;
+}
+
+/**
+ * Normalizes a raw API campaign record: derives flat display fields
+ * (channelDisplayName, templateName) from the nested relations the API returns.
+ */
+export function normalizeCampaign<T extends CampaignListItem>(
+  raw: T,
+): T & {
+  channelDisplayName?: string | null | undefined;
+  templateName?: string | null | undefined;
+} {
+  return {
+    ...raw,
+    channelDisplayName: raw.channelAccount?.displayName ?? raw.channelDisplayName,
+    templateName: raw.template?.name ?? raw.templateName,
+  };
 }
 
 export interface StatusBadgeDetails {
@@ -282,7 +320,10 @@ export async function fetchCampaigns(
     };
   };
 
-  return json.data;
+  return {
+    ...json.data,
+    campaigns: json.data.campaigns.map(normalizeCampaign),
+  };
 }
 
 /**
@@ -304,7 +345,7 @@ export async function fetchCampaignDetail(
   }
 
   const json = (await response.json()) as { data: CampaignDetail };
-  return json.data;
+  return normalizeCampaign(json.data);
 }
 
 /**
@@ -330,7 +371,7 @@ export async function createCampaign(
   }
 
   const json = (await response.json()) as { data: CampaignListItem };
-  return json.data;
+  return normalizeCampaign(json.data);
 }
 
 /**
@@ -352,7 +393,7 @@ export async function startCampaign(
   }
 
   const json = (await response.json()) as { data: CampaignListItem };
-  return json.data;
+  return normalizeCampaign(json.data);
 }
 
 /**
@@ -374,7 +415,7 @@ export async function pauseCampaign(
   }
 
   const json = (await response.json()) as { data: CampaignListItem };
-  return json.data;
+  return normalizeCampaign(json.data);
 }
 
 /**

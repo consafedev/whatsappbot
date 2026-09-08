@@ -94,8 +94,11 @@ export function CampaignsList({
                       {camp.name}
                     </div>
                     <div className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
-                      Canal: {camp.channelDisplayName ?? camp.channelAccountId.substring(0, 8)} •
-                      Creada{" "}
+                      Canal:{" "}
+                      {camp.channelDisplayName ??
+                        camp.channelAccount?.displayName ??
+                        camp.channelAccountId.substring(0, 8)}{" "}
+                      • Creada{" "}
                       {new Date(camp.createdAt).toLocaleDateString("es-MX", {
                         day: "2-digit",
                         month: "short",
@@ -142,7 +145,7 @@ export function CampaignsList({
                         ✓✓ {camp.deliveredCount}
                       </span>
                       <span title="Leídos" className="text-emerald-600 dark:text-emerald-400">
-                        👁 {camp.readCount}
+                        👁 {camp.readCount ?? "—"}
                       </span>
                       {camp.failedCount > 0 && (
                         <span
