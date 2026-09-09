@@ -232,6 +232,8 @@ export type {
   OrganizationUnit,
   OutboundMessage,
   Permission,
+  Prisma,
+  PrismaClient,
   Role,
   RolePermission,
   Rule,
@@ -282,6 +284,11 @@ export {
   type InboundMessagePersistInput,
   type InboundMessagePersistResult,
 } from "./inbound-message-manager";
+export type {
+  InboundWebhookChannel,
+  InboundWebhookChannelResolver,
+  InboundWebhookChannelResolverDatabase,
+} from "./inbound-webhook-channel";
 export {
   ActiveTenantUserNotFoundError,
   type ConversationAssignmentInput,

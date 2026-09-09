@@ -190,14 +190,14 @@ describe.sequential("tenant RBAC foundation", () => {
       data: { description: "stale" },
       where: { key: "channels.read" },
     });
-    expect(await syncPermissionCatalog(prisma)).toEqual({ synchronized: 31 });
-    expect(await syncPermissionCatalog(prisma)).toEqual({ synchronized: 31 });
+    expect(await syncPermissionCatalog(prisma)).toEqual({ synchronized: 33 });
+    expect(await syncPermissionCatalog(prisma)).toEqual({ synchronized: 33 });
     const canonical = await prisma.permission.findMany({
       orderBy: { key: "asc" },
       where: { key: { in: PERMISSION_CATALOG.map(({ key }) => key) } },
     });
-    expect(canonical).toHaveLength(31);
-    expect(new Set(canonical.map(({ key }) => key)).size).toBe(31);
+    expect(canonical).toHaveLength(33);
+    expect(new Set(canonical.map(({ key }) => key)).size).toBe(33);
     expect(canonical.find(({ key }) => key === "channels.read")?.description).toBe(
       "Read channel configuration",
     );

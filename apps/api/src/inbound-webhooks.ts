@@ -23,12 +23,10 @@ import {
   InboundChannelNotFoundError,
   InboundMessagingModuleRequiredError,
   InboundTenantNotOperationalError,
+  type InboundWebhookChannel,
+  type InboundWebhookChannelResolver,
+  type Prisma,
 } from "@whatsapp-platform/database";
-import type {
-  InboundWebhookChannel,
-  InboundWebhookChannelResolver,
-  Prisma,
-} from "@whatsapp-platform/database/platform";
 import {
   canonicalProviderType,
   getMessagingInboundProvider,

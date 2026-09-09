@@ -8,6 +8,11 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Added
 
+- E11-HOTFIX-UI — Auditoría del builder: corrección de boundary de imports privilegiados y aserciones de catálogo RBAC desactualizadas:
+  - `Prisma`, `PrismaClient` y `InboundWebhookChannel*` se exportan ahora como type-only desde el barrel público `@whatsapp-platform/database`; `channel-realtime.service.ts`, `inbox-realtime.service.ts` e `inbound-webhooks.ts` dejan de importar la ruta privilegiada `@whatsapp-platform/database/platform` (restablece la invarianta arquitectónica verificada por `test:security:tenant-isolation`, 37/37 PASS).
+  - Aserciones de `rbac.integration.ts` y `tenant-user-management.integration.ts` actualizadas de 31 a 33 permisos (el catálogo creció en E11-S01 con `campaigns.read`/`campaigns.manage`).
+  - Suites de integración de API ejecutadas por la auditoría tras el cambio de guards de contacts: contacts 3/3, channel-accounts 16/16, user-management 12/12, theme-engine 11/11, entitlements 5/5, rbac 11/11.
+
 - E11-HOTFIX-UI — Estabilización de UI, conectividad y sincronización Docker:
   - Se configuró Tailwind CSS con `@tailwindcss/postcss` en `apps/web/postcss.config.mjs` y `@import "tailwindcss";` en `apps/web/app/globals.css`, permitiendo que Turbopack compile adecuadamente las clases utilitarias de `/app/ai`, `/app/contacts` y `/app/campaigns`.
   - Se corrigió el orden de ejecución de guards en `apps/api/src/contacts.ts`, removiendo `TenantEntitlementGuard` del nivel de clase y colocándolo dentro del decorador de método `contactsAuthorized` en la secuencia correcta (`TenantUserSessionGuard -> TenantContextGuard -> TenantPermissionGuard -> TenantEntitlementGuard`), solventando el error 401 Unauthorized en `/app/contacts`.

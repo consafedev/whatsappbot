@@ -5,7 +5,7 @@ import {
   type OnModuleDestroy,
   type OnModuleInit,
 } from "@nestjs/common";
-import type { PrismaClient } from "@whatsapp-platform/database/platform";
+import type { PrismaClient } from "@whatsapp-platform/database";
 import { interval, map, merge, Observable, Subject } from "rxjs";
 
 const HEARTBEAT_INTERVAL_MS = 20_000;
