@@ -8,6 +8,8 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Added
 
+- E11-S04-patch — Fix de login desde `127.0.0.1:3005`: se añade `apps/web/proxy.ts` (proxy de red de Next.js 16) que canonicaliza el host del loopback redirigiendo con 308 `127.0.0.1:3005`, `[::1]` y `0.0.0.0` → `localhost:3005` preservando ruta, query y puerto del header `Host`. Motivo: la API exige CORS de origen exacto (SECURITY.md) y emite cookies de sesión `SameSite=Strict` scoped a `localhost`, por lo que el origen `127.0.0.1` no puede autenticarse; unificando el origen se mantiene la política CORS sin debilitarla. Incluye 6 pruebas unitarias del proxy.
+
 - E11-S04-patch — Auditoría de despliegue Docker: `compose.yaml` añade `pull_policy: never` a los servicios con imagen local (`api`, `worker-jobs`, `worker-whatsapp`; `web` ya la tenía) para que `docker compose up` use siempre la imagen local construida con `docker compose build api web` y falle rápido ante desincronización en lugar de intentar pull de registro. Los contenedores fueron recreados con la imagen reconstruida; la web sirve ahora en `127.0.0.1:3005` (mapeo `${WEB_PORT:-3005}:3000`) con el código E11 vigente (rutas `contacts`, `campaigns`, `channels` verificadas por HTTP 200).
 
 - E11-S04-patch implementa la consola web de libreta de contactos y activa su ruta en la navegación (`Contacts Management Web UI & Navigation Activation`) en `apps/web`:
