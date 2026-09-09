@@ -8,6 +8,8 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Added
 
+- E11-S04-patch — Auditoría de despliegue Docker: `compose.yaml` añade `pull_policy: never` a los servicios con imagen local (`api`, `worker-jobs`, `worker-whatsapp`; `web` ya la tenía) para que `docker compose up` use siempre la imagen local construida con `docker compose build api web` y falle rápido ante desincronización en lugar de intentar pull de registro. Los contenedores fueron recreados con la imagen reconstruida; la web sirve ahora en `127.0.0.1:3005` (mapeo `${WEB_PORT:-3005}:3000`) con el código E11 vigente (rutas `contacts`, `campaigns`, `channels` verificadas por HTTP 200).
+
 - E11-S04-patch implementa la consola web de libreta de contactos y activa su ruta en la navegación (`Contacts Management Web UI & Navigation Activation`) en `apps/web`:
   - Navegación del Workspace (`apps/web/app/app/tenant-app-navigation.ts`):
     - Activación de `/app/contacts` ("Contactos") bajo el grupo `operation`, cambiando `href: null` por `href: "/app/contacts"`.

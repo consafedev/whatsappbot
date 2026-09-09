@@ -14,6 +14,12 @@ Epic 11 — Campaign Engine & Audience Broadcasts.
 
 Estado por historia:
 
+- E11-S04-patch — Auditoría de infraestructura de despliegue Docker: **PASS AFTER FIX**.
+  - Causa raíz del síntoma "web en 3000 y 3005 rechaza conexión": los contenedores `web-1`/`worker-*` (2 semanas) y `api-1` (13 días) corrían la imagen `whatsapp-platform-dev:epic00` construida **antes** de E11; sin bind mounts en `compose.yaml`, Docker servía código desactualizado y la web corría en el mapeo viejo `127.0.0.1:3000->3000` mientras el repo declara `127.0.0.1:${WEB_PORT:-3005}:3000`.
+  - Fix (`compose.yaml`): `pull_policy: never` añadido a los servicios `api`, `worker-jobs` y `worker-whatsapp` (ya presente en `web`), garantizando que `docker compose up` use siempre la imagen local y falle rápido ante desincronización en lugar de intentar pull de registro; reconstrucción documentada vía `docker compose build api web` (convención ya usada en E05/E07).
+  - Sincronización aplicada: `docker compose build api` (imagen reconstruida con todo el código E11 vigente) + `docker compose up -d api web worker-jobs worker-whatsapp`; los seis servicios healthy, `web-1` recreado con mapeo `127.0.0.1:3005->3000`, image digest del contenedor igual al de la imagen reconstruida.
+  - Verificación runtime: HTTP 200 en `http://localhost:3005/`, `/app/contacts`, `/app/campaigns`, `/app/channels`; API `/health` 200; el build de Next dentro del contenedor contiene las rutas `contacts`, `campaigns`, `channels`, `ai`, `rules`. 161/161 pruebas de `apps/web`, typecheck monorepo y Biome en 0 errores.
+
 - E11-S04-patch — Contacts Management Web UI & Navigation Activation: **PASS**.
   - Navegación del Workspace (`apps/web/app/app/tenant-app-navigation.ts`):
     - Activación de la ruta `/app/contacts` ("Contactos") bajo el grupo `operation`, cambiando `href: null` por `href: "/app/contacts"`.

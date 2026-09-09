@@ -48,6 +48,8 @@ services:
 
   api:
     image: whatsapp-platform-dev:epic00
+    # Image local-only: rebuild with `docker compose build` after code changes.
+    pull_policy: never
     build:
       context: .
       dockerfile: Dockerfile.dev
