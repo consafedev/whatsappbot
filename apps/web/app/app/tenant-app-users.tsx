@@ -46,7 +46,10 @@ type LoadState<T> =
   | Readonly<{ status: "loaded"; data: T }>;
 type MutationState = Readonly<{ status: "idle" | "saving" | "saved" | "error"; message?: string }>;
 
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "").replace(/\/$/, "");
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3001").replace(
+  /\/$/,
+  "",
+);
 const EMPTY_ASSIGNMENTS: readonly Assignment[] = [];
 
 function errorMessage(body: unknown, fallback: string): string {

@@ -30,7 +30,10 @@ type MutationState =
   | { status: "saved" }
   | { status: "error"; message: string };
 
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "").replace(/\/$/, "");
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3001").replace(
+  /\/$/,
+  "",
+);
 
 const ROOT_INVARIANT_MESSAGE =
   "La unidad raíz es estructural y no se puede mover, desactivar ni cambiar de tipo.";

@@ -35,7 +35,7 @@ type UnitOption = Readonly<{
 
 export function InboxClient({ apiBaseUrl }: InboxClientProps) {
   const bootstrap = useTenantAppBootstrap();
-  const base = apiBaseUrl ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
+  const base = apiBaseUrl || process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3001";
 
   const [state, setState] = useState<InboxState>(INITIAL_INBOX_STATE);
   const [mobilePane, setMobilePane] = useState<"list" | "chat" | "contact">("list");

@@ -38,14 +38,16 @@ import {
   PhoneNumberInvalidError,
   TenantNotOperationalError,
 } from "@whatsapp-platform/database";
+import { TenantUserSessionGuard } from "./tenant-auth";
 import {
   CurrentTenantContext,
   CurrentTenantIdentity,
   type TenantAuthenticationRequest,
+  TenantContextGuard,
   type TenantSessionIdentity,
 } from "./tenant-context";
 import { RequireEntitlements, TenantEntitlementGuard } from "./tenant-entitlements";
-import { TenantAuthorized } from "./tenant-rbac";
+import { RequirePermissions, TenantPermissionGuard } from "./tenant-rbac";
 
 export const CONTACT_MANAGER = Symbol("CONTACT_MANAGER");
 
@@ -64,7 +66,15 @@ type ParsedContactUpdateInput = Omit<ParsedContactCreateInput, "phoneNumber">;
 function contactsAuthorized(
   ...permissions: ["contacts.read"] | ["contacts.write"]
 ): MethodDecorator & ClassDecorator {
-  return applyDecorators(TenantAuthorized(...permissions));
+  return applyDecorators(
+    RequirePermissions(...permissions),
+    UseGuards(
+      TenantUserSessionGuard,
+      TenantContextGuard,
+      TenantPermissionGuard,
+      TenantEntitlementGuard,
+    ),
+  );
 }
 
 function requestId(request: TenantAuthenticationRequest): string {
@@ -335,7 +345,6 @@ export class ContactsService {
 
 @Controller("api/v1/contacts")
 @RequireEntitlements("module.crm_lite")
-@UseGuards(TenantEntitlementGuard)
 export class ContactsController {
   constructor(private readonly service: ContactsService) {}
 

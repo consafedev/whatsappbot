@@ -16,7 +16,10 @@ export default async function Home({
   searchParams = Promise.resolve({}),
 }: Readonly<{ searchParams?: Promise<PortalSearchParams> }>) {
   const selection = resolvePortalAccess(await searchParams);
-  const apiBaseUrl = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "").replace(/\/$/, "");
+  const apiBaseUrl = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3001").replace(
+    /\/$/,
+    "",
+  );
 
   return (
     <div className="portal-hub">

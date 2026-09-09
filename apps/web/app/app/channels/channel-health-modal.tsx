@@ -23,7 +23,7 @@ export function ChannelHealthModal({
   isOpen,
   onClose,
 }: ChannelHealthModalProps) {
-  const base = apiBaseUrl ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
+  const base = apiBaseUrl || process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3001";
 
   const [diagnostic, setDiagnostic] = useState<ChannelHealthDiagnostic | null>(null);
   const [loading, setLoading] = useState(false);

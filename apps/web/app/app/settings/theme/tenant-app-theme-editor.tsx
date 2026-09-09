@@ -2,6 +2,7 @@
 
 import {
   CUSTOM_PRESET,
+  defaultTenantBranding,
   type ResolvedTenantTheme,
   resolveTenantTheme,
   TENANT_PRESET_KEYS,
@@ -19,7 +20,10 @@ type LoadState =
   | { status: "error" }
   | { status: "loaded"; config: TenantBranding; canEditLogo: boolean };
 
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "").replace(/\/$/, "");
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3001").replace(
+  /\/$/,
+  "",
+);
 
 export function TenantAppThemeEditor() {
   const bootstrap = useTenantAppBootstrap();
@@ -33,10 +37,11 @@ export function TenantAppThemeEditor() {
     if (response === null) return setLoadState({ status: "error" });
     if (response.status === 401) return setLoadState({ status: "unauthorized" });
     if (!response.ok) return setLoadState({ status: "error" });
-    const theme = (await response.json()) as { config: TenantBranding };
+    const theme = (await response.json()) as { config?: TenantBranding };
+    const config = theme.config ?? defaultTenantBranding();
     setLoadState({
       status: "loaded",
-      config: theme.config,
+      config,
       canEditLogo: bootstrap.effectiveModules.includes("module.white_label"),
     });
   }, [bootstrap.effectiveModules]);
@@ -103,8 +108,8 @@ function TenantAppThemeEditorForm({
       setSaving(false);
       return false;
     }
-    const theme = (await response.json()) as { config: TenantBranding };
-    setDraft(draftFromConfig(theme.config));
+    const theme = (await response.json()) as { config?: TenantBranding };
+    setDraft(draftFromConfig(theme.config ?? defaultTenantBranding()));
     await refresh();
     setSaving(false);
     setSaved(true);

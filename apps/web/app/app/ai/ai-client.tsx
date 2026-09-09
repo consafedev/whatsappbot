@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useState } from "react";
 import { useTenantAppBootstrap } from "../tenant-app-shell";
@@ -15,7 +15,7 @@ type AiClientProps = Readonly<{
 
 export function AiClient({ apiBaseUrl }: AiClientProps) {
   const bootstrap = useTenantAppBootstrap();
-  const base = apiBaseUrl ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
+  const base = apiBaseUrl || process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3001";
 
   const hasAiModule = bootstrap.effectiveModules.includes("module.ai");
   const hasManagePermission = bootstrap.effectivePermissions.includes("ai.settings.manage");

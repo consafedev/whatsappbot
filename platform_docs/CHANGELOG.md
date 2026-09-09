@@ -8,6 +8,13 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Added
 
+- E11-HOTFIX-UI — Estabilización de UI, conectividad y sincronización Docker:
+  - Se configuró Tailwind CSS con `@tailwindcss/postcss` en `apps/web/postcss.config.mjs` y `@import "tailwindcss";` en `apps/web/app/globals.css`, permitiendo que Turbopack compile adecuadamente las clases utilitarias de `/app/ai`, `/app/contacts` y `/app/campaigns`.
+  - Se corrigió el orden de ejecución de guards en `apps/api/src/contacts.ts`, removiendo `TenantEntitlementGuard` del nivel de clase y colocándolo dentro del decorador de método `contactsAuthorized` en la secuencia correcta (`TenantUserSessionGuard -> TenantContextGuard -> TenantPermissionGuard -> TenantEntitlementGuard`), solventando el error 401 Unauthorized en `/app/contacts`.
+  - Se estandarizó la resolución de `API_BASE_URL` en todos los clientes web para usar `|| "http://localhost:3001"` en lugar de `?? ""`, impidiendo que peticiones a `/app/users`, `/app/theme`, etc. cayeran en el servidor Next.js (port 3005) retornando HTML de 404 y lanzando excepciones de parseo JSON.
+  - Se corrigió la máquina de estados del modal QR (`channel-qr-modal.tsx`), asegurando que mientras el worker genera el código se visualice el estado de carga y que el overlay de expiración solo aparezca cuando un QR activo haya agotado su temporizador de 30s.
+  - Reconstrucción local de imagen Docker y despliegue sincronizado con endpoints `/health` respondiendo 200 OK.
+
 - E11-S04-patch — Fix de login desde `127.0.0.1:3005`: se añade `apps/web/proxy.ts` (proxy de red de Next.js 16) que canonicaliza el host del loopback redirigiendo con 308 `127.0.0.1:3005`, `[::1]` y `0.0.0.0` → `localhost:3005` preservando ruta, query y puerto del header `Host`. Motivo: la API exige CORS de origen exacto (SECURITY.md) y emite cookies de sesión `SameSite=Strict` scoped a `localhost`, por lo que el origen `127.0.0.1` no puede autenticarse; unificando el origen se mantiene la política CORS sin debilitarla. Incluye 6 pruebas unitarias del proxy.
 
 - E11-S04-patch — Auditoría de despliegue Docker: `compose.yaml` añade `pull_policy: never` a los servicios con imagen local (`api`, `worker-jobs`, `worker-whatsapp`; `web` ya la tenía) para que `docker compose up` use siempre la imagen local construida con `docker compose build api web` y falle rápido ante desincronización en lugar de intentar pull de registro. Los contenedores fueron recreados con la imagen reconstruida; la web sirve ahora en `127.0.0.1:3005` (mapeo `${WEB_PORT:-3005}:3000`) con el código E11 vigente (rutas `contacts`, `campaigns`, `channels` verificadas por HTTP 200).

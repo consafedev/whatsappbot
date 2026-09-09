@@ -23,7 +23,7 @@ export function ChannelCreateModal({
   onCreated,
   units = [],
 }: ChannelCreateModalProps) {
-  const base = apiBaseUrl ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
+  const base = apiBaseUrl || process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3001";
 
   const [displayName, setDisplayName] = useState("");
   const [organizationUnitId, setOrganizationUnitId] = useState<string>("");

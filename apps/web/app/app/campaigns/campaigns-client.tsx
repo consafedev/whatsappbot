@@ -19,7 +19,7 @@ type CampaignsClientProps = Readonly<{
 
 export function CampaignsClient({ apiBaseUrl }: CampaignsClientProps) {
   const bootstrap = useTenantAppBootstrap();
-  const base = apiBaseUrl ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
+  const base = apiBaseUrl || process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3001";
 
   const hasCampaignsModule = bootstrap.effectiveModules.includes("module.campaigns");
   const canReadCampaigns = bootstrap.effectivePermissions.includes("campaigns.read");

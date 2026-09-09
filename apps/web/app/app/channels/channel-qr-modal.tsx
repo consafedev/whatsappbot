@@ -69,7 +69,7 @@ export function ChannelQrModal({
   onClose,
   onConnected,
 }: ChannelQrModalProps) {
-  const base = apiBaseUrl ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
+  const base = apiBaseUrl || process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3001";
 
   const [qrState, setQrState] = useState<QrPairingState | null>(null);
   const [ttl, setTtl] = useState<QrTtlRemaining>({
@@ -103,8 +103,10 @@ export function ChannelQrModal({
         if (!isMountedRef.current) return;
 
         setQrState(state);
-        const currentTtl = calculateQrTtlRemaining(state.qrGeneratedAt);
-        setTtl(currentTtl);
+        if (state.qrRaw) {
+          const currentTtl = calculateQrTtlRemaining(state.qrGeneratedAt);
+          setTtl(currentTtl);
+        }
 
         const statusNorm = (state.status || "").toLowerCase();
         if (statusNorm === "connected") {
@@ -127,6 +129,12 @@ export function ChannelQrModal({
       setLoading(true);
       setError(null);
       setIsConnected(false);
+      setQrState(null);
+      setTtl({
+        formattedCountdown: "00:30",
+        isExpired: false,
+        secondsRemaining: 30,
+      });
       try {
         await initiateChannelPairing(base, channelId);
         await loadQr(channelId);
@@ -135,7 +143,7 @@ export function ChannelQrModal({
         stopTimers();
         countdownIntervalRef.current = setInterval(() => {
           setQrState((prev) => {
-            if (!prev) return null;
+            if (!prev?.qrRaw) return prev;
             const updatedTtl = calculateQrTtlRemaining(prev.qrGeneratedAt);
             setTtl(updatedTtl);
             return prev;
@@ -213,7 +221,7 @@ export function ChannelQrModal({
     return null;
   }
 
-  const isExpired = ttl.isExpired;
+  const isExpired = Boolean(qrState?.qrRaw && (ttl.isExpired || qrState?.isExpired));
 
   return (
     <div
@@ -316,7 +324,7 @@ export function ChannelQrModal({
 
               <div className="channel-qr-display-box">
                 <div className="channel-qr-visual-card">
-                  {loading && !qrState?.qrRaw ? (
+                  {!qrState?.qrRaw || loading ? (
                     <div className="channel-qr-loading-placeholder">
                       <div className="channel-spinner" />
                       <span>Generando código QR seguro...</span>

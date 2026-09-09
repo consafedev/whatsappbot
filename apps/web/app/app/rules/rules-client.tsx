@@ -39,7 +39,7 @@ type RulesClientProps = Readonly<{
 
 export function RulesClient({ apiBaseUrl }: RulesClientProps) {
   const bootstrap = useTenantAppBootstrap();
-  const base = apiBaseUrl ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
+  const base = apiBaseUrl || process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3001";
 
   const [rules, setRules] = useState<readonly RuleItem[]>([]);
   const [filter, setFilter] = useState<RuleListFilter>({ status: "all" });
