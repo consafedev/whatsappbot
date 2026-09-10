@@ -8,6 +8,21 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Added
 
+- E11-S05 implementa el dashboard de analítica de rendimiento y embudo de conversión para campañas masivas (`Campaign Performance Analytics Dashboard & Conversion Funnel UI`) en `apps/web`:
+  - Ampliación del View Model (`apps/web/app/app/campaigns/campaigns-view-model.ts`):
+    - Modelos tipados: `CampaignMetrics`, `CampaignAudienceMemberItem`, `CampaignAudienceResponse`.
+    - Funciones de cálculo: `formatAudienceMemberStatus` y `calculateFunnelStepPercentage`.
+    - Clientes REST: `fetchCampaignMetrics` (consumiendo `GET /api/v1/campaigns/:id/metrics`) y `fetchCampaignAudience` (consumiendo `GET /api/v1/campaigns/:id/audience` con paginación, filtros de estado y normalización defensiva de contactos).
+  - Componentes de Dashboard (`apps/web/app/app/campaigns/[id]/`):
+    - `campaign-kpi-cards.tsx`: 4 tarjetas de métricas operativas (Audiencia Total, Tasa de Entrega, Tasa de Lectura, Tasa de Fallo) con visualización porcentual y skeletons.
+    - `campaign-funnel-view.tsx`: Embudo interactivo de 4 pasos escalonados (Audiencia -> Despachados -> Entregados -> Leídos) con progreso visual y contadores laterales de pendientes y fallos.
+    - `campaign-audience-table.tsx`: Tabla de audiencia con filtros por estado (`ALL`, `PENDING`, `SENT`, `DELIVERED`, `READ`, `FAILED`), cronología de eventos, detalle de errores y paginación.
+    - `campaign-analytics-client.tsx`: Contenedor principal con gating estricto por entitlements (`module.campaigns`) y permisos (`campaigns.read`), cabecera con estado y botón de actualización en vivo.
+    - `page.tsx`: Server component dinámico.
+  - Navegación mejorada en `campaigns-list.tsx`: Enlace a métricas en el nombre de la campaña y botón "Métricas" en la columna de acciones.
+  - Verificación: 181/181 pruebas unitarias en `apps/web` PASS (42 en suite de campañas), typecheck monorepo limpio en 18 paquetes, Biome en 0 errores.
+
+
 - E11-HOTFIX-UI — Auditoría del builder: corrección de boundary de imports privilegiados y aserciones de catálogo RBAC desactualizadas:
   - `Prisma`, `PrismaClient` y `InboundWebhookChannel*` se exportan ahora como type-only desde el barrel público `@whatsapp-platform/database`; `channel-realtime.service.ts`, `inbox-realtime.service.ts` e `inbound-webhooks.ts` dejan de importar la ruta privilegiada `@whatsapp-platform/database/platform` (restablece la invarianta arquitectónica verificada por `test:security:tenant-isolation`, 37/37 PASS).
   - Aserciones de `rbac.integration.ts` y `tenant-user-management.integration.ts` actualizadas de 31 a 33 permisos (el catálogo creció en E11-S01 con `campaigns.read`/`campaigns.manage`).

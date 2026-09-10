@@ -1,16 +1,32 @@
 # STATUS.md — Estado operativo actual del proyecto
 
-**Actualizado:** 2026-09-08
+**Actualizado:** 2026-09-09
 **Versión de producto:** `0.0.0`  
-**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; **Epic 11 — Campaign Engine & Audience Broadcasts — IN PROGRESS (E11-S01, E11-S02, E11-S03, E11-S04 PASS)**.
+**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; **Epic 11 — Campaign Engine & Audience Broadcasts — PASS / COMPLETE (E11-S01, E11-S02, E11-S03, E11-S04, E11-S05 PASS)**.
 
 ## Current milestone
 
-Epic 11 — Campaign Engine & Audience Broadcasts.
+Epic 11 — Campaign Engine & Audience Broadcasts (COMPLETED). Next: Epic 12 — Reporting, Analytics & Operational Observability.
 
 ## Current epic
 
-**Epic 11 — Campaign Engine & Audience Broadcasts** — **IN PROGRESS** (ADR-0048, ADR-0049, ADR-0050, ADR-0051)
+**Epic 11 — Campaign Engine & Audience Broadcasts** — **COMPLETE** (ADR-0048, ADR-0049, ADR-0050, ADR-0051, ADR-0052)
+
+- E11-S05 — Campaign Performance Analytics Dashboard & Conversion Funnel UI: **PASS** (ADR-0052).
+  - Ampliación del View Model (`apps/web/app/app/campaigns/campaigns-view-model.ts`):
+    - Modelos tipados: `CampaignMetrics`, `CampaignAudienceMemberItem`, `CampaignAudienceResponse`.
+    - Utilidades puras: `formatAudienceMemberStatus` (mapeo a etiquetas en español con colores Tailwind) y `calculateFunnelStepPercentage` (cálculo seguro sin división por cero ni números no finitos).
+    - Clientes REST: `fetchCampaignMetrics` (desempaqueta `{ success: true, data }`) y `fetchCampaignAudience` (con filtros de estado, paginación y normalización defensiva de datos de contacto).
+  - Componentes de Dashboard y Métricas (`apps/web/app/app/campaigns/[id]/`):
+    - `campaign-kpi-cards.tsx`: 4 tarjetas de indicadores clave (Audiencia Total con conteo de pendientes, Tasa de Entrega con entregados/enviados, Tasa de Lectura con lecturas confirmadas y Tasa de Fallo) con estados esqueleto de carga.
+    - `campaign-funnel-view.tsx`: Embudo de conversión escalonado de 4 fases (Audiencia Total 100%, Mensajes Despachados, Entregas Confirmadas, Lecturas Registradas) con barras visuales de progreso porcentual y estadísticas laterales de mensajes en cola y fallidos.
+    - `campaign-audience-table.tsx`: Tabla detallada de destinatarios con selector de filtros de estado (`ALL`, `PENDING`, `SENT`, `DELIVERED`, `READ`, `FAILED`), cronología de eventos (`sentAt`, `deliveredAt`, `readAt`), alerta de errores de entrega y controles de paginación.
+    - `campaign-analytics-client.tsx`: Contenedor principal con gating estricto por entitlements (`module.campaigns`) y permisos (`campaigns.read`), cabecera con badge de estado de la campaña y botón de actualización manual.
+    - `page.tsx`: Server component dinámico (`force-dynamic`) con soporte para `params` asíncrono.
+  - Navegación mejorada en `campaigns-list.tsx`:
+    - Enlace directo a la consola de analítica en el nombre de cada campaña y botón contextual "Métricas" en la columna de acciones.
+  - Verificación: 181/181 pruebas unitarias en `apps/web` PASS (42 pruebas dedicadas en `campaigns-view-model.test.ts`), typecheck monorepo limpio en los 18 paquetes, Biome en 0 errores.
+
 
 - E11-HOTFIX-UI — Auditoría del builder (commit `5d78fef`): **PASS AFTER FIX** (fix del auditor en `packages/database/src/index.ts`, `apps/api/src/channel-realtime.service.ts`, `apps/api/src/inbox-realtime.service.ts`, `apps/api/src/inbound-webhooks.ts`, `packages/database/src/rbac.integration.ts`, `apps/api/src/tenant-user-management.integration.ts`).
   - Los 5 defectos reportados (Tailwind, users, theme, contacts auth, QR lifecycle) quedaron correctamente resueltos por el builder y fueron verificados contra el código real y en runtime.

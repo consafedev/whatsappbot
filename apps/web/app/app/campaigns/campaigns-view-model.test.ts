@@ -1,15 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   CampaignApiError,
+  calculateFunnelStepPercentage,
   calculateProgress,
   cancelCampaign,
   createCampaign,
   createMessageTemplate,
   extractMustacheVariables,
+  fetchCampaignAudience,
   fetchCampaignDetail,
+  fetchCampaignMetrics,
   fetchCampaigns,
   fetchChannelsForCampaigns,
   fetchMessageTemplates,
+  formatAudienceMemberStatus,
   formatCampaignStatus,
   normalizeCampaign,
   pauseCampaign,
@@ -402,6 +406,181 @@ describe("campaigns-view-model", () => {
       await expect(createCampaign(base, { name: "", channelAccountId: "chn-1" })).rejects.toThrow(
         CampaignApiError,
       );
+    });
+
+    it("fetches campaign metrics and parses the API data envelope", async () => {
+      globalThis.fetch = vi.fn().mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          success: true,
+          data: {
+            totalRecipients: 100,
+            sentCount: 95,
+            deliveredCount: 90,
+            readCount: 60,
+            failedCount: 5,
+            pendingCount: 5,
+            deliveryRate: 94.74,
+            readRate: 66.67,
+            failureRate: 5.26,
+          },
+        }),
+      });
+
+      const metrics = await fetchCampaignMetrics(base, "cmp-100");
+      expect(metrics.totalRecipients).toBe(100);
+      expect(metrics.sentCount).toBe(95);
+      expect(metrics.deliveredCount).toBe(90);
+      expect(metrics.readCount).toBe(60);
+      expect(metrics.failedCount).toBe(5);
+      expect(metrics.pendingCount).toBe(5);
+      expect(metrics.deliveryRate).toBe(94.74);
+      expect(metrics.readRate).toBe(66.67);
+      expect(metrics.failureRate).toBe(5.26);
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        "http://localhost:3001/api/v1/campaigns/cmp-100/metrics",
+        expect.objectContaining({ method: "GET", credentials: "include" }),
+      );
+    });
+
+    it("throws CampaignApiError when fetchCampaignMetrics fails", async () => {
+      globalThis.fetch = vi.fn().mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        json: async () => ({
+          message: "Campaign not found",
+        }),
+      });
+
+      await expect(fetchCampaignMetrics(base, "cmp-nonexistent")).rejects.toThrow(CampaignApiError);
+    });
+
+    it("fetches audience members and normalizes contact relations", async () => {
+      globalThis.fetch = vi.fn().mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          success: true,
+          data: {
+            members: [
+              {
+                id: "mem-1",
+                contactId: "ct-1",
+                status: "READ",
+                sentAt: "2026-09-08T10:00:00Z",
+                deliveredAt: "2026-09-08T10:01:00Z",
+                readAt: "2026-09-08T10:05:00Z",
+                errorMessage: null,
+                contact: {
+                  id: "ct-1",
+                  name: "Juan Perez",
+                  phoneNumber: "+5215512345678",
+                  email: "juan@example.com",
+                },
+              },
+              {
+                id: "mem-2",
+                contactId: "ct-2",
+                status: "FAILED",
+                sentAt: "2026-09-08T10:00:00Z",
+                deliveredAt: null,
+                readAt: null,
+                errorMessage: "Number not registered on WhatsApp",
+                contact: null,
+                contactName: "Contacto Desconocido",
+                phoneNumber: "+5215587654321",
+              },
+            ],
+            total: 2,
+            limit: 50,
+            offset: 0,
+          },
+        }),
+      });
+
+      const res = await fetchCampaignAudience(base, "cmp-100", {
+        status: "READ",
+        limit: 10,
+        offset: 0,
+      });
+      expect(res.total).toBe(2);
+      expect(res.members).toHaveLength(2);
+      expect(res.members[0]?.contactName).toBe("Juan Perez");
+      expect(res.members[0]?.phoneNumber).toBe("+5215512345678");
+      expect(res.members[0]?.email).toBe("juan@example.com");
+      expect(res.members[0]?.status).toBe("READ");
+      expect(res.members[1]?.contactName).toBe("Contacto Desconocido");
+      expect(res.members[1]?.errorMessage).toBe("Number not registered on WhatsApp");
+
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        "http://localhost:3001/api/v1/campaigns/cmp-100/audience?status=READ&limit=10&offset=0",
+        expect.objectContaining({ method: "GET" }),
+      );
+    });
+  });
+
+  describe("formatAudienceMemberStatus", () => {
+    it("returns correct details for PENDING", () => {
+      const details = formatAudienceMemberStatus("PENDING");
+      expect(details.label).toBe("Pendiente");
+      expect(details.variant).toBe("neutral");
+    });
+
+    it("returns correct details for SENT", () => {
+      const details = formatAudienceMemberStatus("SENT");
+      expect(details.label).toBe("Enviado");
+      expect(details.variant).toBe("info");
+    });
+
+    it("returns correct details for DELIVERED", () => {
+      const details = formatAudienceMemberStatus("DELIVERED");
+      expect(details.label).toBe("Entregado");
+      expect(details.variant).toBe("info");
+    });
+
+    it("returns correct details for READ", () => {
+      const details = formatAudienceMemberStatus("READ");
+      expect(details.label).toBe("Leído");
+      expect(details.variant).toBe("success");
+    });
+
+    it("returns correct details for FAILED", () => {
+      const details = formatAudienceMemberStatus("FAILED");
+      expect(details.label).toBe("Fallido");
+      expect(details.variant).toBe("danger");
+    });
+
+    it("returns fallback for unknown status", () => {
+      const details = formatAudienceMemberStatus("UNKNOWN_STATUS");
+      expect(details.label).toBe("UNKNOWN_STATUS");
+      expect(details.variant).toBe("neutral");
+    });
+  });
+
+  describe("calculateFunnelStepPercentage", () => {
+    it("returns 0 when base is 0 or negative", () => {
+      expect(calculateFunnelStepPercentage(10, 0)).toBe(0);
+      expect(calculateFunnelStepPercentage(10, -5)).toBe(0);
+    });
+
+    it("returns 0 when current is 0 or negative", () => {
+      expect(calculateFunnelStepPercentage(0, 100)).toBe(0);
+      expect(calculateFunnelStepPercentage(-10, 100)).toBe(0);
+    });
+
+    it("returns 0 for non-finite numbers", () => {
+      expect(calculateFunnelStepPercentage(Number.NaN, 100)).toBe(0);
+      expect(calculateFunnelStepPercentage(50, Number.POSITIVE_INFINITY)).toBe(0);
+    });
+
+    it("calculates exact percentage with one decimal place", () => {
+      expect(calculateFunnelStepPercentage(50, 100)).toBe(50);
+      expect(calculateFunnelStepPercentage(1, 3)).toBe(33.3);
+      expect(calculateFunnelStepPercentage(95, 100)).toBe(95);
+      expect(calculateFunnelStepPercentage(90, 95)).toBe(94.7);
+    });
+
+    it("clamps result to 100 maximum", () => {
+      expect(calculateFunnelStepPercentage(150, 100)).toBe(100);
     });
   });
 });

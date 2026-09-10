@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import {
   type CampaignListItem,
@@ -90,9 +91,12 @@ export function CampaignsList({
                 >
                   {/* Campaign Name & Details */}
                   <td className="px-6 py-4">
-                    <div className="font-semibold text-slate-900 dark:text-slate-100">
+                    <Link
+                      href={`/app/campaigns/${camp.id}`}
+                      className="font-semibold text-slate-900 dark:text-slate-100 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                    >
                       {camp.name}
-                    </div>
+                    </Link>
                     <div className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
                       Canal:{" "}
                       {camp.channelDisplayName ??
@@ -165,95 +169,106 @@ export function CampaignsList({
 
                   {/* Actions Column */}
                   <td className="px-6 py-4 text-right">
-                    {canManage ? (
-                      <div className="inline-flex items-center gap-1.5 justify-end">
-                        {/* DRAFT Actions */}
-                        {camp.status === "DRAFT" && (
-                          <>
-                            {camp.totalRecipients === 0 ? (
+                    <div className="inline-flex items-center gap-1.5 justify-end">
+                      <Link
+                        href={`/app/campaigns/${camp.id}`}
+                        className="px-2.5 py-1 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 inline-flex items-center gap-1 transition-colors"
+                        title="Ver métricas y embudo"
+                      >
+                        <span>📊</span>
+                        <span>Métricas</span>
+                      </Link>
+
+                      {canManage ? (
+                        <>
+                          {/* DRAFT Actions */}
+                          {camp.status === "DRAFT" && (
+                            <>
+                              {camp.totalRecipients === 0 ? (
+                                <button
+                                  type="button"
+                                  disabled={isActionLoading}
+                                  onClick={() => handleAction(camp.id, onPopulate)}
+                                  className="px-2.5 py-1 text-xs font-medium rounded-lg bg-sky-50 text-sky-700 hover:bg-sky-100 dark:bg-sky-950/40 dark:text-sky-300 dark:hover:bg-sky-900/50"
+                                >
+                                  Poblar Audiencia
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  disabled={isActionLoading}
+                                  onClick={() => handleAction(camp.id, onStart)}
+                                  className="px-2.5 py-1 text-xs font-medium rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm"
+                                >
+                                  Iniciar
+                                </button>
+                              )}
                               <button
                                 type="button"
                                 disabled={isActionLoading}
-                                onClick={() => handleAction(camp.id, onPopulate)}
-                                className="px-2.5 py-1 text-xs font-medium rounded-lg bg-sky-50 text-sky-700 hover:bg-sky-100 dark:bg-sky-950/40 dark:text-sky-300 dark:hover:bg-sky-900/50"
+                                onClick={() => handleAction(camp.id, onCancel)}
+                                className="px-2.5 py-1 text-xs font-medium rounded-lg border border-slate-300 dark:border-slate-700 text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
                               >
-                                Poblar Audiencia
+                                Cancelar
                               </button>
-                            ) : (
+                            </>
+                          )}
+
+                          {/* RUNNING Actions */}
+                          {camp.status === "RUNNING" && (
+                            <>
+                              <button
+                                type="button"
+                                disabled={isActionLoading}
+                                onClick={() => handleAction(camp.id, onPause)}
+                                className="px-2.5 py-1 text-xs font-medium rounded-lg bg-amber-500 text-white hover:bg-amber-600 shadow-sm"
+                              >
+                                Pausar
+                              </button>
+                              <button
+                                type="button"
+                                disabled={isActionLoading}
+                                onClick={() => handleAction(camp.id, onCancel)}
+                                className="px-2.5 py-1 text-xs font-medium rounded-lg border border-rose-200 dark:border-rose-900 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                              >
+                                Cancelar
+                              </button>
+                            </>
+                          )}
+
+                          {/* PAUSED Actions */}
+                          {camp.status === "PAUSED" && (
+                            <>
                               <button
                                 type="button"
                                 disabled={isActionLoading}
                                 onClick={() => handleAction(camp.id, onStart)}
                                 className="px-2.5 py-1 text-xs font-medium rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm"
                               >
-                                Iniciar
+                                Reanudar
                               </button>
-                            )}
-                            <button
-                              type="button"
-                              disabled={isActionLoading}
-                              onClick={() => handleAction(camp.id, onCancel)}
-                              className="px-2.5 py-1 text-xs font-medium rounded-lg border border-slate-300 dark:border-slate-700 text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
-                            >
-                              Cancelar
-                            </button>
-                          </>
-                        )}
+                              <button
+                                type="button"
+                                disabled={isActionLoading}
+                                onClick={() => handleAction(camp.id, onCancel)}
+                                className="px-2.5 py-1 text-xs font-medium rounded-lg border border-slate-300 dark:border-slate-700 text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+                              >
+                                Cancelar
+                              </button>
+                            </>
+                          )}
 
-                        {/* RUNNING Actions */}
-                        {camp.status === "RUNNING" && (
-                          <>
-                            <button
-                              type="button"
-                              disabled={isActionLoading}
-                              onClick={() => handleAction(camp.id, onPause)}
-                              className="px-2.5 py-1 text-xs font-medium rounded-lg bg-amber-500 text-white hover:bg-amber-600 shadow-sm"
-                            >
-                              Pausar
-                            </button>
-                            <button
-                              type="button"
-                              disabled={isActionLoading}
-                              onClick={() => handleAction(camp.id, onCancel)}
-                              className="px-2.5 py-1 text-xs font-medium rounded-lg border border-rose-200 dark:border-rose-900 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30"
-                            >
-                              Cancelar
-                            </button>
-                          </>
-                        )}
-
-                        {/* PAUSED Actions */}
-                        {camp.status === "PAUSED" && (
-                          <>
-                            <button
-                              type="button"
-                              disabled={isActionLoading}
-                              onClick={() => handleAction(camp.id, onStart)}
-                              className="px-2.5 py-1 text-xs font-medium rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm"
-                            >
-                              Reanudar
-                            </button>
-                            <button
-                              type="button"
-                              disabled={isActionLoading}
-                              onClick={() => handleAction(camp.id, onCancel)}
-                              className="px-2.5 py-1 text-xs font-medium rounded-lg border border-slate-300 dark:border-slate-700 text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
-                            >
-                              Cancelar
-                            </button>
-                          </>
-                        )}
-
-                        {/* COMPLETED / CANCELLED / FAILED: Read-only label */}
-                        {(camp.status === "COMPLETED" ||
-                          camp.status === "CANCELLED" ||
-                          camp.status === "FAILED") && (
-                          <span className="text-xs text-slate-400 italic">Finalizada</span>
-                        )}
-                      </div>
-                    ) : (
-                      <span className="text-xs text-slate-400 italic">Solo lectura</span>
-                    )}
+                          {/* COMPLETED / CANCELLED / FAILED: Read-only label */}
+                          {(camp.status === "COMPLETED" ||
+                            camp.status === "CANCELLED" ||
+                            camp.status === "FAILED") && (
+                            <span className="text-xs text-slate-400 italic">Finalizada</span>
+                          )}
+                        </>
+                      ) : (
+                        <span className="text-xs text-slate-400 italic">Solo lectura</span>
+                      )}
+                    </div>
                   </td>
                 </tr>
               );

@@ -107,6 +107,38 @@ export interface CampaignsListResponse {
   readonly offset: number;
 }
 
+export interface CampaignMetrics {
+  readonly totalRecipients: number;
+  readonly sentCount: number;
+  readonly deliveredCount: number;
+  readonly readCount: number;
+  readonly failedCount: number;
+  readonly pendingCount: number;
+  readonly deliveryRate: number;
+  readonly readRate: number;
+  readonly failureRate: number;
+}
+
+export interface CampaignAudienceMemberItem {
+  readonly id: string;
+  readonly contactId: string;
+  readonly contactName: string;
+  readonly phoneNumber: string;
+  readonly email?: string | null | undefined;
+  readonly status: "PENDING" | "SENT" | "DELIVERED" | "READ" | "FAILED" | string;
+  readonly sentAt?: string | null | undefined;
+  readonly deliveredAt?: string | null | undefined;
+  readonly readAt?: string | null | undefined;
+  readonly errorMessage?: string | null | undefined;
+}
+
+export interface CampaignAudienceResponse {
+  readonly members: readonly CampaignAudienceMemberItem[];
+  readonly total: number;
+  readonly limit: number;
+  readonly offset: number;
+}
+
 /**
  * Normalizes a raw API campaign record: derives flat display fields
  * (channelDisplayName, templateName) from the nested relations the API returns.
@@ -238,6 +270,75 @@ export function extractMustacheVariables(content: string | null | undefined): st
     match = regex.exec(content);
   }
   return Array.from(variables);
+}
+
+/**
+ * Normalizes audience member status and provides human-friendly badge details.
+ */
+export function formatAudienceMemberStatus(status: string | null | undefined): StatusBadgeDetails {
+  const normalized = (status ?? "").toUpperCase().trim();
+
+  switch (normalized) {
+    case "PENDING":
+      return {
+        label: "Pendiente",
+        variant: "neutral",
+        dotColor: "#868e96",
+        className:
+          "bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700",
+      };
+    case "SENT":
+      return {
+        label: "Enviado",
+        variant: "info",
+        dotColor: "#3b82f6",
+        className:
+          "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800",
+      };
+    case "DELIVERED":
+      return {
+        label: "Entregado",
+        variant: "info",
+        dotColor: "#6366f1",
+        className:
+          "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800",
+      };
+    case "READ":
+      return {
+        label: "Leído",
+        variant: "success",
+        dotColor: "#10b981",
+        className:
+          "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800",
+      };
+    case "FAILED":
+      return {
+        label: "Fallido",
+        variant: "danger",
+        dotColor: "#ef4444",
+        className:
+          "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800",
+      };
+    default:
+      return {
+        label: status || "Desconocido",
+        variant: "neutral",
+        dotColor: "#868e96",
+        className:
+          "bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700",
+      };
+  }
+}
+
+/**
+ * Calculates a safe relative percentage for conversion funnel steps (0 - 100).
+ */
+export function calculateFunnelStepPercentage(current: number, base: number): number {
+  if (!Number.isFinite(current) || !Number.isFinite(base) || base <= 0 || current <= 0) {
+    return 0;
+  }
+  const pct = (current / base) * 100;
+  return Math.min(100, Math.max(0, Number(pct.toFixed(1))));
 }
 
 export class CampaignApiError extends Error {
@@ -538,4 +639,114 @@ export async function fetchChannelsForCampaigns(
     providerType: ch.providerType,
     status: ch.status,
   }));
+}
+
+/**
+ * Fetches aggregated performance metrics for a campaign.
+ */
+export async function fetchCampaignMetrics(
+  apiBaseUrl: string,
+  campaignId: string,
+): Promise<CampaignMetrics> {
+  const url = `${apiBaseUrl}/api/v1/campaigns/${encodeURIComponent(campaignId)}/metrics`;
+  const response = await fetch(url, {
+    credentials: "include",
+    headers: { Accept: "application/json" },
+    method: "GET",
+  });
+
+  if (!response.ok) {
+    throw await parseErrorResponse(response);
+  }
+
+  const json = (await response.json()) as { data: CampaignMetrics };
+  const d = json.data;
+  return {
+    totalRecipients: Number(d?.totalRecipients ?? 0),
+    sentCount: Number(d?.sentCount ?? 0),
+    deliveredCount: Number(d?.deliveredCount ?? 0),
+    readCount: Number(d?.readCount ?? 0),
+    failedCount: Number(d?.failedCount ?? 0),
+    pendingCount: Number(d?.pendingCount ?? 0),
+    deliveryRate: Number(d?.deliveryRate ?? 0),
+    readRate: Number(d?.readRate ?? 0),
+    failureRate: Number(d?.failureRate ?? 0),
+  };
+}
+
+/**
+ * Fetches paginated audience members for a campaign with optional status filter.
+ */
+export async function fetchCampaignAudience(
+  apiBaseUrl: string,
+  campaignId: string,
+  options?: {
+    status?: string | undefined;
+    limit?: number | undefined;
+    offset?: number | undefined;
+  },
+): Promise<CampaignAudienceResponse> {
+  const query = new URLSearchParams();
+  if (options?.status && options.status !== "ALL") query.set("status", options.status);
+  if (options?.limit !== undefined) query.set("limit", String(options.limit));
+  if (options?.offset !== undefined) query.set("offset", String(options.offset));
+
+  const qs = query.toString();
+  const url = `${apiBaseUrl}/api/v1/campaigns/${encodeURIComponent(campaignId)}/audience${qs ? `?${qs}` : ""}`;
+  const response = await fetch(url, {
+    credentials: "include",
+    headers: { Accept: "application/json" },
+    method: "GET",
+  });
+
+  if (!response.ok) {
+    throw await parseErrorResponse(response);
+  }
+
+  const json = (await response.json()) as {
+    data: {
+      members?: Array<{
+        id: string;
+        contactId: string;
+        contactName?: string | null;
+        phoneNumber?: string | null;
+        email?: string | null;
+        contact?: {
+          id?: string;
+          name?: string | null;
+          phoneNumber?: string | null;
+          email?: string | null;
+        } | null;
+        status: string;
+        sentAt?: string | null;
+        deliveredAt?: string | null;
+        readAt?: string | null;
+        errorMessage?: string | null;
+      }>;
+      total?: number;
+      limit?: number;
+      offset?: number;
+    };
+  };
+
+  const rawMembers = json.data?.members ?? [];
+  const members: CampaignAudienceMemberItem[] = rawMembers.map((m) => ({
+    id: m.id,
+    contactId: m.contactId,
+    contactName: m.contact?.name ?? m.contactName ?? "Sin nombre",
+    phoneNumber: m.contact?.phoneNumber ?? m.phoneNumber ?? "",
+    email: m.contact?.email ?? m.email ?? null,
+    status: m.status,
+    sentAt: m.sentAt ?? null,
+    deliveredAt: m.deliveredAt ?? null,
+    readAt: m.readAt ?? null,
+    errorMessage: m.errorMessage ?? null,
+  }));
+
+  return {
+    members,
+    total: Number(json.data?.total ?? members.length),
+    limit: Number(json.data?.limit ?? options?.limit ?? 50),
+    offset: Number(json.data?.offset ?? options?.offset ?? 0),
+  };
 }
