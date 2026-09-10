@@ -8,6 +8,21 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Added
 
+- E12-S02 implementa la interfaz web de usuario de reportes y analítica operativa con visualizador de series temporales (`Operational Reporting Web UI & Time-Series Visualizer`) en `apps/web`:
+  - View Model y Clientes REST (`apps/web/app/app/reports/reports-view-model.ts`):
+    - Modelos de datos tipados: `TenantOperationalOverview`, `AiTokenUsageSummary`, `MessageTimeSeriesBucket`, `MessageTimeSeriesData`, `DatePresetKey`.
+    - Fetchers REST (`fetchOperationalOverview`, `fetchMessageTimeSeries`) con credenciales de sesión (`credentials: "include"`), deserialización de envelope `{ success: true, data }`, normalización defensiva y manejo de excepciones mediante `ReportsApiError`.
+    - Utilidades puras: `resolveDatePreset` (generación determinista de rangos para `7d`, `30d`, `this_month`, `custom`), `formatNumber` (separador de miles con locale `es-MX`), y `formatCurrencyUsd` (4 decimales para granularidad de IA).
+  - Componentes del Tablero Operativo (`apps/web/app/app/reports/`):
+    - `page.tsx`: Server component dinámico (`force-dynamic`) montando la interfaz de reportes.
+    - `reports-client.tsx`: Orquestador integrado con `useTenantAppBootstrap()`, gating de módulo `module.reports` y permiso `reports.read`, validación de rangos `from <= to` en cliente, selector de presets de fecha y botón de refresco interactivo.
+    - `reports-kpi-cards.tsx`: 4 tarjetas métricas consolidadas (Volumen de Mensajes, Efectividad de Entrega, Estado de Conversaciones y Consumo de IA) con soporte para skeletons animados.
+    - `reports-time-series-chart.tsx`: Gráfico responsivo en SVG y barras CSS Tailwind nativas con alternancia de intervalo (Día / Hora), barras agrupadas (inbound/outbound) y tooltips interactivos accesibles.
+  - Navegación en Tenant App Shell (`apps/web/app/app/tenant-app-navigation.ts`):
+    - Activación de la ruta `href: "/app/reports"` protegida por `module.reports` y `reports.read`.
+    - Registro de etiqueta en `TENANT_MODULE_LABELS`.
+  - Verificación: 15/15 pruebas unitarias en `reports-view-model.test.ts` PASS; 11/11 pruebas en `tenant-app-navigation.test.ts` PASS; suite completa de `apps/web` (17 archivos, 197 tests PASS); Biome y TypeScript en 0 errores.
+
 - E12-S01 implementa el motor de métricas agregadas operativas y los endpoints REST de analítica (`Tenant Aggregated Metrics Engine & Analytics API Endpoints`) en `packages/database` y `apps/api`:
   - Catálogo de Módulos y Permisos RBAC (`packages/rbac`, `packages/database`):
     - Se registra el módulo funcional `"module.reports"` en `MODULE_ENTITLEMENT_KEYS` (`packages/database/src/entitlement-catalog.ts`).

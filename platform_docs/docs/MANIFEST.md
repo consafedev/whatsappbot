@@ -70,6 +70,7 @@
 | `platform_docs/docs/adr/0051-e11-s04-campaign-management-web-ui-scope.md` | 4650 | 580 | `56bb6e46b317f36c08dd92b56d16f2fb22d8a3a6971e7a434c8f53aacac69e49` |
 | `platform_docs/docs/adr/0052-e11-s05-campaign-analytics-dashboard-scope.md` | 5009 | 589 | `7596e17ece571a92b0d29765adf75eff64696a518550b2bd2baa9a4c214e3423` |
 | `platform_docs/docs/adr/0053-e12-s01-tenant-aggregated-metrics-engine-scope.md` | 4822 | 575 | `74644eeaa5666a19be00415f675a6d61ef5009ca4d6659941a3400293e8260a0` |
+| `platform_docs/docs/adr/0054-e12-s02-operational-reporting-web-ui-scope.md` | 5009 | 626 | `63275e050d094f2ff03977361eceea2bbcf110c48c86ebab0f5da17221e538eb` |
 | `platform_docs/docs/INDEX.md` | 12437 | 1687 | `d692e50c9f969e6ee096a14daf674281f585d3e2a2841211822734dbedd6c5f8` |
 | `platform_docs/PRD.md` | 90479 | 13033 | `81426bd8cabd9b4d5408ff0741c1cfa6aa1741986f2355d4294c6faa7bfdb380` |
 | `platform_docs/README.md` | 1953 | 242 | `31b67b6ef55a2adb4b2840cbe5993156c4fa0421f8752b2d130c97ceb84e880a` |

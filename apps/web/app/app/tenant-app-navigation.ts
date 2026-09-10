@@ -29,6 +29,7 @@ export const TENANT_MODULE_LABELS: Readonly<Record<string, string>> = Object.fre
   "module.white_label": "White label",
   "module.ai": "IA",
   "module.campaigns": "Campañas",
+  "module.reports": "Reportes",
 });
 
 const navigation: readonly TenantAppNavigationGroup[] = Object.freeze([
@@ -127,7 +128,13 @@ const navigation: readonly TenantAppNavigationGroup[] = Object.freeze([
         requiredModule: "module.integrations",
         requiredPermission: "integrations.manage",
       },
-      { href: null, id: "reports", label: "Reportes", requiredPermission: "reports.read" },
+      {
+        href: "/app/reports",
+        id: "reports",
+        label: "Reportes",
+        requiredModule: "module.reports",
+        requiredPermission: "reports.read",
+      },
       {
         href: "/app/users",
         id: "users",

@@ -142,4 +142,21 @@ describe("tenant app navigation", () => {
     );
     expect(withBoth.find((item) => item.id === "contacts")?.href).toBe("/app/contacts");
   });
+
+  it("exposes reports /app/reports route when module.reports and reports.read permission are granted", () => {
+    const withoutModule = resolveTenantNavigation([], ["reports.read"]).flatMap(
+      (group) => group.items,
+    );
+    expect(withoutModule.some((item) => item.id === "reports")).toBe(false);
+
+    const withoutPerm = resolveTenantNavigation(["module.reports"], []).flatMap(
+      (group) => group.items,
+    );
+    expect(withoutPerm.some((item) => item.id === "reports")).toBe(false);
+
+    const withBoth = resolveTenantNavigation(["module.reports"], ["reports.read"]).flatMap(
+      (group) => group.items,
+    );
+    expect(withBoth.find((item) => item.id === "reports")?.href).toBe("/app/reports");
+  });
 });

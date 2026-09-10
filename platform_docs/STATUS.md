@@ -2,15 +2,30 @@
 
 **Actualizado:** 2026-09-10
 **Versión de producto:** `0.0.0`  
-**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; Epic 11 — Campaign Engine & Audience Broadcasts — PASS / COMPLETE; **Epic 12 — Reporting, Analytics & Operational Observability — IN PROGRESS (E12-S01 PASS)**.
+**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; Epic 11 — Campaign Engine & Audience Broadcasts — PASS / COMPLETE; **Epic 12 — Reporting, Analytics & Operational Observability — IN PROGRESS (E12-S01, E12-S02 PASS)**.
 
 ## Current milestone
 
-Epic 12 — Reporting, Analytics & Operational Observability (E12-S01 PASS). Next: E12-S02 (Analytics Web Dashboard UI).
+Epic 12 — Reporting, Analytics & Operational Observability (E12-S01, E12-S02 PASS). Next: E12-S03 (Export Engine: CSV/PDF Generation & Scheduled Reports Dispatcher).
 
 ## Current epic
 
-**Epic 12 — Reporting, Analytics & Operational Observability** — **IN PROGRESS** (ADR-0053)
+**Epic 12 — Reporting, Analytics & Operational Observability** — **IN PROGRESS** (ADR-0053, ADR-0054)
+
+- E12-S02 — Operational Reporting Web UI & Time-Series Visualizer: **PASS** (ADR-0054).
+  - View Model y Clientes REST (`apps/web/app/app/reports/reports-view-model.ts`):
+    - Modelado tipado estricto: `TenantOperationalOverview`, `AiTokenUsageSummary`, `MessageTimeSeriesBucket`, `MessageTimeSeriesData`, `DatePresetKey`.
+    - Fetchers REST: `fetchOperationalOverview` y `fetchMessageTimeSeries` consumiendo los endpoints de analítica con credenciales, deserialización de envelope `{ success: true, data }`, normalización defensiva y manejo de errores con `ReportsApiError` (400, 403, 500).
+    - Utilidades puras: `resolveDatePreset` (presets deterministas para 7 días, 30 días, este mes o personalizado), `formatNumber` (separador de miles con locale `es-MX`), y `formatCurrencyUsd` (4 decimales para granularidad de IA).
+  - Componentes del Tablero Operativo (`apps/web/app/app/reports/`):
+    - `page.tsx`: Server component dinámico (`force-dynamic`) montando `ReportsClient`.
+    - `reports-client.tsx`: Orquestador cliente con gating defensivo (`module.reports` + `reports.read`), validación de rangos `from <= to` en cliente, selector de presets dinámicos, inputs de fecha y botón de refresco en vivo.
+    - `reports-kpi-cards.tsx`: 4 tarjetas métricas consolidadas (Volumen de Mensajes con desglose de entrantes/salientes, Efectividad de Entrega con barra de progreso reactiva, Estado de Conversaciones activas/cerradas y Consumo de IA con tokens y costo estimado en USD).
+    - `reports-time-series-chart.tsx`: Gráfico interactivo y responsivo de series temporales implementado con SVG y barras CSS Tailwind nativas (cero librerías pesadas externas), conmutador de granularidad temporal (Día / Hora), barras agrupadas y tooltip de detalle por hover y foco accesible.
+  - Navegación en Tenant App Shell (`apps/web/app/app/tenant-app-navigation.ts`):
+    - Activación de la ruta `href: "/app/reports"` para el ítem `reports` condicionado a `module.reports` y `reports.read`.
+    - Inclusión de etiqueta de módulo en `TENANT_MODULE_LABELS`.
+  - Verificación: 15/15 pruebas unitarias en `reports-view-model.test.ts` PASS; 11/11 pruebas en `tenant-app-navigation.test.ts` PASS; 17/17 archivos de prueba en `apps/web` (197 tests PASS); Biome y TypeScript limpios.
 
 - E12-S01 — Tenant Aggregated Metrics Engine & Analytics API Endpoints: **PASS** (ADR-0053).
   - Catálogo de Módulos y Permisos RBAC (`packages/rbac`, `packages/database`):
