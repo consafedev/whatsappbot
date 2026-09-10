@@ -71,7 +71,7 @@
 | `platform_docs/docs/adr/0052-e11-s05-campaign-analytics-dashboard-scope.md` | 5009 | 589 | `7596e17ece571a92b0d29765adf75eff64696a518550b2bd2baa9a4c214e3423` |
 | `platform_docs/docs/adr/0053-e12-s01-tenant-aggregated-metrics-engine-scope.md` | 4822 | 575 | `74644eeaa5666a19be00415f675a6d61ef5009ca4d6659941a3400293e8260a0` |
 | `platform_docs/docs/adr/0054-e12-s02-operational-reporting-web-ui-scope.md` | 5446 | 654 | `4d880625d66c5f065d1015259f14b2641cbcdb42f40373b12d89a942fbf15efd` |
-| `platform_docs/docs/adr/0055-e12-s03-analytics-export-engine-scope.md` | 5136 | 626 | `cd9a34675d627730ea1d10c16a28d58ada6e9f434d3f33b2094742b5960ab9d3` |
+- ADR-0055 · 0055-e12-s03-analytics-export-engine-scope.md · bytes: 5136 · palabras: 626 · SHA-256: cd9a34675d627730ea1d10c16a28d58ada6e9f434d3f33b2094742b5960ab9d3
 | `platform_docs/docs/INDEX.md` | 12437 | 1687 | `d692e50c9f969e6ee096a14daf674281f585d3e2a2841211822734dbedd6c5f8` |
 | `platform_docs/PRD.md` | 90479 | 13033 | `81426bd8cabd9b4d5408ff0741c1cfa6aa1741986f2355d4294c6faa7bfdb380` |
 | `platform_docs/README.md` | 1953 | 242 | `31b67b6ef55a2adb4b2840cbe5993156c4fa0421f8752b2d130c97ceb84e880a` |
