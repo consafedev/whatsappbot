@@ -25,7 +25,8 @@ Epic 12 — Reporting, Analytics & Operational Observability (E12-S01, E12-S02 P
   - Navegación en Tenant App Shell (`apps/web/app/app/tenant-app-navigation.ts`):
     - Activación de la ruta `href: "/app/reports"` para el ítem `reports` condicionado a `module.reports` y `reports.read`.
     - Inclusión de etiqueta de módulo en `TENANT_MODULE_LABELS`.
-  - Verificación: 15/15 pruebas unitarias en `reports-view-model.test.ts` PASS; 11/11 pruebas en `tenant-app-navigation.test.ts` PASS; 17/17 archivos de prueba en `apps/web` (197 tests PASS); Biome y TypeScript limpios.
+  - Verificación (frontend web): 15/15 pruebas unitarias en `reports-view-model.test.ts` PASS; 11/11 pruebas en `tenant-app-navigation.test.ts` PASS; suite completa de `apps/web` (17 archivos, 197 tests PASS); Biome y TypeScript en 0 errores. Build y smoke HTTP 200 de `/app/reports` verificados.
+  - Nota de trazabilidad: las pruebas de integración del backend (motor E12-S01, endpoints analytics y aislamiento A/B) ya fueron acreditadas en E12-S01; E12-S02 añade exclusivamente la interfaz web que los consume.
 
 - E12-S01 — Tenant Aggregated Metrics Engine & Analytics API Endpoints: **PASS** (ADR-0053).
   - Catálogo de Módulos y Permisos RBAC (`packages/rbac`, `packages/database`):

@@ -29,7 +29,8 @@ En cumplimiento de ADR-0002 (PostgreSQL Source of Truth), ADR-0003 (Shared-Schem
      - Validación client-side: Comprueba que `from <= to` antes de emitir peticiones, previniendo errores HTTP 400 y mostrando feedback visual contextual.
      - Selector interactivo de presets de fecha (`7d`, `30d`, `this_month`, `custom`), inputs de fecha individuales y botón de recarga en vivo con spinner.
    - `reports-kpi-cards.tsx`:
-     - 4 tarjetas métricas consolidadas: Volumen de Mensajes (conteo y desglose inbound/outbound), Efectividad de Entrega (porcentaje y barra de progreso dinámica), Estado de Conversaciones (activas vs cerradas con tasa de resolución) y Consumo de IA (costo en USD y desglose de tokens).
+     - 4 tarjetas métricas consolidadas consumiendo `TenantOperationalOverview` desde el backend (campos reales del API: `inboundMessagesCount`, `outboundMessagesCount`, `activeConversationsCount`, `closedConversationsCount`, `aiTokenUsage` con `promptTokens`/`completionTokens`/`totalTokens`/`estimatedCostUsd`, y `deliverySuccessRate`).
+     - Cálculos derivados localmente en la UI (no campos del backend): `totalConversations` y `totalMessages` se calculan en el componente a partir de `activeConversationsCount` + `closedConversationsCount` y `inboundMessagesCount` + `outboundMessagesCount`; la tasa de resolución de conversaciones (`resolutionRate`) es un derivado local de UI entre conversaciones cerradas y totales.
      - Estados de carga animados (pulse skeletons).
    - `reports-time-series-chart.tsx`:
      - Visualizador interactivo de series temporales de tráfico construido íntegramente con SVG nativo y barras Tailwind CSS compuestas, eliminando la necesidad de dependencias pesadas externas.
