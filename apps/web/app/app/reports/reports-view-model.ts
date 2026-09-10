@@ -260,3 +260,41 @@ export async function fetchMessageTimeSeries(
     buckets,
   };
 }
+
+export interface DownloadCsvOptions {
+  readonly from: string;
+  readonly to: string;
+  readonly type: "overview" | "time-series";
+  readonly interval?: "day" | "hour" | undefined;
+}
+
+/**
+ * Downloads an aggregated or time-series CSV report from the analytics export endpoint.
+ */
+export async function downloadAnalyticsCsv(
+  apiBaseUrl: string,
+  options: DownloadCsvOptions,
+): Promise<Blob> {
+  const query = new URLSearchParams();
+  query.set("type", options.type);
+  query.set("from", options.from);
+  query.set("to", options.to);
+  if (options.interval) {
+    query.set("interval", options.interval);
+  }
+
+  const qs = query.toString();
+  const url = `${apiBaseUrl.replace(/\/$/, "")}/api/v1/analytics/export/csv?${qs}`;
+
+  const response = await fetch(url, {
+    credentials: "include",
+    headers: { Accept: "text/csv" },
+    method: "GET",
+  });
+
+  if (!response.ok) {
+    throw await parseErrorResponse(response);
+  }
+
+  return await response.blob();
+}

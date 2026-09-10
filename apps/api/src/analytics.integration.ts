@@ -20,6 +20,7 @@ let ownerAId = "";
 let ownerACookie = "";
 let ownerNoReportsCookie = "";
 let viewerACookie = "";
+let readerOnlyCookie = "";
 let channelAccountAId = "";
 
 function binary(value: Buffer): Uint8Array<ArrayBuffer> {
@@ -106,10 +107,11 @@ async function provision(
 
 describe.sequential("Analytics API Integration", () => {
   beforeAll(async () => {
+    process.env.DATABASE_URL =
+      process.env.DATABASE_URL ??
+      "postgresql://whatsapp_platform_dev:replace-with-a-local-development-password@localhost:5432/whatsapp_platform_dev";
     prisma = createPlatformDatabaseClient({
-      databaseUrl:
-        process.env.DATABASE_URL ??
-        "postgresql://whatsapp_platform_dev:replace-with-a-local-development-password@localhost:5432/whatsapp_platform_dev",
+      databaseUrl: process.env.DATABASE_URL,
     });
     await prisma.$connect();
     await cleanup();
@@ -153,6 +155,43 @@ describe.sequential("Analytics API Integration", () => {
       },
     });
     viewerACookie = await session(tenantAId, viewerUser.id);
+
+    // Create a role with reports.read only (lacks reports.export)
+    const readOnlyRole = await prisma.role.create({
+      data: {
+        description: "Role with reports.read only",
+        key: `reports_reader_${Date.now()}`,
+        name: "Reports Reader",
+        tenantId: tenantAId,
+      },
+    });
+    const reportsReadPerm = await prisma.permission.findUniqueOrThrow({
+      where: { key: "reports.read" },
+    });
+    await prisma.rolePermission.create({
+      data: {
+        permissionId: reportsReadPerm.id,
+        roleId: readOnlyRole.id,
+      },
+    });
+    const readerUser = await prisma.user.create({
+      data: {
+        displayName: "Reader Without Export",
+        email: `${prefix}-reader-${Date.now()}@example.invalid`,
+        locale: "es-MX",
+        passwordHash: "$argon2id$test-hash-not-reversible",
+        tenantId: tenantAId,
+        timezone: "UTC",
+      },
+    });
+    await prisma.userRole.create({
+      data: {
+        roleId: readOnlyRole.id,
+        tenantId: tenantAId,
+        userId: readerUser.id,
+      },
+    });
+    readerOnlyCookie = await session(tenantAId, readerUser.id);
 
     // Setup a channel and message fixture in Tenant A
     const channelA = await prisma.channelAccount.create({
@@ -399,5 +438,86 @@ describe.sequential("Analytics API Integration", () => {
     );
 
     expect(resInvalidInterval.status).toBe(400);
+  });
+
+  it("exports operational overview CSV with 200 OK and text/csv headers", async () => {
+    const res = await fetch(`${baseUrl}/api/v1/analytics/export/csv`, {
+      headers: {
+        cookie: ownerACookie,
+        "x-tenant-id": tenantAId,
+      },
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toContain("text/csv");
+    expect(res.headers.get("content-disposition")).toContain("reporte-overview-");
+
+    const buf = Buffer.from(await res.arrayBuffer());
+    expect(buf[0]).toBe(0xef);
+    expect(buf[1]).toBe(0xbb);
+    expect(buf[2]).toBe(0xbf);
+    const text = buf.toString("utf-8");
+    expect(text.startsWith("\uFEFF")).toBe(true);
+    expect(text).toContain("Reporte Operativo de Mensajería");
+    expect(text).toContain("Mensajes Entrantes");
+    expect(text).toContain("Costo Estimado IA (USD)");
+  });
+
+  it("exports time series CSV with 200 OK and time series headers", async () => {
+    const res = await fetch(`${baseUrl}/api/v1/analytics/export/csv?type=time-series`, {
+      headers: {
+        cookie: ownerACookie,
+        "x-tenant-id": tenantAId,
+      },
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toContain("text/csv");
+    expect(res.headers.get("content-disposition")).toContain("reporte-time-series-");
+
+    const buf = Buffer.from(await res.arrayBuffer());
+    expect(buf[0]).toBe(0xef);
+    expect(buf[1]).toBe(0xbb);
+    expect(buf[2]).toBe(0xbf);
+    const text = buf.toString("utf-8");
+    expect(text.startsWith("\uFEFF")).toBe(true);
+    expect(text).toContain("Fecha/Hora,Mensajes Entrantes,Mensajes Salientes,Volumen Total");
+  });
+
+  it("rejects export with 403 Forbidden when user has reports.read but lacks reports.export", async () => {
+    // Sanity check: user CAN read overview
+    const readRes = await fetch(`${baseUrl}/api/v1/analytics/overview`, {
+      headers: {
+        cookie: readerOnlyCookie,
+        "x-tenant-id": tenantAId,
+      },
+    });
+    expect(readRes.status).toBe(200);
+
+    // But CANNOT export
+    const exportRes = await fetch(`${baseUrl}/api/v1/analytics/export/csv`, {
+      headers: {
+        cookie: readerOnlyCookie,
+        "x-tenant-id": tenantAId,
+      },
+    });
+    expect(exportRes.status).toBe(403);
+  });
+
+  it("rejects export with 400 Bad Request when date range is inverted", async () => {
+    const from = new Date("2026-09-10T00:00:00.000Z").toISOString();
+    const to = new Date("2026-09-01T00:00:00.000Z").toISOString();
+
+    const res = await fetch(
+      `${baseUrl}/api/v1/analytics/export/csv?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+      {
+        headers: {
+          cookie: ownerACookie,
+          "x-tenant-id": tenantAId,
+        },
+      },
+    );
+
+    expect(res.status).toBe(400);
   });
 });

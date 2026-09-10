@@ -2,15 +2,29 @@
 
 **Actualizado:** 2026-09-10
 **Versión de producto:** `0.0.0`  
-**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; Epic 11 — Campaign Engine & Audience Broadcasts — PASS / COMPLETE; **Epic 12 — Reporting, Analytics & Operational Observability — IN PROGRESS (E12-S01, E12-S02 PASS)**.
+**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; Epic 11 — Campaign Engine & Audience Broadcasts — PASS / COMPLETE; **Epic 12 — Reporting, Analytics & Operational Observability — IN PROGRESS (E12-S01, E12-S02, E12-S03 PASS)**.
 
 ## Current milestone
 
-Epic 12 — Reporting, Analytics & Operational Observability (E12-S01, E12-S02 PASS). Next: E12-S03 (Export Engine: CSV/PDF Generation & Scheduled Reports Dispatcher).
+Epic 12 — Reporting, Analytics & Operational Observability (E12-S01, E12-S02, E12-S03 PASS). Next: E12-S04 (Operational Alerting & Anomaly Triggers).
 
 ## Current epic
 
-**Epic 12 — Reporting, Analytics & Operational Observability** — **IN PROGRESS** (ADR-0053, ADR-0054)
+**Epic 12 — Reporting, Analytics & Operational Observability** — **IN PROGRESS** (ADR-0053, ADR-0054, ADR-0055)
+
+- E12-S03 — Analytics Export Engine & CSV Download Scope: **PASS** (ADR-0055).
+  - Motor de Generación CSV (`packages/database/src/analytics-export-manager.ts`):
+    - `escapeCsvField`: Escapado RFC 4180 con neutralización de inyecciones y duplicación de comillas dobles.
+    - `generateOperationalOverviewCsv`: Exportación consolidada de métricas operativas con cabecera UTF-8 BOM (`\uFEFF`), delimitadores CRLF, metadatos temporales y desglose de mensajes, conversaciones y costos de tokens de IA.
+    - `generateTimeSeriesCsv`: Exportación estructurada de series temporales de tráfico por día u hora con UTF-8 BOM y CRLF.
+  - Endpoint de Exportación en API Gateway (`apps/api/src/analytics.ts`):
+    - `GET /api/v1/analytics/export/csv` con validación de parámetros (`type`, `from`, `to`, `interval`).
+    - Gating RBAC estricto: requiere `@RequireEntitlements("module.reports")` y `@analyticsAuthorized("reports.export")`. Rechazo con 403 Forbidden ante ausencia de `reports.export` aun teniendo `reports.read`.
+    - Headers de streaming y adjunto: `Content-Type: text/csv; charset=utf-8`, `Content-Disposition: attachment; filename="reporte-[type]-[from]-[to].csv"`.
+  - Integración en Web UI (`apps/web/app/app/reports/`):
+    - View Model (`reports-view-model.ts`): cliente `downloadAnalyticsCsv` con llamada GET autenticada y retorno de `Blob`.
+    - Componente UI (`reports-client.tsx`): Menú desplegable "Exportar CSV" en la barra superior con opciones de "Resumen Operativo" y "Serie Temporal", bloqueo con candado si el usuario carece de `reports.export`, descarga en navegador mediante URL blob y banner de notificación de error.
+  - Verificación: 9/9 pruebas unitarias de exportación CSV en `@whatsapp-platform/database` PASS; 9/9 pruebas de integración en `@whatsapp-platform/api` PASS; 4/4 pruebas de integración en base de datos PASS; 19/19 pruebas en `reports-view-model.test.ts` PASS; suite completa web (17 archivos, 201 tests PASS); Biome y typecheck limpios.
 
 - E12-S02 — Operational Reporting Web UI & Time-Series Visualizer: **PASS** (ADR-0054).
   - View Model y Clientes REST (`apps/web/app/app/reports/reports-view-model.ts`):

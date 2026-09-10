@@ -6,11 +6,14 @@ import {
   Inject,
   Injectable,
   Query,
+  Res,
   UseGuards,
 } from "@nestjs/common";
 import {
   type AnalyticsDatabase,
   AnalyticsDateRangeInvalidError,
+  generateOperationalOverviewCsv,
+  generateTimeSeriesCsv,
   getTenantMessageTimeSeries,
   getTenantOperationalOverview,
   type MessageTimeSeriesBucket,
@@ -45,6 +48,13 @@ export interface AnalyticsQueryDto {
 export interface TimeSeriesQueryDto extends AnalyticsQueryDto {
   readonly interval?: string | undefined;
 }
+
+export interface ExportCsvQueryDto extends AnalyticsQueryDto {
+  readonly type?: string | undefined;
+  readonly interval?: string | undefined;
+}
+
+type ApiResponse = { setHeader(name: string, value: string): void };
 
 function parseQueryDate(value: string | undefined, defaultValue: Date, paramName: string): Date {
   if (value === undefined || value.trim() === "") {
@@ -147,5 +157,47 @@ export class AnalyticsController {
     const { from, to } = resolveDateRange(query);
     const data = await this.service.getMessageTimeSeries(context, from, to, interval);
     return { success: true, data };
+  }
+
+  @Get("export/csv")
+  @analyticsAuthorized("reports.export")
+  async exportCsv(
+    @CurrentTenantContext() context: TenantContext,
+    @Query() query: ExportCsvQueryDto,
+    @Res({ passthrough: true }) response: ApiResponse,
+  ): Promise<string> {
+    const { from, to } = resolveDateRange(query);
+    const type = query.type ?? "overview";
+    const fromStr = from.toISOString().slice(0, 10);
+    const toStr = to.toISOString().slice(0, 10);
+
+    if (type === "time-series") {
+      const rawInterval = query.interval ?? "day";
+      if (rawInterval !== "day" && rawInterval !== "hour") {
+        throw new BadRequestException("Invalid interval. Must be 'day' or 'hour'");
+      }
+      const interval = rawInterval as "day" | "hour";
+      const data = await this.service.getMessageTimeSeries(context, from, to, interval);
+      const csv = generateTimeSeriesCsv(data);
+      response.setHeader("Content-Type", "text/csv; charset=utf-8");
+      response.setHeader(
+        "Content-Disposition",
+        `attachment; filename="reporte-time-series-${fromStr}-${toStr}.csv"`,
+      );
+      return csv;
+    }
+
+    if (type === "overview") {
+      const data = await this.service.getOperationalOverview(context, from, to);
+      const csv = generateOperationalOverviewCsv(data, { from, to });
+      response.setHeader("Content-Type", "text/csv; charset=utf-8");
+      response.setHeader(
+        "Content-Disposition",
+        `attachment; filename="reporte-overview-${fromStr}-${toStr}.csv"`,
+      );
+      return csv;
+    }
+
+    throw new BadRequestException("Invalid export type. Must be 'overview' or 'time-series'");
   }
 }

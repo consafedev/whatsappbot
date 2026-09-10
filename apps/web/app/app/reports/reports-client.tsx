@@ -7,6 +7,7 @@ import { ReportsKpiCards } from "./reports-kpi-cards";
 import { ReportsTimeSeriesChart } from "./reports-time-series-chart";
 import {
   type DatePresetKey,
+  downloadAnalyticsCsv,
   fetchMessageTimeSeries,
   fetchOperationalOverview,
   type MessageTimeSeriesData,
@@ -44,6 +45,7 @@ export function ReportsClient({ apiBaseUrl }: ReportsClientProps) {
 
   const hasReportsModule = bootstrap.effectiveModules.includes("module.reports");
   const canReadReports = bootstrap.effectivePermissions.includes("reports.read");
+  const canExportReports = bootstrap.effectivePermissions.includes("reports.export");
 
   // Date range state
   const [selectedPreset, setSelectedPreset] = useState<DatePresetKey>("7d");
@@ -63,6 +65,9 @@ export function ReportsClient({ apiBaseUrl }: ReportsClientProps) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
 
   // Fetch data
   const loadReportsData = useCallback(
@@ -143,6 +148,46 @@ export function ReportsClient({ apiBaseUrl }: ReportsClientProps) {
     const newTo = new Date(`${val}T23:59:59.999Z`).toISOString();
     setSelectedPreset("custom");
     setDateRange((prev) => ({ ...prev, to: newTo }));
+  };
+
+  const handleExportCsv = async (type: "overview" | "time-series") => {
+    if (!canExportReports || isExporting) return;
+    setExportMenuOpen(false);
+
+    const fromTime = new Date(dateRange.from).getTime();
+    const toTime = new Date(dateRange.to).getTime();
+
+    if (Number.isNaN(fromTime) || Number.isNaN(toTime) || fromTime > toTime) {
+      setValidationError("Rango de fechas inválido para exportar.");
+      return;
+    }
+
+    setIsExporting(true);
+    setExportError(null);
+
+    try {
+      const blob = await downloadAnalyticsCsv(base, {
+        from: dateRange.from,
+        to: dateRange.to,
+        type,
+        interval: type === "time-series" ? interval : undefined,
+      });
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      const fromFormatted = dateRange.from.slice(0, 10);
+      const toFormatted = dateRange.to.slice(0, 10);
+      link.setAttribute("download", `reporte-${type}-${fromFormatted}-${toFormatted}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err: unknown) {
+      setExportError(err instanceof Error ? err.message : "Error al descargar el reporte CSV.");
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   // Unauthorized or module missing gating
@@ -245,8 +290,92 @@ export function ReportsClient({ apiBaseUrl }: ReportsClientProps) {
             </span>
             <span>{refreshing ? "Actualizando..." : "Actualizar"}</span>
           </button>
+
+          {/* Export CSV Button & Dropdown */}
+          {canExportReports ? (
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setExportMenuOpen((prev) => !prev)}
+                disabled={isExporting}
+                data-testid="export-csv-button"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-medium hover:bg-slate-50 dark:hover:bg-slate-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-colors disabled:opacity-50 shadow-sm"
+                title="Exportar analítica en formato CSV"
+              >
+                <span aria-hidden="true">{isExporting ? "⏳" : "📥"}</span>
+                <span>{isExporting ? "Exportando..." : "Exportar CSV ▾"}</span>
+              </button>
+
+              {exportMenuOpen && (
+                <div
+                  className="absolute right-0 mt-1 w-56 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-lg py-1 z-20"
+                  data-testid="export-csv-dropdown"
+                >
+                  <button
+                    type="button"
+                    onClick={() => handleExportCsv("overview")}
+                    data-testid="export-overview-csv-btn"
+                    className="w-full text-left px-4 py-2 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/60 flex items-center gap-2"
+                  >
+                    <span aria-hidden="true">📊</span>
+                    <div>
+                      <div className="font-medium">Resumen Operativo</div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                        KPIs agregados y costo de tokens
+                      </div>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleExportCsv("time-series")}
+                    data-testid="export-timeseries-csv-btn"
+                    className="w-full text-left px-4 py-2 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/60 flex items-center gap-2"
+                  >
+                    <span aria-hidden="true">📈</span>
+                    <div>
+                      <div className="font-medium">Serie Temporal</div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                        Volumen por {interval === "day" ? "día" : "hora"}
+                      </div>
+                    </div>
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <button
+              type="button"
+              disabled
+              data-testid="export-csv-disabled"
+              title="Requiere permiso reports.export para descargar reportes"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 text-slate-400 dark:text-slate-500 text-xs font-medium cursor-not-allowed shadow-none"
+            >
+              <span aria-hidden="true">🔒</span>
+              <span>Exportar CSV</span>
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Export Error Banner */}
+      {exportError && (
+        <div
+          className="rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-950/20 p-4 text-xs text-rose-800 dark:text-rose-300 flex items-center justify-between"
+          data-testid="reports-export-error"
+        >
+          <div className="flex items-center gap-2">
+            <span aria-hidden="true">⚠️</span>
+            <span>{exportError}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setExportError(null)}
+            className="text-xs font-semibold underline hover:no-underline"
+          >
+            Cerrar
+          </button>
+        </div>
+      )}
 
       {/* Validation Error Banner */}
       {validationError && (

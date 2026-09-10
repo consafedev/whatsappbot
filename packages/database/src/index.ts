@@ -48,6 +48,12 @@ export {
   VirtualAliasNotFoundError,
 } from "./ai-routing-manager";
 export {
+  escapeCsvField,
+  generateOperationalOverviewCsv,
+  generateTimeSeriesCsv,
+  type TimeSeriesCsvInput,
+} from "./analytics-export-manager";
+export {
   type AiTokenUsageSummary,
   type AnalyticsDatabase,
   AnalyticsDateRangeInvalidError,

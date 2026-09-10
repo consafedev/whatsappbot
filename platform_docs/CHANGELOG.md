@@ -8,6 +8,22 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Added
 
+- E12-S03 implementa el motor de exportación de analítica en CSV y el componente de descarga en UI (`Analytics Export Engine & CSV Download UI`) en `packages/database`, `apps/api` y `apps/web`:
+  - Motor de Generación CSV Puro (`packages/database/src/analytics-export-manager.ts`):
+    - `escapeCsvField`: Escapado determinista bajo RFC 4180 con neutralización de inyección de fórmulas y duplicación de comillas dobles.
+    - `generateOperationalOverviewCsv`: Generación de resumen de métricas operacionales con prefijo UTF-8 BOM (`\uFEFF`), delimitadores CRLF, metadatos temporales de cabecera y desglose completo de mensajes, conversaciones y costos de tokens IA.
+    - `generateTimeSeriesCsv`: Generación de matriz temporal de tráfico de mensajería (inbound, outbound, total) por intervalo (`day` o `hour`) con UTF-8 BOM y CRLF.
+    - Exportación pública en `packages/database/src/index.ts`.
+  - Endpoint REST en API Gateway (`apps/api/src/analytics.ts`):
+    - `GET /api/v1/analytics/export/csv` con validación de parámetros (`type`, `from`, `to`, `interval`).
+    - Seguridad y Gating: decorador `@RequireEntitlements("module.reports")` y `@analyticsAuthorized("reports.export")`. Retorna 403 Forbidden cuando el usuario carece de `reports.export` aun poseyendo `reports.read`.
+    - Validación de fechas: rechaza con 400 Bad Request si el rango está invertido (`from > to`) o si el formato es inválido.
+    - Headers de streaming y adjunto: `Content-Type: text/csv; charset=utf-8`, `Content-Disposition: attachment; filename="reporte-[type]-[from]-[to].csv"`.
+  - Integración en Web UI (`apps/web/app/app/reports/`):
+    - View Model (`reports-view-model.ts`): función `downloadAnalyticsCsv` con llamada GET autenticada, propagación de credenciales y retorno de `Blob`.
+    - Componente UI (`reports-client.tsx`): Menú desplegable "Exportar CSV" en la barra de controles con opciones para "Resumen Operativo" y "Serie Temporal", estado de carga y descarga client-side mediante URL blob. Si el usuario carece del permiso `reports.export`, el botón se renderiza bloqueado con candado e indicación explicativa.
+  - Verificación: 9/9 pruebas unitarias en `analytics-export-manager.test.ts` PASS; 9/9 pruebas de integración en `apps/api/src/analytics.integration.ts` PASS; 19/19 pruebas en `reports-view-model.test.ts` PASS; suite completa de `apps/web` (17 archivos, 201 tests PASS); suite unificada `pnpm test:integration:analytics` PASS; typecheck monorepo y Biome limpios con 0 errores.
+
 - E12-S02 implementa la interfaz web de usuario de reportes y analítica operativa con visualizador de series temporales (`Operational Reporting Web UI & Time-Series Visualizer`) en `apps/web`:
   - View Model y Clientes REST (`apps/web/app/app/reports/reports-view-model.ts`):
     - Modelos de datos tipados: `TenantOperationalOverview`, `AiTokenUsageSummary`, `MessageTimeSeriesBucket`, `MessageTimeSeriesData`, `DatePresetKey`.

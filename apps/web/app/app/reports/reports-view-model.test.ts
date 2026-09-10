@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  downloadAnalyticsCsv,
   fetchMessageTimeSeries,
   fetchOperationalOverview,
   formatCurrencyUsd,
@@ -246,6 +247,103 @@ describe("reports-view-model", () => {
       await expect(fetchMessageTimeSeries("http://localhost:3001")).rejects.toThrow(
         ReportsApiError,
       );
+    });
+  });
+
+  describe("downloadAnalyticsCsv", () => {
+    it("requests overview CSV export and returns Blob", async () => {
+      const mockCsvContent = "\uFEFFReporte Operativo de Mensajería\nMétricas,Valores\n";
+      const mockBlob = new Blob([mockCsvContent], { type: "text/csv; charset=utf-8" });
+
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        blob: async () => mockBlob,
+      } as unknown as Response);
+
+      const result = await downloadAnalyticsCsv("http://localhost:3001", {
+        from: "2026-09-01T00:00:00.000Z",
+        to: "2026-09-10T00:00:00.000Z",
+        type: "overview",
+      });
+
+      expect(result).toBe(mockBlob);
+      expect(global.fetch).toHaveBeenCalledWith(
+        "http://localhost:3001/api/v1/analytics/export/csv?type=overview&from=2026-09-01T00%3A00%3A00.000Z&to=2026-09-10T00%3A00%3A00.000Z",
+        expect.objectContaining({
+          credentials: "include",
+          headers: { Accept: "text/csv" },
+          method: "GET",
+        }),
+      );
+    });
+
+    it("requests time-series CSV export with interval", async () => {
+      const mockBlob = new Blob(["time series csv"], { type: "text/csv" });
+
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        blob: async () => mockBlob,
+      } as unknown as Response);
+
+      const result = await downloadAnalyticsCsv("http://localhost:3001", {
+        from: "2026-09-01T00:00:00.000Z",
+        to: "2026-09-10T00:00:00.000Z",
+        type: "time-series",
+        interval: "hour",
+      });
+
+      expect(result).toBe(mockBlob);
+      expect(global.fetch).toHaveBeenCalledWith(
+        "http://localhost:3001/api/v1/analytics/export/csv?type=time-series&from=2026-09-01T00%3A00%3A00.000Z&to=2026-09-10T00%3A00%3A00.000Z&interval=hour",
+        expect.objectContaining({
+          method: "GET",
+        }),
+      );
+    });
+
+    it("throws ReportsApiError on 403 Forbidden", async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 403,
+        json: async () => ({
+          statusCode: 403,
+          message: "Forbidden resource",
+        }),
+      } as unknown as Response);
+
+      await expect(
+        downloadAnalyticsCsv("http://localhost:3001", {
+          from: "2026-09-01T00:00:00.000Z",
+          to: "2026-09-10T00:00:00.000Z",
+          type: "overview",
+        }),
+      ).rejects.toThrow(ReportsApiError);
+    });
+
+    it("throws ReportsApiError on 400 Bad Request with custom error message", async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 400,
+        json: async () => ({
+          statusCode: 400,
+          message: "The 'from' date must be before or equal to 'to' date",
+        }),
+      } as unknown as Response);
+
+      try {
+        await downloadAnalyticsCsv("http://localhost:3001", {
+          from: "2026-09-10T00:00:00.000Z",
+          to: "2026-09-01T00:00:00.000Z",
+          type: "overview",
+        });
+        expect.unreachable();
+      } catch (err) {
+        expect(err).toBeInstanceOf(ReportsApiError);
+        expect((err as ReportsApiError).statusCode).toBe(400);
+        expect((err as ReportsApiError).message).toBe(
+          "The 'from' date must be before or equal to 'to' date",
+        );
+      }
     });
   });
 });
