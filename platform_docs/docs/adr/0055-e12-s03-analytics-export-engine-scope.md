@@ -11,11 +11,19 @@ Continuando con la ejecución de **Epic 12 (Reporting, Analytics & Operational O
 En estricto apego a ADR-0002 (PostgreSQL Source of Truth), ADR-0003 (Shared-Schema Multitenancy), ADR-0010 (Modules & Entitlements), ADR-0014 (Audit Integrity) y ADR-0053 (Analytics Engine):
 
 1. **Motor de Generación CSV Puro (`packages/database/src/analytics-export-manager.ts`)**:
-   - `escapeCsvField(field)`: Escapado determinista y seguro según RFC 4180 (comillas dobles escapadas mediante duplicación `""`, envoltura en comillas si contiene comas, saltos de línea `\n` o comillas dobles, neutralización preventiva de inyección de fórmulas de hojas de cálculo).
+   - `escapeCsvField(field)`: Escapado determinista según RFC 4180 (comillas dobles escapadas mediante duplicación `""`; envoltura en comillas si el campo contiene comas, saltos de línea `\n`/`\r` o comillas dobles). Los campos generados son numéricos o de texto plano controlado por la plataforma, por lo que no se requiere sanitización activa contra inyección de fórmulas de hojas de cálculo.
    - `generateOperationalOverviewCsv(overview, options)`:
      - Genera archivo CSV estructurado con prefijo UTF-8 BOM (`\uFEFF`) para compatibilidad directa e inmediata con Microsoft Excel y hojas de cálculo en plataformas Windows y macOS.
-     - Formatea metadatos de cabecera: rango de fechas ISO, identificador del tenant, separador CRLF (`\r\n`).
-     - Desglosa métricas clave: Mensajes Entrantes, Mensajes Salientes, Total de Mensajes, Tasa de Entrega Exitosa (%), Conversaciones Activas, Conversaciones Cerradas, Total de Conversaciones, Prompt Tokens, Completion Tokens, Total Tokens IA, Costo Estimado IA (USD).
+     - Formatea metadatos de cabecera: rango de fechas ISO y separador CRLF (`\r\n`).
+     - Desglosa exactamente 7 métricas clave, correspondientes 1:1 con las filas emitidas por `analytics-export-manager.ts`:
+       1. Mensajes Entrantes (`inboundMessagesCount`).
+       2. Mensajes Salientes (`outboundMessagesCount`).
+       3. Conversaciones Activas (`activeConversationsCount`).
+       4. Conversaciones Cerradas (`closedConversationsCount`).
+       5. Efectividad de Entrega (`deliverySuccessRate`, con sufijo `%`).
+       6. Tokens de IA: Prompt, Completitud y Total (`aiTokenUsage.promptTokens`, `completionTokens`, `totalTokens`).
+       7. Costo Estimado IA (USD) (`aiTokenUsage.estimatedCostUsd`, 4 decimales).
+     - No emite columnas derivadas como “Total de Mensajes” ni “Total de Conversaciones”: esos agregados se calculan localmente en la UI (`reports-kpi-cards.tsx`), no en el archivo plano.
    - `generateTimeSeriesCsv(timeSeries, options)`:
      - Genera matriz temporal con cabeceras `Fecha/Hora,Mensajes Entrantes,Mensajes Salientes,Volumen Total`.
      - Itera cronológicamente los cubos temporales (`day` u `hour`), preservando el prefijo UTF-8 BOM (`\uFEFF`) y CRLF.
