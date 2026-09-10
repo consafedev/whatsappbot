@@ -1,14 +1,35 @@
 # STATUS.md — Estado operativo actual del proyecto
 
-**Actualizado:** 2026-09-09
+**Actualizado:** 2026-09-10
 **Versión de producto:** `0.0.0`  
-**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; **Epic 11 — Campaign Engine & Audience Broadcasts — PASS / COMPLETE (E11-S01, E11-S02, E11-S03, E11-S04, E11-S05 PASS)**.
+**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; Epic 11 — Campaign Engine & Audience Broadcasts — PASS / COMPLETE; **Epic 12 — Reporting, Analytics & Operational Observability — IN PROGRESS (E12-S01 PASS)**.
 
 ## Current milestone
 
-Epic 11 — Campaign Engine & Audience Broadcasts (COMPLETED). Next: Epic 12 — Reporting, Analytics & Operational Observability.
+Epic 12 — Reporting, Analytics & Operational Observability (E12-S01 PASS). Next: E12-S02 (Analytics Web Dashboard UI).
 
 ## Current epic
+
+**Epic 12 — Reporting, Analytics & Operational Observability** — **IN PROGRESS** (ADR-0053)
+
+- E12-S01 — Tenant Aggregated Metrics Engine & Analytics API Endpoints: **PASS** (ADR-0053).
+  - Catálogo de Módulos y Permisos RBAC (`packages/rbac`, `packages/database`):
+    - Registro del módulo funcional `"module.reports"` en `MODULE_ENTITLEMENT_KEYS` (`packages/database/src/entitlement-catalog.ts`).
+    - Permiso granular `reports.export` registrado en `PERMISSION_CATALOG` (`packages/rbac/src/index.ts`), totalizando 34 permisos canónicos junto a `reports.read`.
+    - Actualización y sincronización de suites de prueba de catálogo RBAC y user management.
+  - Motor de Agregación Operativa (`packages/database/src/analytics-manager.ts`):
+    - `getTenantOperationalOverview`: Agregación de conversaciones (totales, activas, cerradas), mensajes (totales, entrantes, salientes), uso de tokens IA (`aiTokensUsed` con desglose de tokens de prompt, completion, total y costo estimado en micros USD), contactos activos únicos, tasa de resolución y media de mensajes por conversación.
+    - `getTenantMessageTimeSeries`: Agregación por buckets cronológicos (`day` o `hour`) con conteo de entrantes, salientes y totales.
+    - Rechazo de rangos de fecha invertidos arrojando `AnalyticsDateRangeInvalidError`.
+    - Aislamiento multitenant absoluto (ADR-0003): consultas vinculadas estrictamente a `tenantId`.
+  - Endpoints REST en NestJS API Gateway (`apps/api/src/analytics.ts`):
+    - `GET /api/v1/analytics/overview` (200 OK) — Resumen de métricas operativas por tenant.
+    - `GET /api/v1/analytics/time-series` (200 OK) — Métricas en series temporales por día u hora.
+    - Protección por `@RequireEntitlements("module.reports")` y `@analyticsAuthorized("reports.read")`.
+    - Retorno de 400 Bad Request ante parámetros temporales inválidos o invertidos; 403 Forbidden ante ausencia de módulo o permiso.
+  - Verificación: 4/4 pruebas de integración de base de datos PASS; 5/5 pruebas de integración de API PASS; suite unificada `pnpm test:integration:analytics` (9/9 PASS); Biome y typecheck limpios.
+
+### Epics Anteriores
 
 **Epic 11 — Campaign Engine & Audience Broadcasts** — **COMPLETE** (ADR-0048, ADR-0049, ADR-0050, ADR-0051, ADR-0052)
 

@@ -525,10 +525,10 @@ describe.sequential("E04-S04 tenant user management API", () => {
     };
     const roles = body.roles;
     expect(roles).toHaveLength(6);
-    expect(body.permissions).toHaveLength(33);
+    expect(body.permissions).toHaveLength(34);
     expect(body.permissions.some(({ key }) => key === "tenant.users.manage")).toBe(true);
     const owner = roles.find(({ key }) => key === "owner");
-    expect(owner?.permissionKeys).toHaveLength(33);
+    expect(owner?.permissionKeys).toHaveLength(34);
     const blocked = await put(`/app/roles/${roleOwnerAId}/permissions`, ownerACookie, {
       permissionKeys: [],
     });

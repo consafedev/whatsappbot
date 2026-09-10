@@ -28,6 +28,7 @@
     "test:integration:tenant-app-bootstrap": "pnpm --filter @whatsapp-platform/auth build && pnpm --filter @whatsapp-platform/config build && pnpm --filter @whatsapp-platform/rbac build && pnpm --filter @whatsapp-platform/database build && vitest run --config vitest.tenant-app-bootstrap.config.mts",
     "test:security:tenant-isolation": "pnpm --filter @whatsapp-platform/auth build && pnpm --filter @whatsapp-platform/config build && pnpm --filter @whatsapp-platform/rbac build && pnpm --filter @whatsapp-platform/database build && vitest run --config vitest.tenant-isolation.config.mts",
     "test:integration:campaigns": "pnpm --filter @whatsapp-platform/auth build && pnpm --filter @whatsapp-platform/config build && pnpm --filter @whatsapp-platform/rbac build && pnpm --filter @whatsapp-platform/database build && vitest run --config vitest.campaigns.config.mts",
+    "test:integration:analytics": "pnpm --filter @whatsapp-platform/auth build && pnpm --filter @whatsapp-platform/config build && pnpm --filter @whatsapp-platform/rbac build && pnpm --filter @whatsapp-platform/database build && vitest run --config vitest.analytics.config.mts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

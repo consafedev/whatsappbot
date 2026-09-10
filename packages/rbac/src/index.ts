@@ -30,6 +30,7 @@ export const PERMISSION_CATALOG = [
   { key: "campaigns.manage", description: "Manage campaigns and templates" },
   { key: "integrations.manage", description: "Manage integrations" },
   { key: "reports.read", description: "Read reports" },
+  { key: "reports.export", description: "Export reports" },
   { key: "audit.read", description: "Read tenant audit records" },
   { key: "exports.create", description: "Create exports" },
 ] as const;

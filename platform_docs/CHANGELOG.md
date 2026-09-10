@@ -8,6 +8,26 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Added
 
+- E12-S01 implementa el motor de métricas agregadas operativas y los endpoints REST de analítica (`Tenant Aggregated Metrics Engine & Analytics API Endpoints`) en `packages/database` y `apps/api`:
+  - Catálogo de Módulos y Permisos RBAC (`packages/rbac`, `packages/database`):
+    - Se registra el módulo funcional `"module.reports"` en `MODULE_ENTITLEMENT_KEYS` (`packages/database/src/entitlement-catalog.ts`).
+    - Se incorpora el permiso canónico `reports.export` al catálogo canónico `PERMISSION_CATALOG` (`packages/rbac/src/index.ts`), elevando el conteo de permisos del sistema a 34, complementando el permiso existente `reports.read`.
+    - Sincronización de aserciones en suites de pruebas unitarias y de integración RBAC y user-management.
+  - Motor de Agregación de Métricas (`packages/database/src/analytics-manager.ts`):
+    - `getTenantOperationalOverview`: Agregación cuantitativa a nivel de tenant de conversaciones totales, activas y cerradas, mensajes totales, entrantes y salientes, desglose de uso y costo estimado de tokens de IA (`aiTokensUsed`), contactos activos con interacción, tasa de resolución (`resolutionRate`) y promedio de mensajes por conversación (`averageMessagesPerConversation`).
+    - `getTenantMessageTimeSeries`: Agregación cronológica por intervalos (`day` o `hour`) con desglose de mensajes entrantes (`inbound`), salientes (`outbound`) y volumen total.
+    - Validación rigurosa de rangos de fecha: arroja `AnalyticsDateRangeInvalidError` si `from > to` o si el formato de fechas es inválido.
+    - Aislamiento multitenant estricto (ADR-0003): todas las operaciones filtran incondicionalmente por `tenantId` asegurando cero fuga de datos entre inquilinos.
+    - Exportación canónica en el barrel público `packages/database/src/index.ts`.
+  - Endpoints REST en NestJS API Gateway (`apps/api/src/analytics.ts`):
+    - `GET /api/v1/analytics/overview` (200 OK) — Resumen operativo del inquilino con filtrado opcional por rango `from` y `to`.
+    - `GET /api/v1/analytics/time-series` (200 OK) — Serie temporal de volumen de mensajes agrupada por intervalo (`day` o `hour`).
+    - Seguridad y Gating: decorador `@RequireEntitlements("module.reports")` y `@analyticsAuthorized("reports.read")` combinando `TenantUserSessionGuard`, `TenantContextGuard`, `TenantPermissionGuard` y `TenantEntitlementGuard`.
+    - Mapeo de errores: `AnalyticsDateRangeInvalidError` y rangos temporales invertidos (`from > to`) devuelven 400 Bad Request (`BadRequestException`). Accesos sin módulo o permiso retornan 403 Forbidden.
+  - Registro en composition root (`apps/api/src/app.ts`): Se registran `AnalyticsController`, `AnalyticsService` y el provider `ANALYTICS_DATABASE`.
+  - Verificación: 4/4 pruebas de integración de base de datos PASS; 5/5 pruebas de integración de API PASS (incluyendo aislamiento cruzado A/B y rechazo de fechas invertidas); suite unificada `pnpm test:integration:analytics` (9/9 PASS).
+
+
 - E11-S05 implementa el dashboard de analítica de rendimiento y embudo de conversión para campañas masivas (`Campaign Performance Analytics Dashboard & Conversion Funnel UI`) en `apps/web`:
   - Ampliación del View Model (`apps/web/app/app/campaigns/campaigns-view-model.ts`):
     - Modelos tipados: `CampaignMetrics`, `CampaignAudienceMemberItem`, `CampaignAudienceResponse`.

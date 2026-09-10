@@ -48,6 +48,17 @@ export {
   VirtualAliasNotFoundError,
 } from "./ai-routing-manager";
 export {
+  type AiTokenUsageSummary,
+  type AnalyticsDatabase,
+  AnalyticsDateRangeInvalidError,
+  getTenantMessageTimeSeries,
+  getTenantOperationalOverview,
+  type MessageTimeSeriesBucket,
+  type MessageTimeSeriesParams,
+  type OperationalOverviewParams,
+  type TenantOperationalOverviewResult,
+} from "./analytics-manager";
+export {
   ASSIGNMENT_POLICIES,
   type AssignmentPolicy,
   type AssignmentPolicyEngine,

@@ -41,6 +41,7 @@ import {
   AiGatewayController,
   AiGatewayService,
 } from "./ai-gateway";
+import { ANALYTICS_DATABASE, AnalyticsController, AnalyticsService } from "./analytics";
 import { CAMPAIGNS_DATABASE, CampaignsController, CampaignsService } from "./campaigns";
 import {
   CHANNEL_REALTIME_BROADCASTER,
@@ -197,6 +198,7 @@ export async function createApiApplication(
       KnowledgeBaseController,
       AiAgentConfigController,
       CampaignsController,
+      AnalyticsController,
       ...(config.environment === "test" ? [EntitlementTestProbeController] : []),
     ],
     providers: [
@@ -235,8 +237,10 @@ export async function createApiApplication(
       KnowledgeBaseService,
       AiAgentConfigService,
       CampaignsService,
+      AnalyticsService,
       { provide: AI_GATEWAY_DATABASE, useFactory: getPlatformDatabaseClient },
       { provide: CAMPAIGNS_DATABASE, useFactory: getPlatformDatabaseClient },
+      { provide: ANALYTICS_DATABASE, useFactory: getPlatformDatabaseClient },
       {
         provide: AI_GATEWAY_SECRET,
         useValue: dependencies.messagingCredentialsKey ?? "default-dev-secret-key-32-bytes!",
