@@ -11,10 +11,10 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 - E12-S01 implementa el motor de métricas agregadas operativas y los endpoints REST de analítica (`Tenant Aggregated Metrics Engine & Analytics API Endpoints`) en `packages/database` y `apps/api`:
   - Catálogo de Módulos y Permisos RBAC (`packages/rbac`, `packages/database`):
     - Se registra el módulo funcional `"module.reports"` en `MODULE_ENTITLEMENT_KEYS` (`packages/database/src/entitlement-catalog.ts`).
-    - Se incorpora el permiso canónico `reports.export` al catálogo canónico `PERMISSION_CATALOG` (`packages/rbac/src/index.ts`), elevando el conteo de permisos del sistema a 34, complementando el permiso existente `reports.read`.
+    - Se incorpora el permiso canónico `reports.export` al catálogo canónico `PERMISSION_CATALOG` (`packages/rbac/src/index.ts`). El catálogo RBAC cuenta con un total canónico de 34 permisos en el sistema (33 preexistentes más la adición de `reports.export`, complementando a `reports.read`).
     - Sincronización de aserciones en suites de pruebas unitarias y de integración RBAC y user-management.
   - Motor de Agregación de Métricas (`packages/database/src/analytics-manager.ts`):
-    - `getTenantOperationalOverview`: Agregación cuantitativa a nivel de tenant de conversaciones totales, activas y cerradas, mensajes totales, entrantes y salientes, desglose de uso y costo estimado de tokens de IA (`aiTokensUsed`), contactos activos con interacción, tasa de resolución (`resolutionRate`) y promedio de mensajes por conversación (`averageMessagesPerConversation`).
+    - `getTenantOperationalOverview`: Agregación cuantitativa a nivel de tenant de mensajes entrantes y salientes, conversaciones activas y cerradas, uso de tokens IA (`aiTokenUsage` con desglose de `promptTokens`, `completionTokens`, `totalTokens` y `estimatedCostUsd`) y tasa de entrega exitosa (`deliverySuccessRate`) dentro del rango temporal.
     - `getTenantMessageTimeSeries`: Agregación cronológica por intervalos (`day` o `hour`) con desglose de mensajes entrantes (`inbound`), salientes (`outbound`) y volumen total.
     - Validación rigurosa de rangos de fecha: arroja `AnalyticsDateRangeInvalidError` si `from > to` o si el formato de fechas es inválido.
     - Aislamiento multitenant estricto (ADR-0003): todas las operaciones filtran incondicionalmente por `tenantId` asegurando cero fuga de datos entre inquilinos.

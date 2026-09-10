@@ -15,11 +15,11 @@ Epic 12 — Reporting, Analytics & Operational Observability (E12-S01 PASS). Nex
 - E12-S01 — Tenant Aggregated Metrics Engine & Analytics API Endpoints: **PASS** (ADR-0053).
   - Catálogo de Módulos y Permisos RBAC (`packages/rbac`, `packages/database`):
     - Registro del módulo funcional `"module.reports"` en `MODULE_ENTITLEMENT_KEYS` (`packages/database/src/entitlement-catalog.ts`).
-    - Permiso granular `reports.export` registrado en `PERMISSION_CATALOG` (`packages/rbac/src/index.ts`), totalizando 34 permisos canónicos junto a `reports.read`.
+    - Permiso granular `reports.export` registrado en `PERMISSION_CATALOG` (`packages/rbac/src/index.ts`). El catálogo RBAC cuenta con un total canónico de 34 permisos en el sistema (33 preexistentes más la adición de `reports.export`, complementando a `reports.read`).
     - Actualización y sincronización de suites de prueba de catálogo RBAC y user management.
   - Motor de Agregación Operativa (`packages/database/src/analytics-manager.ts`):
-    - `getTenantOperationalOverview`: Agregación de conversaciones (totales, activas, cerradas), mensajes (totales, entrantes, salientes), uso de tokens IA (`aiTokensUsed` con desglose de tokens de prompt, completion, total y costo estimado en micros USD), contactos activos únicos, tasa de resolución y media de mensajes por conversación.
-    - `getTenantMessageTimeSeries`: Agregación por buckets cronológicos (`day` o `hour`) con conteo de entrantes, salientes y totales.
+    - `getTenantOperationalOverview`: Agregación de conversaciones activas y cerradas, mensajes entrantes y salientes, uso de tokens IA (`aiTokenUsage` con desglose de `promptTokens`, `completionTokens`, `totalTokens` y `estimatedCostUsd`) y tasa de entrega exitosa (`deliverySuccessRate`) dentro del rango temporal.
+    - `getTenantMessageTimeSeries`: Agregación por buckets cronológicos (`day` o `hour`) con conteo de mensajes entrantes, salientes y totales.
     - Rechazo de rangos de fecha invertidos arrojando `AnalyticsDateRangeInvalidError`.
     - Aislamiento multitenant absoluto (ADR-0003): consultas vinculadas estrictamente a `tenantId`.
   - Endpoints REST en NestJS API Gateway (`apps/api/src/analytics.ts`):

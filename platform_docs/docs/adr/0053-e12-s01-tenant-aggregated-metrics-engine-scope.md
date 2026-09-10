@@ -11,20 +11,15 @@ La historia E12-S01 inicia **Epic 12 (Reporting, Analytics & Operational Observa
 En estricto cumplimiento de ADR-0002 (PostgreSQL Source of Truth), ADR-0003 (Shared-Schema Multitenancy) y ADR-0010 (Modules & Entitlements):
 
 1. **Motor de Métricas Agregadas (`packages/database/src/analytics-manager.ts`)**:
-   - `getTenantOperationalOverview(database, params)`:
-     - Entrada: `{ tenantId, from?, to? }`.
-     - Validaciones: `assertTenantOperational`, validación cronológica estricta (`from <= to`). En caso de fechas invertidas o inválidas arroja `AnalyticsDateRangeInvalidError`.
+   - `getTenantOperationalOverview(database, params)`:      - Entrada: `{ tenantId, from, to }`.
+     - Validaciones: `assertTenantOperational`, validación cronológica estricta (`from <= to`) y rechazo de formats no ISO válidos. En caso de fechas invertidas o inválidas arroja `AnalyticsDateRangeInvalidError`.
      - Agregaciones calculadas estrictamente acotadas por `tenantId`:
-       - `totalConversations`: conteo en `conversation` creadas en el rango.
-       - `activeConversations`: conteo con estado no cerrado (`status != 'closed'`).
-       - `closedConversations`: conteo con estado cerrado (`status = 'closed'`).
-       - `totalMessages`: conteo total de mensajes (`message` / `inboundMessageEvent` + `outboundMessage`).
-       - `inboundMessages`: conteo de mensajes entrantes.
-       - `outboundMessages`: conteo de mensajes salientes.
-       - `aiTokensUsed`: desglose de tokens (`promptTokens`, `completionTokens`, `totalTokens`, `estimatedCostMicrosUSD`) obtenido de `aiUsageLog`.
-       - `activeContacts`: conteo de contactos únicos con interacción en el período.
-       - `resolutionRate`: tasa de resolución (`closedConversations / totalConversations`), normalizada entre 0 y 1 (o 0 si no hay conversaciones).
-       - `averageMessagesPerConversation`: ratio de mensajes por conversación en el período.
+       - `inboundMessagesCount`: conteo de mensajes entrantes (`inboundMessageEvent` filtrado por evento + `message` con `direction: 'inbound'`).
+       - `outboundMessagesCount`: conteo de mensajes salientes (`outboundMessage` + `message` con `direction: 'outbound'`).
+       - `activeConversationsCount`: conteo de conversaciones con estado no cerrado (`status != 'closed'`) y actividad dentro del rango.
+       - `closedConversationsCount`: conteo de conversaciones con estado cerrado (`status = 'closed'`) y cierre dentro del rango.
+       - `aiTokenUsage`: desglose de tokens (`promptTokens`, `completionTokens`, `totalTokens`, `estimatedCostUsd`) obtenido de `aiUsageLog`.
+       - `deliverySuccessRate`: porcentaje de mensajes salientes entregados o leídos dentro del rango (0–100, o 0 si no hay mensajes salientes).
    - `getTenantMessageTimeSeries(database, params)`:
      - Entrada: `{ tenantId, from, to, interval: 'day' | 'hour' }`.
      - Validaciones: `assertTenantOperational`, fechas cronológicas (`from <= to`), intervalo válido.
@@ -55,7 +50,7 @@ En estricto cumplimiento de ADR-0002 (PostgreSQL Source of Truth), ADR-0003 (Sha
 2. **Validación Preventiva de Rangos Temporales**:
    - Se rechaza en la capa de dominio (`analytics-manager.ts`) y en la capa de transporte (`analytics.ts`) cualquier rango temporal donde `from > to`, previniendo ejecuciones de consultas inconsistentes.
 3. **Ampliación del Catálogo de Permisos**:
-   - Se eleva el total de permisos canónicos de 33 a 34 al integrar `reports.export`, sincronizando la suite de pruebas RBAC y user-management.
+   - El catálogo RBAC cuenta con un total canónico de 34 permisos en el sistema (33 preexistentes más la adición de `reports.export`, complementando a `reports.read`), sincronizando la suite de pruebas RBAC y user-management.
 
 ## Backlog Scope and Story Reconciliation
 
