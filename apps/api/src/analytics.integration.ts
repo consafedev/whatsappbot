@@ -9,6 +9,7 @@ import {
 } from "@whatsapp-platform/database/platform";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApiApplication } from "./app";
+import type { SystemHealthData } from "./system-observability.service";
 
 const prefix = "e12-s01-analytics-api";
 let prisma: PrismaClient;
@@ -519,5 +520,75 @@ describe.sequential("Analytics API Integration", () => {
     );
 
     expect(res.status).toBe(400);
+  });
+
+  describe("GET /api/v1/analytics/system-health", () => {
+    it("returns 200 OK with system telemetry and outbox metrics", async () => {
+      // Seed a pending outbound message for tenantA
+      await prisma.outboundMessage.create({
+        data: {
+          channelAccountId: channelAccountAId,
+          content: { text: "Health pending test" },
+          idempotencyKey: `health-pending-${Date.now()}`,
+          messageType: "text",
+          recipientPhone: "+5215555550099",
+          status: "PENDING",
+          tenantId: tenantAId,
+        },
+      });
+
+      const res = await fetch(`${baseUrl}/api/v1/analytics/system-health`, {
+        headers: {
+          cookie: ownerACookie,
+          "x-tenant-id": tenantAId,
+        },
+      });
+
+      expect(res.status).toBe(200);
+      const json = (await res.json()) as { success: boolean; data: SystemHealthData };
+      expect(json.success).toBe(true);
+      expect(json.data).toHaveProperty("status");
+      expect(["healthy", "degraded", "unhealthy"]).toContain(json.data.status);
+      expect(json.data).toHaveProperty("timestamp");
+      expect(typeof json.data.databaseLatencyMs).toBe("number");
+      expect(json.data.databaseLatencyMs).toBeGreaterThanOrEqual(1);
+      expect(typeof json.data.redisLatencyMs).toBe("number");
+      expect(json.data.outboxMetrics).toBeDefined();
+      expect(json.data.outboxMetrics.pendingCount).toBeGreaterThanOrEqual(1);
+      expect(typeof json.data.outboxMetrics.failedCount).toBe("number");
+      expect(typeof json.data.outboxMetrics.averageTransitSeconds).toBe("number");
+      expect(json.data.workerStatus).toBeDefined();
+      expect(json.data.workerStatus.whatsappWorker).toBeDefined();
+      expect(json.data.workerStatus.jobsWorker).toBeDefined();
+    });
+
+    it("rejects without authentication cookie with 401", async () => {
+      const res = await fetch(`${baseUrl}/api/v1/analytics/system-health`, {
+        headers: {
+          "x-tenant-id": tenantAId,
+        },
+      });
+      expect(res.status).toBe(401);
+    });
+
+    it("rejects with 403 when tenant lacks module.reports", async () => {
+      const res = await fetch(`${baseUrl}/api/v1/analytics/system-health`, {
+        headers: {
+          cookie: ownerNoReportsCookie,
+          "x-tenant-id": tenantNoReportsId,
+        },
+      });
+      expect(res.status).toBe(403);
+    });
+
+    it("rejects with 403 when user lacks reports.read", async () => {
+      const res = await fetch(`${baseUrl}/api/v1/analytics/system-health`, {
+        headers: {
+          cookie: viewerACookie,
+          "x-tenant-id": tenantAId,
+        },
+      });
+      expect(res.status).toBe(403);
+    });
   });
 });

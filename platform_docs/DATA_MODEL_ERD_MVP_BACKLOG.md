@@ -2533,25 +2533,17 @@ Este flujo es vendible a despachos, talleres, logística, escuelas, servicios t�
 
 ---
 
-# 51. Epic 12 — Action Requests [P1]
+# 51. Epic 12 — Reporting, Analytics & Operational Observability [P1]
 
-## E12-S01 Data model [M]
+## E12-S01 Tenant aggregated metrics engine & analytics API [M]
 
-## E12-S02 Create internal/customer request [M]
+## E12-S02 Operational reporting web UI & time-series visualizer [M]
 
-## E12-S03 Complete via dashboard [M]
+## E12-S03 Analytics export engine & CSV download [M]
 
-## E12-S04 Complete via WhatsApp [L]
+## E12-S04 System Health, Latency & Worker Queue Observability [M]
 
-## E12-S05 Upload document [L]
-
-## E12-S06 Approve/reject [M]
-
-## E12-S07 Timeline + rule event [M]
-
-## E12-S08 Reminder scheduling [M]
-
-## E12-S09 Expiration [S]
+## E12-S05 Operational Alerting & Anomaly Triggers [M]
 
 ---
 

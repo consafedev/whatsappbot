@@ -3,6 +3,7 @@ import {
   downloadAnalyticsCsv,
   fetchMessageTimeSeries,
   fetchOperationalOverview,
+  fetchSystemHealth,
   formatCurrencyUsd,
   formatNumber,
   ReportsApiError,
@@ -344,6 +345,73 @@ describe("reports-view-model", () => {
           "The 'from' date must be before or equal to 'to' date",
         );
       }
+    });
+  });
+
+  describe("fetchSystemHealth", () => {
+    it("fetches and decodes system health telemetry successfully", async () => {
+      const mockData = {
+        databaseLatencyMs: 5,
+        outboxMetrics: {
+          averageTransitSeconds: 1.5,
+          failedCount: 0,
+          pendingCount: 2,
+        },
+        redisLatencyMs: 3,
+        status: "healthy",
+        timestamp: "2026-09-10T12:00:00.000Z",
+        workerStatus: {
+          jobsWorker: "active",
+          whatsappWorker: "active",
+        },
+      };
+
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ success: true, data: mockData }),
+      } as unknown as Response);
+
+      const health = await fetchSystemHealth("http://localhost:3001");
+      expect(health.status).toBe("healthy");
+      expect(health.databaseLatencyMs).toBe(5);
+      expect(health.redisLatencyMs).toBe(3);
+      expect(health.outboxMetrics.pendingCount).toBe(2);
+      expect(health.outboxMetrics.failedCount).toBe(0);
+      expect(health.outboxMetrics.averageTransitSeconds).toBe(1.5);
+      expect(health.workerStatus.whatsappWorker).toBe("active");
+      expect(health.workerStatus.jobsWorker).toBe("active");
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        "http://localhost:3001/api/v1/analytics/system-health",
+        expect.objectContaining({
+          credentials: "include",
+          method: "GET",
+        }),
+      );
+    });
+
+    it("normalizes missing or degraded telemetry defensively", async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ success: true, data: {} }),
+      } as unknown as Response);
+
+      const health = await fetchSystemHealth("http://localhost:3001");
+      expect(health.status).toBe("unhealthy");
+      expect(health.databaseLatencyMs).toBe(-1);
+      expect(health.redisLatencyMs).toBe(-1);
+      expect(health.outboxMetrics.pendingCount).toBe(0);
+      expect(health.workerStatus.whatsappWorker).toBe("inactive");
+    });
+
+    it("throws ReportsApiError on 500 server error", async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+        json: async () => ({ message: "Internal Server Error" }),
+      } as unknown as Response);
+
+      await expect(fetchSystemHealth("http://localhost:3001")).rejects.toThrow(ReportsApiError);
     });
   });
 });

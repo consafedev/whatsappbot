@@ -8,6 +8,21 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Added
 
+- E12-S04 implementa el servicio de observabilidad operativa, sondas de latencia nativas para PostgreSQL y Redis, métricas de colas de outbox y consola web de salud (`System Health, Latency & Worker Queue Observability`) en `apps/api` y `apps/web`:
+  - Servicio de Observabilidad en API Gateway (`apps/api/src/system-observability.service.ts`):
+    - Sonda de latencia a PostgreSQL (`databaseLatencyMs`) vía consulta relacional con Prisma.
+    - Sonda nativa de latencia a Redis (`redisLatencyMs`) a través de socket TCP puro (`node:net`) usando el protocolo RESP (`PING` / `+PONG` con soporte de `AUTH`), sin dependencias externas pesadas de APM.
+    - Diagnóstico de salud general del sistema (`healthy`, `degraded`, `unhealthy`).
+    - Métricas de colas y outbox estrictamente aisladas por tenant (`pendingCount`, `failedCount`, `averageTransitSeconds` en las últimas 24 horas).
+    - Reporte de estado de workers asíncronos (`whatsappWorker` y `jobsWorker`).
+  - Endpoint REST en API Gateway (`apps/api/src/analytics.ts`):
+    - `GET /api/v1/analytics/system-health` protegido por `@RequireEntitlements("module.reports")` y `@analyticsAuthorized("reports.read")`. Retorna envelope estándar `{ success: true, data }` con telemetría de salud y métricas de colas.
+  - Consola Web de Salud y Colas (`apps/web/app/app/reports/`):
+    - View Model (`reports-view-model.ts`): modelos `SystemHealthData`, `OutboxHealthMetrics`, `WorkerStatusSummary` y cliente `fetchSystemHealth` con deserialización defensiva.
+    - Componente visual (`reports-system-health.tsx`): banner general de estado, tarjetas métricas individuales con semáforos para latencias, monitores de mensajes en cola y fallidos, indicador de latencia media de tránsito, estado de workers y botón de refresco en vivo.
+    - Barra de navegación por pestañas en `reports-client.tsx` ("Métricas Operativas" y "Salud y Colas").
+  - Verificación: 7/7 pruebas unitarias en `apps/api/src/system-observability.service.test.ts` PASS; 13/13 pruebas de integración en `apps/api/src/analytics.integration.ts` PASS; 22/22 pruebas en `reports-view-model.test.ts` PASS; suite completa de `apps/web` (17 archivos, 204 tests PASS); suite monorepo (42 archivos, 391 tests PASS); typecheck monorepo en 0 errores; Biome en 0 errores.
+
 - E12-S03 implementa el motor de exportación de analítica en CSV y el componente de descarga en UI (`Analytics Export Engine & CSV Download UI`) en `packages/database`, `apps/api` y `apps/web`:
   - Motor de Generación CSV Puro (`packages/database/src/analytics-export-manager.ts`):
     - `escapeCsvField`: Escapado determinista bajo RFC 4180 con neutralización de inyección de fórmulas y duplicación de comillas dobles.

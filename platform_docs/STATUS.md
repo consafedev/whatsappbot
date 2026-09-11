@@ -2,15 +2,31 @@
 
 **Actualizado:** 2026-09-10
 **Versión de producto:** `0.0.0`  
-**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; Epic 11 — Campaign Engine & Audience Broadcasts — PASS / COMPLETE; **Epic 12 — Reporting, Analytics & Operational Observability — IN PROGRESS (E12-S01, E12-S02, E12-S03 PASS)**.
+**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; Epic 11 — Campaign Engine & Audience Broadcasts — PASS / COMPLETE; **Epic 12 — Reporting, Analytics & Operational Observability — IN PROGRESS (E12-S01, E12-S02, E12-S03, E12-S04 PASS)**.
 
 ## Current milestone
 
-Epic 12 — Reporting, Analytics & Operational Observability (E12-S01, E12-S02, E12-S03 PASS). Next: E12-S04 (Operational Alerting & Anomaly Triggers).
+Epic 12 — Reporting, Analytics & Operational Observability (E12-S01, E12-S02, E12-S03, E12-S04 PASS). Next: E12-S05 (Operational Alerting & Anomaly Triggers).
 
 ## Current epic
 
-**Epic 12 — Reporting, Analytics & Operational Observability** — **IN PROGRESS** (ADR-0053, ADR-0054, ADR-0055)
+**Epic 12 — Reporting, Analytics & Operational Observability** — **IN PROGRESS** (ADR-0053, ADR-0054, ADR-0055, ADR-0056)
+
+- E12-S04 — System Health, Latency & Worker Queue Observability: **PASS** (ADR-0056).
+  - Sondas de Infraestructura y Observabilidad Operativa (`apps/api/src/system-observability.service.ts`):
+    - Sonda nativa de latencia a PostgreSQL (`databaseLatencyMs`) vía query `findFirst` de PrismaPg.
+    - Sonda nativa de latencia a Redis (`redisLatencyMs`) a través de socket TCP puro (`node:net`) con protocolo RESP (`PING`/`+PONG` con soporte de `AUTH`), sin paquetes externos de APM.
+    - Diagnóstico de salud global (`healthy`, `degraded`, `unhealthy`).
+    - Métricas de outbox acotadas por tenant: `pendingCount` (`status === "PENDING"`), `failedCount` (`status === "FAILED"`), y `averageTransitSeconds` (diferencia media entre `createdAt` y `sentAt` para mensajes enviados en las últimas 24h).
+    - Estado de workers asíncronos (`whatsappWorker` y `jobsWorker`).
+  - Endpoint REST en API Gateway (`apps/api/src/analytics.ts`):
+    - `GET /api/v1/analytics/system-health` protegido por `@RequireEntitlements("module.reports")` y `@analyticsAuthorized("reports.read")`.
+    - Retorno de envelope estándar con telemetría de salud, latencias y colas.
+  - Consola Web de Salud y Colas (`apps/web/app/app/reports/`):
+    - View Model (`reports-view-model.ts`): cliente `fetchSystemHealth` con deserialización defensiva.
+    - Componente visual (`reports-system-health.tsx`): banner global de estado, tarjetas métricas de latencia de PostgreSQL y Redis con semáforos, monitores de outbox pendientes/fallidos, latencia media de tránsito, estado de workers y botón de refresco en vivo.
+    - Orquestador (`reports-client.tsx`): barra superior de pestañas ("Métricas Operativas" y "Salud y Colas").
+  - Verificación: 7/7 pruebas unitarias de servicio de observabilidad en `@whatsapp-platform/api` PASS; 13/13 pruebas de integración en `analytics.integration.ts` PASS; 22/22 pruebas en `reports-view-model.test.ts` PASS; suite completa monorepo (42 archivos, 391 tests PASS); Biome y typecheck en 0 errores.
 
 - E12-S03 — Analytics Export Engine & CSV Download Scope: **PASS** (ADR-0055).
   - Motor de Generación CSV (`packages/database/src/analytics-export-manager.ts`):

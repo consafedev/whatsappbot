@@ -30,6 +30,26 @@ export interface MessageTimeSeriesData {
 
 export type DatePresetKey = "7d" | "30d" | "this_month" | "custom";
 
+export interface OutboxHealthMetrics {
+  readonly pendingCount: number;
+  readonly failedCount: number;
+  readonly averageTransitSeconds: number;
+}
+
+export interface WorkerStatusSummary {
+  readonly whatsappWorker: "active" | "degraded" | "inactive";
+  readonly jobsWorker: "active" | "degraded" | "inactive";
+}
+
+export interface SystemHealthData {
+  readonly status: "healthy" | "degraded" | "unhealthy";
+  readonly timestamp: string;
+  readonly databaseLatencyMs: number;
+  readonly redisLatencyMs: number;
+  readonly outboxMetrics: OutboxHealthMetrics;
+  readonly workerStatus: WorkerStatusSummary;
+}
+
 export class ReportsApiError extends Error {
   readonly statusCode: number;
   readonly code?: string | undefined;
@@ -297,4 +317,65 @@ export async function downloadAnalyticsCsv(
   }
 
   return await response.blob();
+}
+
+/**
+ * Fetches platform and queue health telemetry for the active tenant.
+ */
+export async function fetchSystemHealth(
+  apiBaseUrl: string,
+  options?: { signal?: AbortSignal },
+): Promise<SystemHealthData> {
+  const url = `${apiBaseUrl.replace(/\/$/, "")}/api/v1/analytics/system-health`;
+
+  let response: Response;
+  try {
+    const init: RequestInit = {
+      credentials: "include",
+      headers: {
+        Accept: "application/json",
+      },
+      method: "GET",
+    };
+    if (options?.signal) {
+      init.signal = options.signal;
+    }
+    response = await fetch(url, init);
+  } catch (err: unknown) {
+    if (err instanceof Error && err.name === "AbortError") {
+      throw err;
+    }
+    throw new ReportsApiError("No se pudo conectar con el servidor de analítica", 0);
+  }
+
+  if (!response.ok) {
+    throw await parseErrorResponse(response);
+  }
+
+  const json = (await response.json()) as { success: boolean; data: SystemHealthData };
+  if (!json || typeof json !== "object" || !json.data) {
+    throw new ReportsApiError("Respuesta inválida del servidor", response.status);
+  }
+
+  const raw = json.data;
+  return {
+    status: raw.status ?? "unhealthy",
+    timestamp: raw.timestamp ?? new Date().toISOString(),
+    databaseLatencyMs: typeof raw.databaseLatencyMs === "number" ? raw.databaseLatencyMs : -1,
+    redisLatencyMs: typeof raw.redisLatencyMs === "number" ? raw.redisLatencyMs : -1,
+    outboxMetrics: {
+      pendingCount:
+        typeof raw.outboxMetrics?.pendingCount === "number" ? raw.outboxMetrics.pendingCount : 0,
+      failedCount:
+        typeof raw.outboxMetrics?.failedCount === "number" ? raw.outboxMetrics.failedCount : 0,
+      averageTransitSeconds:
+        typeof raw.outboxMetrics?.averageTransitSeconds === "number"
+          ? raw.outboxMetrics.averageTransitSeconds
+          : 0,
+    },
+    workerStatus: {
+      whatsappWorker: raw.workerStatus?.whatsappWorker ?? "inactive",
+      jobsWorker: raw.workerStatus?.jobsWorker ?? "inactive",
+    },
+  };
 }

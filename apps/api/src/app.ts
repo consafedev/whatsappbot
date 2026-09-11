@@ -111,6 +111,10 @@ import {
 } from "./platform-tenants";
 import { RULE_CATALOG_MANAGER, RulesController, RulesService } from "./rules";
 import {
+  SYSTEM_OBSERVABILITY_DATABASE,
+  SystemObservabilityService,
+} from "./system-observability.service";
+import {
   TENANT_APP_BOOTSTRAP_DATABASE,
   TenantAppBootstrapController,
   TenantAppBootstrapService,
@@ -238,9 +242,11 @@ export async function createApiApplication(
       AiAgentConfigService,
       CampaignsService,
       AnalyticsService,
+      SystemObservabilityService,
       { provide: AI_GATEWAY_DATABASE, useFactory: getPlatformDatabaseClient },
       { provide: CAMPAIGNS_DATABASE, useFactory: getPlatformDatabaseClient },
       { provide: ANALYTICS_DATABASE, useFactory: getPlatformDatabaseClient },
+      { provide: SYSTEM_OBSERVABILITY_DATABASE, useFactory: getPlatformDatabaseClient },
       {
         provide: AI_GATEWAY_SECRET,
         useValue: dependencies.messagingCredentialsKey ?? "default-dev-secret-key-32-bytes!",
