@@ -29,7 +29,7 @@ Epic 13 — Task Scheduling & Distributed Orchestration (E13-S01).
     - Componente visual (`reports-alerts.tsx`): Banner dinámico de severidad con colorimetría (`rose` para critical, `amber` para warning), métricas vs umbrales y consejos de remediación ("Revisar salud de canal", "Verificar mensajes salientes").
     - Si no existen anomalías (`total === 0`), despliegue de indicador verde sutil y tranquilizador ("Sin anomalías operativas detectadas").
     - Integración en `reports-client.tsx` en cabecera compartida y refresco sincronizado con el botón de actualización.
-  - Verificación: 10/10 pruebas unitarias en `operational-alerting.service.test.ts` PASS; 17/17 pruebas de integración en `analytics.integration.ts` PASS; 25/25 pruebas en `reports-view-model.test.ts` PASS; suite completa web (17 archivos, 207 tests PASS); Biome y typecheck limpios.
+  - Verificación: 10/10 pruebas unitarias en `operational-alerting.service.test.ts` PASS; 17/17 pruebas de integración en `analytics.integration.ts` PASS; 25/25 pruebas en `reports-view-model.test.ts` PASS; suite completa web (17 archivos, 209 tests PASS); Biome y typecheck limpios.
 
 - E12-S04 — System Health, Latency & Worker Queue Observability: **PASS** (ADR-0056).
   - Sondas de Infraestructura y Observabilidad Operativa (`apps/api/src/system-observability.service.ts`):

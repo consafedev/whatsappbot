@@ -12,7 +12,7 @@
 | `README.md` | 8026 | 960 | `cee94177528c317114d524256385dc2335b0ed544cbf0abbd87fa7850f8f115f` |
 | `.agents/agents.md` | 388 | 41 | `d52b02af7fdab6d2ecbf7af4dd2f311d5d244f153817498ff9e542427e9e1675` |
 | `.agents/skills/whatsapp-platform-engineering/SKILL.md` | 19764 | 2747 | `8597b90ddbb55ccb4dbcb5b1d98b100b264759be2357f772ec5c997a1a0ff23b` |
-| `platform_docs/CHANGELOG.md` | 115141 | 13263 | `bbd47ac6720886b8416b0e2227704d0a7e00222d502bd80340fed7b4da89484c` |
+| `platform_docs/CHANGELOG.md` | 115141 | 13263 | `e04d0bcb8a1d410b66ef7b0408a6467d54594f71f26f8f8a4bad835ac76bff8a` |
 | `platform_docs/DATA_MODEL_ERD_MVP_BACKLOG.md` | 72981 | 9847 | `971b5ce014873e676309d3cb2a80e06efbd71be8859817d144227932f70a462b` |
 | `platform_docs/DEMO_AND_SALES.md` | 8689 | 1253 | `28944d7c37827e10f72d6cdac811eb8bda92fbc9da96fa4947f09ef42eb5b9f4` |
 | `platform_docs/DEPLOYMENT.md` | 5766 | 811 | `665319a6f0a460d4cd509c062af9e5879416c795f2227f63287d076f1c3d7293` |
@@ -81,7 +81,7 @@
 | `platform_docs/RUNBOOK_BACKUP_RESTORE.md` | 4857 | 666 | `27e324b4cea0cd3a2514f44eeee4ce31db80a3a4701f0ba528ffb36afcebb3ff` |
 | `platform_docs/RUNBOOK_OPERATIONS.md` | 5777 | 796 | `23d4c537dd3bbcf4b8f08b39b4a948c42c10e3a458594c25ccf2b65937376252` |
 | `platform_docs/SECURITY.md` | 14589 | 2085 | `51b737e15512ae8136760024f2fcb78161276af0cf0699e8d06326ce1dc7b482` |
-| `platform_docs/STATUS.md` | 160411 | 19181 | `90916657af620893ed47c5e5cad6813d9bb2bd5e455f5d9455181e3f0fb826b3` |
+| `platform_docs/STATUS.md` | 160411 | 19181 | `71daf1a33d81842f81c57fdc439a28d51dd4d804d73fccd1d6e069c91339287b` |
 | `platform_docs/SYSTEM_DESIGN.md` | 42737 | 5750 | `91f13a2973e0dc679941b408a80b2e2be3f2acb033de2fad62ca3e465c748ea4` |
 | `platform_docs/TESTING_STRATEGY.md` | 18229 | 2513 | `2659f25d06bcfe571830b291c6546ad481abb609049bede79003d80add2da358` |
 | `platform_docs/UI_FLOWS.md` | 22449 | 3253 | `311b1b44f7dcdd0e97003e0b29fa34cc789f95affa9052bf3ce86613ff86fddc` |

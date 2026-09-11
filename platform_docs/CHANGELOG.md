@@ -24,7 +24,7 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
     - Componente visual (`reports-alerts.tsx`): Banner dinámico de severidad con colorimetría (`rose` para critical, `amber` para warning), métricas vs umbrales y consejos de remediación contextual ("Revisar salud de canal", "Verificar mensajes salientes").
     - Si no existen anomalías (`total === 0`), despliegue de indicador verde sutil y tranquilizador ("Sin anomalías operativas detectadas").
     - Integración en `reports-client.tsx` en cabecera compartida y refresco sincronizado con el botón de actualización.
-  - Verificación: 10/10 pruebas unitarias en `apps/api/src/operational-alerting.service.test.ts` PASS; 17/17 pruebas de integración en `apps/api/src/analytics.integration.ts` PASS; 25/25 pruebas en `reports-view-model.test.ts` PASS; suite completa de `apps/web` (17 archivos, 207 tests PASS); suite monorepo (42 archivos, 391 tests PASS); typecheck monorepo en 0 errores; Biome en 0 errores.
+  - Verificación: 10/10 pruebas unitarias en `apps/api/src/operational-alerting.service.test.ts` PASS; 17/17 pruebas de integración en `apps/api/src/analytics.integration.ts` PASS; 25/25 pruebas en `reports-view-model.test.ts` PASS; suite completa de `apps/web` (17 archivos, 209 tests PASS); suite monorepo (42 archivos, 394 tests PASS); typecheck monorepo en 0 errores; Biome en 0 errores.
 
 - E12-S04 implementa el servicio de observabilidad operativa, sondas de latencia nativas para PostgreSQL y Redis, métricas de colas de outbox y consola web de salud (`System Health, Latency & Worker Queue Observability`) en `apps/api` y `apps/web`:
   - Servicio de Observabilidad en API Gateway (`apps/api/src/system-observability.service.ts`):
