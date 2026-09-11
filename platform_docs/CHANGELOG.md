@@ -25,7 +25,7 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 - E12-S03 implementa el motor de exportación de analítica en CSV y el componente de descarga en UI (`Analytics Export Engine & CSV Download UI`) en `packages/database`, `apps/api` y `apps/web`:
   - Motor de Generación CSV Puro (`packages/database/src/analytics-export-manager.ts`):
-    - `escapeCsvField`: Escapado determinista bajo RFC 4180 con neutralización de inyección de fórmulas y duplicación de comillas dobles.
+    - `escapeCsvField`: Escapado determinista bajo RFC 4180 con prefijo UTF-8 BOM y terminadores CRLF para compatibilidad con hojas de cálculo, con duplicación de comillas dobles.
     - `generateOperationalOverviewCsv`: Generación de resumen de métricas operacionales con prefijo UTF-8 BOM (`\uFEFF`), delimitadores CRLF, metadatos temporales de cabecera y desglose completo de mensajes, conversaciones y costos de tokens IA.
     - `generateTimeSeriesCsv`: Generación de matriz temporal de tráfico de mensajería (inbound, outbound, total) por intervalo (`day` o `hour`) con UTF-8 BOM y CRLF.
     - Exportación pública en `packages/database/src/index.ts`.

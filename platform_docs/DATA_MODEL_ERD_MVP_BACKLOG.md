@@ -2885,7 +2885,31 @@ Antes de integrarlo:
 
 ---
 
-# 69. Dependencias entre epics
+# 69. Epic 27 — Action Requests [P1]
+
+> Re-homing de trazabilidad (auditoría E12-S04): las historias de Action Requests fueron desplazadas del backlog cuando el número Epic 12 se consolidó formalmente como `Reporting, Analytics & Operational Observability` (ADR-0056). Se preservan aquí, con alcance intacto, bajo el siguiente número de epic libre, porque la primitiva Action Request es core según el PRD (#23) y `module.action_requests` ya existe en el catálogo de entitlements. La priorización y el detalle siguen pendientes de definición normativa.
+
+## E27-S01 Data model [M]
+
+## E27-S02 Create internal/customer request [M]
+
+## E27-S03 Complete via dashboard [M]
+
+## E27-S04 Complete via WhatsApp [L]
+
+## E27-S05 Upload document [L]
+
+## E27-S06 Approve/reject [M]
+
+## E27-S07 Timeline + rule event [M]
+
+## E27-S08 Reminder scheduling [M]
+
+## E27-S09 Expiration [S]
+
+---
+
+# 70. Dependencias entre epics
 
 ```mermaid
 flowchart TD
@@ -2906,9 +2930,10 @@ flowchart TD
     E08 --> MB[Milestone B]
     E11 --> MB
 
-    E10 --> E12[Action Requests]
+    E10 --> E12[Reporting/Analytics]
     E01 --> E13[Scheduler]
-    E13 --> E12
+    E10 --> E27[Action Requests]
+    E13 --> E27
 
     E09 --> E14[Agenda]
     E13 --> E14
@@ -2919,7 +2944,7 @@ flowchart TD
 
     E10 --> E17[Portal]
     E11 --> E17
-    E12 --> E17
+    E27 --> E17
 
     E01 --> E18[AI Gateway]
 
@@ -2955,7 +2980,7 @@ En cuanto Milestone A esté estable, usar con prospectos.
 12. E10 Process
 13. E11 Timeline
 14. Milestone B
-15. E12 Action Requests
+15. E12 Reporting & Analytics
 
 Este bloque abre despachos, talleres, logística y escuelas.
 
@@ -3250,7 +3275,7 @@ External webhooks pueden mapearse a un subconjunto.
 | WhatsApp account | | ✓ | | | | | |
 | Basic rules | | ✓ | | | | | |
 | Process Engine | | | ✓ | | | | |
-| Action Requests | | | ✓ | | | | |
+| Action Requests | | | ✓ (module.action_requests) | | | | |
 | Cross-unit automation | | | ✓ | | | | |
 | Appointments | | | | ✓ | | | |
 | Quote Engine | | | | | ✓ | | |

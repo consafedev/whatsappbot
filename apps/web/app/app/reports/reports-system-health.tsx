@@ -396,6 +396,10 @@ export function ReportsSystemHealth({ apiBaseUrl }: ReportsSystemHealthProps) {
                 )}
               </div>
             </div>
+            <p className="mt-3 text-xs text-slate-500">
+              Derivado de disponibilidad de infraestructura (PostgreSQL/Redis). Aún no evalúa
+              heartbeats de proceso de BullMQ.
+            </p>
           </div>
         </div>
       )}

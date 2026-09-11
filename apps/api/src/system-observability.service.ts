@@ -39,7 +39,18 @@ export async function pingRedis(
 
   const host = url.hostname || "127.0.0.1";
   const port = Number(url.port) || 6379;
-  const password = url.password;
+  let password: string;
+  try {
+    // URL passwords are percent-encoded; decode before embedding in the inline AUTH command.
+    password = decodeURIComponent(url.password);
+  } catch {
+    return { ok: false, latencyMs: -1 };
+  }
+  // RESP inline commands are CRLF-delimited: a password containing CR/LF would inject
+  // arbitrary Redis commands, so the probe must refuse such credentials.
+  if (password.includes("\r") || password.includes("\n")) {
+    return { ok: false, latencyMs: -1 };
+  }
 
   return new Promise<{ ok: boolean; latencyMs: number }>((resolve) => {
     let resolved = false;

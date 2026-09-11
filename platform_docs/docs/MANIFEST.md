@@ -12,8 +12,8 @@
 | `README.md` | 8026 | 960 | `cee94177528c317114d524256385dc2335b0ed544cbf0abbd87fa7850f8f115f` |
 | `.agents/agents.md` | 388 | 41 | `d52b02af7fdab6d2ecbf7af4dd2f311d5d244f153817498ff9e542427e9e1675` |
 | `.agents/skills/whatsapp-platform-engineering/SKILL.md` | 19764 | 2747 | `8597b90ddbb55ccb4dbcb5b1d98b100b264759be2357f772ec5c997a1a0ff23b` |
-| `platform_docs/CHANGELOG.md` | 112332 | 12934 | `320b78a51e181fb93ed7b42ee16c397a9437a121d46024c89f618c5cacce909c` |
-| `platform_docs/DATA_MODEL_ERD_MVP_BACKLOG.md` | 72027 | 9712 | `72b919b6a19e66c940a38053ba88c06deb5785ab0236a447cb072288aefddab3` |
+| `platform_docs/CHANGELOG.md` | 112372 | 12941 | `223d653c08635b3c4238710fd9198aebfbab026cc90060923cb6cdcc43687723` |
+| `platform_docs/DATA_MODEL_ERD_MVP_BACKLOG.md` | 72981 | 9847 | `971b5ce014873e676309d3cb2a80e06efbd71be8859817d144227932f70a462b` |
 | `platform_docs/DEMO_AND_SALES.md` | 8689 | 1253 | `28944d7c37827e10f72d6cdac811eb8bda92fbc9da96fa4947f09ef42eb5b9f4` |
 | `platform_docs/DEPLOYMENT.md` | 5766 | 811 | `665319a6f0a460d4cd509c062af9e5879416c795f2227f63287d076f1c3d7293` |
 | `platform_docs/DESIGN.md` | 16996 | 2456 | `e9de8994278a140e2e3596391102bc14727cf6c6c00658cb33183f7643b5d6b2` |
@@ -80,7 +80,7 @@
 | `platform_docs/RUNBOOK_BACKUP_RESTORE.md` | 4857 | 666 | `27e324b4cea0cd3a2514f44eeee4ce31db80a3a4701f0ba528ffb36afcebb3ff` |
 | `platform_docs/RUNBOOK_OPERATIONS.md` | 5777 | 796 | `23d4c537dd3bbcf4b8f08b39b4a948c42c10e3a458594c25ccf2b65937376252` |
 | `platform_docs/SECURITY.md` | 14589 | 2085 | `51b737e15512ae8136760024f2fcb78161276af0cf0699e8d06326ce1dc7b482` |
-| `platform_docs/STATUS.md` | 157527 | 18843 | `f839e81f0d3e0cb386bf3d5f24bdc2cea572b11869636bb2c18e7990b3fc2a4e` |
+| `platform_docs/STATUS.md` | 158041 | 18914 | `983d72cdd0ee88b121354567ad76009b53aca22373c34cc9b6843f71a0a155ce` |
 | `platform_docs/SYSTEM_DESIGN.md` | 42737 | 5750 | `91f13a2973e0dc679941b408a80b2e2be3f2acb033de2fad62ca3e465c748ea4` |
 | `platform_docs/TESTING_STRATEGY.md` | 18229 | 2513 | `2659f25d06bcfe571830b291c6546ad481abb609049bede79003d80add2da358` |
 | `platform_docs/UI_FLOWS.md` | 22449 | 3253 | `311b1b44f7dcdd0e97003e0b29fa34cc789f95affa9052bf3ce86613ff86fddc` |
