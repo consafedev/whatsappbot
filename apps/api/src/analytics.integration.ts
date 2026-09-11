@@ -591,4 +591,77 @@ describe.sequential("Analytics API Integration", () => {
       expect(res.status).toBe(403);
     });
   });
+
+  describe("GET /api/v1/analytics/alerts", () => {
+    it("returns 200 OK with anomaly alerts envelope and summary counts", async () => {
+      const res = await fetch(`${baseUrl}/api/v1/analytics/alerts`, {
+        headers: {
+          cookie: ownerACookie,
+          "x-tenant-id": tenantAId,
+        },
+      });
+
+      expect(res.status).toBe(200);
+      const json = (await res.json()) as {
+        success: boolean;
+        data: {
+          activeAlerts: Array<{
+            id: string;
+            code: string;
+            severity: string;
+            title: string;
+            message: string;
+            metricValue: unknown;
+            thresholdValue: unknown;
+            triggeredAt: string;
+          }>;
+          summary: {
+            total: number;
+            critical: number;
+            warning: number;
+            info: number;
+          };
+          evaluatedAt: string;
+        };
+      };
+
+      expect(json.success).toBe(true);
+      expect(Array.isArray(json.data.activeAlerts)).toBe(true);
+      expect(json.data.summary).toBeDefined();
+      expect(json.data.summary.total).toBe(json.data.activeAlerts.length);
+      expect(json.data.summary.critical + json.data.summary.warning + json.data.summary.info).toBe(
+        json.data.summary.total,
+      );
+      expect(json.data.evaluatedAt).toBeDefined();
+    });
+
+    it("rejects without authentication cookie with 401", async () => {
+      const res = await fetch(`${baseUrl}/api/v1/analytics/alerts`, {
+        headers: {
+          "x-tenant-id": tenantAId,
+        },
+      });
+      expect(res.status).toBe(401);
+    });
+
+    it("rejects with 403 when tenant lacks module.reports", async () => {
+      const res = await fetch(`${baseUrl}/api/v1/analytics/alerts`, {
+        headers: {
+          cookie: ownerNoReportsCookie,
+          "x-tenant-id": tenantNoReportsId,
+        },
+      });
+      expect(res.status).toBe(403);
+    });
+
+    it("rejects with 403 when user lacks reports.read", async () => {
+      const res = await fetch(`${baseUrl}/api/v1/analytics/alerts`, {
+        headers: {
+          cookie: viewerACookie,
+          "x-tenant-id": tenantAId,
+        },
+      });
+      expect(res.status).toBe(403);
+    });
+  });
 });

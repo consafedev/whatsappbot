@@ -50,6 +50,44 @@ export interface SystemHealthData {
   readonly workerStatus: WorkerStatusSummary;
 }
 
+export type AnomalyAlertCode =
+  | "HIGH_FAILURE_RATE"
+  | "OUTBOX_BACKLOG"
+  | "HIGH_LATENCY_DB"
+  | "HIGH_LATENCY_REDIS"
+  | "CHANNEL_DISCONNECTED";
+
+export type AnomalyAlertSeverity = "info" | "warning" | "critical";
+
+export interface OperationalAnomalyAlert {
+  readonly id: string;
+  readonly code: AnomalyAlertCode;
+  readonly severity: AnomalyAlertSeverity;
+  readonly title: string;
+  readonly message: string;
+  readonly metricValue: number | string;
+  readonly thresholdValue: number | string;
+  readonly triggeredAt: string;
+}
+
+export interface AlertsSummary {
+  readonly total: number;
+  readonly critical: number;
+  readonly warning: number;
+  readonly info: number;
+}
+
+export interface AlertsOverviewData {
+  readonly activeAlerts: readonly OperationalAnomalyAlert[];
+  readonly summary: AlertsSummary;
+  readonly evaluatedAt: string;
+}
+
+export interface AlertsOverviewResponse {
+  readonly success: boolean;
+  readonly data: AlertsOverviewData;
+}
+
 export class ReportsApiError extends Error {
   readonly statusCode: number;
   readonly code?: string | undefined;
@@ -377,5 +415,66 @@ export async function fetchSystemHealth(
       whatsappWorker: raw.workerStatus?.whatsappWorker ?? "inactive",
       jobsWorker: raw.workerStatus?.jobsWorker ?? "inactive",
     },
+  };
+}
+
+/**
+ * Fetches real-time operational alerts and anomaly triggers for the current tenant.
+ */
+export async function fetchOperationalAlerts(
+  apiBaseUrl: string,
+  options?: { signal?: AbortSignal | undefined },
+): Promise<AlertsOverviewData> {
+  const url = `${apiBaseUrl.replace(/\/$/, "")}/api/v1/analytics/alerts`;
+
+  let response: Response;
+  try {
+    const init: RequestInit = {
+      credentials: "include",
+      headers: { Accept: "application/json" },
+      method: "GET",
+    };
+    if (options?.signal) {
+      init.signal = options.signal;
+    }
+    response = await fetch(url, init);
+  } catch (err: unknown) {
+    if (err instanceof Error && err.name === "AbortError") {
+      throw err;
+    }
+    throw new ReportsApiError("No se pudo conectar con el servidor de alertas", 0);
+  }
+
+  if (!response.ok) {
+    throw await parseErrorResponse(response);
+  }
+
+  const json = (await response.json()) as AlertsOverviewResponse;
+  if (!json || typeof json !== "object" || !json.data) {
+    throw new ReportsApiError("Respuesta inválida del servidor", response.status);
+  }
+
+  const raw = json.data;
+  const rawSummary = raw.summary ?? { total: 0, critical: 0, warning: 0, info: 0 };
+  const rawAlerts = Array.isArray(raw.activeAlerts) ? raw.activeAlerts : [];
+
+  return {
+    activeAlerts: rawAlerts.map((alert) => ({
+      id: String(alert.id ?? ""),
+      code: alert.code ?? "HIGH_FAILURE_RATE",
+      severity: alert.severity ?? "warning",
+      title: String(alert.title ?? ""),
+      message: String(alert.message ?? ""),
+      metricValue: alert.metricValue ?? "",
+      thresholdValue: alert.thresholdValue ?? "",
+      triggeredAt: alert.triggeredAt ?? new Date().toISOString(),
+    })),
+    summary: {
+      total: Number(rawSummary.total ?? rawAlerts.length),
+      critical: Number(rawSummary.critical ?? 0),
+      warning: Number(rawSummary.warning ?? 0),
+      info: Number(rawSummary.info ?? 0),
+    },
+    evaluatedAt: raw.evaluatedAt ?? new Date().toISOString(),
   };
 }

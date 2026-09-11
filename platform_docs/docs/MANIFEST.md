@@ -1,7 +1,7 @@
 # docs/MANIFEST.md — Baseline documental verificada
 
 **Fecha:** 2026-09-10
-**Estado:** documentación sincronizada con PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; Epic 11 — Campaign Engine — PASS / COMPLETE; Epic 12 — Reporting, Analytics & Operational Observability — IN PROGRESS (E12-S01, E12-S02, E12-S03, E12-S04 PASS).
+**Estado:** documentación sincronizada con PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; Epic 11 — Campaign Engine — PASS / COMPLETE; **Epic 12 — Reporting, Analytics & Operational Observability — PASS / COMPLETE (E12-S01, E12-S02, E12-S03, E12-S04, E12-S05 PASS)**.
 **Propósito:** comprobar integridad y composición del conjunto de documentos que permite continuar el proyecto sin depender de memoria conversacional.
 
 > Las rutas son relativas a la raíz del repositorio. Los hashes cambian si se edita un archivo. Después de cambios intencionales, regenerar este manifest.
@@ -12,7 +12,7 @@
 | `README.md` | 8026 | 960 | `cee94177528c317114d524256385dc2335b0ed544cbf0abbd87fa7850f8f115f` |
 | `.agents/agents.md` | 388 | 41 | `d52b02af7fdab6d2ecbf7af4dd2f311d5d244f153817498ff9e542427e9e1675` |
 | `.agents/skills/whatsapp-platform-engineering/SKILL.md` | 19764 | 2747 | `8597b90ddbb55ccb4dbcb5b1d98b100b264759be2357f772ec5c997a1a0ff23b` |
-| `platform_docs/CHANGELOG.md` | 112372 | 12941 | `223d653c08635b3c4238710fd9198aebfbab026cc90060923cb6cdcc43687723` |
+| `platform_docs/CHANGELOG.md` | 115141 | 13263 | `bbd47ac6720886b8416b0e2227704d0a7e00222d502bd80340fed7b4da89484c` |
 | `platform_docs/DATA_MODEL_ERD_MVP_BACKLOG.md` | 72981 | 9847 | `971b5ce014873e676309d3cb2a80e06efbd71be8859817d144227932f70a462b` |
 | `platform_docs/DEMO_AND_SALES.md` | 8689 | 1253 | `28944d7c37827e10f72d6cdac811eb8bda92fbc9da96fa4947f09ef42eb5b9f4` |
 | `platform_docs/DEPLOYMENT.md` | 5766 | 811 | `665319a6f0a460d4cd509c062af9e5879416c795f2227f63287d076f1c3d7293` |
@@ -73,6 +73,7 @@
 | `platform_docs/docs/adr/0054-e12-s02-operational-reporting-web-ui-scope.md` | 5446 | 654 | `4d880625d66c5f065d1015259f14b2641cbcdb42f40373b12d89a942fbf15efd` |
 | `platform_docs/docs/adr/0055-e12-s03-analytics-export-engine-scope.md` | 5786 | 693 | `b43299b01cf4fb3f37e4e9db73eee912666198c35829681470aee535ae31fbf8` |
 | `platform_docs/docs/adr/0056-e12-s04-system-health-and-queue-observability-scope.md` | 5958 | 770 | `f832ca5cf615cceb5173bc28fa346e69d498966fb634034a3c9202c2d09ec429` |
+| `platform_docs/docs/adr/0057-e12-s05-operational-alerting-and-anomaly-triggers-scope.md` | 5288 | 638 | `467c83d87462bf74562ffb58ae598f8987dfbbc0cf24b770d022551c703cd1a4` |
 | `platform_docs/docs/INDEX.md` | 12437 | 1687 | `d692e50c9f969e6ee096a14daf674281f585d3e2a2841211822734dbedd6c5f8` |
 | `platform_docs/PRD.md` | 90479 | 13033 | `81426bd8cabd9b4d5408ff0741c1cfa6aa1741986f2355d4294c6faa7bfdb380` |
 | `platform_docs/README.md` | 1953 | 242 | `31b67b6ef55a2adb4b2840cbe5993156c4fa0421f8752b2d130c97ceb84e880a` |
@@ -80,7 +81,7 @@
 | `platform_docs/RUNBOOK_BACKUP_RESTORE.md` | 4857 | 666 | `27e324b4cea0cd3a2514f44eeee4ce31db80a3a4701f0ba528ffb36afcebb3ff` |
 | `platform_docs/RUNBOOK_OPERATIONS.md` | 5777 | 796 | `23d4c537dd3bbcf4b8f08b39b4a948c42c10e3a458594c25ccf2b65937376252` |
 | `platform_docs/SECURITY.md` | 14589 | 2085 | `51b737e15512ae8136760024f2fcb78161276af0cf0699e8d06326ce1dc7b482` |
-| `platform_docs/STATUS.md` | 158041 | 18914 | `983d72cdd0ee88b121354567ad76009b53aca22373c34cc9b6843f71a0a155ce` |
+| `platform_docs/STATUS.md` | 160411 | 19181 | `90916657af620893ed47c5e5cad6813d9bb2bd5e455f5d9455181e3f0fb826b3` |
 | `platform_docs/SYSTEM_DESIGN.md` | 42737 | 5750 | `91f13a2973e0dc679941b408a80b2e2be3f2acb033de2fad62ca3e465c748ea4` |
 | `platform_docs/TESTING_STRATEGY.md` | 18229 | 2513 | `2659f25d06bcfe571830b291c6546ad481abb609049bede79003d80add2da358` |
 | `platform_docs/UI_FLOWS.md` | 22449 | 3253 | `311b1b44f7dcdd0e97003e0b29fa34cc789f95affa9052bf3ce86613ff86fddc` |

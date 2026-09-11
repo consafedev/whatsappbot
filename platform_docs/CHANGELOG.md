@@ -8,6 +8,24 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Added
 
+- E12-S05 implementa el motor de detección de anomalías operativas, evaluación de umbrales en tiempo real, endpoint REST de alertas y panel visual de alertas en el tablero de observabilidad (`Operational Alerting & Anomaly Triggers`) en `apps/api` y `apps/web`:
+  - Motor de Evaluación de Anomalías (`apps/api/src/operational-alerting.service.ts`):
+    - Función pura `evaluateOperationalAlerts` y servicio `@Injectable()` `OperationalAlertingService` evaluando 5 umbrales operativos bajo demanda con aislamiento estricto por inquilino:
+      1. `HIGH_FAILURE_RATE`: Si `(failedCount / sentCount) * 100 > 15%` (mínimo 10 mensajes enviados). Severidad `warning` (> 15%) o `critical` (> 30%).
+      2. `OUTBOX_BACKLOG`: Si `pendingCount > 50` o tiempo medio de tránsito `averageTransitSeconds > 60s`. Severidad `warning`.
+      3. `HIGH_LATENCY_DB`: Si latencia de consulta PostgreSQL `> 300ms` (`warning`) o desconexión/fallo de probe (`critical`).
+      4. `HIGH_LATENCY_REDIS`: Si latencia de ping a Redis `> 300ms` (`warning`) o desconexión/fallo de probe (`critical`).
+      5. `CHANNEL_DISCONNECTED`: Si existen canales de WhatsApp del inquilino en estado `disconnected`. Severidad `warning`.
+    - Resumen y agregación de conteos en vivo: `total`, `critical`, `warning`, `info`.
+  - Endpoint REST en API Gateway (`apps/api/src/analytics.ts`):
+    - `GET /api/v1/analytics/alerts` protegido por `@RequireEntitlements("module.reports")` y `@analyticsAuthorized("reports.read")`. Retorna envelope estándar `{ success: true, data }` con `activeAlerts`, `summary` y `evaluatedAt`.
+  - Panel de Alertas en Frontend Web (`apps/web/app/app/reports/`):
+    - View Model (`reports-view-model.ts`): Modelos `OperationalAnomalyAlert`, `AlertsSummary`, `AlertsOverviewData` y cliente `fetchOperationalAlerts` con manejo defensivo de errores.
+    - Componente visual (`reports-alerts.tsx`): Banner dinámico de severidad con colorimetría (`rose` para critical, `amber` para warning), métricas vs umbrales y consejos de remediación contextual ("Revisar salud de canal", "Verificar mensajes salientes").
+    - Si no existen anomalías (`total === 0`), despliegue de indicador verde sutil y tranquilizador ("Sin anomalías operativas detectadas").
+    - Integración en `reports-client.tsx` en cabecera compartida y refresco sincronizado con el botón de actualización.
+  - Verificación: 10/10 pruebas unitarias en `apps/api/src/operational-alerting.service.test.ts` PASS; 17/17 pruebas de integración en `apps/api/src/analytics.integration.ts` PASS; 25/25 pruebas en `reports-view-model.test.ts` PASS; suite completa de `apps/web` (17 archivos, 207 tests PASS); suite monorepo (42 archivos, 391 tests PASS); typecheck monorepo en 0 errores; Biome en 0 errores.
+
 - E12-S04 implementa el servicio de observabilidad operativa, sondas de latencia nativas para PostgreSQL y Redis, métricas de colas de outbox y consola web de salud (`System Health, Latency & Worker Queue Observability`) en `apps/api` y `apps/web`:
   - Servicio de Observabilidad en API Gateway (`apps/api/src/system-observability.service.ts`):
     - Sonda de latencia a PostgreSQL (`databaseLatencyMs`) vía consulta relacional con Prisma.

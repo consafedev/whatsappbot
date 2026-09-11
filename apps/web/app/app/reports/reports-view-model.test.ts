@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   downloadAnalyticsCsv,
   fetchMessageTimeSeries,
+  fetchOperationalAlerts,
   fetchOperationalOverview,
   fetchSystemHealth,
   formatCurrencyUsd,
@@ -412,6 +413,82 @@ describe("reports-view-model", () => {
       } as unknown as Response);
 
       await expect(fetchSystemHealth("http://localhost:3001")).rejects.toThrow(ReportsApiError);
+    });
+  });
+
+  describe("fetchOperationalAlerts", () => {
+    it("fetches active alerts and summary successfully", async () => {
+      const mockData = {
+        activeAlerts: [
+          {
+            id: "alert-1",
+            code: "HIGH_FAILURE_RATE",
+            severity: "warning",
+            title: "Alta tasa de fallos",
+            message: "Tasa del 20%",
+            metricValue: "20%",
+            thresholdValue: "> 15%",
+            triggeredAt: "2026-09-10T12:00:00.000Z",
+          },
+        ],
+        summary: {
+          total: 1,
+          critical: 0,
+          warning: 1,
+          info: 0,
+        },
+        evaluatedAt: "2026-09-10T12:00:00.000Z",
+      };
+
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ success: true, data: mockData }),
+      } as unknown as Response);
+
+      const result = await fetchOperationalAlerts("http://localhost:3001");
+      expect(result.activeAlerts).toHaveLength(1);
+      expect(result.activeAlerts[0]?.code).toBe("HIGH_FAILURE_RATE");
+      expect(result.activeAlerts[0]?.severity).toBe("warning");
+      expect(result.summary.total).toBe(1);
+      expect(result.summary.warning).toBe(1);
+      expect(result.evaluatedAt).toBe("2026-09-10T12:00:00.000Z");
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        "http://localhost:3001/api/v1/analytics/alerts",
+        expect.objectContaining({
+          credentials: "include",
+          method: "GET",
+        }),
+      );
+    });
+
+    it("handles empty alerts safely with defensive normalization", async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ success: true, data: {} }),
+      } as unknown as Response);
+
+      const result = await fetchOperationalAlerts("http://localhost:3001");
+      expect(result.activeAlerts).toEqual([]);
+      expect(result.summary).toEqual({
+        total: 0,
+        critical: 0,
+        warning: 0,
+        info: 0,
+      });
+      expect(result.evaluatedAt).toBeDefined();
+    });
+
+    it("throws ReportsApiError on 403 Forbidden or 500 error", async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 403,
+        json: async () => ({ message: "Forbidden: Entitlement required" }),
+      } as unknown as Response);
+
+      await expect(fetchOperationalAlerts("http://localhost:3001")).rejects.toThrow(
+        ReportsApiError,
+      );
     });
   });
 });

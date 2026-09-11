@@ -21,6 +21,7 @@ import {
   type TenantOperationalOverviewResult,
 } from "@whatsapp-platform/database";
 import type { PermissionKey } from "@whatsapp-platform/rbac";
+import { OperationalAlertingService } from "./operational-alerting.service";
 import { SystemObservabilityService } from "./system-observability.service";
 import { TenantUserSessionGuard } from "./tenant-auth";
 import { CurrentTenantContext, TenantContextGuard } from "./tenant-context";
@@ -135,7 +136,16 @@ export class AnalyticsController {
     private readonly service: AnalyticsService,
     @Inject(SystemObservabilityService)
     private readonly observabilityService: SystemObservabilityService,
+    @Inject(OperationalAlertingService)
+    private readonly alertingService: OperationalAlertingService,
   ) {}
+
+  @Get("alerts")
+  @analyticsAuthorized("reports.read")
+  async getAlerts(@CurrentTenantContext() context: TenantContext) {
+    const data = await this.alertingService.getOperationalAlerts(context);
+    return { success: true, data };
+  }
 
   @Get("system-health")
   @analyticsAuthorized("reports.read")

@@ -3,13 +3,16 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useTenantAppBootstrap } from "../tenant-app-shell";
+import { ReportsAlerts } from "./reports-alerts";
 import { ReportsKpiCards } from "./reports-kpi-cards";
 import { ReportsSystemHealth } from "./reports-system-health";
 import { ReportsTimeSeriesChart } from "./reports-time-series-chart";
 import {
+  type AlertsOverviewData,
   type DatePresetKey,
   downloadAnalyticsCsv,
   fetchMessageTimeSeries,
+  fetchOperationalAlerts,
   fetchOperationalOverview,
   type MessageTimeSeriesData,
   resolveDatePreset,
@@ -73,6 +76,23 @@ export function ReportsClient({ apiBaseUrl }: ReportsClientProps) {
   const [exportError, setExportError] = useState<string | null>(null);
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
 
+  // Operational alerts state
+  const [alertsData, setAlertsData] = useState<AlertsOverviewData | null>(null);
+  const [alertsLoading, setAlertsLoading] = useState(false);
+
+  const loadAlerts = useCallback(async () => {
+    if (!hasReportsModule || !canReadReports) return;
+    setAlertsLoading(true);
+    try {
+      const data = await fetchOperationalAlerts(base);
+      setAlertsData(data);
+    } catch {
+      // Silently keep previous state or fallback
+    } finally {
+      setAlertsLoading(false);
+    }
+  }, [base, canReadReports, hasReportsModule]);
+
   // Fetch data
   const loadReportsData = useCallback(
     async (isManualRefresh = false) => {
@@ -127,7 +147,13 @@ export function ReportsClient({ apiBaseUrl }: ReportsClientProps) {
       return;
     }
     loadReportsData();
-  }, [hasReportsModule, canReadReports, loadReportsData]);
+    loadAlerts();
+  }, [hasReportsModule, canReadReports, loadReportsData, loadAlerts]);
+
+  const handleManualRefresh = () => {
+    loadReportsData(true);
+    loadAlerts();
+  };
 
   // Handle preset change
   const handlePresetSelect = (preset: DatePresetKey) => {
@@ -269,6 +295,9 @@ export function ReportsClient({ apiBaseUrl }: ReportsClientProps) {
         </div>
       </div>
 
+      {/* Real-time Operational Alerts Banner */}
+      <ReportsAlerts alertsData={alertsData} loading={alertsLoading} onRefresh={loadAlerts} />
+
       {activeTab === "health" ? (
         <ReportsSystemHealth apiBaseUrl={base} />
       ) : (
@@ -319,7 +348,7 @@ export function ReportsClient({ apiBaseUrl }: ReportsClientProps) {
               {/* Live Refresh Button */}
               <button
                 type="button"
-                onClick={() => loadReportsData(true)}
+                onClick={handleManualRefresh}
                 disabled={loading || refreshing}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-medium hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                 title="Actualizar métricas"

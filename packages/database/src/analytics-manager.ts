@@ -4,7 +4,13 @@ import { assertTenantOperational } from "./tenant-operational";
 
 export type AnalyticsDatabase = Pick<
   PrismaClient,
-  "inboundMessageEvent" | "outboundMessage" | "message" | "conversation" | "aiUsageLog" | "tenant"
+  | "inboundMessageEvent"
+  | "outboundMessage"
+  | "message"
+  | "conversation"
+  | "aiUsageLog"
+  | "tenant"
+  | "channelAccount"
 >;
 
 export class AnalyticsDateRangeInvalidError extends Error {

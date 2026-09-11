@@ -2,15 +2,34 @@
 
 **Actualizado:** 2026-09-10
 **Versión de producto:** `0.0.0`  
-**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; Epic 11 — Campaign Engine & Audience Broadcasts — PASS / COMPLETE; **Epic 12 — Reporting, Analytics & Operational Observability — IN PROGRESS (E12-S01, E12-S02, E12-S03, E12-S04 PASS)**.
+**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; Epic 11 — Campaign Engine & Audience Broadcasts — PASS / COMPLETE; **Epic 12 — Reporting, Analytics & Operational Observability — PASS / COMPLETE (E12-S01, E12-S02, E12-S03, E12-S04, E12-S05 PASS)**.
 
 ## Current milestone
 
-Epic 12 — Reporting, Analytics & Operational Observability (E12-S01, E12-S02, E12-S03, E12-S04 PASS). Next: E12-S05 (Operational Alerting & Anomaly Triggers).
+Epic 13 — Task Scheduling & Distributed Orchestration (E13-S01).
 
 ## Current epic
 
-**Epic 12 — Reporting, Analytics & Operational Observability** — **IN PROGRESS** (ADR-0053, ADR-0054, ADR-0055, ADR-0056)
+**Epic 12 — Reporting, Analytics & Operational Observability** — **COMPLETE** (ADR-0053, ADR-0054, ADR-0055, ADR-0056, ADR-0057)
+
+- E12-S05 — Operational Alerting & Anomaly Triggers: **PASS** (ADR-0057).
+  - Motor de Detección de Anomalías Operativas (`apps/api/src/operational-alerting.service.ts`):
+    - Función pura `evaluateOperationalAlerts` y servicio `@Injectable()` `OperationalAlertingService` evaluando 5 umbrales operativos bajo demanda con aislamiento estricto por inquilino:
+      1. `HIGH_FAILURE_RATE`: Si `(failedCount / sentCount) * 100 > 15%` (con al menos 10 mensajes enviados). Severidad `warning` (> 15%) o `critical` (> 30%).
+      2. `OUTBOX_BACKLOG`: Si `pendingCount > 50` mensajes o tiempo medio de tránsito `averageTransitSeconds > 60s`. Severidad `warning`.
+      3. `HIGH_LATENCY_DB`: Si latencia de consulta PostgreSQL `> 300ms` (`warning`) o desconexión/fallo de probe (`critical`).
+      4. `HIGH_LATENCY_REDIS`: Si latencia de ping a Redis `> 300ms` (`warning`) o desconexión/fallo de probe (`critical`).
+      5. `CHANNEL_DISCONNECTED`: Si existen canales de WhatsApp del inquilino en estado `disconnected`. Severidad `warning`.
+    - Resumen y agregación de conteos en vivo: `total`, `critical`, `warning`, `info`.
+  - Endpoint REST en API Gateway (`apps/api/src/analytics.ts`):
+    - `GET /api/v1/analytics/alerts` protegido por `@RequireEntitlements("module.reports")` y `@analyticsAuthorized("reports.read")`.
+    - Retorno de envelope estándar con `activeAlerts`, `summary` y timestamp `evaluatedAt`.
+  - Panel de Alertas en Frontend Web (`apps/web/app/app/reports/`):
+    - View Model (`reports-view-model.ts`): Tipos `OperationalAnomalyAlert`, `AlertsSummary`, `AlertsOverviewData` y fetcher `fetchOperationalAlerts`.
+    - Componente visual (`reports-alerts.tsx`): Banner dinámico de severidad con colorimetría (`rose` para critical, `amber` para warning), métricas vs umbrales y consejos de remediación ("Revisar salud de canal", "Verificar mensajes salientes").
+    - Si no existen anomalías (`total === 0`), despliegue de indicador verde sutil y tranquilizador ("Sin anomalías operativas detectadas").
+    - Integración en `reports-client.tsx` en cabecera compartida y refresco sincronizado con el botón de actualización.
+  - Verificación: 10/10 pruebas unitarias en `operational-alerting.service.test.ts` PASS; 17/17 pruebas de integración en `analytics.integration.ts` PASS; 25/25 pruebas en `reports-view-model.test.ts` PASS; suite completa web (17 archivos, 207 tests PASS); Biome y typecheck limpios.
 
 - E12-S04 — System Health, Latency & Worker Queue Observability: **PASS** (ADR-0056).
   - Sondas de Infraestructura y Observabilidad Operativa (`apps/api/src/system-observability.service.ts`):

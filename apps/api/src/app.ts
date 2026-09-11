@@ -76,6 +76,7 @@ import {
   InboxRealtimeOutboxBridge,
 } from "./inbox-realtime.service";
 import { KnowledgeBaseController, KnowledgeBaseService } from "./knowledge-base";
+import { OperationalAlertingService } from "./operational-alerting.service";
 import {
   OUTBOUND_MESSAGE_MANAGER,
   OutboundMessagesController,
@@ -243,6 +244,7 @@ export async function createApiApplication(
       CampaignsService,
       AnalyticsService,
       SystemObservabilityService,
+      OperationalAlertingService,
       { provide: AI_GATEWAY_DATABASE, useFactory: getPlatformDatabaseClient },
       { provide: CAMPAIGNS_DATABASE, useFactory: getPlatformDatabaseClient },
       { provide: ANALYTICS_DATABASE, useFactory: getPlatformDatabaseClient },
