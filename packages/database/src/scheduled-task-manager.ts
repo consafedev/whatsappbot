@@ -376,22 +376,38 @@ export async function rescheduleRecurringTask(
       throw new ScheduledTaskInvalidStateError(task.id, task.status, targetStatus);
     }
 
-    if (task.cronExpression === null) {
-      return transaction.scheduledTask.update({
-        data: { lastRunAt: input.lastRunAt, status: ScheduledTaskStatus.COMPLETED },
+    const data =
+      task.cronExpression === null
+        ? { lastRunAt: input.lastRunAt, status: ScheduledTaskStatus.COMPLETED }
+        : (() => {
+            const nextRunAt = calculateNextRun(task.cronExpression, input.lastRunAt);
+            return {
+              lastRunAt: input.lastRunAt,
+              nextRunAt,
+              scheduledFor: nextRunAt,
+              status: ScheduledTaskStatus.PENDING,
+            };
+          })();
+    const updated = await transaction.scheduledTask.updateMany({
+      data,
+      where: {
+        id: task.id,
+        status: ScheduledTaskStatus.PROCESSING,
+        tenantId: tenant.tenantId,
+      },
+    });
+    if (updated.count === 0) {
+      const currentTask = await transaction.scheduledTask.findUnique({
         where: { tenantId_id: { id: task.id, tenantId: tenant.tenantId } },
       });
+      if (currentTask === null) throw new ScheduledTaskNotFoundError(input.id);
+      throw new ScheduledTaskInvalidStateError(currentTask.id, currentTask.status, targetStatus);
     }
 
-    const nextRunAt = calculateNextRun(task.cronExpression, input.lastRunAt);
-    return transaction.scheduledTask.update({
-      data: {
-        lastRunAt: input.lastRunAt,
-        nextRunAt,
-        scheduledFor: nextRunAt,
-        status: ScheduledTaskStatus.PENDING,
-      },
+    const rescheduled = await transaction.scheduledTask.findUnique({
       where: { tenantId_id: { id: task.id, tenantId: tenant.tenantId } },
     });
+    if (rescheduled === null) throw new ScheduledTaskNotFoundError(input.id);
+    return rescheduled;
   });
 }

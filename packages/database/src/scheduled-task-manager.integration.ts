@@ -344,4 +344,51 @@ describe.sequential("scheduled-task-manager integration", () => {
     expect(completed.lastRunAt).toEqual(claimAt);
     expect(completed.retryCount).toBe(0);
   });
+
+  it("allows only one concurrent recurring reschedule transition", async () => {
+    const dueAt = new Date("2026-01-05T09:00:00.000Z");
+    const task = await createScheduledTask(prisma, {
+      cronExpression: "0 9 * * 1-5",
+      name: "Concurrent recurring task",
+      scheduledFor: dueAt,
+      taskType: "send.follow-up",
+      tenantId: tenantAId,
+    });
+    await claimScheduledTask(prisma, {
+      expectedTenantId: tenantAId,
+      id: task.id,
+      now: dueAt,
+    });
+
+    const results = await Promise.allSettled([
+      rescheduleRecurringTask(prisma, {
+        id: task.id,
+        lastRunAt: dueAt,
+        tenantId: tenantAId,
+      }),
+      rescheduleRecurringTask(prisma, {
+        id: task.id,
+        lastRunAt: dueAt,
+        tenantId: tenantAId,
+      }),
+    ]);
+    const fulfilled = results.filter(({ status }) => status === "fulfilled");
+    const rejected = results.filter(
+      (result): result is PromiseRejectedResult => result.status === "rejected",
+    );
+
+    expect(fulfilled).toHaveLength(1);
+    expect(rejected).toHaveLength(1);
+    expect(rejected[0]?.reason).toBeInstanceOf(ScheduledTaskInvalidStateError);
+    expect(
+      await prisma.scheduledTask.findUnique({
+        where: { tenantId_id: { id: task.id, tenantId: tenantAId } },
+      }),
+    ).toMatchObject({
+      lastRunAt: dueAt,
+      nextRunAt: new Date("2026-01-06T09:00:00.000Z"),
+      scheduledFor: new Date("2026-01-06T09:00:00.000Z"),
+      status: ScheduledTaskStatus.PENDING,
+    });
+  });
 });
