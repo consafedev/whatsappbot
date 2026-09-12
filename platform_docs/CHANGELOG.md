@@ -8,6 +8,15 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Added
 
+- E13-S01 task scheduler foundation: tenant-scoped `ScheduledTask` Prisma
+  model and migration, transactional persistence manager, BullMQ
+  `scheduled-tasks` queue wiring, and guarded REST endpoints for listing,
+  creating, and cancelling tasks.
+- Added `module.scheduling`, `scheduling.read`, and `scheduling.manage` to the
+  entitlement and RBAC catalogs.
+- Added ADR-0058 documenting the foundation architecture and the explicit
+  E13-S02/E13-S03/E13-S04 deferrals.
+
 - E12-S05 implementa el motor de detección de anomalías operativas, evaluación de umbrales en tiempo real, endpoint REST de alertas y panel visual de alertas en el tablero de observabilidad (`Operational Alerting & Anomaly Triggers`) en `apps/api` y `apps/web`:
   - Motor de Evaluación de Anomalías (`apps/api/src/operational-alerting.service.ts`):
     - Función pura `evaluateOperationalAlerts` y servicio `@Injectable()` `OperationalAlertingService` evaluando 5 umbrales operativos bajo demanda con aislamiento estricto por inquilino:

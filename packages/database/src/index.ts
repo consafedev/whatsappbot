@@ -254,6 +254,7 @@ export type {
   Role,
   RolePermission,
   Rule,
+  ScheduledTask,
   TenantEntitlement,
   UserRole,
 } from "./generated/prisma/client";
@@ -479,6 +480,23 @@ export {
   type RuleTriggerDispatcherDatabase,
   type RuleTriggerDispatchResult,
 } from "./rule-trigger-dispatcher";
+export {
+  type ClaimDueScheduledTasksInput,
+  type CreateScheduledTaskInput,
+  cancelScheduledTask,
+  claimDueScheduledTasks,
+  createScheduledTask,
+  type ListScheduledTasksInput,
+  listScheduledTasks,
+  type MarkScheduledTaskCompletedInput,
+  type MarkScheduledTaskFailedInput,
+  markScheduledTaskCompleted,
+  markScheduledTaskFailed,
+  type ScheduledTaskDatabase,
+  ScheduledTaskInvalidStateError,
+  ScheduledTaskNotFoundError,
+  ScheduledTaskValidationError,
+} from "./scheduled-task-manager";
 export {
   createTakeoverManager,
   InvalidConversationAutomationModeError,

@@ -33,6 +33,8 @@ export const PERMISSION_CATALOG = [
   { key: "reports.export", description: "Export reports" },
   { key: "audit.read", description: "Read tenant audit records" },
   { key: "exports.create", description: "Create exports" },
+  { key: "scheduling.read", description: "Ver tareas programadas y ejecuciones del tenant" },
+  { key: "scheduling.manage", description: "Crear, pausar y cancelar tareas programadas" },
 ] as const;
 
 export type PermissionKey = (typeof PERMISSION_CATALOG)[number]["key"];

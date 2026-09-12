@@ -36,6 +36,8 @@ const documentedPermissionKeys = [
   "reports.export",
   "audit.read",
   "exports.create",
+  "scheduling.read",
+  "scheduling.manage",
 ] as const;
 
 describe("RBAC catalogs", () => {
@@ -43,7 +45,7 @@ describe("RBAC catalogs", () => {
     const actual = PERMISSION_CATALOG.map(({ key }) => key);
     expect(actual).toEqual(documentedPermissionKeys);
     expect(new Set(actual).size).toBe(actual.length);
-    expect(actual).toHaveLength(34);
+    expect(actual).toHaveLength(36);
   });
 
   it("recognizes only canonical permission keys", () => {
@@ -51,6 +53,8 @@ describe("RBAC catalogs", () => {
     expect(isPermissionKey("contacts.write")).toBe(true);
     expect(isPermissionKey("channels.mange")).toBe(false);
     expect(isPermissionKey("platform.tenants.manage")).toBe(false);
+    expect(isPermissionKey("scheduling.read")).toBe(true);
+    expect(isPermissionKey("scheduling.manage")).toBe(true);
   });
 
   it("defines the documented initial role names without a permission matrix", () => {

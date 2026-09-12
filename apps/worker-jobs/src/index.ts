@@ -1,16 +1,33 @@
 import { loadRuntimeConfig } from "@whatsapp-platform/config";
+import { createScheduledTaskQueueConnection } from "./scheduled-tasks-queue";
 
-const config = loadRuntimeConfig();
-const keepAlive = setInterval(() => undefined, 60_000);
+async function bootstrap(): Promise<void> {
+  const config = loadRuntimeConfig();
+  const scheduledTaskQueue = createScheduledTaskQueueConnection(config.redisUrl);
+  await scheduledTaskQueue.waitUntilReady();
+  const keepAlive = setInterval(() => undefined, 60_000);
 
-console.info(
-  JSON.stringify({ environment: config.environment, service: "worker-jobs", status: "ready" }),
-);
+  console.info(
+    JSON.stringify({
+      environment: config.environment,
+      queue: "scheduled-tasks",
+      service: "worker-jobs",
+      status: "ready",
+    }),
+  );
 
-function shutdown(): void {
-  clearInterval(keepAlive);
-  process.exit(0);
+  const shutdown = async (): Promise<void> => {
+    clearInterval(keepAlive);
+    await scheduledTaskQueue.close();
+    process.exit(0);
+  };
+
+  process.once("SIGINT", () => void shutdown());
+  process.once("SIGTERM", () => void shutdown());
 }
 
-process.once("SIGINT", shutdown);
-process.once("SIGTERM", shutdown);
+bootstrap().catch((error: unknown) => {
+  const message = error instanceof Error ? error.message : "Unknown bootstrap error";
+  console.error(JSON.stringify({ error: message, service: "worker-jobs", status: "failed" }));
+  process.exitCode = 1;
+});

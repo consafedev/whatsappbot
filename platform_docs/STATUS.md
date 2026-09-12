@@ -1,12 +1,54 @@
 # STATUS.md — Estado operativo actual del proyecto
 
-**Actualizado:** 2026-09-10
+**Actualizado:** 2026-09-11
 **Versión de producto:** `0.0.0`  
-**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; Epic 11 — Campaign Engine & Audience Broadcasts — PASS / COMPLETE; **Epic 12 — Reporting, Analytics & Operational Observability — PASS / COMPLETE (E12-S01, E12-S02, E12-S03, E12-S04, E12-S05 PASS)**.
+**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; Epic 11 — Campaign Engine & Audience Broadcasts — PASS / COMPLETE; **Epic 12 — Reporting, Analytics & Operational Observability — PASS / COMPLETE (E12-S01, E12-S02, E12-S03, E12-S04, E12-S05 PASS); E13-S01 — PASS / COMPLETE**.
 
 ## Current milestone
 
 Epic 13 — Task Scheduling & Distributed Orchestration (E13-S01).
+
+### E13-S01 — Task Scheduler Foundation
+
+Status: PASS — verificado el 2026-09-11 en el checkout actual.
+
+Entregado:
+
+- Modelo Prisma/PostgreSQL `ScheduledTask`, identidad compuesta por tenant,
+  índices, enum de ciclo de vida y migración
+  `20260911180000_add_scheduled_tasks_foundation`.
+- Gestor de persistencia transaccional con reclamo atómico de tareas vencidas.
+- Adaptador BullMQ diferido `scheduled-tasks` en API y conexión de cola en
+  `apps/worker-jobs`.
+- API REST protegida por sesión, contexto, permisos RBAC y `module.scheduling`,
+  con envelope estándar.
+- Catálogos RBAC/entitlements, ADR-0058, changelog y manifest actualizados.
+
+Evidencia específica de E13-S01:
+
+- Integración PostgreSQL enfocada: 4 pruebas PASS.
+- Integración API enfocada: 4 pruebas PASS, incluyendo sesión, envelope,
+  permisos/entitlement, aislamiento cross-tenant y enqueue futuro.
+- `pnpm biome check .`: 439 archivos verificados, 0 errores.
+- `pnpm vitest run`: 42 archivos y 394 pruebas PASS.
+- `pnpm typecheck`: typecheck raíz y los 17 workspaces con script, 0 errores.
+- `docker compose build api web && docker compose up -d`: PASS; API, web,
+  PostgreSQL, Redis y ambos workers saludables, con `worker-jobs` conectado a
+  `scheduled-tasks`.
+- Smoke HTTP: `GET /api/v1/scheduled-tasks` devuelve 401 sin sesión y 200 con
+  sesión de tenant que tiene `module.scheduling` y `scheduling.read`.
+- Smoke BullMQ real: POST futuro devuelve `PENDING` y crea un job con el mismo
+  `tenantId`/`taskId`; el job de prueba fue retirado y el tenant temporal
+  eliminado.
+
+Diferido explícitamente:
+
+- E13-S02: orquestación de cron recurrente y disparadores de reglas automáticas.
+- E13-S03: recuperación/reconciliación de tareas huérfanas o trabadas y backoff
+  exponencial.
+- E13-S04: interfaz Next.js.
+- Temporal y orquestadores externos permanecen fuera de alcance; se conserva
+  BullMQ.
 
 ## Current epic
 

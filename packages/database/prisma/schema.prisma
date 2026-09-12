@@ -98,6 +98,16 @@ enum UserMfaState {
   @@map("user_mfa_state")
 }
 
+enum ScheduledTaskStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+
+  @@map("scheduled_task_status")
+}
+
 model PlatformDeployment {
   id             String                   @id @default(dbgenerated("uuidv7()")) @db.Uuid
   name           String
@@ -193,6 +203,7 @@ model Tenant {
   messageTemplates    MessageTemplate[]
   campaigns           Campaign[]
   campaignAudienceMembers CampaignAudienceMember[]
+  scheduledTasks      ScheduledTask[]
 
   @@index([status], map: "tenant_status_idx")
   @@index([deploymentId], map: "tenant_deployment_id_idx")
@@ -883,3 +894,26 @@ model CampaignAudienceMember {
   @@map("campaign_audience_member")
 }
 
+model ScheduledTask {
+  id             String             @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  tenantId       String             @map("tenant_id") @db.Uuid
+  name           String
+  taskType       String             @map("task_type")
+  status         ScheduledTaskStatus @default(PENDING)
+  payload        Json               @default("{}") @db.JsonB
+  cronExpression String?            @map("cron_expression")
+  scheduledFor   DateTime           @map("scheduled_for") @db.Timestamptz(3)
+  lastRunAt      DateTime?          @map("last_run_at") @db.Timestamptz(3)
+  nextRunAt      DateTime?          @map("next_run_at") @db.Timestamptz(3)
+  retryCount     Int                @default(0) @map("retry_count")
+  maxRetries     Int                @default(3) @map("max_retries")
+  errorMessage   String?            @map("error_message")
+  createdAt      DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([tenantId, status, scheduledFor], map: "scheduled_task_tenant_status_scheduled_idx")
+  @@unique([tenantId, id], map: "scheduled_task_tenant_id_key")
+  @@map("scheduled_tasks")
+}

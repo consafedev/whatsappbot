@@ -112,6 +112,14 @@ import {
 } from "./platform-tenants";
 import { RULE_CATALOG_MANAGER, RulesController, RulesService } from "./rules";
 import {
+  createDefaultScheduledTaskQueue,
+  SCHEDULED_TASKS_DATABASE,
+  SCHEDULED_TASKS_QUEUE,
+  ScheduledTasksController,
+  ScheduledTasksService,
+} from "./scheduled-tasks";
+import type { ScheduledTaskQueue } from "./scheduled-tasks-queue";
+import {
   SYSTEM_OBSERVABILITY_DATABASE,
   SystemObservabilityService,
 } from "./system-observability.service";
@@ -173,6 +181,7 @@ export async function createApiApplication(
   dependencies: {
     messagingCredentialsKey?: string;
     passwordResetDelivery?: PasswordResetDelivery;
+    scheduledTaskQueue?: ScheduledTaskQueue;
   } = {},
 ) {
   const options: PlatformAuthOptions = {
@@ -204,6 +213,7 @@ export async function createApiApplication(
       AiAgentConfigController,
       CampaignsController,
       AnalyticsController,
+      ScheduledTasksController,
       ...(config.environment === "test" ? [EntitlementTestProbeController] : []),
     ],
     providers: [
@@ -243,11 +253,13 @@ export async function createApiApplication(
       AiAgentConfigService,
       CampaignsService,
       AnalyticsService,
+      ScheduledTasksService,
       SystemObservabilityService,
       OperationalAlertingService,
       { provide: AI_GATEWAY_DATABASE, useFactory: getPlatformDatabaseClient },
       { provide: CAMPAIGNS_DATABASE, useFactory: getPlatformDatabaseClient },
       { provide: ANALYTICS_DATABASE, useFactory: getPlatformDatabaseClient },
+      { provide: SCHEDULED_TASKS_DATABASE, useFactory: getPlatformDatabaseClient },
       { provide: SYSTEM_OBSERVABILITY_DATABASE, useFactory: getPlatformDatabaseClient },
       {
         provide: AI_GATEWAY_SECRET,
@@ -388,6 +400,10 @@ export async function createApiApplication(
       {
         provide: PASSWORD_RESET_DELIVERY,
         useValue: dependencies.passwordResetDelivery ?? new UnavailablePasswordResetDelivery(),
+      },
+      {
+        provide: SCHEDULED_TASKS_QUEUE,
+        useValue: dependencies.scheduledTaskQueue ?? createDefaultScheduledTaskQueue(),
       },
     ],
   })

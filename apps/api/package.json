@@ -42,6 +42,8 @@
     "@whatsapp-platform/messaging": "workspace:*",
     "@whatsapp-platform/rbac": "workspace:*",
     "@whatsapp-platform/themes": "workspace:*",
+    "bullmq": "6.3.4",
+    "ioredis": "6.0.0",
     "reflect-metadata": "0.2.2",
     "rxjs": "7.8.2"
   }

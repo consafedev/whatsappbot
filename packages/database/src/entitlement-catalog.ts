@@ -15,6 +15,7 @@ export const MODULE_ENTITLEMENT_KEYS = [
   "module.integrations",
   "module.white_label",
   "module.reports",
+  "module.scheduling",
 ] as const;
 
 export type ModuleEntitlementKey = (typeof MODULE_ENTITLEMENT_KEYS)[number];
