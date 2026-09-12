@@ -18,6 +18,7 @@ import {
   type ScheduledTaskProcessorDependencies,
 } from "./scheduled-tasks.worker";
 import { createRedisConnectionOptions, enqueueScheduledTask } from "./scheduled-tasks-queue";
+import { createWorkerJobsRuntime } from "./worker-jobs-runtime";
 
 const tenantAId = "00000000-0000-4000-8000-000000000001";
 const tenantBId = "00000000-0000-4000-8000-000000000002";
@@ -234,5 +235,40 @@ describe("enqueueScheduledTask", () => {
     expect(() => createRedisConnectionOptions(redisUrl)).toThrow(
       "REDIS_URL database must be a non-negative integer",
     );
+  });
+});
+
+describe("createWorkerJobsRuntime", () => {
+  it("starts dependencies and shuts down worker, queue, then database", async () => {
+    const events: string[] = [];
+    const runtime = createWorkerJobsRuntime({
+      database: {
+        $disconnect: vi.fn(async () => {
+          events.push("database");
+        }),
+      },
+      environment: "test",
+      queue: {
+        close: vi.fn(async () => {
+          events.push("queue");
+        }),
+        waitUntilReady: vi.fn(async () => {
+          events.push("queue-ready");
+        }),
+      },
+      worker: {
+        close: vi.fn(async () => {
+          events.push("worker");
+        }),
+        waitUntilReady: vi.fn(async () => {
+          events.push("worker-ready");
+        }),
+      },
+    });
+
+    await runtime.start();
+    await runtime.shutdown();
+
+    expect(events).toEqual(["queue-ready", "worker-ready", "worker", "queue", "database"]);
   });
 });
