@@ -23,7 +23,17 @@ export function createRedisConnectionOptions(
   };
   if (url.username) options.username = decodeURIComponent(url.username);
   if (url.password) options.password = decodeURIComponent(url.password);
-  if (url.pathname.length > 1) options.db = Number.parseInt(url.pathname.slice(1), 10);
+  if (url.pathname.length > 1) {
+    const database = url.pathname.slice(1);
+    if (!/^\d+$/.test(database)) {
+      throw new Error("REDIS_URL database must be a non-negative integer");
+    }
+    const databaseNumber = Number(database);
+    if (!Number.isSafeInteger(databaseNumber)) {
+      throw new Error("REDIS_URL database must be a non-negative integer");
+    }
+    options.db = databaseNumber;
+  }
   if (url.protocol === "rediss:") options.tls = {};
   return options as NonNullable<QueueOptions["connection"]>;
 }
@@ -43,7 +53,7 @@ export async function enqueueScheduledTask(
     { taskId: task.id, tenantId: task.tenantId },
     {
       delay: Math.max(0, task.scheduledFor.getTime() - Date.now()),
-      jobId: `scheduled-task:${task.tenantId}:${task.id}`,
+      jobId: `scheduled-task:${task.tenantId}:${task.id}:${task.scheduledFor.getTime()}`,
       removeOnComplete: true,
       removeOnFail: false,
     },

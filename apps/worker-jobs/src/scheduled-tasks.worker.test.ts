@@ -17,7 +17,7 @@ import {
   processScheduledTaskJob,
   type ScheduledTaskProcessorDependencies,
 } from "./scheduled-tasks.worker";
-import { enqueueScheduledTask } from "./scheduled-tasks-queue";
+import { createRedisConnectionOptions, enqueueScheduledTask } from "./scheduled-tasks-queue";
 
 const tenantAId = "00000000-0000-4000-8000-000000000001";
 const tenantBId = "00000000-0000-4000-8000-000000000002";
@@ -218,10 +218,21 @@ describe("enqueueScheduledTask", () => {
       { taskId, tenantId: tenantAId },
       {
         delay: 60_000,
-        jobId: `scheduled-task:${tenantAId}:${taskId}`,
+        jobId: `scheduled-task:${tenantAId}:${taskId}:${scheduledFor.getTime()}`,
         removeOnComplete: true,
         removeOnFail: false,
       },
+    );
+  });
+
+  it.each([
+    "redis://localhost/garbage",
+    "redis://localhost/-1",
+    "redis://localhost/1junk",
+    "redis://localhost/999999999999999999999",
+  ])("rejects an invalid Redis database path: %s", (redisUrl) => {
+    expect(() => createRedisConnectionOptions(redisUrl)).toThrow(
+      "REDIS_URL database must be a non-negative integer",
     );
   });
 });
