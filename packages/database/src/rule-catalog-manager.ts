@@ -11,6 +11,7 @@ export const RULE_TRIGGER_TYPES = [
   "ON_STATUS_CHANGED",
   "ON_CONVERSATION_UNASSIGNED",
   "ON_OUT_OF_BUSINESS_HOURS",
+  "ON_SCHEDULED_TASK",
 ] as const;
 export type RuleTriggerType = (typeof RULE_TRIGGER_TYPES)[number];
 

@@ -199,8 +199,8 @@ export {
   createConversationManager,
 } from "./conversation-manager";
 export {
-  calculateNextRun,
   CronExpressionValidationError,
+  calculateNextRun,
   isValidCronExpression,
 } from "./cron-evaluator";
 export {
@@ -502,6 +502,11 @@ export {
   ScheduledTaskNotFoundError,
   ScheduledTaskValidationError,
 } from "./scheduled-task-manager";
+export {
+  createScheduledTaskTriggerPayload,
+  type ScheduledTaskTriggerPayload,
+  ScheduledTaskTriggerPayloadValidationError,
+} from "./scheduled-task-trigger";
 export {
   createTakeoverManager,
   InvalidConversationAutomationModeError,

@@ -33,6 +33,7 @@ export const RULE_OPERATORS = [
 export type RuleOperator = (typeof RULE_OPERATORS)[number];
 
 import type { BusinessHoursConfig } from "./business-hours-evaluator";
+import type { ScheduledTaskTriggerPayload } from "./scheduled-task-trigger";
 
 export interface RuleEvaluationContext {
   message?: {
@@ -60,6 +61,7 @@ export interface RuleEvaluationContext {
     isWithinBusinessHours?: boolean;
     businessHours?: BusinessHoursConfig | null;
   };
+  scheduledTask?: ScheduledTaskTriggerPayload;
   now?: Date;
   [key: string]: unknown;
 }
