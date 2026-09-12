@@ -1,7 +1,7 @@
 # docs/MANIFEST.md — Baseline documental verificada
 
 **Fecha:** 2026-09-12
-**Estado:** documentación sincronizada con PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; Epic 11 — Campaign Engine — PASS / COMPLETE; **Epic 12 — Reporting, Analytics & Operational Observability — PASS / COMPLETE (E12-S01, E12-S02, E12-S03, E12-S04, E12-S05 PASS); E13-S01 — PASS / COMPLETE; E13-S02 — IMPLEMENTED / FINAL VERIFICATION PENDING**.
+**Estado:** documentación sincronizada con PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; Epic 11 — Campaign Engine — PASS / COMPLETE; **Epic 12 — Reporting, Analytics & Operational Observability — PASS / COMPLETE (E12-S01, E12-S02, E12-S03, E12-S04, E12-S05 PASS); E13-S01 — PASS / COMPLETE; E13-S02 — PASS / COMPLETE**.
 **Propósito:** comprobar integridad y composición del conjunto de documentos que permite continuar el proyecto sin depender de memoria conversacional.
 
 > Las rutas son relativas a la raíz del repositorio. Los hashes cambian si se edita un archivo. Después de cambios intencionales, regenerar este manifest.
@@ -83,7 +83,7 @@
 | `platform_docs/RUNBOOK_BACKUP_RESTORE.md` | 4857 | 666 | `27e324b4cea0cd3a2514f44eeee4ce31db80a3a4701f0ba528ffb36afcebb3ff` |
 | `platform_docs/RUNBOOK_OPERATIONS.md` | 5777 | 796 | `23d4c537dd3bbcf4b8f08b39b4a948c42c10e3a458594c25ccf2b65937376252` |
 | `platform_docs/SECURITY.md` | 14589 | 2085 | `51b737e15512ae8136760024f2fcb78161276af0cf0699e8d06326ce1dc7b482` |
-| `platform_docs/STATUS.md` | 165472 | 19843 | `b6e88e8701c08c9de90e523e2f6dea5115c771e2dfdc5781523e4c4f69356547` |
+| `platform_docs/STATUS.md` | 165933 | 19906 | `aa6a2f85e7274a7f382ac63269a2621759f4171aa462931e718f5c336e786851` |
 | `platform_docs/SYSTEM_DESIGN.md` | 42737 | 5750 | `91f13a2973e0dc679941b408a80b2e2be3f2acb033de2fad62ca3e465c748ea4` |
 | `platform_docs/TESTING_STRATEGY.md` | 18229 | 2513 | `2659f25d06bcfe571830b291c6546ad481abb609049bede79003d80add2da358` |
 | `platform_docs/UI_FLOWS.md` | 22449 | 3253 | `311b1b44f7dcdd0e97003e0b29fa34cc789f95affa9052bf3ce86613ff86fddc` |
