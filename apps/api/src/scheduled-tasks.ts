@@ -5,6 +5,7 @@ import {
   ConflictException,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   HttpCode,
   HttpStatus,
@@ -27,6 +28,7 @@ import {
   ScheduledTaskNotFoundError,
   ScheduledTaskValidationError,
   type TenantContext,
+  TenantNotOperationalError,
 } from "@whatsapp-platform/database";
 import type { PermissionKey } from "@whatsapp-platform/rbac";
 import { NoopScheduledTaskQueue, type ScheduledTaskQueue } from "./scheduled-tasks-queue";
@@ -67,6 +69,18 @@ export interface ListScheduledTasksQuery {
   readonly offset?: string;
 }
 
+function notOperational(error: unknown): unknown {
+  if (error instanceof TenantNotOperationalError) {
+    return new ForbiddenException({
+      code: "TENANT_NOT_OPERATIONAL",
+      error: "Forbidden",
+      message: "Tenant is not operational",
+      statusCode: 403,
+    });
+  }
+  return error;
+}
+
 @Injectable()
 export class ScheduledTasksService {
   constructor(
@@ -100,7 +114,7 @@ export class ScheduledTasksService {
       if (error instanceof ScheduledTaskValidationError) {
         throw new BadRequestException(error.message);
       }
-      throw error;
+      throw notOperational(error);
     }
   }
 
@@ -116,7 +130,7 @@ export class ScheduledTasksService {
       if (error instanceof ScheduledTaskValidationError) {
         throw new BadRequestException(error.message);
       }
-      throw error;
+      throw notOperational(error);
     }
   }
 
@@ -136,7 +150,7 @@ export class ScheduledTasksService {
       if (error instanceof ScheduledTaskValidationError) {
         throw new BadRequestException(error.message);
       }
-      throw error;
+      throw notOperational(error);
     }
   }
 }

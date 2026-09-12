@@ -21,8 +21,11 @@ Entregado:
 - Adaptador BullMQ diferido `scheduled-tasks` en API y conexión de cola en
   `apps/worker-jobs`.
 - API REST protegida por sesión, contexto, permisos RBAC y `module.scheduling`,
-  con envelope estándar.
-- Catálogos RBAC/entitlements, ADR-0058, changelog y manifest actualizados.
+  con envelope estándar; tenants no operativos reciben `403
+  TENANT_NOT_OPERATIONAL` (mismo contrato que contacts/inbox/rules).
+- Catálogos RBAC/entitlements expandidos: 17 módulos canónicos (alta de
+  `module.scheduling`) y 36 permisos canónicos (altas de `scheduling.read` y
+  `scheduling.manage`). ADR-0058, changelog y manifest actualizados.
 
 Evidencia específica de E13-S01:
 
@@ -50,7 +53,25 @@ Diferido explícitamente:
 - Temporal y orquestadores externos permanecen fuera de alcance; se conserva
   BullMQ.
 
+Deuda documentada (pre-existente, fuera del alcance de E13-S01):
+
+- `pnpm --filter @whatsapp-platform/database test:integration` presenta fallos
+  pre-existentes sobre la dev DB compartida: la expectativa de 14 módulos en
+  `platform-tenant-detail-query.integration.ts` quedó congelada desde E04
+  (el catálogo canónico ya suma 17), el caso de catálogo incompleto en
+  `platform-tenant-provisioning.integration.ts` choca con restricciones
+  RESTRICT de residuos de pruebas anteriores en la dev DB, y
+  `delivery-status-manager` / `outbound-echo-manager` muestran interferencia
+  al correr en paralelo contra la misma base (pasan 100% en aislado).
+  Condición de eliminación: actualizar la expectativa al catálogo canónico
+  vigente, añadir limpieza de residuos al fixture y aislar o serializar las
+  suites afectadas (tarea dedicada de estabilización de integraciones).
+
 ## Current epic
+
+**Epic 13 — Task Scheduling & Distributed Orchestration** — **IN PROGRESS** (ADR-0058)
+
+- E13-S01 — Task Scheduler Foundation: **PASS** (ADR-0058).
 
 **Epic 12 — Reporting, Analytics & Operational Observability** — **COMPLETE** (ADR-0053, ADR-0054, ADR-0055, ADR-0056, ADR-0057)
 

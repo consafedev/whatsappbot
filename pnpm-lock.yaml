@@ -56,9 +56,6 @@ importers:
       bullmq:
         specifier: 6.3.4
         version: 6.3.4(ioredis@6.0.0)(pg@8.23.0)
-      ioredis:
-        specifier: 6.0.0
-        version: 6.0.0
       reflect-metadata:
         specifier: 0.2.2
         version: 0.2.2
@@ -107,9 +104,6 @@ importers:
       bullmq:
         specifier: 6.3.4
         version: 6.3.4(ioredis@6.0.0)(pg@8.23.0)
-      ioredis:
-        specifier: 6.0.0
-        version: 6.0.0
 
   apps/worker-whatsapp:
     dependencies:
@@ -2449,7 +2443,8 @@ snapshots:
   '@img/sharp-win32-x64@0.35.3':
     optional: true
 
-  '@ioredis/commands@2.0.0': {}
+  '@ioredis/commands@2.0.0':
+    optional: true
 
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:
@@ -3125,7 +3120,8 @@ snapshots:
 
   client-only@0.0.1: {}
 
-  cluster-key-slot@1.1.1: {}
+  cluster-key-slot@1.1.1:
+    optional: true
 
   concat-stream@2.0.0:
     dependencies:
@@ -3447,6 +3443,7 @@ snapshots:
       standard-as-callback: 2.1.0
     transitivePeerDependencies:
       - supports-color
+    optional: true
 
   ipaddr.js@1.9.1: {}
 
@@ -3842,7 +3839,8 @@ snapshots:
 
   readdirp@5.1.1: {}
 
-  redis-errors@1.2.0: {}
+  redis-errors@1.2.0:
+    optional: true
 
   reflect-metadata@0.2.2: {}
 
@@ -4013,7 +4011,8 @@ snapshots:
 
   stackback@0.0.2: {}
 
-  standard-as-callback@2.1.0: {}
+  standard-as-callback@2.1.0:
+    optional: true
 
   statuses@2.0.2: {}
 

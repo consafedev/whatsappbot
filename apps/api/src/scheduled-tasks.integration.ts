@@ -1,6 +1,8 @@
+import { ForbiddenException } from "@nestjs/common";
 import { generateOpaqueToken, hashOpaqueToken } from "@whatsapp-platform/auth";
 import { loadNonSecretConfig } from "@whatsapp-platform/config";
 import type { ModuleEntitlementKey, ScheduledTask } from "@whatsapp-platform/database";
+import { createTenantContext } from "@whatsapp-platform/database";
 import {
   createPlatformDatabaseClient,
   createPlatformTenantProvisioningRepository,
@@ -9,6 +11,7 @@ import {
 } from "@whatsapp-platform/database/platform";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApiApplication } from "./app";
+import { ScheduledTasksService } from "./scheduled-tasks";
 import type { ScheduledTaskQueue } from "./scheduled-tasks-queue";
 
 const prefix = "e13-s01-scheduled-task-api";
@@ -18,9 +21,11 @@ let baseUrl = "";
 let tenantAId = "";
 let tenantBId = "";
 let tenantNoModuleId = "";
+let tenantSuspendedId = "";
 let ownerACookie = "";
 let ownerBCookie = "";
 let noModuleCookie = "";
+let suspendedCookie = "";
 let viewerACookie = "";
 
 class RecordingScheduledTaskQueue implements ScheduledTaskQueue {
@@ -122,12 +127,19 @@ describe.sequential("Scheduled Tasks API Integration", () => {
     const tenantA = await provision("a", ["module.scheduling"]);
     const tenantB = await provision("b", ["module.scheduling"]);
     const tenantNoModule = await provision("no-module", []);
+    const tenantSuspended = await provision("suspended", ["module.scheduling"]);
     tenantAId = tenantA.tenantId;
     tenantBId = tenantB.tenantId;
     tenantNoModuleId = tenantNoModule.tenantId;
+    tenantSuspendedId = tenantSuspended.tenantId;
     ownerACookie = await session(tenantAId, tenantA.ownerId);
     ownerBCookie = await session(tenantBId, tenantB.ownerId);
     noModuleCookie = await session(tenantNoModuleId, tenantNoModule.ownerId);
+    suspendedCookie = await session(tenantSuspendedId, tenantSuspended.ownerId);
+    await prisma.tenant.update({
+      data: { status: "suspended" },
+      where: { id: tenantSuspendedId },
+    });
 
     const viewerRole = await prisma.role.findUniqueOrThrow({
       where: { tenantId_key: { key: "viewer", tenantId: tenantAId } },
@@ -167,6 +179,38 @@ describe.sequential("Scheduled Tasks API Integration", () => {
   it("requires a tenant session for scheduled task listing", async () => {
     const response = await fetch(`${baseUrl}/api/v1/scheduled-tasks`);
     expect(response.status).toBe(401);
+  });
+
+  it("rejects suspended-tenant sessions at the guard with 401", async () => {
+    const create = await fetch(`${baseUrl}/api/v1/scheduled-tasks`, {
+      body: JSON.stringify({
+        name: "Suspended tenant task",
+        scheduledFor: new Date(Date.now() + 600_000).toISOString(),
+        taskType: "send.reminder",
+      }),
+      headers: {
+        "content-type": "application/json",
+        cookie: suspendedCookie,
+        "x-tenant-id": tenantSuspendedId,
+      },
+      method: "POST",
+    });
+    expect(create.status).toBe(401);
+  });
+
+  it("maps a non-operational tenant reached past the guard to 403 TENANT_NOT_OPERATIONAL", async () => {    const service = app.get(ScheduledTasksService);
+    const suspendedContext = createTenantContext(tenantSuspendedId);
+    await expect(
+      service.cancel(suspendedContext, "019c0000-0000-7000-8000-0000000000ff"),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(
+      service.create(suspendedContext, {
+          name: "Suspended task",
+          scheduledFor: new Date(Date.now() + 600_000).toISOString(),
+          taskType: "send.reminder",
+        },
+      ),
+    ).rejects.toMatchObject({ response: { code: "TENANT_NOT_OPERATIONAL", statusCode: 403 } });
   });
 
   it("lists and creates scheduled tasks with the standard envelope", async () => {

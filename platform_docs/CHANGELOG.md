@@ -11,9 +11,13 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 - E13-S01 task scheduler foundation: tenant-scoped `ScheduledTask` Prisma
   model and migration, transactional persistence manager, BullMQ
   `scheduled-tasks` queue wiring, and guarded REST endpoints for listing,
-  creating, and cancelling tasks.
-- Added `module.scheduling`, `scheduling.read`, and `scheduling.manage` to the
-  entitlement and RBAC catalogs.
+  creating, and cancelling tasks. Tenants that are not operational receive
+  `403 TENANT_NOT_OPERATIONAL`, matching the contract of contacts, inbox,
+  and rules endpoints.
+- Added `module.scheduling` to the entitlement catalog (canonical modules now
+  total 17) and `scheduling.read` plus `scheduling.manage` to the RBAC catalog
+  (canonical permissions now total 36: 34 pre-existing plus the two scheduling
+  permissions).
 - Added ADR-0058 documenting the foundation architecture and the explicit
   E13-S02/E13-S03/E13-S04 deferrals.
 

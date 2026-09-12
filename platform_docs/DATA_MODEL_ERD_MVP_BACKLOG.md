@@ -2547,17 +2547,24 @@ Este flujo es vendible a despachos, talleres, logística, escuelas, servicios t�
 
 ---
 
-# 52. Epic 13 — Scheduler / Orchestrator [P1]
+# 52. Epic 13 — Task Scheduling & Distributed Orchestration [P1]
 
-## E13-S01 Orchestrator interface [M]
+> Reconciliación de split (2026-09-11, ADR-0058): la entrega original
+> planificada para S01/S02/S03 se consolidó — E13-S01 incluye la interfaz de
+> orquestación (data model + manager transaccional), el adapter BullMQ y la
+> referencia de jobs (`ScheduledTask` con job id determinista). E13-S02
+> cubre orquestación de cron recurrente y disparadores de reglas;
+> E13-S03 conserva recuperación/reconciliación con backoff exponencial.
 
-## E13-S02 BullMQ adapter [L]
+## E13-S01 Task scheduler foundation [M] — DONE
 
-## E13-S03 ScheduledJobReference [M]
+## E13-S02 Recurring cron orchestration & rule triggers [M]
 
-## E13-S04 Recovery/reconciliation [L]
+## E13-S03 ScheduledJobReference recovery/reconciliation & exponential backoff [L]
 
 Reconstruir jobs pendientes si Redis fue perdido/reiniciado.
+
+## E13-S04 Scheduled tasks web UI (Next.js) [L]
 
 ## E13-S05 Idempotency middleware [M]
 

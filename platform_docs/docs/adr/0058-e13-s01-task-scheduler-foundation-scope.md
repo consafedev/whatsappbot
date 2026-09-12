@@ -49,6 +49,14 @@ queue available for the next orchestration story. E13-S01 does not execute
 arbitrary task types from the queue; the durable task state remains the source
 of truth until the orchestrator is delivered.
 
+Runtime smoke procedure (repeatable, no dedicated script): authenticate as a
+tenant with `module.scheduling`, `POST /api/v1/scheduled-tasks` with a future
+`scheduledFor`, then confirm in Redis that a `bull:scheduled-tasks` delayed job
+exists whose payload carries only the returned `tenantId` and `taskId` (the
+row stays `PENDING` in PostgreSQL). Remove the job and the temporary tenant
+afterwards. Unauthenticated `GET /api/v1/scheduled-tasks` must still answer
+`401`.
+
 ## Consequences
 
 The foundation preserves shared-schema tenant isolation and keeps provider or
