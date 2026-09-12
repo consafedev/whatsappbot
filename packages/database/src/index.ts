@@ -487,9 +487,11 @@ export {
 } from "./rule-trigger-dispatcher";
 export {
   type ClaimDueScheduledTasksInput,
+  type ClaimScheduledTaskInput,
   type CreateScheduledTaskInput,
   cancelScheduledTask,
   claimDueScheduledTasks,
+  claimScheduledTask,
   createScheduledTask,
   type ListScheduledTasksInput,
   listScheduledTasks,
@@ -497,6 +499,8 @@ export {
   type MarkScheduledTaskFailedInput,
   markScheduledTaskCompleted,
   markScheduledTaskFailed,
+  type RescheduleRecurringTaskInput,
+  rescheduleRecurringTask,
   type ScheduledTaskDatabase,
   ScheduledTaskInvalidStateError,
   ScheduledTaskNotFoundError,

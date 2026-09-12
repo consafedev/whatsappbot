@@ -6,13 +6,17 @@ import {
   syncPermissionCatalog,
 } from "@whatsapp-platform/database/platform";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { CronExpressionValidationError } from "./cron-evaluator";
+import { ScheduledTaskStatus } from "./generated/prisma/enums";
 import {
   cancelScheduledTask,
   claimDueScheduledTasks,
+  claimScheduledTask,
   createScheduledTask,
   listScheduledTasks,
   markScheduledTaskCompleted,
   markScheduledTaskFailed,
+  rescheduleRecurringTask,
   ScheduledTaskInvalidStateError,
   ScheduledTaskNotFoundError,
   ScheduledTaskValidationError,
@@ -131,6 +135,16 @@ describe.sequential("scheduled-task-manager integration", () => {
         tenantId: tenantAId,
       }),
     ).rejects.toBeInstanceOf(ScheduledTaskValidationError);
+
+    await expect(
+      createScheduledTask(prisma, {
+        cronExpression: "@daily",
+        name: "Invalid cron",
+        scheduledFor: futureDate(10),
+        taskType: "send.reminder",
+        tenantId: tenantAId,
+      }),
+    ).rejects.toBeInstanceOf(CronExpressionValidationError);
   });
 
   it("lists only the current tenant and cancels by tenant-scoped composite key", async () => {
@@ -243,5 +257,91 @@ describe.sequential("scheduled-task-manager integration", () => {
       tenantId: tenantBId,
     });
     expect(crossTenantClaim.some(({ id }) => taskIds.includes(id))).toBe(false);
+  });
+
+  it("claims scheduled work by tenant identity and advances only recurring processing tasks", async () => {
+    const dueAt = new Date("2026-01-05T09:00:00.000Z");
+    const claimAt = new Date("2026-01-05T09:00:00.000Z");
+    const recurringTask = await createScheduledTask(prisma, {
+      cronExpression: "0 9 * * 1-5",
+      name: "Weekday recurring task",
+      payload: { source: "cron" },
+      scheduledFor: dueAt,
+      taskType: "send.follow-up",
+      tenantId: tenantAId,
+    });
+    const earlyTask = await createScheduledTask(prisma, {
+      name: "Early task",
+      scheduledFor: new Date("2026-01-05T09:01:00.000Z"),
+      taskType: "send.follow-up",
+      tenantId: tenantAId,
+    });
+    const tenantBTask = await createScheduledTask(prisma, {
+      name: "Tenant B task",
+      scheduledFor: dueAt,
+      taskType: "send.follow-up",
+      tenantId: tenantBId,
+    });
+
+    await expect(
+      claimScheduledTask(prisma, {
+        expectedTenantId: tenantBTask.tenantId,
+        id: recurringTask.id,
+        now: claimAt,
+      }),
+    ).resolves.toBeNull();
+    await expect(
+      claimScheduledTask(prisma, {
+        expectedTenantId: tenantAId,
+        id: earlyTask.id,
+        now: claimAt,
+      }),
+    ).resolves.toBeNull();
+
+    const claimed = await claimScheduledTask(prisma, {
+      expectedTenantId: tenantAId,
+      id: recurringTask.id,
+      now: claimAt,
+    });
+    expect(claimed?.status).toBe(ScheduledTaskStatus.PROCESSING);
+    await expect(
+      claimScheduledTask(prisma, {
+        expectedTenantId: tenantAId,
+        id: recurringTask.id,
+        now: claimAt,
+      }),
+    ).resolves.toBeNull();
+
+    const rescheduled = await rescheduleRecurringTask(prisma, {
+      id: recurringTask.id,
+      lastRunAt: claimAt,
+      tenantId: tenantAId,
+    });
+    expect(rescheduled.status).toBe(ScheduledTaskStatus.PENDING);
+    expect(rescheduled.scheduledFor).toEqual(new Date("2026-01-06T09:00:00.000Z"));
+    expect(rescheduled.nextRunAt).toEqual(new Date("2026-01-06T09:00:00.000Z"));
+    expect(rescheduled.lastRunAt).toEqual(claimAt);
+    expect(rescheduled.retryCount).toBe(0);
+
+    const oneTimeTask = await createScheduledTask(prisma, {
+      name: "One-time task",
+      scheduledFor: dueAt,
+      taskType: "send.follow-up",
+      tenantId: tenantAId,
+    });
+    await claimScheduledTask(prisma, {
+      expectedTenantId: tenantAId,
+      id: oneTimeTask.id,
+      now: claimAt,
+    });
+
+    const completed = await rescheduleRecurringTask(prisma, {
+      id: oneTimeTask.id,
+      lastRunAt: claimAt,
+      tenantId: tenantAId,
+    });
+    expect(completed.status).toBe(ScheduledTaskStatus.COMPLETED);
+    expect(completed.lastRunAt).toEqual(claimAt);
+    expect(completed.retryCount).toBe(0);
   });
 });

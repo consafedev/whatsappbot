@@ -1,3 +1,8 @@
+import {
+  CronExpressionValidationError,
+  calculateNextRun,
+  isValidCronExpression,
+} from "./cron-evaluator";
 import { Prisma, type PrismaClient, type ScheduledTask } from "./generated/prisma/client";
 import { ScheduledTaskStatus } from "./generated/prisma/enums";
 import { createTenantContext } from "./tenant-context";
@@ -28,6 +33,12 @@ export interface ClaimDueScheduledTasksInput {
   readonly limit: number;
 }
 
+export interface ClaimScheduledTaskInput {
+  readonly id: string;
+  readonly expectedTenantId: string;
+  readonly now?: Date;
+}
+
 export interface MarkScheduledTaskCompletedInput {
   readonly tenantId: string;
   readonly id: string;
@@ -39,6 +50,12 @@ export interface MarkScheduledTaskFailedInput {
   readonly id: string;
   readonly error: string;
   readonly canRetry: boolean;
+}
+
+export interface RescheduleRecurringTaskInput {
+  readonly tenantId: string;
+  readonly id: string;
+  readonly lastRunAt: Date;
 }
 
 export class ScheduledTaskValidationError extends Error {
@@ -127,12 +144,19 @@ export async function createScheduledTask(
   if (!taskType) throw new ScheduledTaskValidationError("taskType must not be empty");
   assertValidDate(input.scheduledFor, "scheduledFor");
   const maxRetries = assertRetryCount(input.maxRetries);
+  const cronExpression =
+    input.cronExpression === undefined || input.cronExpression === null
+      ? null
+      : input.cronExpression.trim();
+  if (cronExpression !== null && !isValidCronExpression(cronExpression)) {
+    throw new CronExpressionValidationError("Invalid cron expression");
+  }
 
   return database.$transaction(async (transaction) => {
     await assertTenantOperational(tenant, transaction);
     return transaction.scheduledTask.create({
       data: {
-        cronExpression: input.cronExpression?.trim() || null,
+        cronExpression,
         maxRetries,
         name,
         payload: input.payload ?? {},
@@ -245,6 +269,36 @@ export async function claimDueScheduledTasks(
   });
 }
 
+export async function claimScheduledTask(
+  database: ScheduledTaskDatabase,
+  input: ClaimScheduledTaskInput,
+): Promise<ScheduledTask | null> {
+  const now = input.now ?? new Date();
+  assertValidDate(now, "now");
+
+  return database.$transaction(async (transaction) => {
+    const task = await transaction.scheduledTask.findUnique({ where: { id: input.id } });
+    if (task === null || task.tenantId !== input.expectedTenantId) return null;
+
+    const tenant = createTenantContext(task.tenantId);
+    await assertTenantOperational(tenant, transaction);
+    const claimed = await transaction.scheduledTask.updateMany({
+      data: { status: ScheduledTaskStatus.PROCESSING },
+      where: {
+        id: task.id,
+        scheduledFor: { lte: now },
+        status: ScheduledTaskStatus.PENDING,
+        tenantId: tenant.tenantId,
+      },
+    });
+    if (claimed.count === 0) return null;
+
+    return transaction.scheduledTask.findUnique({
+      where: { tenantId_id: { id: task.id, tenantId: tenant.tenantId } },
+    });
+  });
+}
+
 export async function markScheduledTaskCompleted(
   database: ScheduledTaskDatabase,
   input: MarkScheduledTaskCompletedInput,
@@ -297,6 +351,45 @@ export async function markScheduledTaskFailed(
         ...(retry
           ? { retryCount: { increment: 1 }, status: ScheduledTaskStatus.PENDING }
           : { status: ScheduledTaskStatus.FAILED }),
+      },
+      where: { tenantId_id: { id: task.id, tenantId: tenant.tenantId } },
+    });
+  });
+}
+
+export async function rescheduleRecurringTask(
+  database: ScheduledTaskDatabase,
+  input: RescheduleRecurringTaskInput,
+): Promise<ScheduledTask> {
+  const tenant = createTenantContext(input.tenantId);
+  assertValidDate(input.lastRunAt, "lastRunAt");
+
+  return database.$transaction(async (transaction) => {
+    await assertTenantOperational(tenant, transaction);
+    const task = await transaction.scheduledTask.findUnique({
+      where: { tenantId_id: { id: input.id, tenantId: tenant.tenantId } },
+    });
+    if (task === null) throw new ScheduledTaskNotFoundError(input.id);
+    const targetStatus =
+      task.cronExpression === null ? ScheduledTaskStatus.COMPLETED : ScheduledTaskStatus.PENDING;
+    if (task.status !== ScheduledTaskStatus.PROCESSING) {
+      throw new ScheduledTaskInvalidStateError(task.id, task.status, targetStatus);
+    }
+
+    if (task.cronExpression === null) {
+      return transaction.scheduledTask.update({
+        data: { lastRunAt: input.lastRunAt, status: ScheduledTaskStatus.COMPLETED },
+        where: { tenantId_id: { id: task.id, tenantId: tenant.tenantId } },
+      });
+    }
+
+    const nextRunAt = calculateNextRun(task.cronExpression, input.lastRunAt);
+    return transaction.scheduledTask.update({
+      data: {
+        lastRunAt: input.lastRunAt,
+        nextRunAt,
+        scheduledFor: nextRunAt,
+        status: ScheduledTaskStatus.PENDING,
       },
       where: { tenantId_id: { id: task.id, tenantId: tenant.tenantId } },
     });
