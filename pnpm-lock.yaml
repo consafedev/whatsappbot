@@ -152,6 +152,9 @@ importers:
       '@whatsapp-platform/themes':
         specifier: workspace:*
         version: link:../themes
+      cron-parser:
+        specifier: 5.10.0
+        version: 5.10.0
     devDependencies:
       prisma:
         specifier: 7.9.1

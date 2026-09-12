@@ -63,7 +63,8 @@
     "@whatsapp-platform/config": "workspace:*",
     "@whatsapp-platform/messaging": "workspace:*",
     "@whatsapp-platform/rbac": "workspace:*",
-    "@whatsapp-platform/themes": "workspace:*"
+    "@whatsapp-platform/themes": "workspace:*",
+    "cron-parser": "5.10.0"
   },
   "devDependencies": {
     "prisma": "7.9.1"

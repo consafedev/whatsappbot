@@ -199,6 +199,11 @@ export {
   createConversationManager,
 } from "./conversation-manager";
 export {
+  calculateNextRun,
+  CronExpressionValidationError,
+  isValidCronExpression,
+} from "./cron-evaluator";
+export {
   createDeliveryStatusManager,
   DELIVERY_STATUS_RANK,
   type DeliveryStatus,
