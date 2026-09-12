@@ -6,7 +6,11 @@ export class CronExpressionValidationError extends Error {
 
 function assertFiveFields(expression: string): string {
   const normalized = expression.trim();
-  if (normalized.startsWith("@") || normalized.split(/\s+/).length !== 5) {
+  if (
+    normalized.startsWith("@") ||
+    normalized.split(/\s+/).length !== 5 ||
+    !/^[\d*/,-]+(?:\s+[\d*/,-]+){4}$/.test(normalized)
+  ) {
     throw new CronExpressionValidationError("Cron expression must contain exactly five fields");
   }
   return normalized;
