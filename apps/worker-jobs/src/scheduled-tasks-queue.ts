@@ -1,3 +1,4 @@
+import type { ScheduledTask } from "@whatsapp-platform/database";
 import { Queue, type QueueOptions } from "bullmq";
 
 export const SCHEDULED_TASK_QUEUE_NAME = "scheduled-tasks";
@@ -7,7 +8,9 @@ export type ScheduledTaskJobData = Readonly<{
   readonly tenantId: string;
 }>;
 
-function redisConnectionOptions(redisUrl: string): NonNullable<QueueOptions["connection"]> {
+export function createRedisConnectionOptions(
+  redisUrl: string,
+): NonNullable<QueueOptions["connection"]> {
   const url = new URL(redisUrl);
   if (url.protocol !== "redis:" && url.protocol !== "rediss:") {
     throw new Error("REDIS_URL must use redis:// or rediss://");
@@ -27,6 +30,22 @@ function redisConnectionOptions(redisUrl: string): NonNullable<QueueOptions["con
 
 export function createScheduledTaskQueueConnection(redisUrl: string): Queue<ScheduledTaskJobData> {
   return new Queue<ScheduledTaskJobData>(SCHEDULED_TASK_QUEUE_NAME, {
-    connection: redisConnectionOptions(redisUrl),
+    connection: createRedisConnectionOptions(redisUrl),
   });
+}
+
+export async function enqueueScheduledTask(
+  queue: Pick<Queue<ScheduledTaskJobData>, "add">,
+  task: ScheduledTask,
+): Promise<void> {
+  await queue.add(
+    "scheduled-task",
+    { taskId: task.id, tenantId: task.tenantId },
+    {
+      delay: Math.max(0, task.scheduledFor.getTime() - Date.now()),
+      jobId: `scheduled-task:${task.tenantId}:${task.id}`,
+      removeOnComplete: true,
+      removeOnFail: false,
+    },
+  );
 }

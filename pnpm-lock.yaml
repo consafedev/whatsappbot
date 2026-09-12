@@ -101,6 +101,9 @@ importers:
       '@whatsapp-platform/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@whatsapp-platform/database':
+        specifier: workspace:*
+        version: link:../../packages/database
       bullmq:
         specifier: 6.3.4
         version: 6.3.4(ioredis@6.0.0)(pg@8.23.0)
