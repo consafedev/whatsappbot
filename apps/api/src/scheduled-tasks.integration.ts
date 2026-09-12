@@ -198,18 +198,18 @@ describe.sequential("Scheduled Tasks API Integration", () => {
     expect(create.status).toBe(401);
   });
 
-  it("maps a non-operational tenant reached past the guard to 403 TENANT_NOT_OPERATIONAL", async () => {    const service = app.get(ScheduledTasksService);
+  it("maps a non-operational tenant reached past the guard to 403 TENANT_NOT_OPERATIONAL", async () => {
+    const service = app.get(ScheduledTasksService);
     const suspendedContext = createTenantContext(tenantSuspendedId);
     await expect(
       service.cancel(suspendedContext, "019c0000-0000-7000-8000-0000000000ff"),
     ).rejects.toBeInstanceOf(ForbiddenException);
     await expect(
       service.create(suspendedContext, {
-          name: "Suspended task",
-          scheduledFor: new Date(Date.now() + 600_000).toISOString(),
-          taskType: "send.reminder",
-        },
-      ),
+        name: "Suspended task",
+        scheduledFor: new Date(Date.now() + 600_000).toISOString(),
+        taskType: "send.reminder",
+      }),
     ).rejects.toMatchObject({ response: { code: "TENANT_NOT_OPERATIONAL", statusCode: 403 } });
   });
 
@@ -252,6 +252,76 @@ describe.sequential("Scheduled Tasks API Integration", () => {
       id: taskAId,
       tenantId: tenantAId,
     });
+  });
+
+  it("creates recurring tasks with the first UTC occurrence when scheduledFor is omitted", async () => {
+    const response = await fetch(`${baseUrl}/api/v1/scheduled-tasks`, {
+      body: JSON.stringify({
+        cronExpression: "0 9 * * 1-5",
+        name: "Weekday rule trigger",
+        payload: { source: "recurring-api-test" },
+        taskType: "TRIGGER_RULE",
+      }),
+      headers: {
+        "content-type": "application/json",
+        cookie: ownerACookie,
+        "x-tenant-id": tenantAId,
+      },
+      method: "POST",
+    });
+
+    expect(response.status).toBe(201);
+    const body = (await response.json()) as {
+      success: boolean;
+      data: { cronExpression: string | null; scheduledFor: string; tenantId: string };
+    };
+    expect(body).toMatchObject({
+      data: { cronExpression: "0 9 * * 1-5", tenantId: tenantAId },
+      success: true,
+    });
+    expect(new Date(body.data.scheduledFor).getTime()).toBeGreaterThan(Date.now());
+  });
+
+  it("preserves an explicit scheduledFor for recurring tasks", async () => {
+    const scheduledFor = new Date(Date.now() + 1_800_000).toISOString();
+    const response = await fetch(`${baseUrl}/api/v1/scheduled-tasks`, {
+      body: JSON.stringify({
+        cronExpression: "0 9 * * 1-5",
+        name: "Explicit recurring rule trigger",
+        scheduledFor,
+        taskType: "TRIGGER_RULE",
+      }),
+      headers: {
+        "content-type": "application/json",
+        cookie: ownerACookie,
+        "x-tenant-id": tenantAId,
+      },
+      method: "POST",
+    });
+
+    expect(response.status).toBe(201);
+    const body = (await response.json()) as { data: { scheduledFor: string } };
+    expect(body.data.scheduledFor).toBe(scheduledFor);
+  });
+
+  it("rejects invalid recurring cron before persistence", async () => {
+    const before = await prisma.scheduledTask.count({ where: { tenantId: tenantAId } });
+    const response = await fetch(`${baseUrl}/api/v1/scheduled-tasks`, {
+      body: JSON.stringify({
+        cronExpression: "* * * * * *",
+        name: "Invalid cron",
+        taskType: "CUSTOM_ACTION",
+      }),
+      headers: {
+        "content-type": "application/json",
+        cookie: ownerACookie,
+        "x-tenant-id": tenantAId,
+      },
+      method: "POST",
+    });
+
+    expect(response.status).toBe(400);
+    expect(await prisma.scheduledTask.count({ where: { tenantId: tenantAId } })).toBe(before);
   });
 
   it("enforces module and permission gates", async () => {

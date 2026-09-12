@@ -19,8 +19,10 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import {
+  calculateNextRun,
   cancelScheduledTask,
   createScheduledTask,
+  isValidCronExpression,
   listScheduledTasks,
   type Prisma,
   type ScheduledTaskDatabase,
@@ -90,13 +92,28 @@ export class ScheduledTasksService {
 
   async create(context: TenantContext, dto: CreateScheduledTaskDto) {
     try {
+      const cronExpression =
+        dto.cronExpression === undefined || dto.cronExpression === null
+          ? dto.cronExpression
+          : dto.cronExpression.trim();
+      if (
+        cronExpression !== undefined &&
+        cronExpression !== null &&
+        !isValidCronExpression(cronExpression)
+      ) {
+        throw new BadRequestException("Invalid cron expression");
+      }
+      const scheduledFor =
+        dto.scheduledFor === undefined && typeof cronExpression === "string"
+          ? calculateNextRun(cronExpression, new Date())
+          : new Date(dto.scheduledFor ?? "");
       const task = await createScheduledTask(this.database, {
         tenantId: context.tenantId,
         name: dto.name ?? "",
         taskType: dto.taskType ?? "",
         payload: dto.payload as Prisma.InputJsonValue,
-        scheduledFor: new Date(dto.scheduledFor ?? ""),
-        ...(dto.cronExpression === undefined ? {} : { cronExpression: dto.cronExpression }),
+        scheduledFor,
+        ...(cronExpression === undefined ? {} : { cronExpression }),
         ...(dto.maxRetries === undefined ? {} : { maxRetries: dto.maxRetries }),
       });
 
