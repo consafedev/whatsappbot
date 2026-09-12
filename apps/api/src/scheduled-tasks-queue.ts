@@ -27,8 +27,12 @@ export function redisConnectionOptions(redisUrl: string): NonNullable<QueueOptio
   if (url.username) options.username = decodeURIComponent(url.username);
   if (url.password) options.password = decodeURIComponent(url.password);
   if (url.pathname.length > 1) {
-    const database = Number.parseInt(url.pathname.slice(1), 10);
-    if (!Number.isInteger(database) || database < 0) {
+    const databasePath = url.pathname.slice(1);
+    if (!/^\d+$/.test(databasePath)) {
+      throw new Error("REDIS_URL database must be a non-negative integer");
+    }
+    const database = Number(databasePath);
+    if (!Number.isSafeInteger(database)) {
       throw new Error("REDIS_URL database must be a non-negative integer");
     }
     options.db = database;
@@ -53,7 +57,7 @@ export class BullMqScheduledTaskQueue implements ScheduledTaskQueue {
       { taskId: task.id, tenantId: task.tenantId },
       {
         delay,
-        jobId: `scheduled-task:${task.tenantId}:${task.id}`,
+        jobId: `scheduled-task:${task.tenantId}:${task.id}:${task.scheduledFor.getTime()}`,
         removeOnComplete: true,
         removeOnFail: false,
       },
