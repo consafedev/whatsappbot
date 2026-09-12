@@ -1,12 +1,12 @@
 # STATUS.md — Estado operativo actual del proyecto
 
-**Actualizado:** 2026-09-11
+**Actualizado:** 2026-09-12
 **Versión de producto:** `0.0.0`  
-**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; Epic 11 — Campaign Engine & Audience Broadcasts — PASS / COMPLETE; **Epic 12 — Reporting, Analytics & Operational Observability — PASS / COMPLETE (E12-S01, E12-S02, E12-S03, E12-S04, E12-S05 PASS); E13-S01 — PASS / COMPLETE**.
+**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; Epic 11 — Campaign Engine & Audience Broadcasts — PASS / COMPLETE; **Epic 12 — Reporting, Analytics & Operational Observability — PASS / COMPLETE (E12-S01, E12-S02, E12-S03, E12-S04, E12-S05 PASS); E13-S01 — PASS / COMPLETE; E13-S02 — IMPLEMENTED / FINAL VERIFICATION PENDING**.
 
 ## Current milestone
 
-Epic 13 — Task Scheduling & Distributed Orchestration (E13-S01).
+Epic 13 — Task Scheduling & Distributed Orchestration (E13-S02 final verification).
 
 ### E13-S01 — Task Scheduler Foundation
 
@@ -46,12 +46,45 @@ Evidencia específica de E13-S01:
 
 Diferido explícitamente:
 
-- E13-S02: orquestación de cron recurrente y disparadores de reglas automáticas.
 - E13-S03: recuperación/reconciliación de tareas huérfanas o trabadas y backoff
   exponencial.
 - E13-S04: interfaz Next.js.
 - Temporal y orquestadores externos permanecen fuera de alcance; se conserva
   BullMQ.
+
+### E13-S02 — Recurring Cron Orchestration and Scheduled Rules Trigger
+
+Status: IMPLEMENTED — pendiente de los gates globales y sincronización Docker
+de esta historia; ADR-0059.
+
+Entregado y verificado de forma focalizada:
+
+- Evaluador cron UTC estricto de cinco campos, validado en la API y de nuevo
+  por el gestor PostgreSQL; una creación recurrente sin `scheduledFor` calcula
+  la primera ocurrencia, mientras que una fecha explícita prevalece.
+- Reclamo por identidad compuesta y transición recurrente atómica condicionada
+  a `PROCESSING`; una carrera no puede reprogramar dos veces la misma tarea.
+- `ON_SCHEDULED_TASK` como sexto trigger canónico del motor Rules. El evento
+  `TRIGGER_RULE` deriva identidad y ocurrencia de la fila `ScheduledTask`, no
+  del JSONB ni del job BullMQ.
+- Worker BullMQ testeable que revalida `module.scheduling`, conserva
+  `CUSTOM_ACTION` como no-op seguro, normaliza fallos sin payload y reencola
+  sólo tras la transición persistida. El job contiene sólo `tenantId` y
+  `taskId`; su ID determinista incluye la ocurrencia persistida para no chocar
+  con un job activo.
+- Runtime `worker-jobs` con cierre ordenado Worker → Queue → Prisma y logs de
+  inicio/fallo sin datos de tarea ni mensajes sensibles.
+- Integración API focalizada: 9/9 pruebas PASS con PostgreSQL local; pruebas
+  worker focalizadas: 14/14 PASS; build de `worker-jobs`, typechecks focalizados
+  y Biome focalizado PASS.
+
+Límites vigentes:
+
+- E13-S03 conserva recuperación, reconciliación, detección de tareas trabadas
+  y backoff exponencial.
+- E13-S04 conserva la interfaz Next.js.
+- Temporal y otros orquestadores externos siguen fuera de alcance; BullMQ se
+  mantiene según ADR-0005.
 
 Deuda documentada (pre-existente, fuera del alcance de E13-S01):
 
@@ -69,9 +102,11 @@ Deuda documentada (pre-existente, fuera del alcance de E13-S01):
 
 ## Current epic
 
-**Epic 13 — Task Scheduling & Distributed Orchestration** — **IN PROGRESS** (ADR-0058)
+**Epic 13 — Task Scheduling & Distributed Orchestration** — **IN PROGRESS** (ADR-0058, ADR-0059)
 
 - E13-S01 — Task Scheduler Foundation: **PASS** (ADR-0058).
+- E13-S02 — Recurring Cron Orchestration and Scheduled Rules Trigger:
+  **IMPLEMENTED / FINAL VERIFICATION PENDING** (ADR-0059).
 
 **Epic 12 — Reporting, Analytics & Operational Observability** — **COMPLETE** (ADR-0053, ADR-0054, ADR-0055, ADR-0056, ADR-0057)
 

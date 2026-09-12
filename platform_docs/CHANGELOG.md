@@ -8,6 +8,15 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Added
 
+- E13-S02 recurring cron orchestration: strict five-field UTC cron evaluation,
+  atomic persisted task claim/reschedule transitions, and a BullMQ worker that
+  derives tenant identity from `ScheduledTask` rather than queue or JSONB data.
+  `ON_SCHEDULED_TASK` is the sixth canonical Rules trigger; `CUSTOM_ACTION` is
+  intentionally a safe no-op. Recurrence job IDs are deterministic per
+  persisted occurrence, avoiding collisions with an active job. The API now
+  rejects invalid cron and derives the initial occurrence when omitted. ADR-0059
+  documents the decision and retains E13-S03 recovery, E13-S04 UI, and Temporal
+  as out of scope.
 - E13-S01 task scheduler foundation: tenant-scoped `ScheduledTask` Prisma
   model and migration, transactional persistence manager, BullMQ
   `scheduled-tasks` queue wiring, and guarded REST endpoints for listing,
