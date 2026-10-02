@@ -8,6 +8,14 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Added
 
+- E13-S04 scheduled tasks web console: tenant-gated Next.js route and
+  navigation, paginated task list, status/name filters, one-off and recurring
+  creation with UTC cron presets, cancel/retry actions, typed web API clients,
+  and defensive `scheduling.read` / `scheduling.manage` UI gates. The view model
+  normalizes API `data.tasks` to `items`; no backend or database contract was
+  changed. Superseded list requests are aborted, and the creation dialog manages
+  and restores keyboard focus. ADR-0061 records the UI boundary and UTC cron
+  behavior.
 - E13-S03 task recovery and reconciliation: deterministic exponential retry
   backoff, transactional recovery of stale tasks for active tenants, periodic
   reconstruction of due BullMQ jobs, and tenant-scoped manual retry through

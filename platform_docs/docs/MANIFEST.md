@@ -1,7 +1,7 @@
 # docs/MANIFEST.md — Baseline documental verificada
 
 **Fecha:** 2026-10-01
-**Estado:** documentación sincronizada con PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; Epic 11 — Campaign Engine — PASS / COMPLETE; **Epic 12 — Reporting, Analytics & Operational Observability — PASS / COMPLETE (E12-S01, E12-S02, E12-S03, E12-S04, E12-S05 PASS); E13-S01 — PASS / COMPLETE; E13-S02 — PASS / COMPLETE; E13-S03 — PASS / COMPLETE**.
+**Estado:** documentación sincronizada con PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; Epic 11 — Campaign Engine — PASS / COMPLETE; **Epic 12 — Reporting, Analytics & Operational Observability — PASS / COMPLETE (E12-S01, E12-S02, E12-S03, E12-S04, E12-S05 PASS); E13-S01 — PASS / COMPLETE; E13-S02 — PASS / COMPLETE; E13-S03 — PASS / COMPLETE; E13-S04 — PASS / COMPLETE**.
 **Propósito:** comprobar integridad y composición del conjunto de documentos que permite continuar el proyecto sin depender de memoria conversacional.
 
 > Las rutas son relativas a la raíz del repositorio. Los hashes cambian si se edita un archivo. Después de cambios intencionales, regenerar este manifest.
@@ -12,7 +12,7 @@
 | `README.md` | 8026 | 960 | `cee94177528c317114d524256385dc2335b0ed544cbf0abbd87fa7850f8f115f` |
 | `.agents/agents.md` | 388 | 41 | `d52b02af7fdab6d2ecbf7af4dd2f311d5d244f153817498ff9e542427e9e1675` |
 | `.agents/skills/whatsapp-platform-engineering/SKILL.md` | 19764 | 2747 | `8597b90ddbb55ccb4dbcb5b1d98b100b264759be2357f772ec5c997a1a0ff23b` |
-| `platform_docs/CHANGELOG.md` | 116899 | 13483 | `e17cf70fef5d126d590ac04ac39a49980b91b70a9a0ad7b582d30aa00f0e8f29` |
+| `platform_docs/CHANGELOG.md` | 117455 | 13558 | `d6e3493e531e32e16b05b8f70404d642010a9d1e64421af86b2fb6ef6caa02c5` |
 | `platform_docs/DATA_MODEL_ERD_MVP_BACKLOG.md` | 73539 | 9924 | `c7c78b32f12579821426dd68725216154c1ec1ed155791831d3e8adca360e977` |
 | `platform_docs/DEMO_AND_SALES.md` | 8689 | 1253 | `28944d7c37827e10f72d6cdac811eb8bda92fbc9da96fa4947f09ef42eb5b9f4` |
 | `platform_docs/DEPLOYMENT.md` | 5766 | 811 | `665319a6f0a460d4cd509c062af9e5879416c795f2227f63287d076f1c3d7293` |
@@ -77,6 +77,7 @@
 | `platform_docs/docs/adr/0058-e13-s01-task-scheduler-foundation-scope.md` | 4136 | 549 | `c4c7e06eff1905670638bfbabbe776568ae0a8a3a70814850e39c0e799b19dd8` |
 | `platform_docs/docs/adr/0059-e13-s02-recurring-cron-orchestration-scope.md` | 4179 | 556 | `00b432c1c0b46e495f334b9f961080b272103615678eb01391e27a9e4cd48c41` |
 | `platform_docs/docs/adr/0060-e13-s03-task-recovery-and-backoff-scope.md` | 4050 | 548 | `aea001e980d42720642cc6b093a86cb5c5847f97fc3b6f6012f887dceebf26c7` |
+| `platform_docs/docs/adr/0061-e13-s04-scheduled-tasks-web-ui-scope.md` | 4519 | 630 | `72f0239d085a9a44a31562f37f5651d25610e70b81f7f9272ecf9d81a8280481` |
 | `platform_docs/docs/INDEX.md` | 12437 | 1687 | `d692e50c9f969e6ee096a14daf674281f585d3e2a2841211822734dbedd6c5f8` |
 | `platform_docs/PRD.md` | 90479 | 13033 | `81426bd8cabd9b4d5408ff0741c1cfa6aa1741986f2355d4294c6faa7bfdb380` |
 | `platform_docs/README.md` | 1953 | 242 | `31b67b6ef55a2adb4b2840cbe5993156c4fa0421f8752b2d130c97ceb84e880a` |
@@ -84,7 +85,7 @@
 | `platform_docs/RUNBOOK_BACKUP_RESTORE.md` | 4857 | 666 | `27e324b4cea0cd3a2514f44eeee4ce31db80a3a4701f0ba528ffb36afcebb3ff` |
 | `platform_docs/RUNBOOK_OPERATIONS.md` | 5777 | 796 | `23d4c537dd3bbcf4b8f08b39b4a948c42c10e3a458594c25ccf2b65937376252` |
 | `platform_docs/SECURITY.md` | 14589 | 2085 | `51b737e15512ae8136760024f2fcb78161276af0cf0699e8d06326ce1dc7b482` |
-| `platform_docs/STATUS.md` | 167368 | 20108 | `62bb56820301d8f95102d030503d7f4c9b4c023aff68497fe0b6fdc5f8da2181` |
+| `platform_docs/STATUS.md` | 168979 | 20334 | `eb2b2cc48222825a2db0d9dd7382b41bdaca3e7fe1633d8c43c2f53d906063f9` |
 | `platform_docs/SYSTEM_DESIGN.md` | 42737 | 5750 | `91f13a2973e0dc679941b408a80b2e2be3f2acb033de2fad62ca3e465c748ea4` |
 | `platform_docs/TESTING_STRATEGY.md` | 18229 | 2513 | `2659f25d06bcfe571830b291c6546ad481abb609049bede79003d80add2da358` |
 | `platform_docs/UI_FLOWS.md` | 22449 | 3253 | `311b1b44f7dcdd0e97003e0b29fa34cc789f95affa9052bf3ce86613ff86fddc` |

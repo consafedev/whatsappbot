@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveTenantNavigation } from "./tenant-app-navigation";
+import { resolveTenantNavigation, TENANT_MODULE_LABELS } from "./tenant-app-navigation";
 
 describe("tenant app navigation", () => {
   it("uses effective module and permission gates without broken future links", () => {
@@ -158,5 +158,42 @@ describe("tenant app navigation", () => {
       (group) => group.items,
     );
     expect(withBoth.find((item) => item.id === "reports")?.href).toBe("/app/reports");
+  });
+
+  it("exposes scheduled tasks only with scheduling module and read permission", () => {
+    const withoutModule = resolveTenantNavigation([], ["scheduling.read"]).flatMap(
+      (group) => group.items,
+    );
+    expect(withoutModule.some((item) => item.id === "scheduled-tasks")).toBe(false);
+
+    const withoutPermission = resolveTenantNavigation(["module.scheduling"], []).flatMap(
+      (group) => group.items,
+    );
+    expect(withoutPermission.some((item) => item.id === "scheduled-tasks")).toBe(false);
+
+    const withBoth = resolveTenantNavigation(["module.scheduling"], ["scheduling.read"]).flatMap(
+      (group) => group.items,
+    );
+    expect(withBoth.find((item) => item.id === "scheduled-tasks")).toMatchObject({
+      href: "/app/scheduled-tasks",
+      id: "scheduled-tasks",
+      label: "Tareas Programadas",
+      requiredModule: "module.scheduling",
+      requiredPermission: "scheduling.read",
+    });
+    expect(TENANT_MODULE_LABELS["module.scheduling"]).toBe("Programación de Tareas");
+  });
+
+  it("keeps Agenda independent as the upcoming appointments placeholder", () => {
+    const items = resolveTenantNavigation(["module.appointments"], ["appointments.read"]).flatMap(
+      (group) => group.items,
+    );
+
+    expect(items.find((item) => item.id === "appointments")).toMatchObject({
+      href: null,
+      label: "Agenda",
+      requiredModule: "module.appointments",
+      requiredPermission: "appointments.read",
+    });
   });
 });

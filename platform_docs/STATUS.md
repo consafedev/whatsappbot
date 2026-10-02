@@ -2,11 +2,11 @@
 
 **Actualizado:** 2026-10-01
 **Versión de producto:** `0.0.0`  
-**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; Epic 11 — Campaign Engine & Audience Broadcasts — PASS / COMPLETE; **Epic 12 — Reporting, Analytics & Operational Observability — PASS / COMPLETE (E12-S01, E12-S02, E12-S03, E12-S04, E12-S05 PASS); E13-S01 — PASS / COMPLETE; E13-S02 — PASS / COMPLETE; E13-S03 — PASS / COMPLETE**.
+**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; Epic 11 — Campaign Engine & Audience Broadcasts — PASS / COMPLETE; **Epic 12 — Reporting, Analytics & Operational Observability — PASS / COMPLETE (E12-S01, E12-S02, E12-S03, E12-S04, E12-S05 PASS); E13-S01 — PASS / COMPLETE; E13-S02 — PASS / COMPLETE; E13-S03 — PASS / COMPLETE; E13-S04 — IN PROGRESS**.
 
 ## Current milestone
 
-Epic 13 — Task Scheduling & Distributed Orchestration (E13-S03 complete; E13-S04 next).
+Epic 13 — Task Scheduling & Distributed Orchestration (E13-S04 in progress).
 
 ### E13-S01 — Task Scheduler Foundation
 
@@ -119,6 +119,41 @@ Verificado:
   `worker-jobs` registró `reconciler=scheduled-tasks`, `status=ready`; API y
   web `/health` respondieron HTTP 200.
 
+### E13-S04 — Scheduled Tasks Web UI
+
+Status: PASS — completado y verificado el 2026-10-01; ADR-0061.
+
+Entregado hasta ahora:
+
+- View model web para clientes REST, normalización de `data.tasks` a `items`,
+  errores tipados, etiquetas de estado/tipo y control defensivo por módulo y
+  permisos.
+- Navegación independiente “Tareas Programadas”; Agenda permanece como
+  placeholder separado.
+- Consola dinámica con filtros/paginación, tabla, acciones de cancelar y
+  reintentar y modal para creación puntual/recurrente con presets UTC.
+- Las cargas obsoletas se cancelan para evitar sobrescribir filtros recientes;
+  el modal mueve, contiene y restaura el foco de teclado.
+- ADR-0061 documenta el boundary frontend y el contrato UTC de cron.
+
+Verificado:
+
+- `pnpm biome check .`: PASS; 461 archivos, 0 errores.
+- `pnpm vitest run apps/web`: PASS; 20 archivos, 244 pruebas.
+- `pnpm --filter @whatsapp-platform/web typecheck`: PASS.
+- `pnpm typecheck`: PASS; raíz y 17 workspaces.
+- Revisión independiente del diff corregido: sin hallazgos.
+- `docker compose build api web`: PASS; Next.js incluye `/app/scheduled-tasks`.
+- `docker compose up -d`: PASS; API, web, ambos workers, PostgreSQL y Redis
+  saludables.
+- `GET http://localhost:3005/app/scheduled-tasks`: HTTP 200.
+- `git diff --check`: PASS. El flujo autenticado de creación/cancelación no se
+  ejecutó porque no había una sesión o fixture autorizado disponible.
+
+### Next
+
+- E13-S05 — Scheduled Task Audit Logs, Run History & Observability.
+
 Deuda documentada (pre-existente, fuera del alcance de E13-S01):
 
 - `pnpm --filter @whatsapp-platform/database test:integration` presenta fallos
@@ -135,13 +170,14 @@ Deuda documentada (pre-existente, fuera del alcance de E13-S01):
 
 ## Current epic
 
-**Epic 13 — Task Scheduling & Distributed Orchestration** — **IN PROGRESS** (E13-S01, E13-S02 y E13-S03 completos; ADR-0058, ADR-0059, ADR-0060)
+**Epic 13 — Task Scheduling & Distributed Orchestration** — **IN PROGRESS** (E13-S01, E13-S02, E13-S03 y E13-S04 completos; ADR-0058, ADR-0059, ADR-0060, ADR-0061)
 
 - E13-S01 — Task Scheduler Foundation: **PASS** (ADR-0058).
 - E13-S02 — Recurring Cron Orchestration and Scheduled Rules Trigger:
   **PASS** (ADR-0059).
 - E13-S03 — Task Recovery, Reconciliation and Exponential Backoff:
   **PASS** (ADR-0060).
+- E13-S04 — Scheduled Tasks Web UI: **PASS** (ADR-0061).
 
 **Epic 12 — Reporting, Analytics & Operational Observability** — **COMPLETE** (ADR-0053, ADR-0054, ADR-0055, ADR-0056, ADR-0057)
 

@@ -30,6 +30,7 @@ export const TENANT_MODULE_LABELS: Readonly<Record<string, string>> = Object.fre
   "module.ai": "IA",
   "module.campaigns": "Campañas",
   "module.reports": "Reportes",
+  "module.scheduling": "Programación de Tareas",
 });
 
 const navigation: readonly TenantAppNavigationGroup[] = Object.freeze([
@@ -79,6 +80,13 @@ const navigation: readonly TenantAppNavigationGroup[] = Object.freeze([
         label: "Agenda",
         requiredModule: "module.appointments",
         requiredPermission: "appointments.read",
+      },
+      {
+        href: "/app/scheduled-tasks",
+        id: "scheduled-tasks",
+        label: "Tareas Programadas",
+        requiredModule: "module.scheduling",
+        requiredPermission: "scheduling.read",
       },
       {
         href: null,
