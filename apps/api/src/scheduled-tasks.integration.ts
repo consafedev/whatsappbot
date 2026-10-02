@@ -304,6 +304,69 @@ describe.sequential("Scheduled Tasks API Integration", () => {
     expect(body.data.scheduledFor).toBe(scheduledFor);
   });
 
+  it("manually retries failed tasks and enforces tenant and lifecycle boundaries", async () => {
+    const failed = await prisma.scheduledTask.create({
+      data: {
+        errorMessage: "previous attempt failed",
+        name: "Manual retry",
+        retryCount: 2,
+        scheduledFor: new Date(Date.now() - 60_000),
+        status: "FAILED",
+        taskType: "CUSTOM_ACTION",
+        tenantId: tenantAId,
+      },
+    });
+    const response = await fetch(`${baseUrl}/api/v1/scheduled-tasks/${failed.id}/retry`, {
+      body: JSON.stringify({}),
+      headers: {
+        "content-type": "application/json",
+        cookie: ownerACookie,
+        "x-tenant-id": tenantAId,
+      },
+      method: "POST",
+    });
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as {
+      success: boolean;
+      data: { errorMessage: string | null; retryCount: number; status: string; tenantId: string };
+    };
+    expect(body).toMatchObject({
+      data: { errorMessage: null, retryCount: 0, status: "PENDING", tenantId: tenantAId },
+      success: true,
+    });
+    expect(scheduledTaskQueue.enqueued.at(-1)).toMatchObject({
+      id: failed.id,
+      tenantId: tenantAId,
+    });
+
+    const crossTenant = await fetch(`${baseUrl}/api/v1/scheduled-tasks/${taskAId}/retry`, {
+      headers: { cookie: ownerBCookie, "x-tenant-id": tenantBId },
+      method: "POST",
+    });
+    expect(crossTenant.status).toBe(404);
+
+    for (const status of ["PROCESSING", "COMPLETED"] as const) {
+      const task = await prisma.scheduledTask.create({
+        data: {
+          name: `Cannot retry ${status}`,
+          scheduledFor: new Date(Date.now() - 60_000),
+          status,
+          taskType: "CUSTOM_ACTION",
+          tenantId: tenantAId,
+        },
+      });
+      const conflict = await fetch(`${baseUrl}/api/v1/scheduled-tasks/${task.id}/retry`, {
+        headers: {
+          cookie: ownerACookie,
+          "x-tenant-id": tenantAId,
+        },
+        method: "POST",
+      });
+      expect(conflict.status).toBe(409);
+    }
+  });
+
   it("rejects invalid recurring cron before persistence", async () => {
     const before = await prisma.scheduledTask.count({ where: { tenantId: tenantAId } });
     const response = await fetch(`${baseUrl}/api/v1/scheduled-tasks`, {

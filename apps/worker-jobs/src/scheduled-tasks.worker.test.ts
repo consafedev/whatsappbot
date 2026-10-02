@@ -248,6 +248,14 @@ describe("createWorkerJobsRuntime", () => {
         }),
       },
       environment: "test",
+      reconciler: {
+        start: vi.fn(async () => {
+          events.push("reconciler-start");
+        }),
+        stop: vi.fn(async () => {
+          events.push("reconciler-stop");
+        }),
+      },
       queue: {
         close: vi.fn(async () => {
           events.push("queue");
@@ -269,6 +277,14 @@ describe("createWorkerJobsRuntime", () => {
     await runtime.start();
     await runtime.shutdown();
 
-    expect(events).toEqual(["queue-ready", "worker-ready", "worker", "queue", "database"]);
+    expect(events).toEqual([
+      "queue-ready",
+      "worker-ready",
+      "reconciler-start",
+      "reconciler-stop",
+      "worker",
+      "queue",
+      "database",
+    ]);
   });
 });

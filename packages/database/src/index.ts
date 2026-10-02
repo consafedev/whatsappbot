@@ -500,12 +500,18 @@ export {
   markScheduledTaskCompleted,
   markScheduledTaskFailed,
   type RescheduleRecurringTaskInput,
+  recoverStaleScheduledTasks,
   rescheduleRecurringTask,
+  retryScheduledTask,
   type ScheduledTaskDatabase,
   ScheduledTaskInvalidStateError,
   ScheduledTaskNotFoundError,
   ScheduledTaskValidationError,
 } from "./scheduled-task-manager";
+export {
+  calculateRetryDelayMs,
+  type ScheduledTaskRetryPolicyOptions,
+} from "./scheduled-task-retry-policy";
 export {
   createScheduledTaskTriggerPayload,
   type ScheduledTaskTriggerPayload,

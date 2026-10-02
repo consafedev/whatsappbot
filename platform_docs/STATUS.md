@@ -1,12 +1,12 @@
 # STATUS.md — Estado operativo actual del proyecto
 
-**Actualizado:** 2026-09-12
+**Actualizado:** 2026-10-01
 **Versión de producto:** `0.0.0`  
-**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; Epic 11 — Campaign Engine & Audience Broadcasts — PASS / COMPLETE; **Epic 12 — Reporting, Analytics & Operational Observability — PASS / COMPLETE (E12-S01, E12-S02, E12-S03, E12-S04, E12-S05 PASS); E13-S01 — PASS / COMPLETE; E13-S02 — PASS / COMPLETE**.
+**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; Epic 11 — Campaign Engine & Audience Broadcasts — PASS / COMPLETE; **Epic 12 — Reporting, Analytics & Operational Observability — PASS / COMPLETE (E12-S01, E12-S02, E12-S03, E12-S04, E12-S05 PASS); E13-S01 — PASS / COMPLETE; E13-S02 — PASS / COMPLETE; E13-S03 — PASS / COMPLETE**.
 
 ## Current milestone
 
-Epic 13 — Task Scheduling & Distributed Orchestration (E13-S02 complete; E13-S03 not started).
+Epic 13 — Task Scheduling & Distributed Orchestration (E13-S03 complete; E13-S04 next).
 
 ### E13-S01 — Task Scheduler Foundation
 
@@ -44,10 +44,8 @@ Evidencia específica de E13-S01:
   `tenantId`/`taskId`; el job de prueba fue retirado y el tenant temporal
   eliminado.
 
-Diferido explícitamente:
+Fuera de alcance:
 
-- E13-S03: recuperación/reconciliación de tareas huérfanas o trabadas y backoff
-  exponencial.
 - E13-S04: interfaz Next.js.
 - Temporal y orquestadores externos permanecen fuera de alcance; se conserva
   BullMQ.
@@ -87,11 +85,39 @@ Entregado y verificado:
 
 Límites vigentes:
 
-- E13-S03 conserva recuperación, reconciliación, detección de tareas trabadas
-  y backoff exponencial.
 - E13-S04 conserva la interfaz Next.js.
 - Temporal y otros orquestadores externos siguen fuera de alcance; BullMQ se
   mantiene según ADR-0005.
+
+### E13-S03 — Task Recovery, Reconciliation and Exponential Backoff
+
+Status: PASS — verificado el 2026-10-01; ADR-0060.
+
+Entregado:
+
+- Política determinista de backoff exponencial con jitter por identidad de
+  tarea: 5 segundos iniciales, multiplicador 2 y máximo de 1 hora.
+- Recuperación transaccional con `FOR UPDATE SKIP LOCKED`, límite de lote y
+  exclusión de tenants inactivos; reintentos agotados pasan a `FAILED`.
+- Reintento manual tenant-scoped para tareas `FAILED` o `CANCELLED`.
+- Reconciliador `worker-jobs` con ejecución inicial y ciclo de 60 segundos;
+  reconstruye trabajos vencidos desde filas `PENDING` de tenants activos.
+- `POST /api/v1/scheduled-tasks/:id/retry`, protegido por `module.scheduling`
+  y `scheduling.manage`, con límites 404/409 para estado y tenancy.
+- No se cambió el esquema Prisma; E13-S04 UI y Temporal siguen fuera de
+  alcance.
+
+Verificado:
+
+- `pnpm vitest run`: 48 archivos y 425 pruebas PASS.
+- Integración PostgreSQL focalizada: 9/9 PASS; integración API focalizada:
+  10/10 PASS, incluyendo autorización, 404 cross-tenant y conflictos 409.
+- `pnpm biome check .`: 451 archivos verificados, 0 errores.
+- `pnpm typecheck`: typecheck raíz y los 17 workspaces con script, 0 errores.
+- `docker compose build api web worker-jobs` y `docker compose up -d`: PASS;
+  API, web, ambos workers, PostgreSQL y Redis quedaron saludables. El log de
+  `worker-jobs` registró `reconciler=scheduled-tasks`, `status=ready`; API y
+  web `/health` respondieron HTTP 200.
 
 Deuda documentada (pre-existente, fuera del alcance de E13-S01):
 
@@ -109,11 +135,13 @@ Deuda documentada (pre-existente, fuera del alcance de E13-S01):
 
 ## Current epic
 
-**Epic 13 — Task Scheduling & Distributed Orchestration** — **IN PROGRESS** (E13-S01 y E13-S02 completos; ADR-0058, ADR-0059)
+**Epic 13 — Task Scheduling & Distributed Orchestration** — **IN PROGRESS** (E13-S01, E13-S02 y E13-S03 completos; ADR-0058, ADR-0059, ADR-0060)
 
 - E13-S01 — Task Scheduler Foundation: **PASS** (ADR-0058).
 - E13-S02 — Recurring Cron Orchestration and Scheduled Rules Trigger:
   **PASS** (ADR-0059).
+- E13-S03 — Task Recovery, Reconciliation and Exponential Backoff:
+  **PASS** (ADR-0060).
 
 **Epic 12 — Reporting, Analytics & Operational Observability** — **COMPLETE** (ADR-0053, ADR-0054, ADR-0055, ADR-0056, ADR-0057)
 

@@ -16,7 +16,9 @@ import {
   listScheduledTasks,
   markScheduledTaskCompleted,
   markScheduledTaskFailed,
+  recoverStaleScheduledTasks,
   rescheduleRecurringTask,
+  retryScheduledTask,
   ScheduledTaskInvalidStateError,
   ScheduledTaskNotFoundError,
   ScheduledTaskValidationError,
@@ -390,5 +392,126 @@ describe.sequential("scheduled-task-manager integration", () => {
       scheduledFor: new Date("2026-01-06T09:00:00.000Z"),
       status: ScheduledTaskStatus.PENDING,
     });
+  });
+
+  it("recovers stale processing tasks with backoff and permanently fails exhausted tasks", async () => {
+    const now = new Date();
+    const staleBefore = new Date(now.getTime() - 5 * 60_000);
+    const retryable = await createScheduledTask(prisma, {
+      maxRetries: 2,
+      name: "Stale retryable task",
+      scheduledFor: pastDate(),
+      taskType: "CUSTOM_ACTION",
+      tenantId: tenantAId,
+    });
+    const exhausted = await createScheduledTask(prisma, {
+      maxRetries: 1,
+      name: "Stale exhausted task",
+      scheduledFor: pastDate(),
+      taskType: "CUSTOM_ACTION",
+      tenantId: tenantAId,
+    });
+    await prisma.scheduledTask.update({
+      data: { status: ScheduledTaskStatus.PROCESSING, updatedAt: staleBefore },
+      where: { tenantId_id: { id: retryable.id, tenantId: tenantAId } },
+    });
+    await prisma.scheduledTask.update({
+      data: { retryCount: 1, status: ScheduledTaskStatus.PROCESSING, updatedAt: staleBefore },
+      where: { tenantId_id: { id: exhausted.id, tenantId: tenantAId } },
+    });
+
+    await expect(recoverStaleScheduledTasks(prisma, { limit: 10, staleBefore })).resolves.toEqual({
+      failedCount: 1,
+      recoveredCount: 1,
+    });
+
+    const recovered = await prisma.scheduledTask.findUniqueOrThrow({
+      where: { tenantId_id: { id: retryable.id, tenantId: tenantAId } },
+    });
+    expect(recovered).toMatchObject({
+      errorMessage: "TASK_PROCESSING_TIMEOUT: Execution timed out or worker crashed",
+      retryCount: 1,
+      status: ScheduledTaskStatus.PENDING,
+    });
+    expect(recovered.scheduledFor.getTime()).toBeGreaterThan(now.getTime());
+
+    await expect(
+      prisma.scheduledTask.findUniqueOrThrow({
+        where: { tenantId_id: { id: exhausted.id, tenantId: tenantAId } },
+      }),
+    ).resolves.toMatchObject({
+      errorMessage: "TASK_MAX_RETRIES_EXCEEDED",
+      retryCount: 1,
+      status: ScheduledTaskStatus.FAILED,
+    });
+  });
+
+  it("manually retries failed or cancelled tasks using the tenant composite key", async () => {
+    const failed = await createScheduledTask(prisma, {
+      name: "Failed task to retry",
+      scheduledFor: pastDate(),
+      taskType: "CUSTOM_ACTION",
+      tenantId: tenantAId,
+    });
+    await prisma.scheduledTask.update({
+      data: { errorMessage: "previous failure", retryCount: 2, status: ScheduledTaskStatus.FAILED },
+      where: { tenantId_id: { id: failed.id, tenantId: tenantAId } },
+    });
+
+    const runAt = futureDate(5);
+    const retried = await retryScheduledTask(prisma, { id: failed.id, runAt, tenantId: tenantAId });
+    expect(retried).toMatchObject({
+      errorMessage: null,
+      retryCount: 0,
+      scheduledFor: runAt,
+      status: ScheduledTaskStatus.PENDING,
+      tenantId: tenantAId,
+    });
+    await expect(
+      retryScheduledTask(prisma, { id: failed.id, tenantId: tenantBId }),
+    ).rejects.toBeInstanceOf(ScheduledTaskNotFoundError);
+
+    const cancelled = await createScheduledTask(prisma, {
+      name: "Cancelled task to retry",
+      scheduledFor: pastDate(),
+      taskType: "CUSTOM_ACTION",
+      tenantId: tenantAId,
+    });
+    await prisma.scheduledTask.update({
+      data: { errorMessage: "cancelled", retryCount: 1, status: ScheduledTaskStatus.CANCELLED },
+      where: { tenantId_id: { id: cancelled.id, tenantId: tenantAId } },
+    });
+    await expect(
+      retryScheduledTask(prisma, { id: cancelled.id, tenantId: tenantAId }),
+    ).resolves.toMatchObject({
+      errorMessage: null,
+      retryCount: 0,
+      status: ScheduledTaskStatus.PENDING,
+    });
+  });
+
+  it("does not recover stale tasks belonging to an inactive tenant", async () => {
+    const task = await createScheduledTask(prisma, {
+      name: "Suspended tenant stale task",
+      scheduledFor: pastDate(),
+      taskType: "CUSTOM_ACTION",
+      tenantId: tenantBId,
+    });
+    const staleBefore = new Date(Date.now() - 5 * 60_000);
+    await prisma.scheduledTask.update({
+      data: { status: ScheduledTaskStatus.PROCESSING, updatedAt: staleBefore },
+      where: { tenantId_id: { id: task.id, tenantId: tenantBId } },
+    });
+    await prisma.tenant.update({ data: { status: "suspended" }, where: { id: tenantBId } });
+
+    await expect(recoverStaleScheduledTasks(prisma, { limit: 10, staleBefore })).resolves.toEqual({
+      failedCount: 0,
+      recoveredCount: 0,
+    });
+    await expect(
+      prisma.scheduledTask.findUniqueOrThrow({
+        where: { tenantId_id: { id: task.id, tenantId: tenantBId } },
+      }),
+    ).resolves.toMatchObject({ status: ScheduledTaskStatus.PROCESSING });
   });
 });

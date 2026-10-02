@@ -5,6 +5,7 @@ import {
 } from "./cron-evaluator";
 import { Prisma, type PrismaClient, type ScheduledTask } from "./generated/prisma/client";
 import { ScheduledTaskStatus } from "./generated/prisma/enums";
+import { calculateRetryDelayMs } from "./scheduled-task-retry-policy";
 import { createTenantContext } from "./tenant-context";
 import { assertTenantOperational } from "./tenant-operational";
 
@@ -409,5 +410,119 @@ export async function rescheduleRecurringTask(
     });
     if (rescheduled === null) throw new ScheduledTaskNotFoundError(input.id);
     return rescheduled;
+  });
+}
+
+export async function recoverStaleScheduledTasks(
+  database: ScheduledTaskDatabase,
+  params: { readonly staleBefore: Date; readonly limit: number },
+): Promise<{ recoveredCount: number; failedCount: number }> {
+  assertValidDate(params.staleBefore, "staleBefore");
+  assertPositiveInteger(params.limit, "limit");
+  const now = new Date();
+
+  return database.$transaction(async (transaction) => {
+    const staleTasks = await transaction.$queryRaw<
+      Array<{ id: string; tenantId: string; retryCount: number; maxRetries: number }>
+    >`
+      SELECT st.id,
+             st.tenant_id AS "tenantId",
+             st.retry_count AS "retryCount",
+             st.max_retries AS "maxRetries"
+      FROM "scheduled_tasks" AS st
+      INNER JOIN "tenant" AS t ON t.id = st.tenant_id
+      WHERE st.status = 'PROCESSING'::"scheduled_task_status"
+        AND st.updated_at <= ${params.staleBefore}
+        AND t.status = 'active'::"tenant_status"
+      ORDER BY st.updated_at ASC, st.id ASC
+      LIMIT ${params.limit}
+      FOR UPDATE OF st SKIP LOCKED
+    `;
+
+    let recoveredCount = 0;
+    let failedCount = 0;
+    for (const task of staleTasks) {
+      const canRetry = task.retryCount < task.maxRetries;
+      const result = await transaction.scheduledTask.updateMany({
+        data: canRetry
+          ? {
+              errorMessage: "TASK_PROCESSING_TIMEOUT: Execution timed out or worker crashed",
+              retryCount: task.retryCount + 1,
+              scheduledFor: new Date(
+                now.getTime() + calculateRetryDelayMs(task.retryCount + 1, { jitterSeed: task.id }),
+              ),
+              status: ScheduledTaskStatus.PENDING,
+            }
+          : {
+              errorMessage: "TASK_MAX_RETRIES_EXCEEDED",
+              status: ScheduledTaskStatus.FAILED,
+            },
+        where: {
+          id: task.id,
+          status: ScheduledTaskStatus.PROCESSING,
+          tenantId: task.tenantId,
+          updatedAt: { lte: params.staleBefore },
+        },
+      });
+      if (result.count === 0) continue;
+      if (canRetry) recoveredCount += 1;
+      else failedCount += 1;
+    }
+
+    return { failedCount, recoveredCount };
+  });
+}
+
+export async function retryScheduledTask(
+  database: ScheduledTaskDatabase,
+  params: { readonly tenantId: string; readonly id: string; readonly runAt?: Date },
+): Promise<ScheduledTask> {
+  const tenant = createTenantContext(params.tenantId);
+  const runAt = params.runAt ?? new Date();
+  assertValidDate(runAt, "runAt");
+
+  return database.$transaction(async (transaction) => {
+    await assertTenantOperational(tenant, transaction);
+    const task = await transaction.scheduledTask.findUnique({
+      where: { tenantId_id: { id: params.id, tenantId: tenant.tenantId } },
+    });
+    if (task === null) throw new ScheduledTaskNotFoundError(params.id);
+    if (
+      task.status !== ScheduledTaskStatus.FAILED &&
+      task.status !== ScheduledTaskStatus.CANCELLED
+    ) {
+      throw new ScheduledTaskInvalidStateError(task.id, task.status, ScheduledTaskStatus.PENDING);
+    }
+
+    const updated = await transaction.scheduledTask.updateMany({
+      data: {
+        errorMessage: null,
+        retryCount: 0,
+        scheduledFor: runAt,
+        status: ScheduledTaskStatus.PENDING,
+      },
+      where: {
+        id: task.id,
+        status: { in: [ScheduledTaskStatus.FAILED, ScheduledTaskStatus.CANCELLED] },
+        tenantId: tenant.tenantId,
+      },
+    });
+    if (updated.count === 0) {
+      const currentTask = await transaction.scheduledTask.findUnique({
+        where: { tenantId_id: { id: task.id, tenantId: tenant.tenantId } },
+      });
+      if (currentTask === null) throw new ScheduledTaskNotFoundError(params.id);
+      throw new ScheduledTaskInvalidStateError(
+        currentTask.id,
+        currentTask.status,
+        ScheduledTaskStatus.PENDING,
+      );
+    }
+
+    const retried = await transaction.scheduledTask.findUnique({
+      where: { tenantId_id: { id: task.id, tenantId: tenant.tenantId } },
+    });
+    if (retried === null) throw new ScheduledTaskNotFoundError(params.id);
+    return retried;
   });
 }

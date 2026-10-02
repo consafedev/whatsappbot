@@ -2,6 +2,7 @@ import { loadDatabaseConfig, loadRuntimeConfig } from "@whatsapp-platform/config
 import { createPlatformDatabaseClient } from "@whatsapp-platform/database/platform";
 import { createScheduledTaskWorker } from "./scheduled-tasks.worker";
 import { createScheduledTaskQueueConnection, enqueueScheduledTask } from "./scheduled-tasks-queue";
+import { createScheduledTasksReconciler } from "./scheduled-tasks-reconciler";
 import { createWorkerJobsRuntime, type WorkerJobsRuntime } from "./worker-jobs-runtime";
 
 function startupErrorRecord(error: unknown): Record<string, string> {
@@ -25,10 +26,15 @@ export async function bootstrapWorkerJobs(): Promise<WorkerJobsRuntime> {
     database,
     enqueue: (task) => enqueueScheduledTask(scheduledTaskQueue, task),
   });
+  const scheduledTasksReconciler = createScheduledTasksReconciler({
+    database,
+    enqueue: (task) => enqueueScheduledTask(scheduledTaskQueue, task),
+  });
   const runtime = createWorkerJobsRuntime({
     database,
     environment: config.environment,
     queue: scheduledTaskQueue,
+    reconciler: scheduledTasksReconciler,
     worker: scheduledTaskWorker,
   });
 

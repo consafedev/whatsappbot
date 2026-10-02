@@ -8,6 +8,11 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Added
 
+- E13-S03 task recovery and reconciliation: deterministic exponential retry
+  backoff, transactional recovery of stale tasks for active tenants, periodic
+  reconstruction of due BullMQ jobs, and tenant-scoped manual retry through
+  `POST /api/v1/scheduled-tasks/:id/retry`. No Prisma schema change was
+  required. ADR-0060 records the recovery and retry contracts.
 - E13-S02 recurring cron orchestration: strict five-field UTC cron evaluation,
   atomic persisted task claim/reschedule transitions, and a BullMQ worker that
   derives tenant identity from `ScheduledTask` rather than queue or JSONB data.

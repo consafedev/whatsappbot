@@ -25,6 +25,7 @@ import {
   isValidCronExpression,
   listScheduledTasks,
   type Prisma,
+  retryScheduledTask,
   type ScheduledTaskDatabase,
   ScheduledTaskInvalidStateError,
   ScheduledTaskNotFoundError,
@@ -69,6 +70,10 @@ export interface ListScheduledTasksQuery {
   readonly status?: string;
   readonly limit?: string;
   readonly offset?: string;
+}
+
+export interface RetryScheduledTaskDto {
+  readonly runAt?: string;
 }
 
 function notOperational(error: unknown): unknown {
@@ -170,6 +175,37 @@ export class ScheduledTasksService {
       throw notOperational(error);
     }
   }
+
+  async retry(context: TenantContext, taskId: string, dto: RetryScheduledTaskDto = {}) {
+    try {
+      if (dto.runAt !== undefined && typeof dto.runAt !== "string") {
+        throw new ScheduledTaskValidationError("runAt must be a valid date");
+      }
+      const task = await retryScheduledTask(this.database, {
+        tenantId: context.tenantId,
+        id: taskId,
+        ...(dto.runAt === undefined ? {} : { runAt: new Date(dto.runAt) }),
+      });
+      try {
+        await this.queue.enqueue(task);
+      } catch {
+        throw new ServiceUnavailableException("Scheduled task queue is unavailable");
+      }
+      return task;
+    } catch (error: unknown) {
+      if (error instanceof ServiceUnavailableException) throw error;
+      if (error instanceof ScheduledTaskNotFoundError) {
+        throw new NotFoundException(error.message);
+      }
+      if (error instanceof ScheduledTaskInvalidStateError) {
+        throw new ConflictException(error.message);
+      }
+      if (error instanceof ScheduledTaskValidationError) {
+        throw new BadRequestException(error.message);
+      }
+      throw notOperational(error);
+    }
+  }
 }
 
 @Controller("api/v1/scheduled-tasks")
@@ -202,6 +238,18 @@ export class ScheduledTasksController {
   @scheduledTasksAuthorized("scheduling.manage")
   async cancel(@CurrentTenantContext() context: TenantContext, @Param("taskId") taskId: string) {
     const data = await this.service.cancel(context, taskId);
+    return { success: true, data };
+  }
+
+  @Post(":id/retry")
+  @HttpCode(HttpStatus.OK)
+  @scheduledTasksAuthorized("scheduling.manage")
+  async retry(
+    @CurrentTenantContext() context: TenantContext,
+    @Param("id") taskId: string,
+    @Body() body?: RetryScheduledTaskDto,
+  ) {
+    const data = await this.service.retry(context, taskId, body ?? {});
     return { success: true, data };
   }
 }
