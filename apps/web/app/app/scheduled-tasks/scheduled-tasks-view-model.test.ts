@@ -4,8 +4,11 @@ import {
   canManageScheduledTasks,
   canReadScheduledTasks,
   createScheduledTask,
+  fetchScheduledTaskRuns,
   fetchScheduledTasks,
   formatDateTime,
+  formatTaskRunDuration,
+  formatTaskRunStatus,
   formatTaskStatus,
   formatTaskType,
   retryScheduledTask,
@@ -80,6 +83,49 @@ describe("scheduled-tasks-view-model", () => {
       "http://localhost:3001/api/v1/scheduled-tasks",
       expect.objectContaining({ signal: controller.signal }),
     );
+  });
+
+  it("fetches task run history and normalizes data.items with pagination", async () => {
+    const runs = [
+      {
+        id: "run-1",
+        tenantId: "tenant-1",
+        taskId: task.id,
+        status: "SUCCESS" as const,
+        startedAt: "2026-10-01T12:00:00.000Z",
+        completedAt: "2026-10-01T12:00:00.450Z",
+        durationMs: 450,
+        retryAttempt: 0,
+        errorMessage: null,
+        metadata: null,
+        createdAt: "2026-10-01T12:00:00.450Z",
+      },
+    ];
+    global.fetch = vi
+      .fn()
+      .mockResolvedValue(successResponse({ items: runs, total: 21, limit: 20, offset: 20 }));
+
+    await expect(
+      fetchScheduledTaskRuns("http://localhost:3001/", task.id, { limit: 20, offset: 20 }),
+    ).resolves.toEqual({
+      items: runs,
+      total: 21,
+      limit: 20,
+      offset: 20,
+    });
+    expect(global.fetch).toHaveBeenCalledWith(
+      "http://localhost:3001/api/v1/scheduled-tasks/task-1/runs?limit=20&offset=20",
+      expect.objectContaining({ credentials: "include", method: "GET" }),
+    );
+  });
+
+  it("formats run status and duration for the history table", () => {
+    expect(formatTaskRunStatus("SUCCESS")).toEqual({ label: "Exitosa", tone: "green" });
+    expect(formatTaskRunStatus("FAILED")).toEqual({ label: "Fallida", tone: "red" });
+    expect(formatTaskRunStatus("TIMEOUT")).toEqual({ label: "Tiempo excedido", tone: "amber" });
+    expect(formatTaskRunDuration(450)).toBe("450 ms");
+    expect(formatTaskRunDuration(4_000)).toBe("4 s");
+    expect(formatTaskRunDuration(null)).toBe("—");
   });
 
   it("creates a scheduled task using the JSON API contract", async () => {

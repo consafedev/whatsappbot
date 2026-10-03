@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTenantAppBootstrap } from "../tenant-app-shell";
 import { ScheduledTaskCreateModal } from "./scheduled-task-create-modal";
+import { ScheduledTaskRunsModal } from "./scheduled-task-runs-modal";
 import { ScheduledTasksList } from "./scheduled-tasks-list";
 import {
   type CreateScheduledTaskInput,
@@ -55,6 +56,7 @@ export function ScheduledTasksClient({ apiBaseUrl }: ScheduledTasksClientProps) 
   const [mutatingTaskId, setMutatingTaskId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [historyTask, setHistoryTask] = useState<ScheduledTaskItem | null>(null);
   const requestControllerRef = useRef<AbortController | null>(null);
 
   const loadTasks = useCallback(
@@ -300,8 +302,12 @@ export function ScheduledTasksClient({ apiBaseUrl }: ScheduledTasksClientProps) 
       ) : (
         <ScheduledTasksList
           canManage={canManage}
+          canRead={canRead}
           isPending={(taskId) => mutatingTaskId === taskId}
           onCancel={(taskId) => void handleCancel(taskId)}
+          onHistory={(taskId) =>
+            setHistoryTask(filteredTasks.find((task) => task.id === taskId) ?? null)
+          }
           onRetry={(taskId) => void handleRetry(taskId)}
           tasks={filteredTasks}
         />
@@ -337,6 +343,12 @@ export function ScheduledTasksClient({ apiBaseUrl }: ScheduledTasksClientProps) 
         isSubmitting={isCreating}
         onClose={() => setIsCreateModalOpen(false)}
         onCreate={handleCreate}
+      />
+      <ScheduledTaskRunsModal
+        apiBaseUrl={base}
+        isOpen={canRead && historyTask !== null}
+        onClose={() => setHistoryTask(null)}
+        task={historyTask}
       />
     </div>
   );

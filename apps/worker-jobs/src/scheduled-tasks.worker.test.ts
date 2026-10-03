@@ -8,7 +8,9 @@ const databaseMocks = vi.hoisted(() => ({
   createTenantContext: vi.fn((tenantId: string) => ({ tenantId })),
   dispatchRuleTriggers: vi.fn(),
   markScheduledTaskFailed: vi.fn(),
+  recordTaskRun: vi.fn(),
   rescheduleRecurringTask: vi.fn(),
+  ScheduledTaskRunStatus: { FAILED: "FAILED", SUCCESS: "SUCCESS", TIMEOUT: "TIMEOUT" },
 }));
 
 vi.mock("@whatsapp-platform/database", () => databaseMocks);
@@ -46,13 +48,13 @@ function task(overrides: Partial<ScheduledTask> = {}): ScheduledTask {
   } as ScheduledTask;
 }
 
-function dependencies(): ScheduledTaskProcessorDependencies & {
+function dependencies(nowFn: () => Date = () => now): ScheduledTaskProcessorDependencies & {
   enqueue: ReturnType<typeof vi.fn>;
 } {
   return {
     database: {} as ScheduledTaskProcessorDependencies["database"],
     enqueue: vi.fn().mockResolvedValue(undefined),
-    now: () => now,
+    now: nowFn,
   };
 }
 
@@ -75,6 +77,7 @@ describe("processScheduledTaskJob", () => {
     });
     databaseMocks.dispatchRuleTriggers.mockResolvedValue({});
     databaseMocks.markScheduledTaskFailed.mockResolvedValue(task({ status: "FAILED" }));
+    databaseMocks.recordTaskRun.mockResolvedValue(true);
     databaseMocks.rescheduleRecurringTask.mockResolvedValue(task({ status: "PENDING" }));
   });
 
@@ -107,6 +110,15 @@ describe("processScheduledTaskJob", () => {
       lastRunAt: now,
       tenantId: tenantAId,
     });
+    expect(databaseMocks.recordTaskRun).toHaveBeenCalledWith(deps.database, {
+      completedAt: now,
+      durationMs: 0,
+      retryAttempt: 0,
+      startedAt: now,
+      status: "SUCCESS",
+      taskId,
+      tenantId: tenantAId,
+    });
     expect(deps.enqueue).toHaveBeenCalledWith(
       expect.objectContaining({ id: taskId, tenantId: tenantAId }),
     );
@@ -121,6 +133,10 @@ describe("processScheduledTaskJob", () => {
     expect(databaseMocks.dispatchRuleTriggers).not.toHaveBeenCalled();
     expect(databaseMocks.markScheduledTaskFailed).not.toHaveBeenCalled();
     expect(databaseMocks.rescheduleRecurringTask).toHaveBeenCalledOnce();
+    expect(databaseMocks.recordTaskRun).toHaveBeenCalledWith(
+      deps.database,
+      expect.objectContaining({ status: "SUCCESS", taskId, tenantId: tenantAId }),
+    );
   });
 
   it("does nothing when the task cannot be claimed", async () => {
@@ -162,6 +178,16 @@ describe("processScheduledTaskJob", () => {
       id: taskId,
       tenantId: tenantAId,
     });
+    expect(databaseMocks.recordTaskRun).toHaveBeenCalledWith(
+      deps.database,
+      expect.objectContaining({
+        errorMessage: "SCHEDULED_TASK_EXECUTION_FAILED",
+        retryAttempt: 0,
+        status: "FAILED",
+        taskId,
+        tenantId: tenantAId,
+      }),
+    );
   });
 
   it("marks unsupported task types terminally without using payload text", async () => {
@@ -176,6 +202,13 @@ describe("processScheduledTaskJob", () => {
       id: taskId,
       tenantId: tenantAId,
     });
+    expect(databaseMocks.recordTaskRun).toHaveBeenCalledWith(
+      deps.database,
+      expect.objectContaining({
+        status: "FAILED",
+        errorMessage: "SCHEDULED_TASK_UNSUPPORTED_TYPE",
+      }),
+    );
     expect(databaseMocks.rescheduleRecurringTask).not.toHaveBeenCalled();
   });
 
@@ -191,6 +224,13 @@ describe("processScheduledTaskJob", () => {
       id: taskId,
       tenantId: tenantAId,
     });
+    expect(databaseMocks.recordTaskRun).toHaveBeenCalledWith(
+      deps.database,
+      expect.objectContaining({
+        errorMessage: "SCHEDULED_TASK_EXECUTION_FAILED",
+        status: "FAILED",
+      }),
+    );
     expect(databaseMocks.rescheduleRecurringTask).not.toHaveBeenCalled();
   });
 
@@ -203,6 +243,31 @@ describe("processScheduledTaskJob", () => {
 
     expect(databaseMocks.rescheduleRecurringTask).toHaveBeenCalledOnce();
     expect(databaseMocks.markScheduledTaskFailed).not.toHaveBeenCalled();
+    expect(databaseMocks.recordTaskRun).toHaveBeenCalledWith(
+      deps.database,
+      expect.objectContaining({ status: "SUCCESS" }),
+    );
+  });
+
+  it("measures elapsed time and stores the claimed retry attempt", async () => {
+    const startedAt = new Date(now.getTime() - 450);
+    const completedAt = now;
+    databaseMocks.claimScheduledTask.mockResolvedValue(
+      task({ retryCount: 2, updatedAt: startedAt }),
+    );
+    const deps = dependencies(vi.fn().mockReturnValueOnce(now).mockReturnValueOnce(completedAt));
+
+    await processScheduledTaskJob(job(), deps);
+
+    expect(databaseMocks.recordTaskRun).toHaveBeenCalledWith(deps.database, {
+      completedAt,
+      durationMs: 450,
+      retryAttempt: 2,
+      startedAt,
+      status: "SUCCESS",
+      taskId,
+      tenantId: tenantAId,
+    });
   });
 });
 

@@ -6,7 +6,30 @@
 
 ## Current milestone
 
-Epic 13 — Task Scheduling & Distributed Orchestration (E13-S04 complete; E13-S05 next).
+Epic 13 — Task Scheduling & Distributed Orchestration (E13-S01 through E13-S04 complete; E13-S05 current / in progress).
+
+### E13-S05 — Scheduled Task Audit Logs, Run History & Observability
+
+Status: IN PROGRESS / CURRENT — implementation underway on 2026-10-02.
+
+Scope includes append-only `ScheduledTaskRun` persistence, worker duration and
+terminal-outcome recording, tenant-scoped paginated run-history endpoints, and a
+read-only per-task history dialog in the web console. API/UI reads require
+`module.scheduling` and `scheduling.read`; existing mutations remain guarded by
+`scheduling.manage`. No task API contract outside history or unrelated Agenda
+navigation is in scope. Original idempotency and retry-policy backlog items were
+absorbed into E13-S02 and E13-S03.
+
+Implementation verification (2026-10-02): focused database integration 10/10,
+worker 15/15, API integration 11/11, and scheduled-task web view-model 21/21;
+root `pnpm test` 465/465; `pnpm lint`, `pnpm typecheck`, `pnpm build`,
+`pnpm format:check`, and `git diff --check` PASS. Prisma reports all 24
+migrations applied. Compose rebuilt and recreated `api`, `web`, and
+`worker-jobs`; all report healthy. API `/health` returns 200 and history without
+a session returns 401. Web `/health` redirects for locale (308) and returns
+200 when followed. Authenticated runtime HTTP was not exercised; API integration
+tests cover authorized reads. The web test runtime has no DOM environment, so
+modal interaction/focus behavior is build-checked rather than browser-tested.
 
 ### E13-S01 — Task Scheduler Foundation
 
@@ -150,9 +173,9 @@ Verificado:
 - `git diff --check`: PASS. El flujo autenticado de creación/cancelación no se
   ejecutó porque no había una sesión o fixture autorizado disponible.
 
-### Next
+### Current
 
-- E13-S05 — Scheduled Task Audit Logs, Run History & Observability.
+- E13-S05 — Scheduled Task Audit Logs, Run History & Observability (IN PROGRESS).
 
 Deuda documentada (pre-existente, fuera del alcance de E13-S01):
 

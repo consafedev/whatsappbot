@@ -264,6 +264,7 @@ export type {
   UserRole,
 } from "./generated/prisma/client";
 export * from "./generated/prisma/enums";
+export { ScheduledTaskRunStatus } from "./generated/prisma/enums";
 export {
   createInactivityManager,
   type InactivityManager,
@@ -512,6 +513,13 @@ export {
   calculateRetryDelayMs,
   type ScheduledTaskRetryPolicyOptions,
 } from "./scheduled-task-retry-policy";
+export {
+  type ListScheduledTaskRunsInput,
+  listScheduledTaskRuns,
+  type RecordTaskRunInput,
+  recordTaskRun,
+  type ScheduledTaskRunDatabase,
+} from "./scheduled-task-run-manager";
 export {
   createScheduledTaskTriggerPayload,
   type ScheduledTaskTriggerPayload,

@@ -406,4 +406,108 @@ describe.sequential("Scheduled Tasks API Integration", () => {
     });
     expect(response.status).toBe(404);
   });
+
+  it("lists run history per task and tenant with permission and pagination guards", async () => {
+    const taskB = await prisma.scheduledTask.create({
+      data: {
+        name: "Tenant B history task",
+        scheduledFor: new Date(Date.now() - 60_000),
+        taskType: "CUSTOM_ACTION",
+        tenantId: tenantBId,
+      },
+    });
+    const startedAt = new Date(Date.now() - 20_000);
+    await prisma.scheduledTaskRun.createMany({
+      data: [
+        {
+          completedAt: new Date(startedAt.getTime() + 10),
+          durationMs: 10,
+          retryAttempt: 0,
+          startedAt,
+          status: "SUCCESS",
+          taskId: taskAId,
+          tenantId: tenantAId,
+        },
+        {
+          completedAt: new Date(startedAt.getTime() + 20),
+          durationMs: 20,
+          errorMessage: "SCHEDULED_TASK_EXECUTION_FAILED",
+          retryAttempt: 1,
+          startedAt: new Date(startedAt.getTime() + 1000),
+          status: "FAILED",
+          taskId: taskAId,
+          tenantId: tenantAId,
+        },
+        {
+          completedAt: new Date(startedAt.getTime() + 30),
+          durationMs: 30,
+          retryAttempt: 0,
+          startedAt,
+          status: "SUCCESS",
+          taskId: taskB.id,
+          tenantId: tenantBId,
+        },
+      ],
+    });
+
+    const page = await fetch(`${baseUrl}/api/v1/scheduled-tasks/${taskAId}/runs?limit=1&offset=0`, {
+      headers: { cookie: ownerACookie },
+    });
+    expect(page.status).toBe(200);
+    await expect(page.json()).resolves.toMatchObject({
+      data: {
+        items: [{ durationMs: 20, status: "FAILED", taskId: taskAId, tenantId: tenantAId }],
+        limit: 1,
+        offset: 0,
+        total: 2,
+      },
+      success: true,
+    });
+
+    const tenantRuns = await fetch(
+      `${baseUrl}/api/v1/scheduled-tasks/runs?tenantId=${tenantBId}&limit=1`,
+      {
+        headers: { cookie: ownerACookie, "x-tenant-id": tenantBId },
+      },
+    );
+    expect(tenantRuns.status).toBe(200);
+    await expect(tenantRuns.json()).resolves.toMatchObject({
+      data: {
+        items: [{ taskId: taskAId, tenantId: tenantAId }],
+        total: 2,
+      },
+      success: true,
+    });
+
+    const crossTenantTask = await fetch(`${baseUrl}/api/v1/scheduled-tasks/${taskAId}/runs`, {
+      headers: { cookie: ownerBCookie },
+    });
+    expect(crossTenantTask.status).toBe(404);
+    const tenantBHistory = await fetch(`${baseUrl}/api/v1/scheduled-tasks/runs`, {
+      headers: { cookie: ownerBCookie },
+    });
+    await expect(tenantBHistory.json()).resolves.toMatchObject({
+      data: { items: [{ taskId: taskB.id, tenantId: tenantBId }], total: 1 },
+      success: true,
+    });
+
+    const noModule = await fetch(`${baseUrl}/api/v1/scheduled-tasks/runs`, {
+      headers: { cookie: noModuleCookie },
+    });
+    expect(noModule.status).toBe(403);
+    const noPermission = await fetch(`${baseUrl}/api/v1/scheduled-tasks/runs`, {
+      headers: { cookie: viewerACookie },
+    });
+    expect(noPermission.status).toBe(403);
+    const unauthenticated = await fetch(`${baseUrl}/api/v1/scheduled-tasks/runs`);
+    expect(unauthenticated.status).toBe(401);
+    const invalidLimit = await fetch(`${baseUrl}/api/v1/scheduled-tasks/runs?limit=0`, {
+      headers: { cookie: ownerACookie },
+    });
+    expect(invalidLimit.status).toBe(400);
+    const malformedLimit = await fetch(`${baseUrl}/api/v1/scheduled-tasks/runs?limit=1oops`, {
+      headers: { cookie: ownerACookie },
+    });
+    expect(malformedLimit.status).toBe(400);
+  });
 });

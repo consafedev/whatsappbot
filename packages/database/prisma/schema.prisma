@@ -108,6 +108,14 @@ enum ScheduledTaskStatus {
   @@map("scheduled_task_status")
 }
 
+enum ScheduledTaskRunStatus {
+  SUCCESS
+  FAILED
+  TIMEOUT
+
+  @@map("scheduled_task_run_status")
+}
+
 model PlatformDeployment {
   id             String                   @id @default(dbgenerated("uuidv7()")) @db.Uuid
   name           String
@@ -204,6 +212,7 @@ model Tenant {
   campaigns           Campaign[]
   campaignAudienceMembers CampaignAudienceMember[]
   scheduledTasks      ScheduledTask[]
+  scheduledTaskRuns   ScheduledTaskRun[]
 
   @@index([status], map: "tenant_status_idx")
   @@index([deploymentId], map: "tenant_deployment_id_idx")
@@ -912,8 +921,30 @@ model ScheduledTask {
   updatedAt      DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  runs   ScheduledTaskRun[]
 
   @@index([tenantId, status, scheduledFor], map: "scheduled_task_tenant_status_scheduled_idx")
   @@unique([tenantId, id], map: "scheduled_task_tenant_id_key")
   @@map("scheduled_tasks")
+}
+
+model ScheduledTaskRun {
+  id           String                 @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  tenantId     String                 @map("tenant_id") @db.Uuid
+  taskId       String                 @map("task_id") @db.Uuid
+  status       ScheduledTaskRunStatus
+  startedAt    DateTime               @map("started_at") @db.Timestamptz(3)
+  completedAt  DateTime               @map("completed_at") @db.Timestamptz(3)
+  durationMs   Int                    @map("duration_ms")
+  retryAttempt Int                    @map("retry_attempt")
+  errorMessage String?                @map("error_message") @db.Text
+  metadata     Json?                  @db.JsonB
+  createdAt    DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  tenant       Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  task         ScheduledTask          @relation(fields: [tenantId, taskId], references: [tenantId, id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([tenantId, taskId, startedAt], map: "scheduled_task_run_attempt_key")
+  @@index([tenantId, taskId, startedAt(sort: Desc)], map: "scheduled_task_run_tenant_task_started_idx")
+  @@index([tenantId, startedAt(sort: Desc)], map: "scheduled_task_run_tenant_started_idx")
+  @@map("scheduled_task_runs")
 }

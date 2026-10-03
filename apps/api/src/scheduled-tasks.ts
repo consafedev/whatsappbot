@@ -23,6 +23,7 @@ import {
   cancelScheduledTask,
   createScheduledTask,
   isValidCronExpression,
+  listScheduledTaskRuns,
   listScheduledTasks,
   type Prisma,
   retryScheduledTask,
@@ -70,6 +71,25 @@ export interface ListScheduledTasksQuery {
   readonly status?: string;
   readonly limit?: string;
   readonly offset?: string;
+}
+
+export interface ListScheduledTaskRunsQuery {
+  readonly limit?: string;
+  readonly offset?: string;
+}
+
+function parseRunQueryInteger(value: string, field: string): number;
+function parseRunQueryInteger(value: undefined, field: string): undefined;
+function parseRunQueryInteger(value: string | undefined, field: string): number | undefined {
+  if (value === undefined) return undefined;
+  if (!/^(0|[1-9]\d*)$/u.test(value)) {
+    throw new BadRequestException(`${field} must be a non-negative integer`);
+  }
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed)) {
+    throw new BadRequestException(`${field} must be a safe integer`);
+  }
+  return parsed;
 }
 
 export interface RetryScheduledTaskDto {
@@ -156,6 +176,32 @@ export class ScheduledTasksService {
     }
   }
 
+  async listRuns(context: TenantContext, query: ListScheduledTaskRunsQuery, taskId?: string) {
+    try {
+      if (taskId !== undefined) {
+        const task = await this.database.scheduledTask.findUnique({
+          where: { tenantId_id: { id: taskId, tenantId: context.tenantId } },
+          select: { id: true },
+        });
+        if (task === null) throw new NotFoundException("Scheduled task not found");
+      }
+      return await listScheduledTaskRuns(this.database, {
+        tenantId: context.tenantId,
+        ...(taskId === undefined ? {} : { taskId }),
+        ...(query.limit === undefined ? {} : { limit: parseRunQueryInteger(query.limit, "limit") }),
+        ...(query.offset === undefined
+          ? {}
+          : { offset: parseRunQueryInteger(query.offset, "offset") }),
+      });
+    } catch (error: unknown) {
+      if (error instanceof NotFoundException) throw error;
+      if (error instanceof ScheduledTaskValidationError) {
+        throw new BadRequestException(error.message);
+      }
+      throw notOperational(error);
+    }
+  }
+
   async cancel(context: TenantContext, taskId: string) {
     try {
       return await cancelScheduledTask(this.database, {
@@ -220,6 +266,27 @@ export class ScheduledTasksController {
     @Query() query: ListScheduledTasksQuery,
   ) {
     const data = await this.service.list(context, query);
+    return { success: true, data };
+  }
+
+  @Get("runs")
+  @scheduledTasksAuthorized("scheduling.read")
+  async listTenantRuns(
+    @CurrentTenantContext() context: TenantContext,
+    @Query() query: ListScheduledTaskRunsQuery,
+  ) {
+    const data = await this.service.listRuns(context, query);
+    return { success: true, data };
+  }
+
+  @Get(":id/runs")
+  @scheduledTasksAuthorized("scheduling.read")
+  async listTaskRuns(
+    @CurrentTenantContext() context: TenantContext,
+    @Param("id") taskId: string,
+    @Query() query: ListScheduledTaskRunsQuery,
+  ) {
+    const data = await this.service.listRuns(context, query, taskId);
     return { success: true, data };
   }
 

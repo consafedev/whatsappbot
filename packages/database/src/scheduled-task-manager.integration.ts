@@ -23,6 +23,7 @@ import {
   ScheduledTaskNotFoundError,
   ScheduledTaskValidationError,
 } from "./scheduled-task-manager";
+import { listScheduledTaskRuns, recordTaskRun } from "./scheduled-task-run-manager";
 
 const prefix = "e13-s01-scheduled-task-db";
 let prisma: PrismaClient;
@@ -435,6 +436,25 @@ describe.sequential("scheduled-task-manager integration", () => {
     });
     expect(recovered.scheduledFor.getTime()).toBeGreaterThan(now.getTime());
 
+    const recoveredRuns = await listScheduledTaskRuns(prisma, {
+      limit: 10,
+      offset: 0,
+      taskId: retryable.id,
+      tenantId: tenantAId,
+    });
+    expect(recoveredRuns).toMatchObject({
+      items: [
+        {
+          errorMessage: "TASK_PROCESSING_TIMEOUT",
+          retryAttempt: 0,
+          startedAt: staleBefore,
+          status: "TIMEOUT",
+        },
+      ],
+      total: 1,
+    });
+    expect(recoveredRuns.items[0]?.durationMs).toBeGreaterThanOrEqual(5 * 60_000);
+
     await expect(
       prisma.scheduledTask.findUniqueOrThrow({
         where: { tenantId_id: { id: exhausted.id, tenantId: tenantAId } },
@@ -443,6 +463,17 @@ describe.sequential("scheduled-task-manager integration", () => {
       errorMessage: "TASK_MAX_RETRIES_EXCEEDED",
       retryCount: 1,
       status: ScheduledTaskStatus.FAILED,
+    });
+    await expect(
+      listScheduledTaskRuns(prisma, {
+        limit: 10,
+        offset: 0,
+        taskId: exhausted.id,
+        tenantId: tenantAId,
+      }),
+    ).resolves.toMatchObject({
+      items: [{ errorMessage: "TASK_PROCESSING_TIMEOUT", retryAttempt: 1, status: "TIMEOUT" }],
+      total: 1,
     });
   });
 
@@ -513,5 +544,109 @@ describe.sequential("scheduled-task-manager integration", () => {
         where: { tenantId_id: { id: task.id, tenantId: tenantBId } },
       }),
     ).resolves.toMatchObject({ status: ScheduledTaskStatus.PROCESSING });
+  });
+
+  it("records immutable runs and lists them newest-first within the tenant", async () => {
+    const isolatedTenantId = await provision("C");
+    const taskA = await createScheduledTask(prisma, {
+      name: "Tenant A run history",
+      scheduledFor: pastDate(),
+      taskType: "CUSTOM_ACTION",
+      tenantId: tenantAId,
+    });
+    const taskB = await createScheduledTask(prisma, {
+      name: "Tenant B run history",
+      scheduledFor: pastDate(),
+      taskType: "CUSTOM_ACTION",
+      tenantId: isolatedTenantId,
+    });
+    const startedAt = new Date(Date.now() - 10_000);
+
+    await recordTaskRun(prisma, {
+      completedAt: new Date(startedAt.getTime() + 10),
+      durationMs: 10,
+      retryAttempt: 0,
+      startedAt,
+      status: "SUCCESS",
+      taskId: taskA.id,
+      tenantId: tenantAId,
+    });
+    await recordTaskRun(prisma, {
+      completedAt: new Date(startedAt.getTime() + 20),
+      durationMs: 20,
+      errorMessage: "SECOND_ATTEMPT_FAILED",
+      retryAttempt: 1,
+      startedAt: new Date(startedAt.getTime() + 1000),
+      status: "FAILED",
+      taskId: taskA.id,
+      tenantId: tenantAId,
+    });
+    const duplicateRecorded = await recordTaskRun(prisma, {
+      completedAt: new Date(startedAt.getTime() + 50),
+      durationMs: 50,
+      errorMessage: "MUST_NOT_REPLACE_SUCCESS",
+      retryAttempt: 0,
+      startedAt,
+      status: "FAILED",
+      taskId: taskA.id,
+      tenantId: tenantAId,
+    });
+    expect(duplicateRecorded).toBe(false);
+    await recordTaskRun(prisma, {
+      completedAt: new Date(startedAt.getTime() + 30),
+      durationMs: 30,
+      errorMessage: "TASK_PROCESSING_TIMEOUT",
+      retryAttempt: 2,
+      startedAt: new Date(startedAt.getTime() + 2000),
+      status: "TIMEOUT",
+      taskId: taskA.id,
+      tenantId: tenantAId,
+    });
+    await recordTaskRun(prisma, {
+      completedAt: new Date(startedAt.getTime() + 30),
+      durationMs: 30,
+      retryAttempt: 0,
+      startedAt,
+      status: "SUCCESS",
+      taskId: taskB.id,
+      tenantId: isolatedTenantId,
+    });
+
+    await expect(
+      listScheduledTaskRuns(prisma, {
+        limit: 1,
+        offset: 0,
+        taskId: taskA.id,
+        tenantId: tenantAId,
+      }),
+    ).resolves.toMatchObject({
+      items: [{ durationMs: 30, errorMessage: "TASK_PROCESSING_TIMEOUT", status: "TIMEOUT" }],
+      limit: 1,
+      offset: 0,
+      total: 3,
+    });
+    await expect(
+      listScheduledTaskRuns(prisma, { limit: 1, offset: 1, taskId: taskA.id, tenantId: tenantAId }),
+    ).resolves.toMatchObject({
+      items: [{ durationMs: 20, errorMessage: "SECOND_ATTEMPT_FAILED", status: "FAILED" }],
+      total: 3,
+    });
+    await expect(
+      listScheduledTaskRuns(prisma, { limit: 1, offset: 2, taskId: taskA.id, tenantId: tenantAId }),
+    ).resolves.toMatchObject({
+      items: [{ durationMs: 10, errorMessage: null, status: "SUCCESS" }],
+      total: 3,
+    });
+    await expect(
+      listScheduledTaskRuns(prisma, {
+        limit: 10,
+        offset: 0,
+        taskId: taskA.id,
+        tenantId: isolatedTenantId,
+      }),
+    ).resolves.toMatchObject({ items: [], total: 0 });
+    await expect(
+      listScheduledTaskRuns(prisma, { limit: 10, offset: 0, tenantId: isolatedTenantId }),
+    ).resolves.toMatchObject({ items: [{ taskId: taskB.id }], total: 1 });
   });
 });

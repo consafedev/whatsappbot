@@ -6,9 +6,11 @@ import {
   dispatchRuleTriggers,
   markScheduledTaskFailed,
   type RuleTriggerDispatcherDatabase,
+  recordTaskRun,
   rescheduleRecurringTask,
   type ScheduledTask,
   type ScheduledTaskDatabase,
+  ScheduledTaskRunStatus,
   type TenantEntitlementReadDatabase,
 } from "@whatsapp-platform/database";
 import { type Job, Worker } from "bullmq";
@@ -34,11 +36,22 @@ async function markTaskFailed(
   task: ScheduledTask,
   database: ScheduledTaskProcessorDependencies["database"],
   error: string,
+  completedAt: Date,
 ): Promise<void> {
   await markScheduledTaskFailed(database, {
     canRetry: false,
     error,
     id: task.id,
+    tenantId: task.tenantId,
+  });
+  await recordTaskRun(database, {
+    completedAt,
+    durationMs: Math.max(0, completedAt.getTime() - task.updatedAt.getTime()),
+    errorMessage: error,
+    retryAttempt: task.retryCount,
+    startedAt: task.updatedAt,
+    status: ScheduledTaskRunStatus.FAILED,
+    taskId: task.id,
     tenantId: task.tenantId,
   });
 }
@@ -56,7 +69,12 @@ export async function processScheduledTaskJob(
   if (task === null) return;
 
   if (task.tenantId !== job.data.tenantId) {
-    await markTaskFailed(task, dependencies.database, SCHEDULED_TASK_QUEUE_TENANT_MISMATCH);
+    await markTaskFailed(
+      task,
+      dependencies.database,
+      SCHEDULED_TASK_QUEUE_TENANT_MISMATCH,
+      dependencies.now?.() ?? new Date(),
+    );
     return;
   }
 
@@ -78,17 +96,37 @@ export async function processScheduledTaskJob(
       case "CUSTOM_ACTION":
         break;
       default:
-        await markTaskFailed(task, dependencies.database, SCHEDULED_TASK_UNSUPPORTED_TYPE);
+        await markTaskFailed(
+          task,
+          dependencies.database,
+          SCHEDULED_TASK_UNSUPPORTED_TYPE,
+          dependencies.now?.() ?? new Date(),
+        );
         return;
     }
   } catch {
-    await markTaskFailed(task, dependencies.database, SCHEDULED_TASK_EXECUTION_FAILED);
+    await markTaskFailed(
+      task,
+      dependencies.database,
+      SCHEDULED_TASK_EXECUTION_FAILED,
+      dependencies.now?.() ?? new Date(),
+    );
     return;
   }
 
+  const completedAt = dependencies.now?.() ?? new Date();
   const transitioned = await rescheduleRecurringTask(dependencies.database, {
     id: task.id,
-    lastRunAt: now,
+    lastRunAt: completedAt,
+    tenantId: task.tenantId,
+  });
+  await recordTaskRun(dependencies.database, {
+    completedAt,
+    durationMs: Math.max(0, completedAt.getTime() - task.updatedAt.getTime()),
+    retryAttempt: task.retryCount,
+    startedAt: task.updatedAt,
+    status: ScheduledTaskRunStatus.SUCCESS,
+    taskId: task.id,
     tenantId: task.tenantId,
   });
   if (transitioned.status === "PENDING") {

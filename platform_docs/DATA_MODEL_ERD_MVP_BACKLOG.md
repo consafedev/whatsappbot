@@ -2556,19 +2556,18 @@ Este flujo es vendible a despachos, talleres, logística, escuelas, servicios t�
 > cubre orquestación de cron recurrente y disparadores de reglas;
 > E13-S03 conserva recuperación/reconciliación con backoff exponencial.
 
-## E13-S01 Task scheduler foundation [M] — DONE
+## E13-S01 Task Scheduler Foundation (Prisma, BullMQ Enqueue, API, Entitlements) — DONE
 
-## E13-S02 Recurring cron orchestration & rule triggers [M]
+## E13-S02 Recurring Cron Orchestration & Rule Triggers — DONE
 
-## E13-S03 ScheduledJobReference recovery/reconciliation & exponential backoff [L]
+## E13-S03 Task Recovery, Reconciler & Exponential Backoff — DONE
 
-Reconstruir jobs pendientes si Redis fue perdido/reiniciado.
+## E13-S04 Task Scheduling Web UI & Management Dashboard — DONE
 
-## E13-S04 Scheduled tasks web UI (Next.js) [L]
+## E13-S05 Scheduled Task Audit Logs, Run History & Observability — IN PROGRESS / CURRENT
 
-## E13-S05 Idempotency middleware [M]
-
-## E13-S06 Retry policies [M]
+Idempotency and retry policies originally listed as separate follow-up stories were
+absorbed natively into E13-S02 and E13-S03, respectively.
 
 ---
 

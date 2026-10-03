@@ -10,8 +10,10 @@ import {
 
 type ScheduledTasksListProps = Readonly<{
   canManage: boolean;
+  canRead: boolean;
   isPending: (taskId: string) => boolean;
   onCancel: (taskId: string) => void;
+  onHistory: (taskId: string) => void;
   onRetry: (taskId: string) => void;
   tasks: readonly ScheduledTaskItem[];
 }>;
@@ -26,8 +28,10 @@ const STATUS_CLASSES: Readonly<Record<ScheduledTaskStatusTone, string>> = Object
 
 export function ScheduledTasksList({
   canManage,
+  canRead,
   isPending,
   onCancel,
+  onHistory,
   onRetry,
   tasks,
 }: ScheduledTasksListProps) {
@@ -101,29 +105,40 @@ export function ScheduledTasksList({
                   </span>
                 </td>
                 <td className="px-4 py-4">
-                  {canManage && canCancel ? (
-                    <button
-                      className="rounded-md border border-slate-300 px-2.5 py-1.5 text-xs font-medium hover:bg-slate-50 disabled:cursor-wait disabled:opacity-50 dark:border-slate-700 dark:hover:bg-slate-800"
-                      disabled={pending}
-                      onClick={() => onCancel(task.id)}
-                      type="button"
-                    >
-                      {pending ? "Procesando…" : "Cancelar"}
-                    </button>
-                  ) : null}
-                  {canManage && canRetry ? (
-                    <button
-                      className="rounded-md bg-blue-700 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-800 disabled:cursor-wait disabled:opacity-50"
-                      disabled={pending}
-                      onClick={() => onRetry(task.id)}
-                      type="button"
-                    >
-                      {pending ? "Procesando…" : "Reintentar"}
-                    </button>
-                  ) : null}
-                  {!canManage || (!canCancel && !canRetry) ? (
-                    <span className="text-xs text-slate-400">—</span>
-                  ) : null}
+                  <div className="flex flex-wrap items-center gap-2">
+                    {canRead ? (
+                      <button
+                        className="rounded-md border border-slate-300 px-2.5 py-1.5 text-xs font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
+                        onClick={() => onHistory(task.id)}
+                        type="button"
+                      >
+                        Historial
+                      </button>
+                    ) : null}
+                    {canManage && canCancel ? (
+                      <button
+                        className="rounded-md border border-slate-300 px-2.5 py-1.5 text-xs font-medium hover:bg-slate-50 disabled:cursor-wait disabled:opacity-50 dark:border-slate-700 dark:hover:bg-slate-800"
+                        disabled={pending}
+                        onClick={() => onCancel(task.id)}
+                        type="button"
+                      >
+                        {pending ? "Procesando…" : "Cancelar"}
+                      </button>
+                    ) : null}
+                    {canManage && canRetry ? (
+                      <button
+                        className="rounded-md bg-blue-700 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-800 disabled:cursor-wait disabled:opacity-50"
+                        disabled={pending}
+                        onClick={() => onRetry(task.id)}
+                        type="button"
+                      >
+                        {pending ? "Procesando…" : "Reintentar"}
+                      </button>
+                    ) : null}
+                    {!canRead && (!canManage || (!canCancel && !canRetry)) ? (
+                      <span className="text-xs text-slate-400">—</span>
+                    ) : null}
+                  </div>
                 </td>
               </tr>
             );

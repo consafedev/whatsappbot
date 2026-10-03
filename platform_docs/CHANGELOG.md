@@ -8,6 +8,14 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Added
 
+- E13-S05 scheduled-task run history and observability: append-only run records
+  with tenant/task attempt identity, worker duration and terminal outcomes,
+  stale-recovery TIMEOUT rows, tenant-scoped paginated history APIs, and a
+  read-only per-task history dialog. Existing create/cancel/retry contracts and
+  Agenda navigation are unchanged. Focused suites, 465 root tests, lint,
+  typecheck, build, format, migration status, Compose health, and HTTP smoke
+  checks passed. S05 remains IN PROGRESS / CURRENT per the approved backlog.
+  Original idempotency/retry backlog items were absorbed by S02/S03.
 - E13-S04 scheduled tasks web console: tenant-gated Next.js route and
   navigation, paginated task list, status/name filters, one-off and recurring
   creation with UTC cron presets, cancel/retry actions, typed web API clients,

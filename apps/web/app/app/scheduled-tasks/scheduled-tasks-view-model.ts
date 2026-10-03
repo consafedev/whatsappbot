@@ -25,6 +25,29 @@ export interface ScheduledTasksResponse {
   readonly offset: number;
 }
 
+export type ScheduledTaskRunStatus = "SUCCESS" | "FAILED" | "TIMEOUT";
+
+export interface ScheduledTaskRunItem {
+  readonly id: string;
+  readonly tenantId: string;
+  readonly taskId: string;
+  readonly status: ScheduledTaskRunStatus;
+  readonly startedAt: string;
+  readonly completedAt: string;
+  readonly durationMs: number;
+  readonly retryAttempt: number;
+  readonly errorMessage: string | null;
+  readonly metadata: unknown;
+  readonly createdAt: string;
+}
+
+export interface ScheduledTaskRunsResponse {
+  readonly items: readonly ScheduledTaskRunItem[];
+  readonly total: number;
+  readonly limit: number;
+  readonly offset: number;
+}
+
 export interface CreateScheduledTaskInput {
   readonly name: string;
   readonly taskType: "TRIGGER_RULE" | "CUSTOM_ACTION" | string;
@@ -65,8 +88,21 @@ interface ScheduledTaskListApiData {
   readonly offset: number;
 }
 
+interface ScheduledTaskRunsApiData {
+  readonly items: readonly ScheduledTaskRunItem[];
+  readonly total: number;
+  readonly limit: number;
+  readonly offset: number;
+}
+
 export interface FetchScheduledTasksOptions {
   readonly status?: ScheduledTaskStatus | undefined;
+  readonly limit?: number | undefined;
+  readonly offset?: number | undefined;
+  readonly signal?: AbortSignal | undefined;
+}
+
+export interface FetchScheduledTaskRunsOptions {
   readonly limit?: number | undefined;
   readonly offset?: number | undefined;
   readonly signal?: AbortSignal | undefined;
@@ -164,6 +200,40 @@ export async function fetchScheduledTasks(
   return { items: data.tasks, total: data.total, limit: data.limit, offset: data.offset };
 }
 
+export async function fetchScheduledTaskRuns(
+  apiBaseUrl: string,
+  taskId: string,
+  options: FetchScheduledTaskRunsOptions = {},
+): Promise<ScheduledTaskRunsResponse> {
+  const query = new URLSearchParams();
+  if (options.limit !== undefined) query.set("limit", String(options.limit));
+  if (options.offset !== undefined) query.set("offset", String(options.offset));
+  const queryString = query.toString();
+  const path = `/${encodeURIComponent(taskId)}/runs${queryString ? `?${queryString}` : ""}`;
+  const { data, status } = await fetchEnvelope<ScheduledTaskRunsApiData>(
+    taskUrl(apiBaseUrl, path),
+    {
+      credentials: "include",
+      headers: { Accept: "application/json" },
+      method: "GET",
+      ...(options.signal === undefined ? {} : { signal: options.signal }),
+    },
+  );
+
+  if (
+    data === null ||
+    typeof data !== "object" ||
+    !Array.isArray(data.items) ||
+    typeof data.total !== "number" ||
+    typeof data.limit !== "number" ||
+    typeof data.offset !== "number"
+  ) {
+    throw new ScheduledTasksApiError("Respuesta inválida del servidor", status);
+  }
+
+  return { items: data.items, total: data.total, limit: data.limit, offset: data.offset };
+}
+
 export async function createScheduledTask(
   apiBaseUrl: string,
   input: CreateScheduledTaskInput,
@@ -220,6 +290,31 @@ const STATUS_PRESENTATION: Readonly<Record<ScheduledTaskStatus, ScheduledTaskSta
 
 export function formatTaskStatus(status: ScheduledTaskStatus): ScheduledTaskStatusPresentation {
   return STATUS_PRESENTATION[status];
+}
+
+export function formatTaskRunStatus(
+  status: ScheduledTaskRunStatus,
+): ScheduledTaskStatusPresentation {
+  switch (status) {
+    case "SUCCESS":
+      return { label: "Exitosa", tone: "green" };
+    case "FAILED":
+      return { label: "Fallida", tone: "red" };
+    case "TIMEOUT":
+      return { label: "Tiempo excedido", tone: "amber" };
+  }
+}
+
+export function formatTaskRunDuration(durationMs: number | null): string {
+  if (durationMs === null || !Number.isFinite(durationMs) || durationMs < 0) return "—";
+  if (durationMs < 1_000) return `${Math.round(durationMs)} ms`;
+  if (durationMs < 60_000) {
+    const seconds = durationMs / 1_000;
+    return `${Number.isInteger(seconds) ? seconds : seconds.toFixed(1)} s`;
+  }
+  const minutes = Math.floor(durationMs / 60_000);
+  const seconds = Math.floor((durationMs % 60_000) / 1_000);
+  return seconds === 0 ? `${minutes} min` : `${minutes} min ${seconds} s`;
 }
 
 export function formatTaskType(type: string): string {

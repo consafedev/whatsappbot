@@ -4,12 +4,15 @@ import {
   isValidCronExpression,
 } from "./cron-evaluator";
 import { Prisma, type PrismaClient, type ScheduledTask } from "./generated/prisma/client";
-import { ScheduledTaskStatus } from "./generated/prisma/enums";
+import { ScheduledTaskRunStatus, ScheduledTaskStatus } from "./generated/prisma/enums";
 import { calculateRetryDelayMs } from "./scheduled-task-retry-policy";
 import { createTenantContext } from "./tenant-context";
 import { assertTenantOperational } from "./tenant-operational";
 
-export type ScheduledTaskDatabase = Pick<PrismaClient, "scheduledTask" | "tenant" | "$transaction">;
+export type ScheduledTaskDatabase = Pick<
+  PrismaClient,
+  "scheduledTask" | "scheduledTaskRun" | "tenant" | "$transaction"
+>;
 
 export interface CreateScheduledTaskInput {
   readonly tenantId: string;
@@ -423,12 +426,19 @@ export async function recoverStaleScheduledTasks(
 
   return database.$transaction(async (transaction) => {
     const staleTasks = await transaction.$queryRaw<
-      Array<{ id: string; tenantId: string; retryCount: number; maxRetries: number }>
+      Array<{
+        id: string;
+        tenantId: string;
+        retryCount: number;
+        maxRetries: number;
+        startedAt: Date;
+      }>
     >`
       SELECT st.id,
              st.tenant_id AS "tenantId",
              st.retry_count AS "retryCount",
-             st.max_retries AS "maxRetries"
+             st.max_retries AS "maxRetries",
+             st.updated_at AS "startedAt"
       FROM "scheduled_tasks" AS st
       INNER JOIN "tenant" AS t ON t.id = st.tenant_id
       WHERE st.status = 'PROCESSING'::"scheduled_task_status"
@@ -465,6 +475,21 @@ export async function recoverStaleScheduledTasks(
         },
       });
       if (result.count === 0) continue;
+      await transaction.scheduledTaskRun.createMany({
+        data: [
+          {
+            completedAt: now,
+            durationMs: Math.max(0, now.getTime() - task.startedAt.getTime()),
+            errorMessage: "TASK_PROCESSING_TIMEOUT",
+            retryAttempt: task.retryCount,
+            startedAt: task.startedAt,
+            status: ScheduledTaskRunStatus.TIMEOUT,
+            taskId: task.id,
+            tenantId: task.tenantId,
+          },
+        ],
+        skipDuplicates: true,
+      });
       if (canRetry) recoveredCount += 1;
       else failedCount += 1;
     }
