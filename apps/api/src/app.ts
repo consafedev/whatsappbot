@@ -42,6 +42,7 @@ import {
   AiGatewayService,
 } from "./ai-gateway";
 import { ANALYTICS_DATABASE, AnalyticsController, AnalyticsService } from "./analytics";
+import { APPOINTMENTS_DATABASE, AppointmentsController, AppointmentsService } from "./appointments";
 import { CAMPAIGNS_DATABASE, CampaignsController, CampaignsService } from "./campaigns";
 import {
   CHANNEL_REALTIME_BROADCASTER,
@@ -213,6 +214,7 @@ export async function createApiApplication(
       AiAgentConfigController,
       CampaignsController,
       AnalyticsController,
+      AppointmentsController,
       ScheduledTasksController,
       ...(config.environment === "test" ? [EntitlementTestProbeController] : []),
     ],
@@ -253,12 +255,14 @@ export async function createApiApplication(
       AiAgentConfigService,
       CampaignsService,
       AnalyticsService,
+      AppointmentsService,
       ScheduledTasksService,
       SystemObservabilityService,
       OperationalAlertingService,
       { provide: AI_GATEWAY_DATABASE, useFactory: getPlatformDatabaseClient },
       { provide: CAMPAIGNS_DATABASE, useFactory: getPlatformDatabaseClient },
       { provide: ANALYTICS_DATABASE, useFactory: getPlatformDatabaseClient },
+      { provide: APPOINTMENTS_DATABASE, useFactory: getPlatformDatabaseClient },
       { provide: SCHEDULED_TASKS_DATABASE, useFactory: getPlatformDatabaseClient },
       { provide: SYSTEM_OBSERVABILITY_DATABASE, useFactory: getPlatformDatabaseClient },
       {

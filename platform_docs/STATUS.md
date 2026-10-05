@@ -1,12 +1,42 @@
 # STATUS.md — Estado operativo actual del proyecto
 
-**Actualizado:** 2026-10-01
+**Actualizado:** 2026-10-05
 **Versión de producto:** `0.0.0`  
-**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; Epic 11 — Campaign Engine & Audience Broadcasts — PASS / COMPLETE; **Epic 12 — Reporting, Analytics & Operational Observability — PASS / COMPLETE (E12-S01, E12-S02, E12-S03, E12-S04, E12-S05 PASS); E13-S01 — PASS / COMPLETE; E13-S02 — PASS / COMPLETE; E13-S03 — PASS / COMPLETE; E13-S04 — PASS / COMPLETE**.
+**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; Epic 11 — Campaign Engine & Audience Broadcasts — PASS / COMPLETE; **Epic 12 — Reporting, Analytics & Operational Observability — PASS / COMPLETE (E12-S01, E12-S02, E12-S03, E12-S04, E12-S05 PASS); E13-S01 — PASS / COMPLETE; E13-S02 — PASS / COMPLETE; E13-S03 — PASS / COMPLETE; E13-S04 — PASS / COMPLETE; E14-S01 — PASS / COMPLETE**.
 
 ## Current milestone
 
-Epic 13 — Task Scheduling & Distributed Orchestration (E13-S01 through E13-S04 complete; E13-S05 current / in progress).
+Epic 14 — Agenda & Appointment Booking (E14-S01 complete; E14-S02 next). Epic 13 — Task Scheduling & Distributed Orchestration remains tracked below.
+
+### E14-S01 — Appointment Services Foundation and Management API
+
+Status: PASS / COMPLETE — verified 2026-10-05.
+
+Delivered tenant-scoped `AppointmentService` persistence and additive migration,
+manager validation/list/update/archive behavior, atomic AuditLog and Outbox
+records, and guarded REST endpoints under `/api/v1/appointments/services`.
+OrganizationUnit uses the composite tenant relation with `onDelete: Restrict`;
+application updates can explicitly detach a service by setting
+`organizationUnitId` to `null`. Resources, availability, appointments, booking
+flows, and UI remain deferred.
+
+Verification (2026-10-05): PostgreSQL manager integration 8/8 and Nest/API
+integration 3/3 on a temporary PostgreSQL 18.4 database; root `pnpm test`
+465/465; `pnpm typecheck`, `pnpm build`, `pnpm biome check .` (467 files), and
+`git diff --check` PASS. The pre-E14 Prisma schema was replayed to the isolated
+database, the E14 migration SQL applied successfully, and
+`prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma
+--exit-code` reported no difference. The complete historical migration chain
+could not be replayed from empty because existing migration
+`20260827180000_add_ai_gateway_foundation` contains a UTF-8 BOM rejected by
+PostgreSQL; that unrelated historical file remains unchanged. The E14 migration
+was also deployed to the local development database. Docker API image build and
+container recreation PASS; API healthy and `GET /api/v1/appointments/services`
+without a session returned 401. ADR-0063 is the accepted scope decision.
+
+Next: E14-S02 — Appointment resources foundation.
+
+---
 
 ### E13-S05 — Scheduled Task Audit Logs, Run History & Observability
 

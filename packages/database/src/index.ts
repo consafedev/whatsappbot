@@ -65,6 +65,21 @@ export {
   type TenantOperationalOverviewResult,
 } from "./analytics-manager";
 export {
+  type AppointmentServiceInput,
+  type AppointmentServiceListFilters,
+  type AppointmentServiceListPage,
+  type AppointmentServiceManagerDatabase,
+  type AppointmentServiceMutationMetadata,
+  AppointmentServiceNotFoundError,
+  type AppointmentServicePatch,
+  AppointmentServiceValidationError,
+  archiveAppointmentService,
+  createAppointmentService,
+  getAppointmentServiceById,
+  listAppointmentServices,
+  updateAppointmentService,
+} from "./appointment-service-manager";
+export {
   ASSIGNMENT_POLICIES,
   type AssignmentPolicy,
   type AssignmentPolicyEngine,

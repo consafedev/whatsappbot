@@ -8,6 +8,17 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Added
 
+- E14-S01 appointment services foundation and management API: tenant-scoped
+  `AppointmentService` schema and additive PostgreSQL migration, validated
+  transactional manager operations with AuditLog/Outbox, and guarded
+  `/api/v1/appointments/services` CRUD/list endpoints. OrganizationUnit uses
+  the tenant-aware composite foreign key with `ON DELETE RESTRICT`; explicit
+  detachment is supported by update. Resources, availability, appointments,
+  booking flows, and UI remain out of scope. PostgreSQL manager/API integration
+  tests, root tests, typecheck, build, Biome, migration no-drift, and Docker API
+  health/401 smoke checks passed. Full empty-database migration replay is
+  blocked by a UTF-8 BOM in an earlier existing migration; the E14 SQL itself
+  applied cleanly over the pre-E14 schema. See ADR-0063.
 - E13-S05 scheduled-task run history and observability: append-only run records
   with tenant/task attempt identity, worker duration and terminal outcomes,
   stale-recovery TIMEOUT rows, tenant-scoped paginated history APIs, and a

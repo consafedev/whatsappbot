@@ -1,7 +1,7 @@
 # docs/MANIFEST.md — Baseline documental verificada
 
-**Fecha:** 2026-10-02
-**Estado:** documentación sincronizada con E13-S05 — IN PROGRESS / CURRENT; Epic 13: E13-S01 a E13-S04 PASS / COMPLETE, E13-S05 IN PROGRESS.
+**Fecha:** 2026-10-05
+**Estado:** documentación sincronizada con E14-S01 — PASS / COMPLETE; E14-S02 siguiente. Epic 13: E13-S01 a E13-S04 PASS / COMPLETE; el seguimiento de E13-S05 conserva su estado documentado.
 **Propósito:** comprobar integridad y composición del conjunto de documentos que permite continuar el proyecto sin depender de memoria conversacional.
 
 > Las rutas son relativas a la raíz del repositorio. Los hashes cambian si se edita un archivo. Después de cambios intencionales, regenerar este manifest.
@@ -12,7 +12,7 @@
 | `README.md` | 8026 | 960 | `cee94177528c317114d524256385dc2335b0ed544cbf0abbd87fa7850f8f115f` |
 | `.agents/agents.md` | 388 | 41 | `d52b02af7fdab6d2ecbf7af4dd2f311d5d244f153817498ff9e542427e9e1675` |
 | `.agents/skills/whatsapp-platform-engineering/SKILL.md` | 19764 | 2747 | `8597b90ddbb55ccb4dbcb5b1d98b100b264759be2357f772ec5c997a1a0ff23b` |
-| `platform_docs/CHANGELOG.md` | 118062 | 13634 | `28e14c3b0781e0ed9353a30db0f676411123e4a325b49689619921bf37a88dac` |
+| `platform_docs/CHANGELOG.md` | 118882 | 13733 | `59eb3b5a04d356d79b834058f2f4484dcf7590f6fbed8b10c47700f4bd9f7c4a` |
 | `platform_docs/DATA_MODEL_ERD_MVP_BACKLOG.md` | 73691 | 9950 | `e7f29e6f11af916cf0a52abec3e7c6a8615a8817572c6cd358befa571b4f950f` |
 | `platform_docs/DEMO_AND_SALES.md` | 8689 | 1253 | `28944d7c37827e10f72d6cdac811eb8bda92fbc9da96fa4947f09ef42eb5b9f4` |
 | `platform_docs/DEPLOYMENT.md` | 5766 | 811 | `665319a6f0a460d4cd509c062af9e5879416c795f2227f63287d076f1c3d7293` |
@@ -79,6 +79,7 @@
 | `platform_docs/docs/adr/0060-e13-s03-task-recovery-and-backoff-scope.md` | 4050 | 548 | `aea001e980d42720642cc6b093a86cb5c5847f97fc3b6f6012f887dceebf26c7` |
 | `platform_docs/docs/adr/0061-e13-s04-scheduled-tasks-web-ui-scope.md` | 4519 | 630 | `72f0239d085a9a44a31562f37f5651d25610e70b81f7f9272ecf9d81a8280481` |
 | `platform_docs/docs/adr/0062-e13-s05-scheduled-task-run-history-scope.md` | 3029 | 387 | `23b0a367208924f6873d71ab68de06fbd5dd21d755f078e63648e83df7f00386` |
+| `platform_docs/docs/adr/0063-e14-s01-appointment-services-scope.md` | 4241 | 530 | `6615d45ebc6f6bdb4c4040d284145fb10c9ee72e2d289a8a16ad5d8e2cfcb3b4` |
 | `platform_docs/docs/INDEX.md` | 12437 | 1687 | `d692e50c9f969e6ee096a14daf674281f585d3e2a2841211822734dbedd6c5f8` |
 | `platform_docs/PRD.md` | 90479 | 13033 | `81426bd8cabd9b4d5408ff0741c1cfa6aa1741986f2355d4294c6faa7bfdb380` |
 | `platform_docs/README.md` | 1953 | 242 | `31b67b6ef55a2adb4b2840cbe5993156c4fa0421f8752b2d130c97ceb84e880a` |
@@ -86,7 +87,7 @@
 | `platform_docs/RUNBOOK_BACKUP_RESTORE.md` | 4857 | 666 | `27e324b4cea0cd3a2514f44eeee4ce31db80a3a4701f0ba528ffb36afcebb3ff` |
 | `platform_docs/RUNBOOK_OPERATIONS.md` | 5777 | 796 | `23d4c537dd3bbcf4b8f08b39b4a948c42c10e3a458594c25ccf2b65937376252` |
 | `platform_docs/SECURITY.md` | 14589 | 2085 | `51b737e15512ae8136760024f2fcb78161276af0cf0699e8d06326ce1dc7b482` |
-| `platform_docs/STATUS.md` | 170462 | 20527 | `65c60081dcdc302ca8a3049eab02aa835d7e9f1beceb5e5037b14cdff1649e3b` |
+| `platform_docs/STATUS.md` | 172417 | 20767 | `1d73ca618aacf9987c18eea5c5e82d7b49ceca5007006a60417eb0d0170c9ac8` |
 | `platform_docs/SYSTEM_DESIGN.md` | 42737 | 5750 | `91f13a2973e0dc679941b408a80b2e2be3f2acb033de2fad62ca3e465c748ea4` |
 | `platform_docs/TESTING_STRATEGY.md` | 18229 | 2513 | `2659f25d06bcfe571830b291c6546ad481abb609049bede79003d80add2da358` |
 | `platform_docs/UI_FLOWS.md` | 22449 | 3253 | `311b1b44f7dcdd0e97003e0b29fa34cc789f95affa9052bf3ce86613ff86fddc` |
