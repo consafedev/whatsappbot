@@ -18,7 +18,11 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
   tests, root tests, typecheck, build, Biome, migration no-drift, and Docker API
   health/401 smoke checks passed. Full empty-database migration replay is
   blocked by a UTF-8 BOM in an earlier existing migration; the E14 SQL itself
-  applied cleanly over the pre-E14 schema. See ADR-0063.
+  applied cleanly over the pre-E14 schema. Review fixes: `durationMinutes` and
+  buffer values above the `INTEGER` storage range are rejected with HTTP 400
+  instead of an unhandled Prisma error (HTTP 500), and an update patch without
+  any defined field is rejected instead of persisting an empty mutation with
+  audit/outbox records. See ADR-0063.
 - E13-S05 scheduled-task run history and observability: append-only run records
   with tenant/task attempt identity, worker duration and terminal outcomes,
   stale-recovery TIMEOUT rows, tenant-scoped paginated history APIs, and a

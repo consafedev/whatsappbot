@@ -2,6 +2,7 @@ import { loadDatabaseConfig } from "@whatsapp-platform/config";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   AppointmentServiceNotFoundError,
+  type AppointmentServicePatch,
   AppointmentServiceValidationError,
   archiveAppointmentService,
   createAppointmentService,
@@ -155,11 +156,27 @@ describe.sequential("E14-S01 appointment service manager", () => {
       { bufferBeforeMinutes: -1, durationMinutes: 30, name: "Invalid before buffer" },
       { bufferAfterMinutes: -1, durationMinutes: 30, name: "Invalid after buffer" },
       { durationMinutes: 30, name: "Invalid price", price: -0.01 },
+      { durationMinutes: 2_147_483_648, name: "Duration out of range" },
+      {
+        bufferBeforeMinutes: 2_147_483_648,
+        durationMinutes: 30,
+        name: "Before buffer out of range",
+      },
+      {
+        bufferAfterMinutes: 2_147_483_648,
+        durationMinutes: 30,
+        name: "After buffer out of range",
+      },
     ]) {
       await expect(
         createAppointmentService(context, prisma, input, metadata),
       ).rejects.toBeInstanceOf(AppointmentServiceValidationError);
     }
+    expect(
+      await prisma.appointmentService.count({
+        where: { name: "Duration out of range", tenantId: tenantAId },
+      }),
+    ).toBe(0);
   });
 
   it("rejects an OrganizationUnit owned by another tenant", async () => {
@@ -203,6 +220,44 @@ describe.sequential("E14-S01 appointment service manager", () => {
       metadata,
     );
     expect(detached.organizationUnitId).toBeNull();
+  });
+
+  it("rejects patches without defined fields and records no mutation", async () => {
+    const context = createTenantContext(tenantAId);
+    const service = await createAppointmentService(
+      context,
+      prisma,
+      { durationMinutes: 30, name: "Empty patch target" },
+      metadata,
+    );
+    const undefinedOnlyPatch = { name: undefined } as unknown as AppointmentServicePatch;
+
+    await expect(
+      updateAppointmentService(context, prisma, service.id, {}, metadata),
+    ).rejects.toBeInstanceOf(AppointmentServiceValidationError);
+    await expect(
+      updateAppointmentService(context, prisma, service.id, undefinedOnlyPatch, metadata),
+    ).rejects.toBeInstanceOf(AppointmentServiceValidationError);
+
+    expect(
+      await prisma.auditLog.count({
+        where: {
+          action: "appointment_service.updated",
+          entityId: service.id,
+          tenantId: tenantAId,
+        },
+      }),
+    ).toBe(0);
+    expect(
+      await prisma.domainEventOutbox.count({
+        where: { aggregateId: service.id, eventType: "appointment_service.updated" },
+      }),
+    ).toBe(0);
+    expect(
+      await prisma.appointmentService.findUnique({
+        where: { id: service.id, tenantId: tenantAId },
+      }),
+    ).toMatchObject({ name: "Empty patch target" });
   });
 
   it("lists with tenant, active, unit, search, pagination, and total filters", async () => {

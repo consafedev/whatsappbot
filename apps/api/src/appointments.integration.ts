@@ -282,4 +282,27 @@ describe.sequential("E14-S01 appointments API", () => {
       ).status,
     ).toBe(404);
   });
+
+  it("returns 400 and persists nothing for out-of-range integer fields", async () => {
+    const response = await fetch(servicesUrl(), {
+      body: JSON.stringify({ durationMinutes: 3_000_000_000, name: "Out of range service" }),
+      headers: {
+        cookie: manageCookie,
+        "content-type": "application/json",
+        "x-request-id": `${prefix}-out-of-range`,
+      },
+      method: "POST",
+    });
+    expect(response.status).toBe(400);
+    expect(
+      await prisma.appointmentService.count({
+        where: { name: "Out of range service", tenantId: tenantAId },
+      }),
+    ).toBe(0);
+    expect(
+      await prisma.auditLog.count({
+        where: { action: "appointment_service.created", requestId: `${prefix}-out-of-range` },
+      }),
+    ).toBe(0);
+  });
 });

@@ -10,7 +10,7 @@ Epic 14 — Agenda & Appointment Booking (E14-S01 complete; E14-S02 next). Epic 
 
 ### E14-S01 — Appointment Services Foundation and Management API
 
-Status: PASS / COMPLETE — verified 2026-10-05.
+Status: PASS / COMPLETE — verified 2026-10-05 (adversarial review; review fixes applied the same day).
 
 Delivered tenant-scoped `AppointmentService` persistence and additive migration,
 manager validation/list/update/archive behavior, atomic AuditLog and Outbox
@@ -20,19 +20,33 @@ application updates can explicitly detach a service by setting
 `organizationUnitId` to `null`. Resources, availability, appointments, booking
 flows, and UI remain deferred.
 
-Verification (2026-10-05): PostgreSQL manager integration 8/8 and Nest/API
-integration 3/3 on a temporary PostgreSQL 18.4 database; root `pnpm test`
-465/465; `pnpm typecheck`, `pnpm build`, `pnpm biome check .` (467 files), and
-`git diff --check` PASS. The pre-E14 Prisma schema was replayed to the isolated
-database, the E14 migration SQL applied successfully, and
-`prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma
---exit-code` reported no difference. The complete historical migration chain
+Verification (2026-10-05, post-review): PostgreSQL manager integration 9/9 and
+Nest/API integration 4/4 on the local PostgreSQL 18.4 database; root
+`pnpm test` 465/465; `pnpm typecheck`, `pnpm build`, `pnpm biome check .`
+(467 files), and `git diff --check` PASS. Review fixes: `durationMinutes` and
+buffer values above the `INTEGER` column range now fail with
+`AppointmentServiceValidationError` (HTTP 400) instead of a Prisma error
+(HTTP 500), and a patch without any defined field is rejected before it can
+write an empty update with a spurious audit/outbox record. The pre-E14 Prisma
+schema was replayed to an isolated database, the E14 migration SQL applied
+successfully, and `prisma migrate diff --from-config-datasource --to-schema
+prisma/schema.prisma --exit-code` reported no difference for
+`appointment_services` (three pre-existing foreign-key name differences on
+unrelated tables exist in the shared development database and also reproduce
+against `main`). The complete historical migration chain
 could not be replayed from empty because existing migration
 `20260827180000_add_ai_gateway_foundation` contains a UTF-8 BOM rejected by
 PostgreSQL; that unrelated historical file remains unchanged. The E14 migration
-was also deployed to the local development database. Docker API image build and
-container recreation PASS; API healthy and `GET /api/v1/appointments/services`
-without a session returned 401. ADR-0063 is the accepted scope decision.
+was also deployed to the local development database. The running Docker API
+container is healthy and `GET /api/v1/appointments/services` without a session
+returned 401. ADR-0063 is the accepted scope decision.
+
+Known issues (pre-existing, not introduced by E14): the full
+`pnpm test:integration:database` suite fails the same 6 tests on `main`
+(`outbound-echo-manager` ×3, `inbound-event-dispatcher`,
+`platform-tenant-detail-query`, `platform-tenant-provisioning`), and one
+`delivery-status-manager` test is flaky. `pnpm test:integration:auth` is green
+(213/213), including the E14 API tests.
 
 Next: E14-S02 — Appointment resources foundation.
 

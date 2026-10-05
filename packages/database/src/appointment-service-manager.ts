@@ -65,6 +65,7 @@ export class AppointmentServiceValidationError extends Error {
 
 const MAX_PAGE_SIZE = 100;
 const DEFAULT_PAGE_SIZE = 50;
+const MAX_INTEGER_COLUMN = 2_147_483_647;
 
 function requireMetadata(metadata: AppointmentServiceMutationMetadata): void {
   if (!metadata.actorUserId.trim() || !metadata.requestId.trim()) {
@@ -81,16 +82,20 @@ function normalizeName(name: string): string {
 }
 
 function normalizeDuration(value: number): number {
-  if (!Number.isInteger(value) || value <= 0) {
-    throw new AppointmentServiceValidationError("durationMinutes must be a positive integer");
+  if (!Number.isInteger(value) || value <= 0 || value > MAX_INTEGER_COLUMN) {
+    throw new AppointmentServiceValidationError(
+      `durationMinutes must be a positive integer no greater than ${MAX_INTEGER_COLUMN}`,
+    );
   }
   return value;
 }
 
 function normalizeBuffer(value: number | undefined, field: string): number | undefined {
   if (value === undefined) return undefined;
-  if (!Number.isInteger(value) || value < 0) {
-    throw new AppointmentServiceValidationError(`${field} must be a non-negative integer`);
+  if (!Number.isInteger(value) || value < 0 || value > MAX_INTEGER_COLUMN) {
+    throw new AppointmentServiceValidationError(
+      `${field} must be a non-negative integer no greater than ${MAX_INTEGER_COLUMN}`,
+    );
   }
   return value;
 }
@@ -304,7 +309,7 @@ export async function updateAppointmentService(
 ): Promise<AppointmentService> {
   const tenant = createTenantContext(context.tenantId);
   requireMetadata(metadata);
-  if (Object.keys(patch).length === 0) {
+  if (!Object.values(patch).some((value) => value !== undefined)) {
     throw new AppointmentServiceValidationError("At least one field must be updated");
   }
   const data: Prisma.AppointmentServiceUncheckedUpdateInput = {};
