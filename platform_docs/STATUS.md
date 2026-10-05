@@ -23,10 +23,12 @@ absorbed into E13-S02 and E13-S03.
 Implementation verification (2026-10-02): focused database integration 10/10,
 worker 15/15, API integration 11/11, and scheduled-task web view-model 21/21;
 root `pnpm test` 465/465; `pnpm lint`, `pnpm typecheck`, `pnpm build`,
-`pnpm format:check`, and `git diff --check` PASS. Prisma reports all 24
-migrations applied. Compose rebuilt and recreated `api`, `web`, and
-`worker-jobs`; all report healthy. API `/health` returns 200 and history without
-a session returns 401. Web `/health` redirects for locale (308) and returns
+`pnpm format:check`, and `git diff --check` PASS. Migration `20260912180000_add_scheduled_task_runs_foundation`
+was added as part of this story. In the audit environment, Prisma migration status could not
+be re-verified because `DATABASE_URL` was not available; the schema/migration change is
+structurally consistent with the model, typecheck, and build. Compose rebuilt and recreated
+`api`, `web`, and `worker-jobs`; all report healthy. API `/health` returns 200 and history
+without a session returns 401. Web `/health` redirects for locale (308) and returns
 200 when followed. Authenticated runtime HTTP was not exercised; API integration
 tests cover authorized reads. The web test runtime has no DOM environment, so
 modal interaction/focus behavior is build-checked rather than browser-tested.
