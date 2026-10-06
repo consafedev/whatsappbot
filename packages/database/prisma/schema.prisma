@@ -215,6 +215,7 @@ model Tenant {
   scheduledTaskRuns   ScheduledTaskRun[]
   appointmentServices AppointmentService[]
   appointmentResources AppointmentResource[]
+  appointmentAvailabilityRules AppointmentAvailabilityRule[]
 
   @@index([status], map: "tenant_status_idx")
   @@index([deploymentId], map: "tenant_deployment_id_idx")
@@ -1003,10 +1004,35 @@ model AppointmentResource {
   tenant           Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   organizationUnit OrganizationUnit? @relation(fields: [tenantId, organizationUnitId], references: [tenantId, id], onDelete: Restrict)
   user             User?             @relation(fields: [tenantId, userId], references: [tenantId, id], onDelete: Restrict)
+  availabilityRules AppointmentAvailabilityRule[]
 
+  @@unique([tenantId, id], map: "appointment_resources_tenant_id_id_key")
   @@index([tenantId, active])
   @@index([tenantId, type])
   @@index([tenantId, organizationUnitId])
   @@index([tenantId, userId])
   @@map("appointment_resources")
+}
+
+model AppointmentAvailabilityRule {
+  id            String    @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  tenantId      String    @map("tenant_id") @db.Uuid
+  resourceId    String    @map("resource_id") @db.Uuid
+  dayOfWeek     Int       @map("day_of_week")
+  startTime     String    @map("start_time") @db.VarChar(5)
+  endTime       String    @map("end_time") @db.VarChar(5)
+  timezone      String?   @db.VarChar(100)
+  effectiveFrom DateTime? @map("effective_from") @db.Date
+  effectiveTo   DateTime? @map("effective_to") @db.Date
+  capacity      Int       @default(1)
+  active        Boolean   @default(true)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  tenant   Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resource AppointmentResource @relation(fields: [tenantId, resourceId], references: [tenantId, id], onDelete: Cascade)
+
+  @@index([tenantId, resourceId, dayOfWeek])
+  @@index([tenantId, active])
+  @@map("appointment_availability_rules")
 }

@@ -65,6 +65,21 @@ export {
   type TenantOperationalOverviewResult,
 } from "./analytics-manager";
 export {
+  type AppointmentAvailabilityRuleInput,
+  type AppointmentAvailabilityRuleListFilters,
+  type AppointmentAvailabilityRuleListPage,
+  type AppointmentAvailabilityRuleManagerDatabase,
+  type AppointmentAvailabilityRuleMutationMetadata,
+  AppointmentAvailabilityRuleNotFoundError,
+  type AppointmentAvailabilityRulePatch,
+  AppointmentAvailabilityRuleValidationError,
+  createAvailabilityRule,
+  deleteAvailabilityRule,
+  getAvailabilityRuleById,
+  listAvailabilityRules,
+  updateAvailabilityRule,
+} from "./appointment-availability-manager";
+export {
   type AppointmentResourceInput,
   type AppointmentResourceListFilters,
   type AppointmentResourceListPage,
@@ -276,6 +291,7 @@ export {
   type ExternalHumanMessageTransaction,
 } from "./external-human-message-manager";
 export type {
+  AppointmentAvailabilityRule,
   AuditLog,
   Contact,
   Conversation,

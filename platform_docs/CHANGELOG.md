@@ -8,6 +8,12 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Added
 
+- E14-S03 appointment availability rules foundation and management API:
+  tenant-scoped weekly rule persistence with a composite resource foreign key,
+  validated day/time/date/timezone/capacity fields, atomic AuditLog/Outbox
+  writes, and guarded `/api/v1/appointments/availability-rules` CRUD/list
+  endpoints. Overlapping rules remain independent; slot calculation remains
+  for E14-S05. ADR-0065 records the scope and decisions.
 - E14-S02 appointment resources foundation and management API: tenant-scoped
   `AppointmentResource` schema and additive PostgreSQL migration, guarded
   `/api/v1/appointments/resources` CRUD/list endpoints, validated type/name/

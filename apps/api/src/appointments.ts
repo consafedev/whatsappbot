@@ -19,6 +19,12 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import {
+  type AppointmentAvailabilityRuleInput,
+  type AppointmentAvailabilityRuleListFilters,
+  type AppointmentAvailabilityRuleManagerDatabase,
+  AppointmentAvailabilityRuleNotFoundError,
+  type AppointmentAvailabilityRulePatch,
+  AppointmentAvailabilityRuleValidationError,
   type AppointmentResourceInput,
   type AppointmentResourceListFilters,
   type AppointmentResourceManagerDatabase,
@@ -38,14 +44,19 @@ import {
   archiveAppointmentService,
   createAppointmentResource,
   createAppointmentService,
+  createAvailabilityRule,
+  deleteAvailabilityRule,
   getAppointmentResourceById,
   getAppointmentServiceById,
+  getAvailabilityRuleById,
   listAppointmentResources,
   listAppointmentServices,
+  listAvailabilityRules,
   type TenantContext,
   TenantNotOperationalError,
   updateAppointmentResource,
   updateAppointmentService,
+  updateAvailabilityRule,
 } from "@whatsapp-platform/database";
 import type { PermissionKey } from "@whatsapp-platform/rbac";
 import { TenantUserSessionGuard } from "./tenant-auth";
@@ -74,6 +85,14 @@ export interface AppointmentServicesQuery {
 export interface AppointmentResourcesQuery extends AppointmentServicesQuery {
   readonly type?: string | undefined;
   readonly userId?: string | undefined;
+}
+
+export interface AppointmentAvailabilityRulesQuery {
+  readonly resourceId?: unknown;
+  readonly dayOfWeek?: unknown;
+  readonly active?: unknown;
+  readonly limit?: unknown;
+  readonly offset?: unknown;
 }
 
 const UUID_V7_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -249,6 +268,123 @@ function parseResourcePatchBody(value: unknown): AppointmentResourcePatch {
       : { userId: optionalResourceForeignKey(body.userId, "userId") as string | null }),
     ...(body.active === undefined ? {} : { active: body.active as boolean }),
     ...(body.metadata === undefined ? {} : { metadata: resourceMetadata(body.metadata) }),
+  };
+}
+
+function availabilityRuleResourceId(value: unknown): string {
+  if (typeof value !== "string" || !UUID_V7_PATTERN.test(value)) {
+    throw new BadRequestException("resourceId must be a UUIDv7");
+  }
+  return value;
+}
+
+function optionalAvailabilityDate(
+  value: unknown,
+  field: "effectiveFrom" | "effectiveTo",
+): string | null | undefined {
+  if (value === undefined || value === null) return value;
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    throw new BadRequestException(`${field} must use YYYY-MM-DD or null`);
+  }
+  return value;
+}
+
+function optionalAvailabilityTimezone(value: unknown): string | null | undefined {
+  if (value === undefined || value === null) return value;
+  return requiredString(value, "timezone");
+}
+
+function optionalAvailabilityBoolean(value: unknown, field: string): boolean | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== "boolean") throw new BadRequestException(`${field} must be a boolean`);
+  return value;
+}
+
+function parseCreateAvailabilityRuleBody(value: unknown): AppointmentAvailabilityRuleInput {
+  const body = plainObject(value, "Invalid appointment availability rule request");
+  exactKeys(
+    body,
+    [
+      "resourceId",
+      "dayOfWeek",
+      "startTime",
+      "endTime",
+      "timezone",
+      "effectiveFrom",
+      "effectiveTo",
+      "capacity",
+      "active",
+    ],
+    "Invalid appointment availability rule request",
+  );
+  return {
+    resourceId: availabilityRuleResourceId(body.resourceId),
+    dayOfWeek: integer(body.dayOfWeek, "dayOfWeek"),
+    startTime: requiredString(body.startTime, "startTime"),
+    endTime: requiredString(body.endTime, "endTime"),
+    ...(body.timezone === undefined
+      ? {}
+      : { timezone: optionalAvailabilityTimezone(body.timezone) as string | null }),
+    ...(body.effectiveFrom === undefined
+      ? {}
+      : {
+          effectiveFrom: optionalAvailabilityDate(body.effectiveFrom, "effectiveFrom") as
+            | string
+            | null,
+        }),
+    ...(body.effectiveTo === undefined
+      ? {}
+      : {
+          effectiveTo: optionalAvailabilityDate(body.effectiveTo, "effectiveTo") as string | null,
+        }),
+    ...(body.capacity === undefined ? {} : { capacity: integer(body.capacity, "capacity") }),
+    ...(body.active === undefined
+      ? {}
+      : { active: optionalAvailabilityBoolean(body.active, "active") as boolean }),
+  };
+}
+
+function parseAvailabilityRulePatchBody(value: unknown): AppointmentAvailabilityRulePatch {
+  const body = plainObject(value, "Invalid appointment availability rule request");
+  exactKeys(
+    body,
+    [
+      "dayOfWeek",
+      "startTime",
+      "endTime",
+      "timezone",
+      "effectiveFrom",
+      "effectiveTo",
+      "capacity",
+      "active",
+    ],
+    "Invalid appointment availability rule request",
+  );
+  return {
+    ...(body.dayOfWeek === undefined ? {} : { dayOfWeek: integer(body.dayOfWeek, "dayOfWeek") }),
+    ...(body.startTime === undefined
+      ? {}
+      : { startTime: requiredString(body.startTime, "startTime") }),
+    ...(body.endTime === undefined ? {} : { endTime: requiredString(body.endTime, "endTime") }),
+    ...(body.timezone === undefined
+      ? {}
+      : { timezone: optionalAvailabilityTimezone(body.timezone) as string | null }),
+    ...(body.effectiveFrom === undefined
+      ? {}
+      : {
+          effectiveFrom: optionalAvailabilityDate(body.effectiveFrom, "effectiveFrom") as
+            | string
+            | null,
+        }),
+    ...(body.effectiveTo === undefined
+      ? {}
+      : {
+          effectiveTo: optionalAvailabilityDate(body.effectiveTo, "effectiveTo") as string | null,
+        }),
+    ...(body.capacity === undefined ? {} : { capacity: integer(body.capacity, "capacity") }),
+    ...(body.active === undefined
+      ? {}
+      : { active: optionalAvailabilityBoolean(body.active, "active") as boolean }),
   };
 }
 
@@ -439,7 +575,58 @@ function parseResourceListFilters(
   };
 }
 
+function parseAvailabilityQueryInteger(value: unknown, field: string): number | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== "string" || !/^\d+$/.test(value)) {
+    throw new BadRequestException(`${field} must be an integer`);
+  }
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed)) throw new BadRequestException(`${field} is out of range`);
+  return parsed;
+}
+
+function parseAvailabilityRuleListFilters(
+  query: AppointmentAvailabilityRulesQuery,
+): AppointmentAvailabilityRuleListFilters {
+  const raw = plainObject(query, "Invalid appointment availability rule query");
+  exactKeys(
+    raw,
+    ["resourceId", "dayOfWeek", "active", "limit", "offset"],
+    "Invalid appointment availability rule query",
+  );
+  const resourceId =
+    query.resourceId === undefined ? undefined : availabilityRuleResourceId(query.resourceId);
+  const dayOfWeek = parseAvailabilityQueryInteger(query.dayOfWeek, "dayOfWeek");
+  const limit = parseAvailabilityQueryInteger(query.limit, "limit");
+  const offset = parseAvailabilityQueryInteger(query.offset, "offset");
+  let active: boolean | undefined;
+  if (query.active !== undefined) {
+    if (query.active !== "true" && query.active !== "false") {
+      throw new BadRequestException("active must be true or false");
+    }
+    active = query.active === "true";
+  }
+  return {
+    ...(resourceId === undefined ? {} : { resourceId }),
+    ...(dayOfWeek === undefined ? {} : { dayOfWeek }),
+    ...(active === undefined ? {} : { active }),
+    ...(limit === undefined ? {} : { limit }),
+    ...(offset === undefined ? {} : { offset }),
+  };
+}
+
 function mapAppointmentError(error: unknown): never {
+  if (error instanceof AppointmentAvailabilityRuleNotFoundError) {
+    throw new NotFoundException({
+      code: "APPOINTMENT_AVAILABILITY_RULE_NOT_FOUND",
+      error: "Not Found",
+      message: "Appointment availability rule was not found",
+      statusCode: 404,
+    });
+  }
+  if (error instanceof AppointmentAvailabilityRuleValidationError) {
+    throw new BadRequestException(error.message);
+  }
   if (error instanceof AppointmentResourceNotFoundError) {
     throw new NotFoundException({
       code: "APPOINTMENT_RESOURCE_NOT_FOUND",
@@ -478,7 +665,8 @@ export class AppointmentsService {
   constructor(
     @Inject(APPOINTMENTS_DATABASE)
     private readonly database: AppointmentServiceManagerDatabase &
-      AppointmentResourceManagerDatabase,
+      AppointmentResourceManagerDatabase &
+      AppointmentAvailabilityRuleManagerDatabase,
   ) {}
 
   async create(
@@ -612,6 +800,74 @@ export class AppointmentsService {
       return mapAppointmentError(error);
     }
   }
+
+  async createAvailabilityRule(
+    context: TenantContext,
+    identity: TenantSessionIdentity,
+    request: TenantAuthenticationRequest,
+    input: AppointmentAvailabilityRuleInput,
+  ) {
+    try {
+      return await createAvailabilityRule(context, this.database, input, {
+        actorUserId: identity.userId,
+        requestId: requestId(request),
+      });
+    } catch (error) {
+      return mapAppointmentError(error);
+    }
+  }
+
+  async listAvailabilityRules(
+    context: TenantContext,
+    filters: AppointmentAvailabilityRuleListFilters,
+  ) {
+    try {
+      return await listAvailabilityRules(context, this.database, filters);
+    } catch (error) {
+      return mapAppointmentError(error);
+    }
+  }
+
+  async getAvailabilityRule(context: TenantContext, id: string) {
+    try {
+      return await getAvailabilityRuleById(context, this.database, id);
+    } catch (error) {
+      return mapAppointmentError(error);
+    }
+  }
+
+  async updateAvailabilityRule(
+    context: TenantContext,
+    identity: TenantSessionIdentity,
+    request: TenantAuthenticationRequest,
+    id: string,
+    patch: AppointmentAvailabilityRulePatch,
+  ) {
+    try {
+      return await updateAvailabilityRule(context, this.database, id, patch, {
+        actorUserId: identity.userId,
+        requestId: requestId(request),
+      });
+    } catch (error) {
+      return mapAppointmentError(error);
+    }
+  }
+
+  async deleteAvailabilityRule(
+    context: TenantContext,
+    identity: TenantSessionIdentity,
+    request: TenantAuthenticationRequest,
+    id: string,
+  ) {
+    try {
+      return await deleteAvailabilityRule(context, this.database, id, {
+        actorUserId: identity.userId,
+        requestId: requestId(request),
+      });
+    } catch (error) {
+      return mapAppointmentError(error);
+    }
+  }
 }
 
 function appointmentServiceId(value: string): string {
@@ -622,6 +878,13 @@ function appointmentServiceId(value: string): string {
 function appointmentResourceId(value: string): string {
   if (!UUID_V7_PATTERN.test(value))
     throw new BadRequestException("Invalid appointment resource id");
+  return value;
+}
+
+function appointmentAvailabilityRuleId(value: string): string {
+  if (!UUID_V7_PATTERN.test(value)) {
+    throw new BadRequestException("Invalid appointment availability rule id");
+  }
   return value;
 }
 
@@ -769,6 +1032,86 @@ export class AppointmentsController {
       identity,
       request,
       appointmentResourceId(rawId),
+    );
+    return { success: true, data };
+  }
+
+  @Post("availability-rules")
+  @HttpCode(201)
+  @appointmentsAuthorized("appointments.manage")
+  async createAvailabilityRule(
+    @CurrentTenantContext() context: TenantContext,
+    @CurrentTenantIdentity() identity: TenantSessionIdentity,
+    @Req() request: TenantAuthenticationRequest,
+    @Body() body: unknown,
+  ): Promise<ApiResponse<Awaited<ReturnType<AppointmentsService["createAvailabilityRule"]>>>> {
+    const data = await this.service.createAvailabilityRule(
+      context,
+      identity,
+      request,
+      parseCreateAvailabilityRuleBody(body),
+    );
+    return { success: true, data };
+  }
+
+  @Get("availability-rules")
+  @appointmentsAuthorized("appointments.read")
+  async listAvailabilityRules(
+    @CurrentTenantContext() context: TenantContext,
+    @Query() query: AppointmentAvailabilityRulesQuery,
+  ): Promise<ApiResponse<Awaited<ReturnType<AppointmentsService["listAvailabilityRules"]>>>> {
+    const data = await this.service.listAvailabilityRules(
+      context,
+      parseAvailabilityRuleListFilters(query),
+    );
+    return { success: true, data };
+  }
+
+  @Get("availability-rules/:id")
+  @appointmentsAuthorized("appointments.read")
+  async getAvailabilityRule(
+    @CurrentTenantContext() context: TenantContext,
+    @Param("id") rawId: string,
+  ): Promise<ApiResponse<Awaited<ReturnType<AppointmentsService["getAvailabilityRule"]>>>> {
+    const data = await this.service.getAvailabilityRule(
+      context,
+      appointmentAvailabilityRuleId(rawId),
+    );
+    return { success: true, data };
+  }
+
+  @Patch("availability-rules/:id")
+  @appointmentsAuthorized("appointments.manage")
+  async updateAvailabilityRule(
+    @Param("id") rawId: string,
+    @CurrentTenantContext() context: TenantContext,
+    @CurrentTenantIdentity() identity: TenantSessionIdentity,
+    @Req() request: TenantAuthenticationRequest,
+    @Body() body: unknown,
+  ): Promise<ApiResponse<Awaited<ReturnType<AppointmentsService["updateAvailabilityRule"]>>>> {
+    const data = await this.service.updateAvailabilityRule(
+      context,
+      identity,
+      request,
+      appointmentAvailabilityRuleId(rawId),
+      parseAvailabilityRulePatchBody(body),
+    );
+    return { success: true, data };
+  }
+
+  @Delete("availability-rules/:id")
+  @appointmentsAuthorized("appointments.manage")
+  async deleteAvailabilityRule(
+    @Param("id") rawId: string,
+    @CurrentTenantContext() context: TenantContext,
+    @CurrentTenantIdentity() identity: TenantSessionIdentity,
+    @Req() request: TenantAuthenticationRequest,
+  ): Promise<ApiResponse<Awaited<ReturnType<AppointmentsService["deleteAvailabilityRule"]>>>> {
+    const data = await this.service.deleteAvailabilityRule(
+      context,
+      identity,
+      request,
+      appointmentAvailabilityRuleId(rawId),
     );
     return { success: true, data };
   }

@@ -2,11 +2,38 @@
 
 **Actualizado:** 2026-10-05
 **Versión de producto:** `0.0.0`  
-**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; Epic 11 — Campaign Engine & Audience Broadcasts — PASS / COMPLETE; **Epic 12 — Reporting, Analytics & Operational Observability — PASS / COMPLETE (E12-S01, E12-S02, E12-S03, E12-S04, E12-S05 PASS); E13-S01 — PASS / COMPLETE; E13-S02 — PASS / COMPLETE; E13-S03 — PASS / COMPLETE; E13-S04 — PASS / COMPLETE; E14-S01 — PASS / COMPLETE; E14-S02 — PASS / COMPLETE**.
+**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; Epic 11 — Campaign Engine & Audience Broadcasts — PASS / COMPLETE; **Epic 12 — Reporting, Analytics & Operational Observability — PASS / COMPLETE (E12-S01, E12-S02, E12-S03, E12-S04, E12-S05 PASS); E13-S01 — PASS / COMPLETE; E13-S02 — PASS / COMPLETE; E13-S03 — PASS / COMPLETE; E13-S04 — PASS / COMPLETE; E14-S01 — PASS / COMPLETE; E14-S02 — PASS / COMPLETE; E14-S03 — PASS / COMPLETE**.
 
 ## Current milestone
 
-Epic 14 — Agenda & Appointment Booking (E14-S01 and E14-S02 complete; E14-S03 next). Epic 13 — Task Scheduling & Distributed Orchestration remains tracked below.
+Epic 14 — Agenda & Appointment Booking (E14-S01 through E14-S03 complete; E14-S04 next). Epic 13 — Task Scheduling & Distributed Orchestration remains tracked below.
+
+### E14-S03 — Appointment Availability Rules Foundation and Management API
+
+Status: PASS / COMPLETE — verified 2026-10-05.
+
+Delivered tenant-scoped weekly `AppointmentAvailabilityRule` persistence and
+additive migration `20261006180000_add_appointment_availability_rules_foundation`,
+with tenant-aware composite resource foreign key, strict day/time/date/timezone/
+capacity validation, active same-tenant resource validation on creation,
+tenant-scoped CRUD/list management, and atomic AuditLog/Outbox writes. Guarded endpoints live
+under `/api/v1/appointments/availability-rules`; reads require
+`appointments.read`, mutations require `appointments.manage`, and all routes
+require `module.appointments`. Rules use `0=Sunday` through `6=Saturday`, local
+same-day `HH:mm` intervals, and optional date bounds/timezone. Overlapping rules
+remain independent; availability calculation and precedence are deferred to
+E14-S05. ADR-0065 records the scope.
+
+Verification (2026-10-05): PostgreSQL manager integration 7/7 and Nest/API
+integration 6/6; root `pnpm test` 465/465; `pnpm typecheck`, `pnpm build`,
+`pnpm biome check .` (471 files), `pnpm db:validate`, and `git diff --check`
+PASS. The E14-S03 migration deployed successfully to local PostgreSQL 18.4.
+Docker Compose API build and startup PASS; API `/health` returned 200 and
+unauthenticated `GET /api/v1/appointments/availability-rules` returned 401.
+No authenticated live HTTP request, web UI, calendar exception, availability
+calculation, booking, or WhatsApp flow was exercised or delivered by this story.
+
+Next: E14-S04 — Calendar exceptions.
 
 ### E14-S02 — Appointment Resources Foundation and Management API
 
@@ -43,7 +70,7 @@ migration chain was not replayed from an empty database for this story; the
 pre-existing UTF-8 BOM limitation in an earlier migration remains as recorded
 under E14-S01 and was not modified.
 
-Next: E14-S03 — Weekly Availability Rules Management.
+Next: E14-S04 — Calendar exceptions.
 
 ---
 

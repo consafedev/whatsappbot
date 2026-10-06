@@ -75,12 +75,17 @@ function resourcesUrl(path = ""): string {
   return `${baseUrl}/api/v1/appointments/resources${path}`;
 }
 
+function availabilityRulesUrl(path = ""): string {
+  return `${baseUrl}/api/v1/appointments/availability-rules${path}`;
+}
+
 async function cleanup(): Promise<void> {
   const tenants = await prisma.tenant.findMany({
     select: { id: true },
     where: { slug: { startsWith: prefix } },
   });
   const ids = tenants.map(({ id }) => id);
+  await prisma.appointmentAvailabilityRule.deleteMany({ where: { tenantId: { in: ids } } });
   await prisma.appointmentResource.deleteMany({ where: { tenantId: { in: ids } } });
   await prisma.appointmentService.deleteMany({ where: { tenantId: { in: ids } } });
   await prisma.userSession.deleteMany({ where: { tenantId: { in: ids } } });
@@ -444,6 +449,197 @@ describe.sequential("E14-S01 appointments API", () => {
       (
         await fetch(resourcesUrl("/00000000-0000-7000-8000-000000000001"), {
           headers: { cookie: readCookie },
+        })
+      ).status,
+    ).toBe(404);
+  });
+
+  it("manages availability rules with tenant guards, strict validation, audit, and envelopes", async () => {
+    expect((await fetch(availabilityRulesUrl())).status).toBe(401);
+    expect(
+      (await fetch(availabilityRulesUrl(), { headers: { cookie: noPermissionCookie } })).status,
+    ).toBe(403);
+    expect(
+      (await fetch(availabilityRulesUrl(), { headers: { cookie: manageCookie } })).status,
+    ).toBe(403);
+    expect(
+      (
+        await fetch(availabilityRulesUrl("?dayOfWeek=1&dayOfWeek=2"), {
+          headers: { cookie: readCookie },
+        })
+      ).status,
+    ).toBe(400);
+    expect(
+      (
+        await fetch(availabilityRulesUrl("?active=true&active=false"), {
+          headers: { cookie: readCookie },
+        })
+      ).status,
+    ).toBe(400);
+    expect(
+      (
+        await fetch(availabilityRulesUrl(), {
+          body: JSON.stringify({
+            dayOfWeek: 1,
+            endTime: "10:00",
+            resourceId: "00000000-0000-7000-8000-000000000001",
+            startTime: "9:00",
+          }),
+          headers: { cookie: readCookie, "content-type": "application/json" },
+          method: "POST",
+        })
+      ).status,
+    ).toBe(403);
+
+    await prisma.tenantEntitlement.update({
+      data: { enabled: false },
+      where: {
+        tenantId_entitlementKey: {
+          entitlementKey: "module.appointments",
+          tenantId: tenantAId,
+        },
+      },
+    });
+    try {
+      expect(
+        (await fetch(availabilityRulesUrl(), { headers: { cookie: readCookie } })).status,
+      ).toBe(403);
+    } finally {
+      await prisma.tenantEntitlement.update({
+        data: { enabled: true },
+        where: {
+          tenantId_entitlementKey: {
+            entitlementKey: "module.appointments",
+            tenantId: tenantAId,
+          },
+        },
+      });
+    }
+
+    const resourceA = await prisma.appointmentResource.create({
+      data: { name: "Availability API A", tenantId: tenantAId },
+    });
+    const invalid = await fetch(availabilityRulesUrl(), {
+      body: JSON.stringify({
+        dayOfWeek: 1,
+        endTime: "09:00",
+        resourceId: resourceA.id,
+        startTime: "10:00",
+      }),
+      headers: { cookie: manageCookie, "content-type": "application/json" },
+      method: "POST",
+    });
+    expect(invalid.status).toBe(400);
+    expect(await prisma.appointmentAvailabilityRule.count({ where: { tenantId: tenantAId } })).toBe(
+      0,
+    );
+
+    const createdResponse = await fetch(availabilityRulesUrl(), {
+      body: JSON.stringify({
+        capacity: 2,
+        dayOfWeek: 1,
+        effectiveFrom: "2026-10-01",
+        effectiveTo: "2026-12-31",
+        endTime: "17:00",
+        resourceId: resourceA.id,
+        startTime: "09:00",
+        timezone: "America/Mexico_City",
+      }),
+      headers: {
+        cookie: manageCookie,
+        "content-type": "application/json",
+        "x-request-id": `${prefix}-availability-create`,
+      },
+      method: "POST",
+    });
+    expect(createdResponse.status).toBe(201);
+    const created = (await createdResponse.json()) as {
+      success: boolean;
+      data: { active: boolean; capacity: number; dayOfWeek: number; id: string; startTime: string };
+    };
+    expect(created).toMatchObject({
+      data: { active: true, capacity: 2, dayOfWeek: 1, startTime: "09:00" },
+      success: true,
+    });
+    expect(
+      await prisma.appointmentAvailabilityRule.findFirst({
+        where: { id: created.data.id, tenantId: tenantAId },
+      }),
+    ).toMatchObject({ resourceId: resourceA.id, tenantId: tenantAId });
+
+    const list = await fetch(
+      availabilityRulesUrl(`?resourceId=${resourceA.id}&dayOfWeek=1&active=true&limit=20&offset=0`),
+      { headers: { cookie: readCookie } },
+    );
+    expect(list.status).toBe(200);
+    expect(await list.json()).toMatchObject({
+      data: { items: [{ id: created.data.id, resourceId: resourceA.id }], total: 1 },
+      success: true,
+    });
+    expect(
+      (
+        await fetch(availabilityRulesUrl(`/${created.data.id}`), {
+          headers: { cookie: readCookie },
+        })
+      ).status,
+    ).toBe(200);
+    expect(
+      (
+        await fetch(availabilityRulesUrl(`/${created.data.id}`), {
+          body: JSON.stringify({ active: false }),
+          headers: { cookie: readCookie, "content-type": "application/json" },
+          method: "PATCH",
+        })
+      ).status,
+    ).toBe(403);
+    const updated = await fetch(availabilityRulesUrl(`/${created.data.id}`), {
+      body: JSON.stringify({ endTime: "18:00" }),
+      headers: { cookie: manageCookie, "content-type": "application/json" },
+      method: "PATCH",
+    });
+    expect(updated.status).toBe(200);
+    expect(((await updated.json()) as { data: { endTime: string } }).data.endTime).toBe("18:00");
+    const deleted = await fetch(availabilityRulesUrl(`/${created.data.id}`), {
+      headers: { cookie: manageCookie },
+      method: "DELETE",
+    });
+    expect(deleted.status).toBe(200);
+    expect(
+      await prisma.appointmentAvailabilityRule.findFirst({
+        where: { id: created.data.id, tenantId: tenantAId },
+      }),
+    ).toBeNull();
+
+    const resourceB = await prisma.appointmentResource.create({
+      data: { name: "Availability API B", tenantId: tenantBId },
+    });
+    const foreign = await prisma.appointmentAvailabilityRule.create({
+      data: {
+        dayOfWeek: 2,
+        endTime: "10:00",
+        resourceId: resourceB.id,
+        startTime: "09:00",
+        tenantId: tenantBId,
+      },
+    });
+    expect(
+      (await fetch(availabilityRulesUrl(`/${foreign.id}`), { headers: { cookie: readCookie } }))
+        .status,
+    ).toBe(404);
+    expect(
+      (
+        await fetch(availabilityRulesUrl(`/${foreign.id}`), {
+          body: JSON.stringify({ active: false }),
+          headers: { cookie: manageCookie, "content-type": "application/json" },
+          method: "PATCH",
+        })
+      ).status,
+    ).toBe(404);
+    expect(
+      (
+        await fetch(availabilityRulesUrl(`/${foreign.id}`), {
+          headers: { cookie: manageCookie },
+          method: "DELETE",
         })
       ).status,
     ).toBe(404);

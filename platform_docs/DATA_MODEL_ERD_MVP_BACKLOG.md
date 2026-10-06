@@ -2577,7 +2577,17 @@ absorbed natively into E13-S02 and E13-S03, respectively.
 
 ## E14-S02 Resources [M] — DONE
 
-## E14-S03 Availability rules [L]
+## E14-S03 Availability rules [L] — DONE
+
+Weekly tenant-scoped `AppointmentAvailabilityRule` persistence and guarded
+management API. Rules use `0=Sunday` through `6=Saturday`, strict same-day
+`HH:mm` start/end times, optional inclusive date bounds and IANA timezone,
+positive PostgreSQL `INTEGER` capacity, and active state. At creation, the
+linked resource must be active and belong to the same tenant; PostgreSQL
+enforces the composite tenant/resource foreign key. Create does not overwrite,
+and overlapping rules remain independent until E14-S05 defines availability
+calculation semantics. CRUD mutations write AuditLog and Outbox atomically.
+ADR-0065 records the scope.
 
 ## E14-S04 Exceptions [M]
 
