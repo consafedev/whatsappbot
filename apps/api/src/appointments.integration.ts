@@ -71,6 +71,10 @@ function servicesUrl(path = ""): string {
   return `${baseUrl}/api/v1/appointments/services${path}`;
 }
 
+function resourcesUrl(path = ""): string {
+  return `${baseUrl}/api/v1/appointments/resources${path}`;
+}
+
 async function cleanup(): Promise<void> {
   const tenants = await prisma.tenant.findMany({
     select: { id: true },
@@ -158,6 +162,7 @@ describe.sequential("E14-S01 appointments API", () => {
       ).status,
     ).toBe(403);
     expect((await fetch(servicesUrl(), { headers: { cookie: readCookie } })).status).toBe(200);
+    expect((await fetch(resourcesUrl(), { headers: { cookie: readCookie } })).status).toBe(200);
 
     await prisma.tenantEntitlement.update({
       data: { enabled: false },
@@ -169,6 +174,7 @@ describe.sequential("E14-S01 appointments API", () => {
       },
     });
     expect((await fetch(servicesUrl(), { headers: { cookie: readCookie } })).status).toBe(403);
+    expect((await fetch(resourcesUrl(), { headers: { cookie: readCookie } })).status).toBe(403);
     await prisma.tenantEntitlement.update({
       data: { enabled: true },
       where: {
@@ -304,5 +310,118 @@ describe.sequential("E14-S01 appointments API", () => {
         where: { action: "appointment_service.created", requestId: `${prefix}-out-of-range` },
       }),
     ).toBe(0);
+  });
+
+  it("manages resources with the appointments guards, validation, envelope, and tenant 404s", async () => {
+    expect((await fetch(resourcesUrl())).status).toBe(401);
+    expect((await fetch(resourcesUrl(), { headers: { cookie: noPermissionCookie } })).status).toBe(
+      403,
+    );
+    expect(
+      (
+        await fetch(resourcesUrl(), {
+          body: JSON.stringify({ name: "Reader cannot create" }),
+          headers: { cookie: readCookie, "content-type": "application/json" },
+          method: "POST",
+        })
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await fetch(resourcesUrl(), {
+          body: JSON.stringify({ capacity: 2_147_483_648, name: "Capacity overflow" }),
+          headers: { cookie: manageCookie, "content-type": "application/json" },
+          method: "POST",
+        })
+      ).status,
+    ).toBe(400);
+
+    const response = await fetch(resourcesUrl(), {
+      body: JSON.stringify({
+        capacity: 2,
+        metadata: { room: "north" },
+        name: "North room",
+        type: "ROOM",
+      }),
+      headers: {
+        cookie: manageCookie,
+        "content-type": "application/json",
+        "x-request-id": `${prefix}-resource-create`,
+      },
+      method: "POST",
+    });
+    expect(response.status).toBe(201);
+    const created = (await response.json()) as {
+      success: boolean;
+      data: { active: boolean; capacity: number; id: string; name: string; type: string };
+    };
+    expect(created).toMatchObject({
+      data: { active: true, capacity: 2, name: "North room", type: "ROOM" },
+      success: true,
+    });
+
+    const list = await fetch(
+      resourcesUrl("?active=true&type=ROOM&search=north&limit=20&offset=0"),
+      {
+        headers: { cookie: readCookie },
+      },
+    );
+    expect(list.status).toBe(200);
+    expect(await list.json()).toMatchObject({
+      data: { items: [{ id: created.data.id, name: "North room" }], total: 1 },
+      success: true,
+    });
+
+    const detail = await fetch(resourcesUrl(`/${created.data.id}`), {
+      headers: { cookie: readCookie },
+    });
+    expect(detail.status).toBe(200);
+    const updated = await fetch(resourcesUrl(`/${created.data.id}`), {
+      body: JSON.stringify({ capacity: 3 }),
+      headers: { cookie: manageCookie, "content-type": "application/json" },
+      method: "PATCH",
+    });
+    expect(updated.status).toBe(200);
+    const archived = await fetch(resourcesUrl(`/${created.data.id}`), {
+      headers: { cookie: manageCookie },
+      method: "DELETE",
+    });
+    expect(archived.status).toBe(200);
+    expect(
+      await prisma.appointmentResource.findUnique({
+        where: { id: created.data.id, tenantId: tenantAId },
+      }),
+    ).toMatchObject({ active: false, capacity: 3 });
+
+    const foreign = await prisma.appointmentResource.create({
+      data: { name: "Tenant B resource", tenantId: tenantBId },
+    });
+    expect(
+      (await fetch(resourcesUrl(`/${foreign.id}`), { headers: { cookie: readCookie } })).status,
+    ).toBe(404);
+    expect(
+      (
+        await fetch(resourcesUrl(`/${foreign.id}`), {
+          body: JSON.stringify({ name: "Hijacked" }),
+          headers: { cookie: manageCookie, "content-type": "application/json" },
+          method: "PATCH",
+        })
+      ).status,
+    ).toBe(404);
+    expect(
+      (
+        await fetch(resourcesUrl(`/${foreign.id}`), {
+          headers: { cookie: manageCookie },
+          method: "DELETE",
+        })
+      ).status,
+    ).toBe(404);
+    expect(
+      (
+        await fetch(resourcesUrl("/00000000-0000-7000-8000-000000000001"), {
+          headers: { cookie: readCookie },
+        })
+      ).status,
+    ).toBe(404);
   });
 });

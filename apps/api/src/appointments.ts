@@ -19,6 +19,14 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import {
+  type AppointmentResourceInput,
+  type AppointmentResourceListFilters,
+  type AppointmentResourceManagerDatabase,
+  type AppointmentResourceMutationMetadata,
+  AppointmentResourceNotFoundError,
+  type AppointmentResourcePatch,
+  AppointmentResourceType,
+  AppointmentResourceValidationError,
   type AppointmentServiceInput,
   type AppointmentServiceListFilters,
   type AppointmentServiceManagerDatabase,
@@ -26,12 +34,17 @@ import {
   AppointmentServiceNotFoundError,
   type AppointmentServicePatch,
   AppointmentServiceValidationError,
+  archiveAppointmentResource,
   archiveAppointmentService,
+  createAppointmentResource,
   createAppointmentService,
+  getAppointmentResourceById,
   getAppointmentServiceById,
+  listAppointmentResources,
   listAppointmentServices,
   type TenantContext,
   TenantNotOperationalError,
+  updateAppointmentResource,
   updateAppointmentService,
 } from "@whatsapp-platform/database";
 import type { PermissionKey } from "@whatsapp-platform/rbac";
@@ -58,7 +71,13 @@ export interface AppointmentServicesQuery {
   readonly offset?: string | undefined;
 }
 
+export interface AppointmentResourcesQuery extends AppointmentServicesQuery {
+  readonly type?: string | undefined;
+  readonly userId?: string | undefined;
+}
+
 const UUID_V7_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const APPOINTMENT_RESOURCE_TYPES = new Set<string>(Object.values(AppointmentResourceType));
 
 function appointmentsAuthorized(...permissions: PermissionKey[]): MethodDecorator & ClassDecorator {
   return applyDecorators(
@@ -124,6 +143,106 @@ function optionalOrganizationUnitId(value: unknown): string | null | undefined {
 
 function settingsObject(value: unknown): Record<string, unknown> {
   return plainObject(value);
+}
+
+function resourceMetadata(value: unknown): Record<string, unknown> {
+  return plainObject(value);
+}
+
+function optionalResourceForeignKey(value: unknown, field: string): string | null | undefined {
+  if (value === undefined || value === null) return value;
+  if (typeof value !== "string" || !UUID_V7_PATTERN.test(value)) {
+    throw new BadRequestException(`${field} must be a UUIDv7 or null`);
+  }
+  return value;
+}
+
+function resourceType(value: unknown): AppointmentResourceType {
+  if (typeof value !== "string" || !APPOINTMENT_RESOURCE_TYPES.has(value)) {
+    throw new BadRequestException("type must be a supported appointment resource type");
+  }
+  return value as AppointmentResourceType;
+}
+
+function parseCreateResourceBody(value: unknown): AppointmentResourceInput {
+  const body = plainObject(value);
+  exactKeys(body, [
+    "name",
+    "type",
+    "description",
+    "capacity",
+    "organizationUnitId",
+    "userId",
+    "metadata",
+  ]);
+  if (
+    body.description !== undefined &&
+    body.description !== null &&
+    typeof body.description !== "string"
+  ) {
+    throw new BadRequestException("description must be a string or null");
+  }
+  return {
+    name: requiredString(body.name, "name"),
+    ...(body.type === undefined ? {} : { type: resourceType(body.type) }),
+    ...(body.description === undefined ? {} : { description: body.description as string | null }),
+    ...(body.capacity === undefined ? {} : { capacity: integer(body.capacity, "capacity") }),
+    ...(body.organizationUnitId === undefined
+      ? {}
+      : {
+          organizationUnitId: optionalResourceForeignKey(
+            body.organizationUnitId,
+            "organizationUnitId",
+          ) as string | null,
+        }),
+    ...(body.userId === undefined
+      ? {}
+      : { userId: optionalResourceForeignKey(body.userId, "userId") as string | null }),
+    ...(body.metadata === undefined ? {} : { metadata: resourceMetadata(body.metadata) }),
+  };
+}
+
+function parseResourcePatchBody(value: unknown): AppointmentResourcePatch {
+  const body = plainObject(value);
+  exactKeys(body, [
+    "name",
+    "type",
+    "description",
+    "capacity",
+    "organizationUnitId",
+    "userId",
+    "active",
+    "metadata",
+  ]);
+  if (
+    body.description !== undefined &&
+    body.description !== null &&
+    typeof body.description !== "string"
+  ) {
+    throw new BadRequestException("description must be a string or null");
+  }
+  if (body.active !== undefined && typeof body.active !== "boolean") {
+    throw new BadRequestException("active must be a boolean");
+  }
+  return {
+    ...(body.name === undefined ? {} : { name: requiredString(body.name, "name") }),
+    ...(body.type === undefined ? {} : { type: resourceType(body.type) }),
+    ...(body.description === undefined ? {} : { description: body.description as string | null }),
+    ...(body.capacity === undefined ? {} : { capacity: integer(body.capacity, "capacity") }),
+    ...(body.organizationUnitId === undefined
+      ? {}
+      : {
+          organizationUnitId: optionalResourceForeignKey(
+            body.organizationUnitId,
+            "organizationUnitId",
+          ) as string | null,
+        }),
+    ...(body.userId === undefined
+      ? {}
+      : { userId: optionalResourceForeignKey(body.userId, "userId") as string | null }),
+    ...(body.active === undefined ? {} : { active: body.active as boolean }),
+    ...(body.metadata === undefined ? {} : { metadata: resourceMetadata(body.metadata) }),
+  };
 }
 
 function parseCreateBody(value: unknown): AppointmentServiceInput {
@@ -279,7 +398,44 @@ function parseListFilters(query: AppointmentServicesQuery): AppointmentServiceLi
   };
 }
 
-function mapAppointmentServiceError(error: unknown): never {
+function parseResourceListFilters(
+  query: AppointmentResourcesQuery,
+): AppointmentResourceListFilters {
+  if (query.organizationUnitId !== undefined && !UUID_V7_PATTERN.test(query.organizationUnitId)) {
+    throw new BadRequestException("organizationUnitId must be a UUIDv7");
+  }
+  if (query.userId !== undefined && !UUID_V7_PATTERN.test(query.userId)) {
+    throw new BadRequestException("userId must be a UUIDv7");
+  }
+  return {
+    ...(query.active === undefined ? {} : { active: parseActive(query.active) as boolean }),
+    ...(query.limit === undefined
+      ? {}
+      : { limit: parseQueryInteger(query.limit, "limit") as number }),
+    ...(query.offset === undefined
+      ? {}
+      : { offset: parseQueryInteger(query.offset, "offset") as number }),
+    ...(query.organizationUnitId === undefined
+      ? {}
+      : { organizationUnitId: query.organizationUnitId }),
+    ...(query.userId === undefined ? {} : { userId: query.userId }),
+    ...(query.search === undefined ? {} : { search: query.search }),
+    ...(query.type === undefined ? {} : { type: resourceType(query.type) }),
+  };
+}
+
+function mapAppointmentError(error: unknown): never {
+  if (error instanceof AppointmentResourceNotFoundError) {
+    throw new NotFoundException({
+      code: "APPOINTMENT_RESOURCE_NOT_FOUND",
+      error: "Not Found",
+      message: "Appointment resource was not found",
+      statusCode: 404,
+    });
+  }
+  if (error instanceof AppointmentResourceValidationError) {
+    throw new BadRequestException(error.message);
+  }
   if (error instanceof AppointmentServiceNotFoundError) {
     throw new NotFoundException({
       code: "APPOINTMENT_SERVICE_NOT_FOUND",
@@ -306,7 +462,8 @@ function mapAppointmentServiceError(error: unknown): never {
 export class AppointmentsService {
   constructor(
     @Inject(APPOINTMENTS_DATABASE)
-    private readonly database: AppointmentServiceManagerDatabase,
+    private readonly database: AppointmentServiceManagerDatabase &
+      AppointmentResourceManagerDatabase,
   ) {}
 
   async create(
@@ -322,7 +479,7 @@ export class AppointmentsService {
       };
       return await createAppointmentService(context, this.database, input, metadata);
     } catch (error) {
-      return mapAppointmentServiceError(error);
+      return mapAppointmentError(error);
     }
   }
 
@@ -330,7 +487,7 @@ export class AppointmentsService {
     try {
       return await listAppointmentServices(context, this.database, filters);
     } catch (error) {
-      return mapAppointmentServiceError(error);
+      return mapAppointmentError(error);
     }
   }
 
@@ -338,7 +495,7 @@ export class AppointmentsService {
     try {
       return await getAppointmentServiceById(context, this.database, id);
     } catch (error) {
-      return mapAppointmentServiceError(error);
+      return mapAppointmentError(error);
     }
   }
 
@@ -355,7 +512,7 @@ export class AppointmentsService {
         requestId: requestId(request),
       });
     } catch (error) {
-      return mapAppointmentServiceError(error);
+      return mapAppointmentError(error);
     }
   }
 
@@ -371,7 +528,73 @@ export class AppointmentsService {
         requestId: requestId(request),
       });
     } catch (error) {
-      return mapAppointmentServiceError(error);
+      return mapAppointmentError(error);
+    }
+  }
+
+  async createResource(
+    context: TenantContext,
+    identity: TenantSessionIdentity,
+    request: TenantAuthenticationRequest,
+    input: AppointmentResourceInput,
+  ) {
+    try {
+      const mutationMetadata: AppointmentResourceMutationMetadata = {
+        actorUserId: identity.userId,
+        requestId: requestId(request),
+      };
+      return await createAppointmentResource(context, this.database, input, mutationMetadata);
+    } catch (error) {
+      return mapAppointmentError(error);
+    }
+  }
+
+  async listResources(context: TenantContext, filters: AppointmentResourceListFilters) {
+    try {
+      return await listAppointmentResources(context, this.database, filters);
+    } catch (error) {
+      return mapAppointmentError(error);
+    }
+  }
+
+  async getResource(context: TenantContext, id: string) {
+    try {
+      return await getAppointmentResourceById(context, this.database, id);
+    } catch (error) {
+      return mapAppointmentError(error);
+    }
+  }
+
+  async updateResource(
+    context: TenantContext,
+    identity: TenantSessionIdentity,
+    request: TenantAuthenticationRequest,
+    id: string,
+    patch: AppointmentResourcePatch,
+  ) {
+    try {
+      return await updateAppointmentResource(context, this.database, id, patch, {
+        actorUserId: identity.userId,
+        requestId: requestId(request),
+      });
+    } catch (error) {
+      return mapAppointmentError(error);
+    }
+  }
+
+  async archiveResource(
+    context: TenantContext,
+    identity: TenantSessionIdentity,
+    request: TenantAuthenticationRequest,
+    id: string,
+  ) {
+    try {
+      return await archiveAppointmentResource(context, this.database, id, {
+        actorUserId: identity.userId,
+        requestId: requestId(request),
+      });
+    } catch (error) {
+      return mapAppointmentError(error);
     }
   }
 }
@@ -381,12 +604,18 @@ function appointmentServiceId(value: string): string {
   return value;
 }
 
-@Controller("api/v1/appointments/services")
+function appointmentResourceId(value: string): string {
+  if (!UUID_V7_PATTERN.test(value))
+    throw new BadRequestException("Invalid appointment resource id");
+  return value;
+}
+
+@Controller("api/v1/appointments")
 @RequireEntitlements("module.appointments")
 export class AppointmentsController {
   constructor(private readonly service: AppointmentsService) {}
 
-  @Post()
+  @Post("services")
   @HttpCode(201)
   @appointmentsAuthorized("appointments.manage")
   async create(
@@ -399,7 +628,7 @@ export class AppointmentsController {
     return { success: true, data };
   }
 
-  @Get()
+  @Get("services")
   @appointmentsAuthorized("appointments.read")
   async list(
     @CurrentTenantContext() context: TenantContext,
@@ -409,7 +638,7 @@ export class AppointmentsController {
     return { success: true, data };
   }
 
-  @Get(":id")
+  @Get("services/:id")
   @appointmentsAuthorized("appointments.read")
   async get(
     @CurrentTenantContext() context: TenantContext,
@@ -419,7 +648,7 @@ export class AppointmentsController {
     return { success: true, data };
   }
 
-  @Patch(":id")
+  @Patch("services/:id")
   @appointmentsAuthorized("appointments.manage")
   async update(
     @Param("id") rawId: string,
@@ -438,7 +667,7 @@ export class AppointmentsController {
     return { success: true, data };
   }
 
-  @Delete(":id")
+  @Delete("services/:id")
   @appointmentsAuthorized("appointments.manage")
   async archive(
     @Param("id") rawId: string,
@@ -451,6 +680,80 @@ export class AppointmentsController {
       identity,
       request,
       appointmentServiceId(rawId),
+    );
+    return { success: true, data };
+  }
+
+  @Post("resources")
+  @HttpCode(201)
+  @appointmentsAuthorized("appointments.manage")
+  async createResource(
+    @CurrentTenantContext() context: TenantContext,
+    @CurrentTenantIdentity() identity: TenantSessionIdentity,
+    @Req() request: TenantAuthenticationRequest,
+    @Body() body: unknown,
+  ): Promise<ApiResponse<Awaited<ReturnType<AppointmentsService["createResource"]>>>> {
+    const data = await this.service.createResource(
+      context,
+      identity,
+      request,
+      parseCreateResourceBody(body),
+    );
+    return { success: true, data };
+  }
+
+  @Get("resources")
+  @appointmentsAuthorized("appointments.read")
+  async listResources(
+    @CurrentTenantContext() context: TenantContext,
+    @Query() query: AppointmentResourcesQuery,
+  ): Promise<ApiResponse<Awaited<ReturnType<AppointmentsService["listResources"]>>>> {
+    const data = await this.service.listResources(context, parseResourceListFilters(query));
+    return { success: true, data };
+  }
+
+  @Get("resources/:id")
+  @appointmentsAuthorized("appointments.read")
+  async getResource(
+    @CurrentTenantContext() context: TenantContext,
+    @Param("id") rawId: string,
+  ): Promise<ApiResponse<Awaited<ReturnType<AppointmentsService["getResource"]>>>> {
+    const data = await this.service.getResource(context, appointmentResourceId(rawId));
+    return { success: true, data };
+  }
+
+  @Patch("resources/:id")
+  @appointmentsAuthorized("appointments.manage")
+  async updateResource(
+    @Param("id") rawId: string,
+    @CurrentTenantContext() context: TenantContext,
+    @CurrentTenantIdentity() identity: TenantSessionIdentity,
+    @Req() request: TenantAuthenticationRequest,
+    @Body() body: unknown,
+  ): Promise<ApiResponse<Awaited<ReturnType<AppointmentsService["updateResource"]>>>> {
+    const data = await this.service.updateResource(
+      context,
+      identity,
+      request,
+      appointmentResourceId(rawId),
+      parseResourcePatchBody(body),
+    );
+    return { success: true, data };
+  }
+
+  @Delete("resources/:id")
+  @appointmentsAuthorized("appointments.manage")
+  async archiveResource(
+    @Param("id") rawId: string,
+    @CurrentTenantContext() context: TenantContext,
+    @CurrentTenantIdentity() identity: TenantSessionIdentity,
+    @Req() request: TenantAuthenticationRequest,
+  ): Promise<ApiResponse<Awaited<ReturnType<AppointmentsService["archiveResource"]>>>> {
+    const data = await this.service.archiveResource(
+      context,
+      identity,
+      request,
+      appointmentResourceId(rawId),
     );
     return { success: true, data };
   }

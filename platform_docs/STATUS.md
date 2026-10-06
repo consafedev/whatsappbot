@@ -2,11 +2,41 @@
 
 **Actualizado:** 2026-10-05
 **Versión de producto:** `0.0.0`  
-**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; Epic 11 — Campaign Engine & Audience Broadcasts — PASS / COMPLETE; **Epic 12 — Reporting, Analytics & Operational Observability — PASS / COMPLETE (E12-S01, E12-S02, E12-S03, E12-S04, E12-S05 PASS); E13-S01 — PASS / COMPLETE; E13-S02 — PASS / COMPLETE; E13-S03 — PASS / COMPLETE; E13-S04 — PASS / COMPLETE; E14-S01 — PASS / COMPLETE**.
+**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; Epic 11 — Campaign Engine & Audience Broadcasts — PASS / COMPLETE; **Epic 12 — Reporting, Analytics & Operational Observability — PASS / COMPLETE (E12-S01, E12-S02, E12-S03, E12-S04, E12-S05 PASS); E13-S01 — PASS / COMPLETE; E13-S02 — PASS / COMPLETE; E13-S03 — PASS / COMPLETE; E13-S04 — PASS / COMPLETE; E14-S01 — PASS / COMPLETE; E14-S02 — PASS / COMPLETE**.
 
 ## Current milestone
 
-Epic 14 — Agenda & Appointment Booking (E14-S01 complete; E14-S02 next). Epic 13 — Task Scheduling & Distributed Orchestration remains tracked below.
+Epic 14 — Agenda & Appointment Booking (E14-S01 and E14-S02 complete; E14-S03 next). Epic 13 — Task Scheduling & Distributed Orchestration remains tracked below.
+
+### E14-S02 — Appointment Resources Foundation and Management API
+
+Status: PASS / COMPLETE — verified 2026-10-05.
+
+Delivered tenant-scoped `AppointmentResource` persistence and additive
+`20261006120000_add_appointment_resources_foundation` migration, defensive
+validation of resource type, name and PostgreSQL `INTEGER` capacity, same-tenant
+OrganizationUnit/User assignment checks, tenant-scoped filtering and pagination,
+atomic AuditLog/Outbox mutations, and guarded REST endpoints under
+`/api/v1/appointments/resources`. OrganizationUnit and User use composite
+tenant-aware foreign keys with `onDelete: Restrict`; User assignments require
+an active tenant user. Deletion is a soft deactivation. Availability rules,
+calendar exceptions, availability calculations, appointments, UI, and WhatsApp
+booking flows remain deferred. ADR-0064 records the decision.
+
+Verification (2026-10-05): PostgreSQL manager integration 9/9 and Nest/API
+integration 5/5; root `pnpm test` 465/465; `pnpm typecheck`, `pnpm build`,
+`pnpm biome check .` (470 files), `pnpm db:validate`, and `git diff --check`
+PASS. The migration deployed successfully to the local PostgreSQL 18.4
+development database. `docker compose build api` and `docker compose up -d api`
+PASS; API `/health` returned 200 and unauthenticated
+`GET /api/v1/appointments/resources` returned 401. The complete historical
+migration chain was not replayed from an empty database for this story; the
+pre-existing UTF-8 BOM limitation in an earlier migration remains as recorded
+under E14-S01 and was not modified.
+
+Next: E14-S03 — Weekly Availability Rules Management.
+
+---
 
 ### E14-S01 — Appointment Services Foundation and Management API
 

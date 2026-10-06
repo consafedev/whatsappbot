@@ -8,6 +8,15 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Added
 
+- E14-S02 appointment resources foundation and management API: tenant-scoped
+  `AppointmentResource` schema and additive PostgreSQL migration, guarded
+  `/api/v1/appointments/resources` CRUD/list endpoints, validated type/name/
+  capacity and tenant-owned User/OrganizationUnit links, and transactional
+  AuditLog/Outbox writes. Resource deletion deactivates the record; composite
+  User and OrganizationUnit foreign keys use `ON DELETE RESTRICT`. PostgreSQL
+  manager/API integration, root tests, typecheck, build, Biome, migration
+  deployment, and Docker API health/401 smoke checks passed. Availability,
+  appointments, booking flows, and UI remain out of scope. See ADR-0064.
 - E14-S01 appointment services foundation and management API: tenant-scoped
   `AppointmentService` schema and additive PostgreSQL migration, validated
   transactional manager operations with AuditLog/Outbox, and guarded

@@ -65,6 +65,21 @@ export {
   type TenantOperationalOverviewResult,
 } from "./analytics-manager";
 export {
+  type AppointmentResourceInput,
+  type AppointmentResourceListFilters,
+  type AppointmentResourceListPage,
+  type AppointmentResourceManagerDatabase,
+  type AppointmentResourceMutationMetadata,
+  AppointmentResourceNotFoundError,
+  type AppointmentResourcePatch,
+  AppointmentResourceValidationError,
+  archiveAppointmentResource,
+  createAppointmentResource,
+  getAppointmentResourceById,
+  listAppointmentResources,
+  updateAppointmentResource,
+} from "./appointment-resource-manager";
+export {
   type AppointmentServiceInput,
   type AppointmentServiceListFilters,
   type AppointmentServiceListPage,
@@ -279,7 +294,7 @@ export type {
   UserRole,
 } from "./generated/prisma/client";
 export * from "./generated/prisma/enums";
-export { ScheduledTaskRunStatus } from "./generated/prisma/enums";
+export { AppointmentResourceType, ScheduledTaskRunStatus } from "./generated/prisma/enums";
 export {
   createInactivityManager,
   type InactivityManager,
