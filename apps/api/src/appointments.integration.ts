@@ -350,6 +350,15 @@ describe.sequential("E14-S01 appointments API", () => {
         })
       ).status,
     ).toBe(400);
+    const unknownKey = await fetch(resourcesUrl(), {
+      body: JSON.stringify({ color: "red", name: "Unknown key" }),
+      headers: { cookie: manageCookie, "content-type": "application/json" },
+      method: "POST",
+    });
+    expect(unknownKey.status).toBe(400);
+    expect(JSON.stringify(await unknownKey.json())).toContain(
+      "Invalid appointment resource request",
+    );
 
     const response = await fetch(resourcesUrl(), {
       body: JSON.stringify({
