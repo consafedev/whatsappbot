@@ -10,7 +10,7 @@ Epic 14 — Agenda & Appointment Booking (E14-S01 and E14-S02 complete; E14-S03 
 
 ### E14-S02 — Appointment Resources Foundation and Management API
 
-Status: PASS / COMPLETE — verified 2026-10-05.
+Status: PASS / COMPLETE — verified 2026-10-05 (adversarial review; review fixes applied the same day).
 
 Delivered tenant-scoped `AppointmentResource` persistence and additive
 `20261006120000_add_appointment_resources_foundation` migration, defensive
@@ -23,10 +23,19 @@ an active tenant user. Deletion is a soft deactivation. Availability rules,
 calendar exceptions, availability calculations, appointments, UI, and WhatsApp
 booking flows remain deferred. ADR-0064 records the decision.
 
-Verification (2026-10-05): PostgreSQL manager integration 9/9 and Nest/API
-integration 5/5; root `pnpm test` 465/465; `pnpm typecheck`, `pnpm build`,
-`pnpm biome check .` (470 files), `pnpm db:validate`, and `git diff --check`
-PASS. The migration deployed successfully to the local PostgreSQL 18.4
+Verification (2026-10-05, post-review): PostgreSQL manager integration 9/9 and
+Nest/API integration 5/5; root `pnpm test` 465/465; `pnpm test:integration:auth`
+215/215; `pnpm typecheck`, `pnpm build`, `pnpm biome check .` (469 files),
+`pnpm db:validate`, and `git diff --check` PASS. The full
+`pnpm test:integration:database` suite still fails the same pre-existing
+messaging and tenant tests that also fail on `main` (see Known issues under
+E14-S01). Review fixes: a repeated `search` query parameter now returns HTTP
+400 instead of HTTP 500 on `/api/v1/appointments/services` and
+`/api/v1/appointments/resources` (the managers also reject non-string search
+filters), resource payloads report resource-specific validation messages
+instead of the service wording, and the API integration cleanup removes
+appointment resources before tenant users. The migration deployed successfully
+to the local PostgreSQL 18.4
 development database. `docker compose build api` and `docker compose up -d api`
 PASS; API `/health` returned 200 and unauthenticated
 `GET /api/v1/appointments/resources` returned 401. The complete historical

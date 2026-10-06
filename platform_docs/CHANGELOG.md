@@ -16,7 +16,12 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
   User and OrganizationUnit foreign keys use `ON DELETE RESTRICT`. PostgreSQL
   manager/API integration, root tests, typecheck, build, Biome, migration
   deployment, and Docker API health/401 smoke checks passed. Availability,
-  appointments, booking flows, and UI remain out of scope. See ADR-0064.
+  appointments, booking flows, and UI remain out of scope. Review fixes: a
+  repeated `search` query parameter returns HTTP 400 instead of HTTP 500 on
+  both `/api/v1/appointments/services` and `/api/v1/appointments/resources`,
+  resource payloads report resource-specific validation messages, and the API
+  integration cleanup removes appointment resources before tenant users. See
+  ADR-0064.
 - E14-S01 appointment services foundation and management API: tenant-scoped
   `AppointmentService` schema and additive PostgreSQL migration, validated
   transactional manager operations with AuditLog/Outbox, and guarded

@@ -81,6 +81,7 @@ async function cleanup(): Promise<void> {
     where: { slug: { startsWith: prefix } },
   });
   const ids = tenants.map(({ id }) => id);
+  await prisma.appointmentResource.deleteMany({ where: { tenantId: { in: ids } } });
   await prisma.appointmentService.deleteMany({ where: { tenantId: { in: ids } } });
   await prisma.userSession.deleteMany({ where: { tenantId: { in: ids } } });
   await prisma.userRole.deleteMany({ where: { tenantId: { in: ids } } });
@@ -162,6 +163,13 @@ describe.sequential("E14-S01 appointments API", () => {
       ).status,
     ).toBe(403);
     expect((await fetch(servicesUrl(), { headers: { cookie: readCookie } })).status).toBe(200);
+    expect(
+      (
+        await fetch(servicesUrl("?search=north&search=south"), {
+          headers: { cookie: readCookie },
+        })
+      ).status,
+    ).toBe(400);
     expect((await fetch(resourcesUrl(), { headers: { cookie: readCookie } })).status).toBe(200);
 
     await prisma.tenantEntitlement.update({
@@ -314,6 +322,13 @@ describe.sequential("E14-S01 appointments API", () => {
 
   it("manages resources with the appointments guards, validation, envelope, and tenant 404s", async () => {
     expect((await fetch(resourcesUrl())).status).toBe(401);
+    expect(
+      (
+        await fetch(resourcesUrl("?search=north&search=south"), {
+          headers: { cookie: readCookie },
+        })
+      ).status,
+    ).toBe(400);
     expect((await fetch(resourcesUrl(), { headers: { cookie: noPermissionCookie } })).status).toBe(
       403,
     );

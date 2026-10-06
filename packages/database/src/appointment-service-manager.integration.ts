@@ -296,6 +296,12 @@ describe.sequential("E14-S01 appointment service manager", () => {
     const all = await listAppointmentServices(context, prisma, { search: "dental" });
     expect(all.items.every(({ tenantId }) => tenantId === tenantAId)).toBe(true);
     expect(all.total).toBe(2);
+
+    await expect(
+      listAppointmentServices(context, prisma, {
+        search: ["dental", "surgery"] as unknown as string,
+      }),
+    ).rejects.toBeInstanceOf(AppointmentServiceValidationError);
   });
 
   it("returns the same not-found result for missing and foreign-tenant IDs", async () => {

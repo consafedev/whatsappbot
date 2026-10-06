@@ -262,6 +262,9 @@ export async function listAppointmentResources(
   if (!Number.isInteger(offset) || offset < 0) {
     throw new AppointmentResourceValidationError("offset must be a non-negative integer");
   }
+  if (filters.search !== undefined && typeof filters.search !== "string") {
+    throw new AppointmentResourceValidationError("search must be a string");
+  }
   const search = filters.search?.trim();
   const where: Prisma.AppointmentResourceWhereInput = {
     tenantId: tenant.tenantId,

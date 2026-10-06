@@ -301,6 +301,12 @@ describe.sequential("E14-S02 appointment resource manager", () => {
     const all = await listAppointmentResources(context, prisma, { search: "dental" });
     expect(all.items.every(({ tenantId }) => tenantId === tenantAId)).toBe(true);
     expect(all.total).toBe(3);
+
+    await expect(
+      listAppointmentResources(context, prisma, {
+        search: ["dental", "room"] as unknown as string,
+      }),
+    ).rejects.toBeInstanceOf(AppointmentResourceValidationError);
   });
 
   it("rejects an undefined-only patch without creating audit or outbox records", async () => {

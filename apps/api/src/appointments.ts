@@ -97,17 +97,24 @@ function requestId(request: TenantAuthenticationRequest): string {
   return value !== undefined && /^[A-Za-z0-9._:-]{1,128}$/.test(value) ? value : randomUUID();
 }
 
-function plainObject(value: unknown): Record<string, unknown> {
+function plainObject(
+  value: unknown,
+  message = "Invalid appointment service request",
+): Record<string, unknown> {
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
-    throw new BadRequestException("Invalid appointment service request");
+    throw new BadRequestException(message);
   }
   return value as Record<string, unknown>;
 }
 
-function exactKeys(value: Record<string, unknown>, allowed: readonly string[]): void {
+function exactKeys(
+  value: Record<string, unknown>,
+  allowed: readonly string[],
+  message = "Invalid appointment service request",
+): void {
   const keys = new Set(allowed);
   if (Object.keys(value).some((key) => !keys.has(key))) {
-    throw new BadRequestException("Invalid appointment service request");
+    throw new BadRequestException(message);
   }
 }
 
@@ -146,7 +153,7 @@ function settingsObject(value: unknown): Record<string, unknown> {
 }
 
 function resourceMetadata(value: unknown): Record<string, unknown> {
-  return plainObject(value);
+  return plainObject(value, "Invalid appointment resource request");
 }
 
 function optionalResourceForeignKey(value: unknown, field: string): string | null | undefined {
@@ -165,16 +172,12 @@ function resourceType(value: unknown): AppointmentResourceType {
 }
 
 function parseCreateResourceBody(value: unknown): AppointmentResourceInput {
-  const body = plainObject(value);
-  exactKeys(body, [
-    "name",
-    "type",
-    "description",
-    "capacity",
-    "organizationUnitId",
-    "userId",
-    "metadata",
-  ]);
+  const body = plainObject(value, "Invalid appointment resource request");
+  exactKeys(
+    body,
+    ["name", "type", "description", "capacity", "organizationUnitId", "userId", "metadata"],
+    "Invalid appointment resource request",
+  );
   if (
     body.description !== undefined &&
     body.description !== null &&
@@ -203,17 +206,21 @@ function parseCreateResourceBody(value: unknown): AppointmentResourceInput {
 }
 
 function parseResourcePatchBody(value: unknown): AppointmentResourcePatch {
-  const body = plainObject(value);
-  exactKeys(body, [
-    "name",
-    "type",
-    "description",
-    "capacity",
-    "organizationUnitId",
-    "userId",
-    "active",
-    "metadata",
-  ]);
+  const body = plainObject(value, "Invalid appointment resource request");
+  exactKeys(
+    body,
+    [
+      "name",
+      "type",
+      "description",
+      "capacity",
+      "organizationUnitId",
+      "userId",
+      "active",
+      "metadata",
+    ],
+    "Invalid appointment resource request",
+  );
   if (
     body.description !== undefined &&
     body.description !== null &&
@@ -379,10 +386,17 @@ function parseQueryInteger(value: string | undefined, field: string): number | u
   return parsed;
 }
 
+function parseSearch(value: unknown): string | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== "string") throw new BadRequestException("search must be a string");
+  return value;
+}
+
 function parseListFilters(query: AppointmentServicesQuery): AppointmentServiceListFilters {
   if (query.organizationUnitId !== undefined && !UUID_V7_PATTERN.test(query.organizationUnitId)) {
     throw new BadRequestException("organizationUnitId must be a UUIDv7");
   }
+  const search = parseSearch(query.search);
   return {
     ...(query.active === undefined ? {} : { active: parseActive(query.active) as boolean }),
     ...(query.limit === undefined
@@ -394,7 +408,7 @@ function parseListFilters(query: AppointmentServicesQuery): AppointmentServiceLi
     ...(query.organizationUnitId === undefined
       ? {}
       : { organizationUnitId: query.organizationUnitId }),
-    ...(query.search === undefined ? {} : { search: query.search }),
+    ...(search === undefined ? {} : { search }),
   };
 }
 
@@ -407,6 +421,7 @@ function parseResourceListFilters(
   if (query.userId !== undefined && !UUID_V7_PATTERN.test(query.userId)) {
     throw new BadRequestException("userId must be a UUIDv7");
   }
+  const search = parseSearch(query.search);
   return {
     ...(query.active === undefined ? {} : { active: parseActive(query.active) as boolean }),
     ...(query.limit === undefined
@@ -419,7 +434,7 @@ function parseResourceListFilters(
       ? {}
       : { organizationUnitId: query.organizationUnitId }),
     ...(query.userId === undefined ? {} : { userId: query.userId }),
-    ...(query.search === undefined ? {} : { search: query.search }),
+    ...(search === undefined ? {} : { search }),
     ...(query.type === undefined ? {} : { type: resourceType(query.type) }),
   };
 }
