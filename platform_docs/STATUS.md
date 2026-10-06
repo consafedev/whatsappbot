@@ -22,7 +22,9 @@ under `/api/v1/appointments/availability-rules`; reads require
 require `module.appointments`. Rules use `0=Sunday` through `6=Saturday`, local
 same-day `HH:mm` intervals, and optional date bounds/timezone. Overlapping rules
 remain independent; availability calculation and precedence are deferred to
-E14-S05. ADR-0065 records the scope.
+E14-S05. ADR-0065 records the scope. The PRD §79 `service` field on
+AvailabilityRule is deferred to E14-S05 as an additive nullable `service_id`;
+ADR-0065 registers the conflict.
 
 Verification (2026-10-05): PostgreSQL manager integration 7/7 and Nest/API
 integration 6/6; root `pnpm test` 465/465; `pnpm typecheck`, `pnpm build`,

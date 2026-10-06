@@ -2587,7 +2587,9 @@ linked resource must be active and belong to the same tenant; PostgreSQL
 enforces the composite tenant/resource foreign key. Create does not overwrite,
 and overlapping rules remain independent until E14-S05 defines availability
 calculation semantics. CRUD mutations write AuditLog and Outbox atomically.
-ADR-0065 records the scope.
+ADR-0065 records the scope. The PRD §79 `service` field on AvailabilityRule is
+deferred to E14-S05 as an additive nullable `service_id`; ADR-0065 registers
+the conflict.
 
 ## E14-S04 Exceptions [M]
 

@@ -46,6 +46,11 @@ apply calendar exceptions, or create appointments.
   appointments and historical bookings are outside this story.
 - Add the schema with append-only migration
   `20261006180000_add_appointment_availability_rules_foundation`.
+- Register the conflict with the PRD §79 `AvailabilityRule` field list: the
+  PRD lists a `service` link, while this story binds rules to a tenant resource
+  only. The link is deferred to E14-S05 as an additive nullable `service_id`
+  with a tenant-aware foreign key, to be added only if slot calculation requires
+  per-service rules.
 
 ## Alternatives considered
 
@@ -66,6 +71,8 @@ apply calendar exceptions, or create appointments.
   table in addition to its primary key.
 - Overlap semantics remain deliberately unspecified until E14-S05 consumes
   these rules.
+- The PRD §79 `service` field is deferred, not dropped: E14-S05 must resolve
+  the registered conflict with an additive migration or an explicit PRD update.
 
 ## Migration/rollback
 

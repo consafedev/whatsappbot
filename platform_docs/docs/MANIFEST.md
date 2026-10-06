@@ -13,7 +13,7 @@
 | `.agents/agents.md` | 388 | 41 | `d52b02af7fdab6d2ecbf7af4dd2f311d5d244f153817498ff9e542427e9e1675` |
 | `.agents/skills/whatsapp-platform-engineering/SKILL.md` | 21276 | 2977 | `2372c2043058280529f81b98320d480b20d418ca5467a9c2429c4cb73e717c40` |
 | `platform_docs/CHANGELOG.md` | 120611 | 13931 | `e6f4be0b5739b57e7e63dd0e6f6fcd74876b628bba413d7c964a7e39cb742dc1` |
-| `platform_docs/DATA_MODEL_ERD_MVP_BACKLOG.md` | 74351 | 10035 | `331e0a8f2265b510e513b16ea14249a6441c2735a49516643a9870208afdcb2c` |
+| `platform_docs/DATA_MODEL_ERD_MVP_BACKLOG.md` | 74494 | 10055 | `c61333f302bf13d2f4c9ba9a220c78ad85c3d2b92db61c895a73be77afb3b766` |
 | `platform_docs/DEMO_AND_SALES.md` | 8689 | 1253 | `28944d7c37827e10f72d6cdac811eb8bda92fbc9da96fa4947f09ef42eb5b9f4` |
 | `platform_docs/DEPLOYMENT.md` | 5766 | 811 | `665319a6f0a460d4cd509c062af9e5879416c795f2227f63287d076f1c3d7293` |
 | `platform_docs/DESIGN.md` | 16996 | 2456 | `e9de8994278a140e2e3596391102bc14727cf6c6c00658cb33183f7643b5d6b2` |
@@ -81,7 +81,7 @@
 | `platform_docs/docs/adr/0062-e13-s05-scheduled-task-run-history-scope.md` | 3029 | 387 | `23b0a367208924f6873d71ab68de06fbd5dd21d755f078e63648e83df7f00386` |
 | `platform_docs/docs/adr/0063-e14-s01-appointment-services-scope.md` | 4241 | 530 | `6615d45ebc6f6bdb4c4040d284145fb10c9ee72e2d289a8a16ad5d8e2cfcb3b4` |
 | `platform_docs/docs/adr/0064-e14-s02-appointment-resources-scope.md` | 3913 | 494 | `1e8ddfe1532a2ee32048535d50383c5a6de246eba2c939d8bd1b05c4c777fa95` |
-| `platform_docs/docs/adr/0065-e14-s03-availability-rules-scope.md` | 4066 | 528 | `3830b528bb7583c6cc11795b5b70546bd5cd16df38b805a3eaf1ead8b2eacc6b` |
+| `platform_docs/docs/adr/0065-e14-s03-availability-rules-scope.md` | 4560 | 606 | `c3bc6ec4a01d079bec5858e8a1b04b365247307b2bf592daeac6d4dee7381da5` |
 | `platform_docs/docs/INDEX.md` | 12437 | 1687 | `d692e50c9f969e6ee096a14daf674281f585d3e2a2841211822734dbedd6c5f8` |
 | `platform_docs/PRD.md` | 90479 | 13033 | `81426bd8cabd9b4d5408ff0741c1cfa6aa1741986f2355d4294c6faa7bfdb380` |
 | `platform_docs/README.md` | 1953 | 242 | `31b67b6ef55a2adb4b2840cbe5993156c4fa0421f8752b2d130c97ceb84e880a` |
@@ -89,7 +89,7 @@
 | `platform_docs/RUNBOOK_BACKUP_RESTORE.md` | 4857 | 666 | `27e324b4cea0cd3a2514f44eeee4ce31db80a3a4701f0ba528ffb36afcebb3ff` |
 | `platform_docs/RUNBOOK_OPERATIONS.md` | 5777 | 796 | `23d4c537dd3bbcf4b8f08b39b4a948c42c10e3a458594c25ccf2b65937376252` |
 | `platform_docs/SECURITY.md` | 14589 | 2085 | `51b737e15512ae8136760024f2fcb78161276af0cf0699e8d06326ce1dc7b482` |
-| `platform_docs/STATUS.md` | 177275 | 21347 | `e374ef9e33077eaf6a5df269d7aaddb5d4c552cb259df5fb583ca77fbf078efa` |
+| `platform_docs/STATUS.md` | 177418 | 21367 | `7eb9458aae136b4f8d228f32d81cd6313a28e658d00c8422f74eeb25ea6d358d` |
 | `platform_docs/SYSTEM_DESIGN.md` | 42737 | 5750 | `91f13a2973e0dc679941b408a80b2e2be3f2acb033de2fad62ca3e465c748ea4` |
 | `platform_docs/TESTING_STRATEGY.md` | 18229 | 2513 | `2659f25d06bcfe571830b291c6546ad481abb609049bede79003d80add2da358` |
 | `platform_docs/UI_FLOWS.md` | 22449 | 3253 | `311b1b44f7dcdd0e97003e0b29fa34cc789f95affa9052bf3ce86613ff86fddc` |
