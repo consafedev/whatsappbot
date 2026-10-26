@@ -1,6 +1,11 @@
 # WhatsApp Automation Platform
 
-Multi-tenant B2B WhatsApp automation platform. Epics 00 through 03 are complete, including Platform tenant listing, provisioning, detail, module activation and reversible tenant suspension.
+Multi-tenant B2B automation platform with WhatsApp as its primary channel and
+Messenger as a secondary target through a future verified unofficial connector.
+The active milestone is E14 — Agenda. See [STATUS](platform_docs/STATUS.md) for
+implemented behavior and [orchestration progress](platform_docs/avance_orquestador.md)
+for story ownership, verification, commits and remaining scope. Real Baileys
+transport and backup/restore commercial gates remain outstanding.
 
 `design-prototype/` is an approved visual reference. It is not production architecture and is not used as application source code.
 
@@ -42,7 +47,7 @@ pnpm format
 
 ## Development
 
-Start the minimal Next.js bootstrap page:
+Start the Next.js application:
 
 ```powershell
 pnpm --filter @whatsapp-platform/web dev

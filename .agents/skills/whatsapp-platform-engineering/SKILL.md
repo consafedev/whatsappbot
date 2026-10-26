@@ -270,6 +270,13 @@ Si se toma un atajo consciente para acelerar MVP:
 
 # 8. Reglas específicas de WhatsApp/Messaging
 
+Dirección de producto (2026-10-25, PRD §15.3): WhatsApp es el canal principal y
+Messenger de Meta el canal secundario objetivo. La estrategia inicial usa
+conectores no oficiales detrás de adapters; no requiere incorporar la API
+oficial de Meta. Antes de desarrollar Messenger se debe verificar un conector
+propio y sus capacidades; no asumir que Baileys/WPPConnect lo soporten ni
+declararlo implementado. Respetar la épica activa al priorizar ese trabajo.
+
 1. Usar `MessagingProvider`/contratos del Core.
 2. Baileys es adapter inicial; tipos de Baileys no deben filtrarse al dominio.
 3. WPPConnect y Meta deben poder añadirse sin cambiar conversaciones/procesos.

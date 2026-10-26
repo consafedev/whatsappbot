@@ -1,12 +1,58 @@
 # STATUS.md — Estado operativo actual del proyecto
 
-**Actualizado:** 2026-10-05
+**Actualizado:** 2026-10-25
 **Versión de producto:** `0.0.0`  
+**Latest validated story:** E14-S04 — PASS / COMPLETE; publication tracked in avance_orquestador.md.
 **Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; Epic 11 — Campaign Engine & Audience Broadcasts — PASS / COMPLETE; **Epic 12 — Reporting, Analytics & Operational Observability — PASS / COMPLETE (E12-S01, E12-S02, E12-S03, E12-S04, E12-S05 PASS); E13-S01 — PASS / COMPLETE; E13-S02 — PASS / COMPLETE; E13-S03 — PASS / COMPLETE; E13-S04 — PASS / COMPLETE; E14-S01 — PASS / COMPLETE; E14-S02 — PASS / COMPLETE; E14-S03 — PASS / COMPLETE**.
 
 ## Current milestone
 
-Epic 14 — Agenda & Appointment Booking (E14-S01 through E14-S03 complete; E14-S04 next). Epic 13 — Task Scheduling & Distributed Orchestration remains tracked below.
+Epic 14 — Agenda & Appointment Booking (E14-S01 through E14-S04 complete;
+E14-S05 next after S04 commit/push verification).
+Epic 13 — Task Scheduling & Distributed Orchestration remains tracked below.
+Shared coordination and reservations: `platform_docs/avance_orquestador.md`.
+
+### E14-S04 — Availability exceptions (PASS / COMPLETE)
+
+Delivered tenant-scoped BLOCKED/EXTRA_AVAILABILITY exception configuration,
+strict offset/calendar validation, half-open overlap filters, guarded CRUD/list
+API, and atomic AuditLog/Outbox. ADR-0066 records the boundary. Independent review
+found a concurrent boundary-patch race; the real regression failed before the
+fix (both conflicting patches accepted), then passed with tenant-scoped
+SELECT FOR UPDATE before update/delete validation. Re-review approved the fix.
+
+Verification on final code (2026-10-25): focused PostgreSQL 6/6; focused API 7/7;
+full database 297/297 (49 files), full API 217/217 (27 files), dedicated tenant
+isolation 9/9 database + 37/37 API, root unit 465/465 (51 files). No skipped tests
+in these final runs. `pnpm lint`, `pnpm typecheck`, `pnpm build`,
+`pnpm exec biome check .` (473 files), and `git diff --check` PASS.
+Isolated pre-story schema upgrade and current clean-schema checks reported no
+Prisma difference; local `pnpm db:migrate:deploy` applied S04 successfully (28
+migrations current). Full integrations used disposable PostgreSQL databases
+populated with a schema-only dump of the migrated development database so raw
+SQL CHECKs/partial indexes were preserved; no development rows were copied.
+The historical full migration-chain BOM limitation remains a separate known
+baseline issue, not a passed pristine-chain replay. Publication remains pending
+the commit/push step recorded in avance_orquestador.md.
+
+Baseline `pnpm test`: 465/465. Initial full database run was not green: 277 passed,
+7 failed, 7 skipped (291 total). Investigation identified stale generated client,
+live worker interference, a stale canonical module-count assertion and a global
+permission-catalog mutation blocked by legitimate FKs. Final verification above
+supersedes those failures after regenerating the client and using isolated DBs.
+Test-only fixes follow the canonical module keys, isolate catalog mutation in a
+rollback transaction, and scope inbound outbox assertions to tenant/aggregate.
+These fixes also supersede the historical full-DB failure notes below for the
+verified final revision; no production FK or RBAC behavior was weakened.
+The API initially failed during PostgreSQL startup (57P03); isolated restart
+restored health/HTTP 200. Project API/workers are temporarily stopped for
+deterministic integration checks; PostgreSQL/Redis remain running.
+
+The external advance report is advisory; unverified percentage estimates are not
+adopted. Real Baileys transport, restore drill and other documented P0 gates
+remain outstanding despite continuation of the active E14 milestone. Product
+direction now explicitly includes Messenger as secondary channel through a
+future verified unofficial connector (PRD §15.3); no Meta API is required.
 
 ### E14-S03 — Appointment Availability Rules Foundation and Management API
 

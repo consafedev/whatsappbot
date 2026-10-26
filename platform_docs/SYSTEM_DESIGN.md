@@ -677,6 +677,12 @@ Segundo adapter, no fallback transparente de sesión. Requiere su propia vincula
 
 ## 14.8 Meta
 
+La API oficial de Meta es una opción futura, no un requisito de la estrategia
+inicial. Según PRD §15.3 (2026-10-25), WhatsApp es el canal principal y Messenger
+el secundario objetivo mediante conectores no oficiales separados y verificados.
+Messenger no tiene adapter seleccionado/implementado; no inferir soporte desde
+Baileys o WPPConnect. Los contratos del Core siguen siendo genéricos.
+
 Provider oficial futuro para clientes que requieran ese camino. Debe usar el mismo contrato normalizado.
 
 ---

@@ -80,6 +80,21 @@ export {
   updateAvailabilityRule,
 } from "./appointment-availability-manager";
 export {
+  type AppointmentAvailabilityExceptionInput,
+  type AppointmentAvailabilityExceptionListFilters,
+  type AppointmentAvailabilityExceptionListPage,
+  type AppointmentAvailabilityExceptionManagerDatabase,
+  type AppointmentAvailabilityExceptionMutationMetadata,
+  AppointmentAvailabilityExceptionNotFoundError,
+  type AppointmentAvailabilityExceptionPatch,
+  AppointmentAvailabilityExceptionValidationError,
+  createAvailabilityException,
+  deleteAvailabilityException,
+  getAvailabilityExceptionById,
+  listAvailabilityExceptions,
+  updateAvailabilityException,
+} from "./appointment-exception-manager";
+export {
   type AppointmentResourceInput,
   type AppointmentResourceListFilters,
   type AppointmentResourceListPage,
@@ -291,6 +306,8 @@ export {
   type ExternalHumanMessageTransaction,
 } from "./external-human-message-manager";
 export type {
+  AppointmentAvailabilityException,
+  AppointmentAvailabilityExceptionType,
   AppointmentAvailabilityRule,
   AuditLog,
   Contact,

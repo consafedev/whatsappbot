@@ -216,6 +216,7 @@ model Tenant {
   appointmentServices AppointmentService[]
   appointmentResources AppointmentResource[]
   appointmentAvailabilityRules AppointmentAvailabilityRule[]
+  appointmentAvailabilityExceptions AppointmentAvailabilityException[]
 
   @@index([status], map: "tenant_status_idx")
   @@index([deploymentId], map: "tenant_deployment_id_idx")
@@ -987,6 +988,11 @@ enum AppointmentResourceType {
   OTHER
 }
 
+enum AppointmentAvailabilityExceptionType {
+  BLOCKED
+  EXTRA_AVAILABILITY
+}
+
 model AppointmentResource {
   id                 String                  @id @default(dbgenerated("uuidv7()")) @db.Uuid
   tenantId           String                  @map("tenant_id") @db.Uuid
@@ -1005,6 +1011,7 @@ model AppointmentResource {
   organizationUnit OrganizationUnit? @relation(fields: [tenantId, organizationUnitId], references: [tenantId, id], onDelete: Restrict)
   user             User?             @relation(fields: [tenantId, userId], references: [tenantId, id], onDelete: Restrict)
   availabilityRules AppointmentAvailabilityRule[]
+  availabilityExceptions AppointmentAvailabilityException[]
 
   @@unique([tenantId, id], map: "appointment_resources_tenant_id_id_key")
   @@index([tenantId, active])
@@ -1035,4 +1042,24 @@ model AppointmentAvailabilityRule {
   @@index([tenantId, resourceId, dayOfWeek])
   @@index([tenantId, active])
   @@map("appointment_availability_rules")
+}
+
+model AppointmentAvailabilityException {
+  id         String                               @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  tenantId   String                               @map("tenant_id") @db.Uuid
+  resourceId String                               @map("resource_id") @db.Uuid
+  type       AppointmentAvailabilityExceptionType @default(BLOCKED)
+  startsAt   DateTime                             @map("starts_at") @db.Timestamptz(3)
+  endsAt     DateTime                             @map("ends_at") @db.Timestamptz(3)
+  reason     String?                              @db.VarChar(255)
+  active     Boolean                              @default(true)
+  createdAt  DateTime                             @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime                             @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  tenant   Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resource AppointmentResource @relation(fields: [tenantId, resourceId], references: [tenantId, id], onDelete: Cascade)
+
+  @@index([tenantId, resourceId, startsAt, endsAt], map: "appt_avail_exc_tenant_resource_time_idx")
+  @@index([tenantId, active, startsAt], map: "appt_avail_exc_tenant_active_start_idx")
+  @@map("appointment_availability_exceptions")
 }

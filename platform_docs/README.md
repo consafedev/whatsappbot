@@ -6,8 +6,10 @@ El producto está diseñado para múltiples industrias y para ejecutarse desde u
 
 ## Estado actual
 
-**Fase:** Epic 00 — Repository Foundation implementado; validación runtime de Docker pendiente.  
-**Prioridad:** mantener el límite de Epic 00 y continuar con E01-S01 sólo bajo una instrucción separada.
+**Fase:** E14 — Agenda en curso; estado por historia y evidencia en `STATUS.md`.
+**Coordinación:** una épica activa y cierres por historia en
+[`avance_orquestador.md`](avance_orquestador.md). Mantener visibles los gates
+P0 pendientes de transporte real y backup/restore antes de declarar MVP vendible.
 
 Consulta `STATUS.md` antes de comenzar cualquier trabajo.
 

@@ -19,6 +19,13 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import {
+  type AppointmentAvailabilityExceptionInput,
+  type AppointmentAvailabilityExceptionListFilters,
+  type AppointmentAvailabilityExceptionManagerDatabase,
+  AppointmentAvailabilityExceptionNotFoundError,
+  type AppointmentAvailabilityExceptionPatch,
+  type AppointmentAvailabilityExceptionType,
+  AppointmentAvailabilityExceptionValidationError,
   type AppointmentAvailabilityRuleInput,
   type AppointmentAvailabilityRuleListFilters,
   type AppointmentAvailabilityRuleManagerDatabase,
@@ -44,18 +51,23 @@ import {
   archiveAppointmentService,
   createAppointmentResource,
   createAppointmentService,
+  createAvailabilityException,
   createAvailabilityRule,
+  deleteAvailabilityException,
   deleteAvailabilityRule,
   getAppointmentResourceById,
   getAppointmentServiceById,
+  getAvailabilityExceptionById,
   getAvailabilityRuleById,
   listAppointmentResources,
   listAppointmentServices,
+  listAvailabilityExceptions,
   listAvailabilityRules,
   type TenantContext,
   TenantNotOperationalError,
   updateAppointmentResource,
   updateAppointmentService,
+  updateAvailabilityException,
   updateAvailabilityRule,
 } from "@whatsapp-platform/database";
 import type { PermissionKey } from "@whatsapp-platform/rbac";
@@ -90,6 +102,16 @@ export interface AppointmentResourcesQuery extends AppointmentServicesQuery {
 export interface AppointmentAvailabilityRulesQuery {
   readonly resourceId?: unknown;
   readonly dayOfWeek?: unknown;
+  readonly active?: unknown;
+  readonly limit?: unknown;
+  readonly offset?: unknown;
+}
+
+export interface AppointmentAvailabilityExceptionsQuery {
+  readonly resourceId?: unknown;
+  readonly type?: unknown;
+  readonly from?: unknown;
+  readonly to?: unknown;
   readonly active?: unknown;
   readonly limit?: unknown;
   readonly offset?: unknown;
@@ -615,7 +637,114 @@ function parseAvailabilityRuleListFilters(
   };
 }
 
+const APPOINTMENT_EXCEPTION_TYPES = new Set<AppointmentAvailabilityExceptionType>([
+  "BLOCKED",
+  "EXTRA_AVAILABILITY",
+]);
+
+function appointmentExceptionType(value: unknown): AppointmentAvailabilityExceptionType {
+  if (
+    typeof value !== "string" ||
+    !APPOINTMENT_EXCEPTION_TYPES.has(value as AppointmentAvailabilityExceptionType)
+  ) {
+    throw new BadRequestException("type must be BLOCKED or EXTRA_AVAILABILITY");
+  }
+  return value as AppointmentAvailabilityExceptionType;
+}
+
+function optionalExceptionReason(value: unknown): string | null | undefined {
+  if (value === undefined || value === null) return value;
+  return requiredString(value, "reason");
+}
+
+function parseCreateAvailabilityExceptionBody(
+  value: unknown,
+): AppointmentAvailabilityExceptionInput {
+  const body = plainObject(value, "Invalid appointment availability exception request");
+  exactKeys(
+    body,
+    ["resourceId", "type", "startsAt", "endsAt", "reason", "active"],
+    "Invalid appointment availability exception request",
+  );
+  return {
+    resourceId: appointmentResourceId(requiredString(body.resourceId, "resourceId")),
+    startsAt: requiredString(body.startsAt, "startsAt"),
+    endsAt: requiredString(body.endsAt, "endsAt"),
+    ...(body.type === undefined ? {} : { type: appointmentExceptionType(body.type) }),
+    ...(body.reason === undefined
+      ? {}
+      : { reason: optionalExceptionReason(body.reason) as string | null }),
+    ...(body.active === undefined
+      ? {}
+      : { active: optionalAvailabilityBoolean(body.active, "active") as boolean }),
+  };
+}
+
+function parseAvailabilityExceptionPatchBody(
+  value: unknown,
+): AppointmentAvailabilityExceptionPatch {
+  const body = plainObject(value, "Invalid appointment availability exception request");
+  exactKeys(
+    body,
+    ["type", "startsAt", "endsAt", "reason", "active"],
+    "Invalid appointment availability exception request",
+  );
+  return {
+    ...(body.type === undefined ? {} : { type: appointmentExceptionType(body.type) }),
+    ...(body.startsAt === undefined ? {} : { startsAt: requiredString(body.startsAt, "startsAt") }),
+    ...(body.endsAt === undefined ? {} : { endsAt: requiredString(body.endsAt, "endsAt") }),
+    ...(body.reason === undefined ? {} : { reason: optionalExceptionReason(body.reason) }),
+    ...(body.active === undefined
+      ? {}
+      : { active: optionalAvailabilityBoolean(body.active, "active") as boolean }),
+  };
+}
+
+function parseAvailabilityExceptionListFilters(
+  query: AppointmentAvailabilityExceptionsQuery,
+): AppointmentAvailabilityExceptionListFilters {
+  const raw = plainObject(query, "Invalid appointment availability exception query");
+  exactKeys(
+    raw,
+    ["resourceId", "type", "from", "to", "active", "limit", "offset"],
+    "Invalid appointment availability exception query",
+  );
+  const resourceId =
+    query.resourceId === undefined ? undefined : appointmentResourceId(query.resourceId as string);
+  const type = query.type === undefined ? undefined : appointmentExceptionType(query.type);
+  const from = query.from === undefined ? undefined : requiredString(query.from, "from");
+  const to = query.to === undefined ? undefined : requiredString(query.to, "to");
+  const limit = parseAvailabilityQueryInteger(query.limit, "limit");
+  const offset = parseAvailabilityQueryInteger(query.offset, "offset");
+  let active: boolean | undefined;
+  if (query.active !== undefined) {
+    if (query.active !== "true" && query.active !== "false")
+      throw new BadRequestException("active must be true or false");
+    active = query.active === "true";
+  }
+  return {
+    ...(resourceId === undefined ? {} : { resourceId }),
+    ...(type === undefined ? {} : { type }),
+    ...(from === undefined ? {} : { from }),
+    ...(to === undefined ? {} : { to }),
+    ...(active === undefined ? {} : { active }),
+    ...(limit === undefined ? {} : { limit }),
+    ...(offset === undefined ? {} : { offset }),
+  };
+}
+
 function mapAppointmentError(error: unknown): never {
+  if (error instanceof AppointmentAvailabilityExceptionNotFoundError) {
+    throw new NotFoundException({
+      code: "APPOINTMENT_AVAILABILITY_EXCEPTION_NOT_FOUND",
+      error: "Not Found",
+      message: "Appointment availability exception was not found",
+      statusCode: 404,
+    });
+  }
+  if (error instanceof AppointmentAvailabilityExceptionValidationError) {
+    throw new BadRequestException(error.message);
+  }
   if (error instanceof AppointmentAvailabilityRuleNotFoundError) {
     throw new NotFoundException({
       code: "APPOINTMENT_AVAILABILITY_RULE_NOT_FOUND",
@@ -666,7 +795,8 @@ export class AppointmentsService {
     @Inject(APPOINTMENTS_DATABASE)
     private readonly database: AppointmentServiceManagerDatabase &
       AppointmentResourceManagerDatabase &
-      AppointmentAvailabilityRuleManagerDatabase,
+      AppointmentAvailabilityRuleManagerDatabase &
+      AppointmentAvailabilityExceptionManagerDatabase,
   ) {}
 
   async create(
@@ -868,6 +998,74 @@ export class AppointmentsService {
       return mapAppointmentError(error);
     }
   }
+
+  async createAvailabilityException(
+    context: TenantContext,
+    identity: TenantSessionIdentity,
+    request: TenantAuthenticationRequest,
+    input: AppointmentAvailabilityExceptionInput,
+  ) {
+    try {
+      return await createAvailabilityException(context, this.database, input, {
+        actorUserId: identity.userId,
+        requestId: requestId(request),
+      });
+    } catch (error) {
+      return mapAppointmentError(error);
+    }
+  }
+
+  async listAvailabilityExceptions(
+    context: TenantContext,
+    filters: AppointmentAvailabilityExceptionListFilters,
+  ) {
+    try {
+      return await listAvailabilityExceptions(context, this.database, filters);
+    } catch (error) {
+      return mapAppointmentError(error);
+    }
+  }
+
+  async getAvailabilityException(context: TenantContext, id: string) {
+    try {
+      return await getAvailabilityExceptionById(context, this.database, id);
+    } catch (error) {
+      return mapAppointmentError(error);
+    }
+  }
+
+  async updateAvailabilityException(
+    context: TenantContext,
+    identity: TenantSessionIdentity,
+    request: TenantAuthenticationRequest,
+    id: string,
+    patch: AppointmentAvailabilityExceptionPatch,
+  ) {
+    try {
+      return await updateAvailabilityException(context, this.database, id, patch, {
+        actorUserId: identity.userId,
+        requestId: requestId(request),
+      });
+    } catch (error) {
+      return mapAppointmentError(error);
+    }
+  }
+
+  async deleteAvailabilityException(
+    context: TenantContext,
+    identity: TenantSessionIdentity,
+    request: TenantAuthenticationRequest,
+    id: string,
+  ) {
+    try {
+      return await deleteAvailabilityException(context, this.database, id, {
+        actorUserId: identity.userId,
+        requestId: requestId(request),
+      });
+    } catch (error) {
+      return mapAppointmentError(error);
+    }
+  }
 }
 
 function appointmentServiceId(value: string): string {
@@ -884,6 +1082,13 @@ function appointmentResourceId(value: string): string {
 function appointmentAvailabilityRuleId(value: string): string {
   if (!UUID_V7_PATTERN.test(value)) {
     throw new BadRequestException("Invalid appointment availability rule id");
+  }
+  return value;
+}
+
+function appointmentAvailabilityExceptionId(value: string): string {
+  if (!UUID_V7_PATTERN.test(value)) {
+    throw new BadRequestException("Invalid appointment availability exception id");
   }
   return value;
 }
@@ -1112,6 +1317,86 @@ export class AppointmentsController {
       identity,
       request,
       appointmentAvailabilityRuleId(rawId),
+    );
+    return { success: true, data };
+  }
+
+  @Post("exceptions")
+  @HttpCode(201)
+  @appointmentsAuthorized("appointments.manage")
+  async createAvailabilityException(
+    @CurrentTenantContext() context: TenantContext,
+    @CurrentTenantIdentity() identity: TenantSessionIdentity,
+    @Req() request: TenantAuthenticationRequest,
+    @Body() body: unknown,
+  ): Promise<ApiResponse<Awaited<ReturnType<AppointmentsService["createAvailabilityException"]>>>> {
+    const data = await this.service.createAvailabilityException(
+      context,
+      identity,
+      request,
+      parseCreateAvailabilityExceptionBody(body),
+    );
+    return { success: true, data };
+  }
+
+  @Get("exceptions")
+  @appointmentsAuthorized("appointments.read")
+  async listAvailabilityExceptions(
+    @CurrentTenantContext() context: TenantContext,
+    @Query() query: AppointmentAvailabilityExceptionsQuery,
+  ): Promise<ApiResponse<Awaited<ReturnType<AppointmentsService["listAvailabilityExceptions"]>>>> {
+    const data = await this.service.listAvailabilityExceptions(
+      context,
+      parseAvailabilityExceptionListFilters(query),
+    );
+    return { success: true, data };
+  }
+
+  @Get("exceptions/:id")
+  @appointmentsAuthorized("appointments.read")
+  async getAvailabilityException(
+    @CurrentTenantContext() context: TenantContext,
+    @Param("id") rawId: string,
+  ): Promise<ApiResponse<Awaited<ReturnType<AppointmentsService["getAvailabilityException"]>>>> {
+    const data = await this.service.getAvailabilityException(
+      context,
+      appointmentAvailabilityExceptionId(rawId),
+    );
+    return { success: true, data };
+  }
+
+  @Patch("exceptions/:id")
+  @appointmentsAuthorized("appointments.manage")
+  async updateAvailabilityException(
+    @Param("id") rawId: string,
+    @CurrentTenantContext() context: TenantContext,
+    @CurrentTenantIdentity() identity: TenantSessionIdentity,
+    @Req() request: TenantAuthenticationRequest,
+    @Body() body: unknown,
+  ): Promise<ApiResponse<Awaited<ReturnType<AppointmentsService["updateAvailabilityException"]>>>> {
+    const data = await this.service.updateAvailabilityException(
+      context,
+      identity,
+      request,
+      appointmentAvailabilityExceptionId(rawId),
+      parseAvailabilityExceptionPatchBody(body),
+    );
+    return { success: true, data };
+  }
+
+  @Delete("exceptions/:id")
+  @appointmentsAuthorized("appointments.manage")
+  async deleteAvailabilityException(
+    @Param("id") rawId: string,
+    @CurrentTenantContext() context: TenantContext,
+    @CurrentTenantIdentity() identity: TenantSessionIdentity,
+    @Req() request: TenantAuthenticationRequest,
+  ): Promise<ApiResponse<Awaited<ReturnType<AppointmentsService["deleteAvailabilityException"]>>>> {
+    const data = await this.service.deleteAvailabilityException(
+      context,
+      identity,
+      request,
+      appointmentAvailabilityExceptionId(rawId),
     );
     return { success: true, data };
   }

@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { PrismaClient } from "./generated/prisma/client";
+import { MODULE_ENTITLEMENT_KEYS } from "./index";
 import { createPlatformDatabaseClient } from "./platform";
 import {
   createPlatformTenantDetailQueryService,
@@ -246,7 +247,7 @@ describe.sequential("Platform tenant detail query integration", () => {
       themeMode: "dark",
     });
     expect(detail.organizationRoot).toMatchObject({ name: "Alpha Root", type: "company" });
-    expect(detail.modules).toHaveLength(14);
+    expect(detail.modules.map(({ key }) => key)).toEqual([...MODULE_ENTITLEMENT_KEYS]);
     expect(detail.modules.find(({ key }) => key === "module.messaging.basic")).toMatchObject({
       configPresent: true,
       effective: true,

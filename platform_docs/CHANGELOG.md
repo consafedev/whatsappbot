@@ -8,6 +8,19 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Added
 
+- E14-S04 availability exceptions: tenant-owned BLOCKED/EXTRA_AVAILABILITY
+  configuration, strict offset-aware calendar validation, half-open interval
+  filters, guarded `/api/v1/appointments/exceptions` CRUD/list, transactional
+  audit/outbox and row locks protecting concurrent temporal patches. Includes
+  cross-tenant, permission/module, malformed-input, rollback and concurrency
+  regressions; ADR-0066 records scope. Availability calculation remains S05.
+- Shared `platform_docs/avance_orquestador.md` coordination record with stable
+  sections, one active epic, ownership/reservations, per-story verification and
+  commit/push evidence, remaining scope and commercial blockers. PRD §15.3,
+  System Design and engineering skill now explicitly place Messenger after
+  WhatsApp through a future verified unofficial connector, without requiring
+  Meta's official API or claiming a delivered Messenger adapter.
+
 - E14-S03 appointment availability rules foundation and management API:
   tenant-scoped weekly rule persistence with a composite resource foreign key,
   validated day/time/date/timezone/capacity fields, atomic AuditLog/Outbox
@@ -752,6 +765,13 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Fixed
 
+- Integration gate prerequisites: platform tenant detail follows canonical
+  module keys instead of a stale count; missing-permission-catalog test uses
+  a transaction-local rename with forced rollback instead of deleting a global
+  permission referenced by other tenants; inbound deduplication outbox assertions
+  scope tenant/aggregate instead of counting other parallel tests' events.
+  Production RBAC/FKs are unchanged. Final full DB 297/297, API 217/217, isolation
+  46/46 and root 465/465 pass.
 - E06-S01 (fix) — `ContactsController` ahora valida entitlement `module.crm_lite` vía `@RequireEntitlements` + `TenantEntitlementGuard`, alineándose con el patrón de otros controllers (outbound-messages, channel-accounts); integration test actualizado con `enabledModules: ["module.crm_lite"]`.
 - E04-S02 (fix) — `/app/bootstrap` oculta `branding.logo` cuando `module.white_label` no está efectivo (desactivado, schedule o expirado), preserva el `brandingConfig` guardado y `GET /app/theme`, y restaura el logo al reactivar el módulo sin relogin ni re-upload; sin cambio de schema.
 - Compose construye una sola vez la imagen compartida de aplicación y evita la colisión concurrente `image ... already exists`.

@@ -79,6 +79,10 @@ function availabilityRulesUrl(path = ""): string {
   return `${baseUrl}/api/v1/appointments/availability-rules${path}`;
 }
 
+function availabilityExceptionsUrl(path = ""): string {
+  return `${baseUrl}/api/v1/appointments/exceptions${path}`;
+}
+
 async function cleanup(): Promise<void> {
   const tenants = await prisma.tenant.findMany({
     select: { id: true },
@@ -638,6 +642,230 @@ describe.sequential("E14-S01 appointments API", () => {
     expect(
       (
         await fetch(availabilityRulesUrl(`/${foreign.id}`), {
+          headers: { cookie: manageCookie },
+          method: "DELETE",
+        })
+      ).status,
+    ).toBe(404);
+  });
+
+  it("manages availability exceptions with guards, strict timestamps, overlap filters, and tenant 404s", async () => {
+    expect((await fetch(availabilityExceptionsUrl())).status).toBe(401);
+    expect(
+      (await fetch(availabilityExceptionsUrl(), { headers: { cookie: noPermissionCookie } }))
+        .status,
+    ).toBe(403);
+    expect(
+      (await fetch(availabilityExceptionsUrl(), { headers: { cookie: manageCookie } })).status,
+    ).toBe(403);
+    expect(
+      (
+        await fetch(
+          availabilityExceptionsUrl("?from=2026-10-25T00%3A00%3A00Z&from=2026-10-26T00%3A00%3A00Z"),
+          { headers: { cookie: readCookie } },
+        )
+      ).status,
+    ).toBe(400);
+    expect(
+      (
+        await fetch(availabilityExceptionsUrl("?active=true&active=false"), {
+          headers: { cookie: readCookie },
+        })
+      ).status,
+    ).toBe(400);
+    await prisma.tenantEntitlement.update({
+      data: { enabled: false },
+      where: {
+        tenantId_entitlementKey: {
+          entitlementKey: "module.appointments",
+          tenantId: tenantAId,
+        },
+      },
+    });
+    try {
+      expect(
+        (await fetch(availabilityExceptionsUrl(), { headers: { cookie: readCookie } })).status,
+      ).toBe(403);
+    } finally {
+      await prisma.tenantEntitlement.update({
+        data: { enabled: true },
+        where: {
+          tenantId_entitlementKey: {
+            entitlementKey: "module.appointments",
+            tenantId: tenantAId,
+          },
+        },
+      });
+    }
+
+    const resourceA = await prisma.appointmentResource.create({
+      data: { name: "Exception API A", tenantId: tenantAId },
+    });
+    const inactiveResource = await prisma.appointmentResource.create({
+      data: { active: false, name: "Inactive exception resource", tenantId: tenantAId },
+    });
+    expect(
+      (
+        await fetch(availabilityExceptionsUrl(), {
+          body: JSON.stringify({
+            resourceId: inactiveResource.id,
+            startsAt: "2026-10-26T09:00:00Z",
+            endsAt: "2026-10-26T10:00:00Z",
+          }),
+          headers: { cookie: manageCookie, "content-type": "application/json" },
+          method: "POST",
+        })
+      ).status,
+    ).toBe(400);
+    const invalidBodies = [
+      { resourceId: resourceA.id, startsAt: "2026-10-25T09:00:00", endsAt: "2026-10-25T10:00:00Z" },
+      {
+        resourceId: resourceA.id,
+        startsAt: "2026-02-30T09:00:00Z",
+        endsAt: "2026-02-30T10:00:00Z",
+      },
+      {
+        resourceId: resourceA.id,
+        startsAt: "2026-10-25T10:00:00Z",
+        endsAt: "2026-10-25T09:00:00Z",
+      },
+    ];
+    for (const body of invalidBodies) {
+      expect(
+        (
+          await fetch(availabilityExceptionsUrl(), {
+            body: JSON.stringify(body),
+            headers: { cookie: manageCookie, "content-type": "application/json" },
+            method: "POST",
+          })
+        ).status,
+      ).toBe(400);
+    }
+
+    const createdResponse = await fetch(availabilityExceptionsUrl(), {
+      body: JSON.stringify({
+        resourceId: resourceA.id,
+        type: "BLOCKED",
+        startsAt: "2026-10-26T09:00:00-06:00",
+        endsAt: "2026-10-26T10:00:00-06:00",
+        reason: "  Maintenance  ",
+      }),
+      headers: {
+        cookie: manageCookie,
+        "content-type": "application/json",
+        "x-request-id": `${prefix}-exception-create`,
+      },
+      method: "POST",
+    });
+    expect(createdResponse.status).toBe(201);
+    const created = (await createdResponse.json()) as {
+      success: boolean;
+      data: { id: string; reason: string; startsAt: string };
+    };
+    expect(created).toMatchObject({
+      success: true,
+      data: { reason: "Maintenance", startsAt: "2026-10-26T15:00:00.000Z" },
+    });
+    expect(
+      await prisma.auditLog.count({
+        where: {
+          requestId: `${prefix}-exception-create`,
+          action: "appointment_availability_exception.created",
+        },
+      }),
+    ).toBe(1);
+
+    const touching = await prisma.appointmentAvailabilityException.create({
+      data: {
+        endsAt: new Date("2026-10-26T17:00:00Z"),
+        resourceId: resourceA.id,
+        startsAt: new Date("2026-10-26T16:00:00Z"),
+        tenantId: tenantAId,
+        type: "EXTRA_AVAILABILITY",
+      },
+    });
+    const list = await fetch(
+      availabilityExceptionsUrl(
+        "?resourceId=" +
+          resourceA.id +
+          "&from=2026-10-26T16%3A00%3A00Z&to=2026-10-26T17%3A00%3A00Z&type=EXTRA_AVAILABILITY",
+      ),
+      { headers: { cookie: readCookie } },
+    );
+    expect(list.status).toBe(200);
+    expect(await list.json()).toMatchObject({
+      success: true,
+      data: { items: [{ id: touching.id }], total: 1 },
+    });
+    expect(
+      (
+        await fetch(availabilityExceptionsUrl(`/${created.data.id}`), {
+          headers: { cookie: readCookie },
+        })
+      ).status,
+    ).toBe(200);
+    expect(
+      (
+        await fetch(availabilityExceptionsUrl(`/${created.data.id}`), {
+          body: JSON.stringify({ reason: " " }),
+          headers: { cookie: manageCookie, "content-type": "application/json" },
+          method: "PATCH",
+        })
+      ).status,
+    ).toBe(200);
+    expect(
+      (
+        await fetch(availabilityExceptionsUrl(`/${created.data.id}`), {
+          body: JSON.stringify({ unexpected: true }),
+          headers: { cookie: manageCookie, "content-type": "application/json" },
+          method: "PATCH",
+        })
+      ).status,
+    ).toBe(400);
+    expect(
+      (
+        await fetch(availabilityExceptionsUrl(`/${created.data.id}`), {
+          headers: { cookie: manageCookie },
+          method: "DELETE",
+        })
+      ).status,
+    ).toBe(200);
+    expect(
+      await prisma.appointmentAvailabilityException.findFirst({
+        where: { id: created.data.id, tenantId: tenantAId },
+      }),
+    ).toBeNull();
+
+    const resourceB = await prisma.appointmentResource.create({
+      data: { name: "Exception API B", tenantId: tenantBId },
+    });
+    const foreign = await prisma.appointmentAvailabilityException.create({
+      data: {
+        endsAt: new Date("2026-10-26T10:00:00Z"),
+        resourceId: resourceB.id,
+        startsAt: new Date("2026-10-26T09:00:00Z"),
+        tenantId: tenantBId,
+      },
+    });
+    expect(
+      (
+        await fetch(availabilityExceptionsUrl(`/${foreign.id}`), {
+          headers: { cookie: readCookie },
+        })
+      ).status,
+    ).toBe(404);
+    expect(
+      (
+        await fetch(availabilityExceptionsUrl(`/${foreign.id}`), {
+          body: JSON.stringify({ active: false }),
+          headers: { cookie: manageCookie, "content-type": "application/json" },
+          method: "PATCH",
+        })
+      ).status,
+    ).toBe(404);
+    expect(
+      (
+        await fetch(availabilityExceptionsUrl(`/${foreign.id}`), {
           headers: { cookie: manageCookie },
           method: "DELETE",
         })

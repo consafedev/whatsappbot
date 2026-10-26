@@ -852,6 +852,20 @@ Arquitectura preparada para:
 
 No todos son MVP.
 
+## 15.3 Prioridad de canales y estrategia de conectores
+
+Dirección de producto actualizada el 2026-10-25: WhatsApp es el canal principal
+y Messenger de Meta es el canal secundario objetivo. Ambos se integran mediante
+adapters del contrato genérico de mensajería; el Core no depende de sus SDKs.
+La estrategia inicial usa conectores no oficiales. Esta dirección no exige
+agregar ni contratar la API oficial de Meta. El adapter oficial de WhatsApp
+descrito en §17.3 sigue siendo una opción futura, no un prerrequisito del MVP.
+
+Messenger requiere seleccionar y verificar su propio conector, capacidades,
+compatibilidad y pruebas antes de implementarlo. No se presupone que Baileys o
+WPPConnect soporten Messenger. Este alcance objetivo no acredita soporte
+implementado ni agrega su desarrollo a la épica Agenda activa.
+
 ---
 
 # 16. WhatsApp: múltiples cuentas por tenant

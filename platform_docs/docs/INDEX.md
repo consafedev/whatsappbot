@@ -512,6 +512,12 @@ No usar un documento vivo para contradecir silenciosamente uno normativo.
 
 # 8. Regla de handoff
 
+`platform_docs/avance_orquestador.md` es el registro compartido de coordinación
+entre equipos/IA: responsable, rama/base, una épica activa, reserva de archivos,
+estado por historia, checks, commits/push y faltantes. Actualizarlo por historia
+y al cierre de cada épica conservando su formato. Es operativo; no sustituye
+esta jerarquía, los documentos normativos, STATUS ni Git.
+
 Antes de entregar el proyecto a otra IA/desarrollador:
 
 1. `STATUS.md` debe estar actualizado.

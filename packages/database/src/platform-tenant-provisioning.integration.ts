@@ -1,10 +1,11 @@
 import { PERMISSION_CATALOG } from "@whatsapp-platform/rbac";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import type { PrismaClient } from "./generated/prisma/client";
+import type { Prisma, PrismaClient } from "./generated/prisma/client";
 import {
   createPlatformDatabaseClient,
   createPlatformTenantProvisioningRepository,
   PlatformTenantPermissionCatalogError,
+  type PlatformTenantProvisioningDatabase,
   syncPermissionCatalog,
 } from "./platform";
 
@@ -218,13 +219,39 @@ describe.sequential("Platform tenant provisioning repository", () => {
   it("fails closed before tenant creation when the canonical permission catalog is incomplete", async () => {
     await cleanup();
     const missing = PERMISSION_CATALOG[0];
-    await prisma.permission.delete({ where: { key: missing.key } });
+    const missingCatalogSlug = `${prefix}-missing-catalog`;
+    const rollback = new Error("Rollback temporary permission catalog mutation");
+
     await expect(
-      createPlatformTenantProvisioningRepository(prisma).provision(
-        input(`${prefix}-missing-catalog`),
-      ),
-    ).rejects.toBeInstanceOf(PlatformTenantPermissionCatalogError);
-    expect(await prisma.tenant.count({ where: { slug: `${prefix}-missing-catalog` } })).toBe(0);
-    await syncPermissionCatalog(prisma);
+      prisma.$transaction(async (transaction) => {
+        await transaction.permission.update({
+          data: { key: `${missing.key}__missing_${prefix}` },
+          where: { key: missing.key },
+        });
+
+        const transactionDatabase: PlatformTenantProvisioningDatabase = new Proxy(prisma, {
+          get(target, property, receiver) {
+            if (property === "$transaction") {
+              return async <T>(callback: (tx: Prisma.TransactionClient) => Promise<T>) =>
+                callback(transaction);
+            }
+            return Reflect.get(target, property, receiver);
+          },
+        });
+        await expect(
+          createPlatformTenantProvisioningRepository(transactionDatabase).provision(
+            input(missingCatalogSlug),
+          ),
+        ).rejects.toBeInstanceOf(PlatformTenantPermissionCatalogError);
+        expect(await transaction.tenant.count({ where: { slug: missingCatalogSlug } })).toBe(0);
+
+        throw rollback;
+      }),
+    ).rejects.toBe(rollback);
+
+    await expect(
+      prisma.permission.findUnique({ where: { key: missing.key } }),
+    ).resolves.not.toBeNull();
+    expect(await prisma.tenant.count({ where: { slug: missingCatalogSlug } })).toBe(0);
   });
 });

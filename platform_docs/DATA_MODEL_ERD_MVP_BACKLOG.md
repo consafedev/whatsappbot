@@ -1354,11 +1354,18 @@ Puede ser persona, consultorio, mesa, sala, equipo.
 
 ## 16.4 `availability_exception`
 
+- id / tenant_id (required, tenant-scoped)
 - resource_id
 - starts_at
 - ends_at
 - type (`blocked`, `extra_availability`)
 - reason
+
+E14-S04 persistence uses `AppointmentAvailabilityException`, UTC timestamptz(3),
+active state and enum BLOCKED/EXTRA_AVAILABILITY. API strings require explicit
+ISO offset; intervals and overlap filtering are half-open. Tenant/resource
+ownership is enforced with a composite FK. Mutations preserve transactional
+AuditLog/Outbox; partial update/delete locks the scoped row before validation.
 
 ## 16.5 `appointment`
 
@@ -2591,7 +2598,14 @@ ADR-0065 records the scope. The PRD §79 `service` field on AvailabilityRule is
 deferred to E14-S05 as an additive nullable `service_id`; ADR-0065 registers
 the conflict.
 
-## E14-S04 Exceptions [M]
+## E14-S04 Exceptions [M] — DONE
+
+Tenant-scoped absolute calendar exceptions and guarded management API under
+`/api/v1/appointments/exceptions`. Strict temporal validation, stable pagination,
+cross-tenant 404, active-resource check, atomic audit/outbox and serialized
+concurrent boundary patches. ADR-0066. Final focused DB/API 6/6 and 7/7, full DB
+297/297, API 217/217, isolation 46/46, unit 465/465 and static/build gates PASS.
+Slot calculation and exception precedence consumption remain E14-S05.
 
 ## E14-S05 Find availability service [L]
 

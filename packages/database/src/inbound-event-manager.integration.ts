@@ -156,8 +156,10 @@ describe.sequential("E05-S02 inbound event manager", () => {
     await expect(
       prisma.domainEventOutbox.count({
         where: {
+          aggregateId: duplicate.event.id,
           eventType: "messaging.inbound.event_received",
           aggregateType: "InboundMessageEvent",
+          tenantId: tenantAId,
         },
       }),
     ).resolves.toBe(1);
@@ -181,11 +183,13 @@ describe.sequential("E05-S02 inbound event manager", () => {
     await expect(
       prisma.domainEventOutbox.count({
         where: {
+          aggregateId: raceA.event.id,
           eventType: "messaging.inbound.event_received",
           aggregateType: "InboundMessageEvent",
+          tenantId: tenantAId,
         },
       }),
-    ).resolves.toBe(2);
+    ).resolves.toBe(1);
   });
 
   it("fails closed for cross-tenant channels, inactive channels, and missing entitlements", async () => {
