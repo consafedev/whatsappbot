@@ -66,7 +66,7 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
 | E14-S03 | Integrada antes de esta sesión | DONE histórico | 32f1dbf + fb8639d, main | STATUS/ADR-0065 |
 | E14-S04 | Codex/e14_s04 (gpt-6-luna); review_s04 (gpt-6-sol); coordinador Codex. Reserva liberada | PASS / COMPLETE | `058eee1348ed724f166c8b4cfa33849a55dd4bb7`; push origin/codex/e14-agenda-completion confirmado por ls-remote | ADR-0066; DB 297/297, API 217/217, isolation 46/46, unit 465/465; static/build PASS |
 | E14-S05 | Codex/e14_s05 y review_s05 (gpt-6-sol); coordinador Codex; reserva liberada. Base9f533e6 | PASS / COMPLETE | `a0ddc4f98dbc5818547ed62899fd710cd13c6014`; push remoto SHA idéntico verificado | ADR-0067; root478/478, DB305/305, API219/219, isolation46/46; static/build PASS |
-| E14-S06 | Codex/e14_s06 (gpt-6-sol) inicial; s06_uuid_luna (gpt-6-luna) corrección UUID; review_s06 auditoría; coordinador docs/gates. Base eaf88db | PASS; publicación pendiente | — | ADR-0068; root478, DB317, API220, aislamiento46; static/build PASS; ambas revisiones aprobadas |
+| E14-S06 | Codex/e14_s06 (gpt-6-sol) inicial; s06_uuid_luna (gpt-6-luna) corrección UUID; review_s06 auditoría; coordinador docs/gates. Reserva liberada, base eaf88db | PASS / COMPLETE | `8137e15e0a13ea8d06302c86064929010d74db1c`; push SHA idéntico verificado | ADR-0068; root478, DB317, API220, aislamiento46; static/build PASS; ambas revisiones aprobadas |
 | E14-S07 | Sin reserva | PENDING | — | cancelación/reprogramación con historia |
 | E14-S08 | Sin reserva | PENDING | — | recordatorios persistentes |
 | E14-S09 | Sin reserva | PENDING | — | UI operativa de agenda |
@@ -155,3 +155,6 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
   completos PASS según tabla, incluida API completa sin exclusiones. Se retiró
   DB desechable preparada tras verificar cero conexiones; el runner retiró la
   suya al terminar. S06 lista para commit/push, S07 aún sin implementación.
+- 2026-10-26: S06 publicada en8137e15e0a13ea8d06302c86064929010d74db1c,
+  igualdad SHA local/remoto comprobada. No está en main. Checkpoint documental
+  registra publicación antes de reservar S07 a Luna.

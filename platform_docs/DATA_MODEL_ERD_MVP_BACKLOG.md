@@ -2636,14 +2636,14 @@ Final focused unit32/32, DB15/15, API9/9; full root478/478, DB305/305,
 API219/219, isolation46/46 and static/build gates PASS. S06 adds persisted
 appointment occupancy and transactional creation; returned slots are advisory.
 
-## E14-S06 Create appointment [L] — DONE (publication pending)
+## E14-S06 Create appointment [L] — DONE
 
 Transactional confirmed bookings, snapshots, guarded create/list/detail,
 canonical-UUID idempotent receipts, persisted occupied capacity and safe resource
 capacity reduction (ADR-0068). Independent initial and UUID correction reviews
 approved. Final root478/478, DB317/317, API220/220, isolation46/46 and static/
 build gates PASS; clean-schema/upgrade checks no drift, local migration30 applied.
-Commit/push checkpoint must close before S07 starts; see avance_orquestador.
+Feature8137e15 pushed/verified; documentary checkpoint precedes S07.
 
 ## E14-S07 Cancel/rebook [L]
 

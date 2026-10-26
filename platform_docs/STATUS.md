@@ -2,17 +2,17 @@
 
 **Actualizado:** 2026-10-26
 **Versión de producto:** `0.0.0`  
-**Latest validated story:** E14-S06 — PASS; publication tracked in avance_orquestador.md.
+**Latest validated story:** E14-S06 — PASS / COMPLETE; publication tracked in avance_orquestador.md.
 **Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; Epic 11 — Campaign Engine & Audience Broadcasts — PASS / COMPLETE; **Epic 12 — Reporting, Analytics & Operational Observability — PASS / COMPLETE (E12-S01, E12-S02, E12-S03, E12-S04, E12-S05 PASS); E13-S01 — PASS / COMPLETE; E13-S02 — PASS / COMPLETE; E13-S03 — PASS / COMPLETE; E13-S04 — PASS / COMPLETE; E14-S01 — PASS / COMPLETE; E14-S02 — PASS / COMPLETE; E14-S03 — PASS / COMPLETE**.
 
 ## Current milestone
 
-Epic 14 — Agenda & Appointment Booking (E14-S01 through E14-S06 verified;
-S06 publication pending; S07 next after its commit/push checkpoint).
+Epic 14 — Agenda & Appointment Booking (E14-S01 through E14-S06 complete;
+S06 commit/push verified; S07 next after this documentary checkpoint).
 Epic 13 — Task Scheduling & Distributed Orchestration remains tracked below.
 Shared coordination and reservations: `platform_docs/avance_orquestador.md`.
 
-### E14-S06 — Transactional appointment booking (PASS; publication pending)
+### E14-S06 — Transactional appointment booking (PASS / COMPLETE)
 
 Appointment persistence/manager/API and database-backed availability occupancy
 are implemented from pushed eaf88db. ADR-0068 defines idempotent replay,
@@ -29,7 +29,9 @@ no skipped tests in these final suites. Build, typecheck, Biome479files and
 diff check passed. Full integrations used disposable schema-only-dump databases
 preserving raw SQL checks. The historical pristine-chain BOM limitation remains
 documented under S04. Owned prepared/test databases were removed after use.
-Commit/push pending below; S07 implementation has not started.
+Feature commit `8137e15e0a13ea8d06302c86064929010d74db1c` pushed with identical
+remote SHA verified on origin/codex/e14-agenda-completion; not in main.
+Documentation checkpoints may advance HEAD. S07 implementation has not started.
 
 ### E14-S05 — Availability calculation (PASS / COMPLETE)
 
