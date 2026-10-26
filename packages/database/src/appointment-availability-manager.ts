@@ -1,4 +1,4 @@
-import type { AppointmentAvailabilityRule, Prisma } from "./generated/prisma/client";
+import { type AppointmentAvailabilityRule, Prisma } from "./generated/prisma/client";
 import { createTenantContext, type TenantContext } from "./tenant-context";
 import { createTenantDataAccess, type TenantTransactionDatabase } from "./tenant-data-access";
 import { assertTenantOperational } from "./tenant-operational";
@@ -10,6 +10,7 @@ export type AppointmentAvailabilityRuleMutationMetadata = Readonly<{
 
 export type AppointmentAvailabilityRuleInput = Readonly<{
   resourceId: string;
+  serviceId?: string | null;
   dayOfWeek: number;
   startTime: string;
   endTime: string;
@@ -21,6 +22,7 @@ export type AppointmentAvailabilityRuleInput = Readonly<{
 }>;
 
 export type AppointmentAvailabilityRulePatch = Readonly<{
+  serviceId?: string | null | undefined;
   dayOfWeek?: number | undefined;
   startTime?: string | undefined;
   endTime?: string | undefined;
@@ -33,6 +35,7 @@ export type AppointmentAvailabilityRulePatch = Readonly<{
 
 export type AppointmentAvailabilityRuleListFilters = Readonly<{
   resourceId?: string;
+  serviceId?: string | null;
   dayOfWeek?: number;
   active?: boolean;
   limit?: number;
@@ -40,7 +43,10 @@ export type AppointmentAvailabilityRuleListFilters = Readonly<{
 }>;
 
 export type AppointmentAvailabilityRuleManagerDatabase = TenantTransactionDatabase &
-  Pick<Prisma.TransactionClient, "appointmentAvailabilityRule" | "appointmentResource" | "tenant">;
+  Pick<
+    Prisma.TransactionClient,
+    "appointmentAvailabilityRule" | "appointmentResource" | "appointmentService" | "tenant"
+  >;
 
 export type AppointmentAvailabilityRuleListPage = Readonly<{
   items: readonly AppointmentAvailabilityRule[];
@@ -65,6 +71,7 @@ const MAX_CAPACITY = 2_147_483_647;
 const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 const UUID_V7_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const AVAILABILITY_RULE_PATCH_FIELDS = new Set([
+  "serviceId",
   "dayOfWeek",
   "startTime",
   "endTime",
@@ -102,7 +109,10 @@ function normalizeDayOfWeek(value: number): number {
 }
 
 function normalizeTime(value: string, field: "startTime" | "endTime"): string {
-  if (typeof value !== "string" || !TIME_PATTERN.test(value)) {
+  if (
+    typeof value !== "string" ||
+    (!TIME_PATTERN.test(value) && !(field === "endTime" && value === "24:00"))
+  ) {
     throw new AppointmentAvailabilityRuleValidationError(`${field} must use HH:mm 24-hour time`);
   }
   return value;
@@ -152,9 +162,9 @@ function normalizeTimezone(value: string | null | undefined): string | null | un
   return timezone;
 }
 
-function normalizeDate(
+export function parseAppointmentCalendarDate(
   value: Date | string | null | undefined,
-  field: "effectiveFrom" | "effectiveTo",
+  field: string,
 ): Date | null | undefined {
   if (value === undefined || value === null) return value;
   let day: string;
@@ -181,6 +191,8 @@ function normalizeDate(
   return normalized;
 }
 
+const normalizeDate = parseAppointmentCalendarDate;
+
 function assertDateRange(from: Date | null | undefined, to: Date | null | undefined): void {
   if (from !== null && from !== undefined && to !== null && to !== undefined && from > to) {
     throw new AppointmentAvailabilityRuleValidationError(
@@ -191,6 +203,7 @@ function assertDateRange(from: Date | null | undefined, to: Date | null | undefi
 
 function ruleSummary(rule: AppointmentAvailabilityRule): Prisma.InputJsonObject {
   return {
+    serviceId: rule.serviceId,
     active: rule.active,
     capacity: rule.capacity,
     dayOfWeek: rule.dayOfWeek,
@@ -201,6 +214,35 @@ function ruleSummary(rule: AppointmentAvailabilityRule): Prisma.InputJsonObject 
     startTime: rule.startTime,
     timezone: rule.timezone,
   };
+}
+
+async function assertActiveServiceBelongsToTenant(
+  database: Pick<Prisma.TransactionClient, "appointmentService">,
+  tenantId: string,
+  serviceId: string | null | undefined,
+): Promise<void> {
+  if (serviceId === null || serviceId === undefined) return;
+  const service = await database.appointmentService.findFirst({
+    select: { id: true },
+    where: { active: true, id: serviceId, tenantId },
+  });
+  if (service === null) {
+    throw new AppointmentAvailabilityRuleValidationError(
+      "serviceId must identify an active service in the tenant",
+    );
+  }
+}
+
+async function lockRuleRow(
+  transaction: Prisma.TransactionClient,
+  tenantId: string,
+  id: string,
+): Promise<void> {
+  const rows = await transaction.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+    SELECT "id" FROM "appointment_availability_rules"
+    WHERE "tenant_id" = ${tenantId}::uuid AND "id" = ${id}::uuid FOR UPDATE
+  `);
+  if (rows.length === 0) throw new AppointmentAvailabilityRuleNotFoundError(id);
 }
 
 function availabilityRuleWhere(
@@ -262,6 +304,8 @@ export async function createAvailabilityRule(
   const tenant = createTenantContext(context.tenantId);
   requireMetadata(mutationMetadata);
   requireUuidV7(input.resourceId, "resourceId");
+  if (input.serviceId !== undefined && input.serviceId !== null)
+    requireUuidV7(input.serviceId, "serviceId");
   const dayOfWeek = normalizeDayOfWeek(input.dayOfWeek);
   const startTime = normalizeTime(input.startTime, "startTime");
   const endTime = normalizeTime(input.endTime, "endTime");
@@ -276,6 +320,7 @@ export async function createAvailabilityRule(
   return database.$transaction(async (transaction) => {
     await assertTenantOperational(tenant, transaction);
     await assertActiveResourceBelongsToTenant(transaction, tenant.tenantId, input.resourceId);
+    await assertActiveServiceBelongsToTenant(transaction, tenant.tenantId, input.serviceId);
     const rule = await transaction.appointmentAvailabilityRule.create({
       data: {
         ...(timezone === undefined ? {} : { timezone }),
@@ -283,6 +328,7 @@ export async function createAvailabilityRule(
         ...(effectiveTo === undefined ? {} : { effectiveTo }),
         ...(capacity === undefined ? {} : { capacity }),
         ...(active === undefined ? {} : { active }),
+        ...(input.serviceId === undefined ? {} : { serviceId: input.serviceId }),
         dayOfWeek,
         endTime,
         resourceId: input.resourceId,
@@ -328,10 +374,13 @@ export async function listAvailabilityRules(
   const dayOfWeek =
     filters.dayOfWeek === undefined ? undefined : normalizeDayOfWeek(filters.dayOfWeek);
   if (filters.resourceId !== undefined) requireUuidV7(filters.resourceId, "resourceId");
+  if (filters.serviceId !== undefined && filters.serviceId !== null)
+    requireUuidV7(filters.serviceId, "serviceId");
   const active = normalizeActive(filters.active);
   const where: Prisma.AppointmentAvailabilityRuleWhereInput = {
     tenantId: tenant.tenantId,
     ...(filters.resourceId === undefined ? {} : { resourceId: filters.resourceId }),
+    ...(filters.serviceId === undefined ? {} : { serviceId: filters.serviceId }),
     ...(dayOfWeek === undefined ? {} : { dayOfWeek }),
     ...(active === undefined ? {} : { active }),
   };
@@ -373,6 +422,10 @@ export async function updateAvailabilityRule(
   }
 
   const data: Prisma.AppointmentAvailabilityRuleUncheckedUpdateInput = {};
+  if (patch.serviceId !== undefined) {
+    if (patch.serviceId !== null) requireUuidV7(patch.serviceId, "serviceId");
+    data.serviceId = patch.serviceId;
+  }
   if (patch.dayOfWeek !== undefined) data.dayOfWeek = normalizeDayOfWeek(patch.dayOfWeek);
   if (patch.startTime !== undefined) data.startTime = normalizeTime(patch.startTime, "startTime");
   if (patch.endTime !== undefined) data.endTime = normalizeTime(patch.endTime, "endTime");
@@ -389,6 +442,7 @@ export async function updateAvailabilityRule(
 
   return database.$transaction(async (transaction) => {
     await assertTenantOperational(tenant, transaction);
+    await lockRuleRow(transaction, tenant.tenantId, id);
     const before = await transaction.appointmentAvailabilityRule.findFirst({
       where: { id, tenantId: tenant.tenantId },
     });
@@ -404,6 +458,11 @@ export async function updateAvailabilityRule(
     const effectiveTo =
       patch.effectiveTo === undefined ? before.effectiveTo : (data.effectiveTo as Date | null);
     assertDateRange(effectiveFrom, effectiveTo);
+    await assertActiveServiceBelongsToTenant(
+      transaction,
+      tenant.tenantId,
+      patch.serviceId === undefined ? before.serviceId : patch.serviceId,
+    );
 
     const rule = await transaction.appointmentAvailabilityRule.update({
       data,
@@ -425,6 +484,7 @@ export async function deleteAvailabilityRule(
   requireUuidV7(id, "id");
   return database.$transaction(async (transaction) => {
     await assertTenantOperational(tenant, transaction);
+    await lockRuleRow(transaction, tenant.tenantId, id);
     const before = await transaction.appointmentAvailabilityRule.findFirst({
       where: { id, tenantId: tenant.tenantId },
     });

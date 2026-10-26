@@ -30,6 +30,16 @@ describe("BusinessHoursEvaluator", () => {
         isWithinBusinessHours({ schedules: [], timezone: "America/Mexico_City" }, new Date()),
       ).toBe(true);
     });
+
+    it("still closes a dated holiday when schedules are empty", () => {
+      const config: BusinessHoursConfig = {
+        timezone: "UTC",
+        schedules: [],
+        holidays: ["2026-10-26"],
+      };
+      expect(isWithinBusinessHours(config, new Date("2026-10-26T12:00:00.000Z"))).toBe(false);
+      expect(isWithinBusinessHours(config, new Date("2026-10-27T12:00:00.000Z"))).toBe(true);
+    });
   });
 
   describe("Daytime schedule evaluation", () => {
@@ -125,14 +135,51 @@ describe("BusinessHoursEvaluator", () => {
       expect(isWithinBusinessHours(nightShiftConfig, lateNight)).toBe(true);
     });
 
-    it("returns true in the early morning before shift end (05:30)", () => {
-      const earlyMorning = new Date("2026-08-26T05:30:00.000Z");
-      expect(isWithinBusinessHours(nightShiftConfig, earlyMorning)).toBe(true);
+    it("carries Wednesday's opening into Thursday morning and not Wednesday morning", () => {
+      expect(isWithinBusinessHours(nightShiftConfig, new Date("2026-08-27T05:30:00.000Z"))).toBe(
+        true,
+      );
+      expect(isWithinBusinessHours(nightShiftConfig, new Date("2026-08-26T05:30:00.000Z"))).toBe(
+        false,
+      );
     });
 
     it("returns false in the afternoon outside shift (14:00)", () => {
       const afternoon = new Date("2026-08-26T14:00:00.000Z");
       expect(isWithinBusinessHours(nightShiftConfig, afternoon)).toBe(false);
+    });
+
+    it("carries Sunday's opening into Monday despite Monday's closed schedule", () => {
+      const config: BusinessHoursConfig = {
+        timezone: "UTC",
+        schedules: [
+          { dayOfWeek: 0, isOpen: true, openTime: "22:00", closeTime: "06:00" },
+          { dayOfWeek: 1, isOpen: false },
+        ],
+      };
+      expect(isWithinBusinessHours(config, new Date("2026-08-30T23:00:00.000Z"))).toBe(true);
+      expect(isWithinBusinessHours(config, new Date("2026-08-31T01:00:00.000Z"))).toBe(true);
+      expect(isWithinBusinessHours(config, new Date("2026-08-31T06:00:00.000Z"))).toBe(false);
+      expect(isWithinBusinessHours(config, new Date("2026-08-30T01:00:00.000Z"))).toBe(false);
+    });
+
+    it("closes the current holiday and suppresses carry from a holiday opening day", () => {
+      const config: BusinessHoursConfig = {
+        timezone: "UTC",
+        schedules: [{ dayOfWeek: 1, isOpen: true, openTime: "22:00", closeTime: "06:00" }],
+        holidays: ["2026-10-26"],
+      };
+      expect(isWithinBusinessHours(config, new Date("2026-10-26T23:00:00.000Z"))).toBe(false);
+      expect(isWithinBusinessHours(config, new Date("2026-10-27T01:00:00.000Z"))).toBe(false);
+      expect(
+        isWithinBusinessHours(
+          { ...config, holidays: ["2026-10-27"] },
+          new Date("2026-10-27T01:00:00.000Z"),
+        ),
+      ).toBe(false);
+      expect(
+        isWithinBusinessHours({ ...config, holidays: [] }, new Date("2026-10-27T01:00:00.000Z")),
+      ).toBe(true);
     });
   });
 

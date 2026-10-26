@@ -16,18 +16,19 @@ export interface BusinessHoursConfig {
  * Evaluates whether a given timestamp falls within the active business hours window.
  *
  * Rules:
- * - If config is null, undefined, or schedules array is empty -> returns true (24/7 continuous hours).
+ * - If config is null or undefined -> returns true; empty schedules mean 24/7 weekly hours.
  * - Resolves local date and time in the tenant's configured timezone (with fallback to UTC on invalid IANA timezone).
  * - If current date in tenant timezone is in `config.holidays` -> returns false.
- * - If current day of week has no schedule or `isOpen === false` -> returns false.
+ * - A closed or missing current day starts no new opening, but may receive an overnight carry.
  * - If `isOpen === true` without specific time limits -> returns true (all day).
- * - Validates current local time against `[openTime, closeTime)` (supporting standard daytime and overnight intervals).
+ * - An overnight window belongs to its opening weekday and carries into the next morning.
+ *   Holidays close the current local date and cancel carry from a holiday opening date.
  */
 export function isWithinBusinessHours(
   config: BusinessHoursConfig | null | undefined,
   now?: Date,
 ): boolean {
-  if (!config || !Array.isArray(config.schedules) || config.schedules.length === 0) {
+  if (!config || !Array.isArray(config.schedules)) {
     return true;
   }
 
@@ -66,35 +67,35 @@ export function isWithinBusinessHours(
   const currentHhMm = `${partMap.hour}:${partMap.minute}`;
   const dayOfWeek = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
 
-  // Check holidays
+  // A dated holiday closes the whole local calendar day, including overnight carry.
   if (Array.isArray(config.holidays) && config.holidays.includes(yyyyMmDd)) {
     return false;
   }
 
-  // Find schedule for current weekday
+  if (config.schedules.length === 0) return true;
+
+  // The current weekday owns openings that begin today.
   const schedule = config.schedules.find((s) => s.dayOfWeek === dayOfWeek);
-  if (!schedule?.isOpen) {
-    return false;
+  if (schedule?.isOpen) {
+    if (!schedule.openTime || !schedule.closeTime) return true;
+    const openTime = schedule.openTime.trim();
+    const closeTime = schedule.closeTime.trim();
+    if (openTime.length === 0 || closeTime.length === 0) return true;
+    if (closeTime > openTime && currentHhMm >= openTime && currentHhMm < closeTime) return true;
+    if (closeTime < openTime && currentHhMm >= openTime) return true;
   }
 
-  if (!schedule.openTime || !schedule.closeTime) {
-    return true;
+  // A prior-day overnight opening may continue even when today is marked closed.
+  const previous = config.schedules.find((s) => s.dayOfWeek === (dayOfWeek + 6) % 7);
+  if (previous?.isOpen && previous.openTime && previous.closeTime) {
+    const openTime = previous.openTime.trim();
+    const closeTime = previous.closeTime.trim();
+    if (closeTime < openTime && currentHhMm < closeTime) {
+      const previousDate = new Date(Date.UTC(year, month - 1, day) - 86_400_000)
+        .toISOString()
+        .slice(0, 10);
+      return !Array.isArray(config.holidays) || !config.holidays.includes(previousDate);
+    }
   }
-
-  const openTime = schedule.openTime.trim();
-  const closeTime = schedule.closeTime.trim();
-  if (openTime.length === 0 || closeTime.length === 0) {
-    return true;
-  }
-
-  if (closeTime > openTime) {
-    return currentHhMm >= openTime && currentHhMm < closeTime;
-  }
-
-  if (closeTime < openTime) {
-    // Overnight window (e.g. 22:00 to 06:00)
-    return currentHhMm >= openTime || currentHhMm < closeTime;
-  }
-
   return false;
 }

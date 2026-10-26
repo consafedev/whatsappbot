@@ -46,7 +46,7 @@ apply calendar exceptions, or create appointments.
   appointments and historical bookings are outside this story.
 - Add the schema with append-only migration
   `20261006180000_add_appointment_availability_rules_foundation`.
-- Register the conflict with the PRD §79 `AvailabilityRule` field list: the
+- Register the conflict with the PRD §78 `AvailabilityRule` field list: the
   PRD lists a `service` link, while this story binds rules to a tenant resource
   only. The link is deferred to E14-S05 as an additive nullable `service_id`
   with a tenant-aware foreign key, to be added only if slot calculation requires
@@ -71,7 +71,7 @@ apply calendar exceptions, or create appointments.
   table in addition to its primary key.
 - Overlap semantics remain deliberately unspecified until E14-S05 consumes
   these rules.
-- The PRD §79 `service` field is deferred, not dropped: E14-S05 must resolve
+- The PRD §78 `service` field is deferred, not dropped: E14-S05 must resolve
   the registered conflict with an additive migration or an explicit PRD update.
 
 ## Migration/rollback
@@ -81,6 +81,17 @@ and tenant-aware foreign keys. Rollback may remove the rule table and its
 indexes, and the resource composite index only after confirming no dependent
 schema or data requires it. Applied shared-environment migrations remain
 append-only.
+
+## Amendments
+
+Amendment (2026-10-26): ADR-0067 permits `24:00` only as an end-of-day
+boundary, so the two-rule cross-midnight representation above has no minute
+gap. Start times remain `00:00`–`23:59`; existing stored rules are unchanged.
+
+Resolution (2026-10-26): E14-S05/ADR-0067 delivers the deferred nullable
+service_id with tenant-aware FK and same-tenant active-service validation.
+The AvailabilityRule PRD field list is §78; previous §79 references were a
+documentation citation error, corrected without changing the original scope.
 
 ## Affected documents
 

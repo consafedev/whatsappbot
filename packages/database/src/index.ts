@@ -65,6 +65,16 @@ export {
   type TenantOperationalOverviewResult,
 } from "./analytics-manager";
 export {
+  type AppointmentAvailabilityInput,
+  AppointmentAvailabilityQueryValidationError,
+  type AppointmentAvailabilityResult,
+  type AvailabilityExceptionWindow,
+  type AvailabilityRuleWindow,
+  calculateAppointmentAvailability,
+  type OccupiedAppointmentInterval,
+  parseAppointmentAvailabilityRange,
+} from "./appointment-availability-calculator";
+export {
   type AppointmentAvailabilityRuleInput,
   type AppointmentAvailabilityRuleListFilters,
   type AppointmentAvailabilityRuleListPage,
@@ -124,6 +134,12 @@ export {
   listAppointmentServices,
   updateAppointmentService,
 } from "./appointment-service-manager";
+export {
+  type AppointmentAvailabilityQueryDatabase,
+  AppointmentAvailabilityTargetNotFoundError,
+  type FindAppointmentAvailabilityInput,
+  findAppointmentAvailability,
+} from "./appointment-slot-query";
 export {
   ASSIGNMENT_POLICIES,
   type AssignmentPolicy,

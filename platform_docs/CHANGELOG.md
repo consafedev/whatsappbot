@@ -8,6 +8,12 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Added
 
+- E14-S05 availability calculation: tenant-scoped read API with deterministic
+  UTC slots, rule-local timezones/DST, inclusive effective dates, exact exception
+  boundaries, full duration/buffer coverage, peak occupancy input, capacity
+  union, bounded work and explicit pagination. Weekly rules now support an
+  optional tenant-aware service link; optional businessHours configuration has
+  documented precedence and strict validation. ADR-0067 records the decisions.
 - E14-S04 availability exceptions: tenant-owned BLOCKED/EXTRA_AVAILABILITY
   configuration, strict offset-aware calendar validation, half-open interval
   filters, guarded `/api/v1/appointments/exceptions` CRUD/list, transactional
@@ -765,6 +771,13 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Fixed
 
+- Required E14-S05 calendar prerequisites: overnight business-hour periods now
+  belong to their opening weekday and continue into the following morning;
+  current/opening-day holidays suppress the carry, including empty (24/7)
+  weekly schedules. Weekly-rule endTime now accepts exact24:00, allowing two
+  adjacent rules to cover midnight continuously; starts24:00 and ends24:01
+  remain invalid. Shared-evaluator behavior changes are explicit, with RED/GREEN
+  regressions and ADR-0065/0067 documentation; no migration history was rewritten.
 - Integration gate prerequisites: platform tenant detail follows canonical
   module keys instead of a stale count; missing-permission-catalog test uses
   a transaction-local rename with forced rollback instead of deleting a global

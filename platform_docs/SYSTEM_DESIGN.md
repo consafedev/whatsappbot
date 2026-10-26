@@ -903,6 +903,22 @@ La resolución desde WhatsApp, portal o dashboard debe terminar en el mismo appl
 
 # 20. Agenda
 
+E14-S05 implements a tenant-scoped read-only availability query and pure domain
+calculator. Matching generic/service-specific weekly windows union by maximum
+capacity, capped at resource capacity. EXTRA_AVAILABILITY adds capacity while
+BLOCKED and effective business hours remain restrictive. Duration and buffers
+must be continuously covered, including exact sub-minute exception boundaries.
+UTC instants are evaluated in rule-local zones; gaps/folds never fabricate a
+wall-clock timestamp. Responses are bounded/paginated with explicit nextFrom.
+
+Optional validated businessHours uses existing JSON configuration, in order:
+resource metadata, resource unit settings, service settings, service unit
+settings, tenant settings. Opening weekday owns overnight carry; holidays apply
+even to24/7 weekly schedules. Weekly-rule end24:00 is an end-of-day boundary,
+not a valid start. ADR-0067 defines limits and calendar semantics. Returned
+availability is advisory until booking rechecks it in a resource-locked
+transaction; appointment persistence and database occupancy retrieval start S06.
+
 Disponibilidad se calcula desde:
 
 - service duration;

@@ -34,7 +34,11 @@ stays in PostgreSQL. Caller-selected IDs never supply tenant authority.
   without adding capacities; capacity is bounded by resource capacity. Blocked
   exceptions override extra availability. Include service duration and buffers;
   subtract occupied intervals and respect capacity. Honor configured business
-  hours. Bound request range/result size. DST gaps produce no invalid slot;
+  hours. Correct verified shared-evaluator defects: overnight weekday denotes
+  opening day and carries into the next morning, holidays apply even with an
+  empty weekly schedule, and a holiday opening day cannot create a next-day
+  carry. Preserve old callers' invalid-zone fallback; new query is strict.
+  Bound request range/result size. DST gaps produce no invalid slot;
   ambiguous times resolve deterministically and return absolute timestamps.
 - S06: persist Appointment with tenant-aware FKs, timezone/duration/buffer
   snapshots, source and idempotency key. Booking rechecks active tenant,

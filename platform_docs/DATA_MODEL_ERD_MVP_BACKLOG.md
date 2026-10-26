@@ -1345,12 +1345,17 @@ Puede ser persona, consultorio, mesa, sala, equipo.
 
 - tenant_id
 - resource_id
+- service_id nullable (tenant-aware FK; generic when null)
 - day_of_week
 - start_local_time
 - end_local_time
 - timezone
 - effective_from/to
 - capacity
+
+Weekly start is HH:mm from00:00 through23:59; end may additionally be24:00
+since E14-S05 so adjacent weekday rules cover midnight without a minute gap.
+See ADR-0065's amendment and ADR-0067 for union/capacity/timezone semantics.
 
 ## 16.4 `availability_exception`
 
@@ -2594,9 +2599,10 @@ linked resource must be active and belong to the same tenant; PostgreSQL
 enforces the composite tenant/resource foreign key. Create does not overwrite,
 and overlapping rules remain independent until E14-S05 defines availability
 calculation semantics. CRUD mutations write AuditLog and Outbox atomically.
-ADR-0065 records the scope. The PRD §79 `service` field on AvailabilityRule is
-deferred to E14-S05 as an additive nullable `service_id`; ADR-0065 registers
-the conflict.
+ADR-0065 records the historical scope. The PRD §78 service link was deferred
+to E14-S05 and is now delivered as additive nullable service_id with tenant-aware
+FK. ADR-0067 resolves that deferral and adds exact endTime24:00 for continuous
+two-rule midnight coverage.
 
 ## E14-S04 Exceptions [M] — DONE
 
@@ -2607,7 +2613,16 @@ concurrent boundary patches. ADR-0066. Final focused DB/API 6/6 and 7/7, full DB
 297/297, API 217/217, isolation 46/46, unit 465/465 and static/build gates PASS.
 Slot calculation and exception precedence consumption remain E14-S05.
 
-## E14-S05 Find availability service [L]
+## E14-S05 Find availability service [L] — DONE
+
+Tenant-scoped guarded availability API and pure calculation with rule/service
+filtering, effective dates, local timezones/DST, union/max capacity, absolute
+exceptions, full duration/buffers, validated business-hours precedence and
+explicit bounded pagination. Corrected shared overnight/holiday evaluation and
+end-of-day24:00 representation; ADR-0067 records policies and work limits.
+Final focused unit32/32, DB15/15, API9/9; full root478/478, DB305/305,
+API219/219, isolation46/46 and static/build gates PASS. S06 adds persisted
+appointment occupancy and transactional creation; returned slots are advisory.
 
 ## E14-S06 Create appointment [L]
 

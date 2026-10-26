@@ -26,12 +26,15 @@ import {
   type AppointmentAvailabilityExceptionPatch,
   type AppointmentAvailabilityExceptionType,
   AppointmentAvailabilityExceptionValidationError,
+  type AppointmentAvailabilityQueryDatabase,
+  AppointmentAvailabilityQueryValidationError,
   type AppointmentAvailabilityRuleInput,
   type AppointmentAvailabilityRuleListFilters,
   type AppointmentAvailabilityRuleManagerDatabase,
   AppointmentAvailabilityRuleNotFoundError,
   type AppointmentAvailabilityRulePatch,
   AppointmentAvailabilityRuleValidationError,
+  AppointmentAvailabilityTargetNotFoundError,
   type AppointmentResourceInput,
   type AppointmentResourceListFilters,
   type AppointmentResourceManagerDatabase,
@@ -55,6 +58,8 @@ import {
   createAvailabilityRule,
   deleteAvailabilityException,
   deleteAvailabilityRule,
+  type FindAppointmentAvailabilityInput,
+  findAppointmentAvailability,
   getAppointmentResourceById,
   getAppointmentServiceById,
   getAvailabilityExceptionById,
@@ -64,6 +69,7 @@ import {
   listAvailabilityExceptions,
   listAvailabilityRules,
   type TenantContext,
+  TenantModuleEntitlementRequiredError,
   TenantNotOperationalError,
   updateAppointmentResource,
   updateAppointmentService,
@@ -101,10 +107,19 @@ export interface AppointmentResourcesQuery extends AppointmentServicesQuery {
 
 export interface AppointmentAvailabilityRulesQuery {
   readonly resourceId?: unknown;
+  readonly serviceId?: unknown;
   readonly dayOfWeek?: unknown;
   readonly active?: unknown;
   readonly limit?: unknown;
   readonly offset?: unknown;
+}
+
+export interface AppointmentAvailabilityQuery {
+  readonly serviceId?: unknown;
+  readonly resourceId?: unknown;
+  readonly from?: unknown;
+  readonly to?: unknown;
+  readonly limit?: unknown;
 }
 
 export interface AppointmentAvailabilityExceptionsQuery {
@@ -300,6 +315,13 @@ function availabilityRuleResourceId(value: unknown): string {
   return value;
 }
 
+function availabilityRuleServiceId(value: unknown): string {
+  if (typeof value !== "string" || !UUID_V7_PATTERN.test(value)) {
+    throw new BadRequestException("serviceId must be a UUIDv7");
+  }
+  return value;
+}
+
 function optionalAvailabilityDate(
   value: unknown,
   field: "effectiveFrom" | "effectiveTo",
@@ -328,6 +350,7 @@ function parseCreateAvailabilityRuleBody(value: unknown): AppointmentAvailabilit
     body,
     [
       "resourceId",
+      "serviceId",
       "dayOfWeek",
       "startTime",
       "endTime",
@@ -341,6 +364,9 @@ function parseCreateAvailabilityRuleBody(value: unknown): AppointmentAvailabilit
   );
   return {
     resourceId: availabilityRuleResourceId(body.resourceId),
+    ...(body.serviceId === undefined
+      ? {}
+      : { serviceId: body.serviceId === null ? null : availabilityRuleServiceId(body.serviceId) }),
     dayOfWeek: integer(body.dayOfWeek, "dayOfWeek"),
     startTime: requiredString(body.startTime, "startTime"),
     endTime: requiredString(body.endTime, "endTime"),
@@ -371,6 +397,7 @@ function parseAvailabilityRulePatchBody(value: unknown): AppointmentAvailability
   exactKeys(
     body,
     [
+      "serviceId",
       "dayOfWeek",
       "startTime",
       "endTime",
@@ -383,6 +410,9 @@ function parseAvailabilityRulePatchBody(value: unknown): AppointmentAvailability
     "Invalid appointment availability rule request",
   );
   return {
+    ...(body.serviceId === undefined
+      ? {}
+      : { serviceId: body.serviceId === null ? null : availabilityRuleServiceId(body.serviceId) }),
     ...(body.dayOfWeek === undefined ? {} : { dayOfWeek: integer(body.dayOfWeek, "dayOfWeek") }),
     ...(body.startTime === undefined
       ? {}
@@ -613,11 +643,17 @@ function parseAvailabilityRuleListFilters(
   const raw = plainObject(query, "Invalid appointment availability rule query");
   exactKeys(
     raw,
-    ["resourceId", "dayOfWeek", "active", "limit", "offset"],
+    ["resourceId", "serviceId", "dayOfWeek", "active", "limit", "offset"],
     "Invalid appointment availability rule query",
   );
   const resourceId =
     query.resourceId === undefined ? undefined : availabilityRuleResourceId(query.resourceId);
+  const serviceId =
+    query.serviceId === undefined
+      ? undefined
+      : query.serviceId === "null"
+        ? null
+        : availabilityRuleServiceId(query.serviceId);
   const dayOfWeek = parseAvailabilityQueryInteger(query.dayOfWeek, "dayOfWeek");
   const limit = parseAvailabilityQueryInteger(query.limit, "limit");
   const offset = parseAvailabilityQueryInteger(query.offset, "offset");
@@ -630,10 +666,29 @@ function parseAvailabilityRuleListFilters(
   }
   return {
     ...(resourceId === undefined ? {} : { resourceId }),
+    ...(serviceId === undefined ? {} : { serviceId }),
     ...(dayOfWeek === undefined ? {} : { dayOfWeek }),
     ...(active === undefined ? {} : { active }),
     ...(limit === undefined ? {} : { limit }),
     ...(offset === undefined ? {} : { offset }),
+  };
+}
+
+function parseFindAvailabilityQuery(value: unknown): FindAppointmentAvailabilityInput {
+  const query = plainObject(value, "Invalid appointment availability query");
+  exactKeys(
+    query,
+    ["serviceId", "resourceId", "from", "to", "limit"],
+    "Invalid appointment availability query",
+  );
+  return {
+    serviceId: availabilityRuleServiceId(query.serviceId),
+    resourceId: availabilityRuleResourceId(query.resourceId),
+    from: requiredString(query.from, "from"),
+    to: requiredString(query.to, "to"),
+    ...(query.limit === undefined
+      ? {}
+      : { limit: parseAvailabilityQueryInteger(query.limit, "limit") as number }),
   };
 }
 
@@ -734,6 +789,17 @@ function parseAvailabilityExceptionListFilters(
 }
 
 function mapAppointmentError(error: unknown): never {
+  if (error instanceof AppointmentAvailabilityTargetNotFoundError) {
+    throw new NotFoundException({
+      code: "APPOINTMENT_AVAILABILITY_TARGET_NOT_FOUND",
+      error: "Not Found",
+      message: error.message,
+      statusCode: 404,
+    });
+  }
+  if (error instanceof AppointmentAvailabilityQueryValidationError) {
+    throw new BadRequestException(error.message);
+  }
   if (error instanceof AppointmentAvailabilityExceptionNotFoundError) {
     throw new NotFoundException({
       code: "APPOINTMENT_AVAILABILITY_EXCEPTION_NOT_FOUND",
@@ -786,6 +852,14 @@ function mapAppointmentError(error: unknown): never {
       statusCode: 403,
     });
   }
+  if (error instanceof TenantModuleEntitlementRequiredError) {
+    throw new ForbiddenException({
+      code: "TENANT_MODULE_NOT_ENTITLED",
+      error: "Forbidden",
+      message: "Appointments module is not enabled",
+      statusCode: 403,
+    });
+  }
   throw error;
 }
 
@@ -796,7 +870,8 @@ export class AppointmentsService {
     private readonly database: AppointmentServiceManagerDatabase &
       AppointmentResourceManagerDatabase &
       AppointmentAvailabilityRuleManagerDatabase &
-      AppointmentAvailabilityExceptionManagerDatabase,
+      AppointmentAvailabilityExceptionManagerDatabase &
+      AppointmentAvailabilityQueryDatabase,
   ) {}
 
   async create(
@@ -958,6 +1033,14 @@ export class AppointmentsService {
     }
   }
 
+  async findAvailability(context: TenantContext, input: FindAppointmentAvailabilityInput) {
+    try {
+      return await findAppointmentAvailability(context, this.database, input);
+    } catch (error) {
+      return mapAppointmentError(error);
+    }
+  }
+
   async getAvailabilityRule(context: TenantContext, id: string) {
     try {
       return await getAvailabilityRuleById(context, this.database, id);
@@ -1097,6 +1180,16 @@ function appointmentAvailabilityExceptionId(value: string): string {
 @RequireEntitlements("module.appointments")
 export class AppointmentsController {
   constructor(private readonly service: AppointmentsService) {}
+
+  @Get("availability")
+  @appointmentsAuthorized("appointments.read")
+  async findAvailability(
+    @CurrentTenantContext() context: TenantContext,
+    @Query() query: AppointmentAvailabilityQuery,
+  ): Promise<ApiResponse<Awaited<ReturnType<AppointmentsService["findAvailability"]>>>> {
+    const data = await this.service.findAvailability(context, parseFindAvailabilityQuery(query));
+    return { success: true, data };
+  }
 
   @Post("services")
   @HttpCode(201)

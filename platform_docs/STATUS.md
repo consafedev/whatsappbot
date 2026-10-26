@@ -1,16 +1,47 @@
 # STATUS.md — Estado operativo actual del proyecto
 
-**Actualizado:** 2026-10-25
+**Actualizado:** 2026-10-26
 **Versión de producto:** `0.0.0`  
-**Latest validated story:** E14-S04 — PASS / COMPLETE; publication tracked in avance_orquestador.md.
+**Latest validated story:** E14-S05 — PASS / COMPLETE; publication tracked in avance_orquestador.md.
 **Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; Epic 11 — Campaign Engine & Audience Broadcasts — PASS / COMPLETE; **Epic 12 — Reporting, Analytics & Operational Observability — PASS / COMPLETE (E12-S01, E12-S02, E12-S03, E12-S04, E12-S05 PASS); E13-S01 — PASS / COMPLETE; E13-S02 — PASS / COMPLETE; E13-S03 — PASS / COMPLETE; E13-S04 — PASS / COMPLETE; E14-S01 — PASS / COMPLETE; E14-S02 — PASS / COMPLETE; E14-S03 — PASS / COMPLETE**.
 
 ## Current milestone
 
-Epic 14 — Agenda & Appointment Booking (E14-S01 through E14-S04 complete;
-E14-S05 next; S04 commit/push verified).
+Epic 14 — Agenda & Appointment Booking (E14-S01 through E14-S05 complete;
+E14-S06 next after S05 publication; S04 commit/push verified).
 Epic 13 — Task Scheduling & Distributed Orchestration remains tracked below.
 Shared coordination and reservations: `platform_docs/avance_orquestador.md`.
+
+### E14-S05 — Availability calculation (PASS / COMPLETE)
+
+Delivered deterministic availability under guarded
+GET /api/v1/appointments/availability: UTC minute starts, rule-local zones/DST,
+inclusive effective dates, generic/service-specific rule union, max/resource
+capacity, exact exceptions, full buffered coverage, bounded work and explicit
+nextFrom pagination. Optional validated businessHours uses documented JSON
+configuration precedence. Nullable serviceId with a tenant-aware FK resolves
+ADR-0065's PRD §78 deferral. Occupied-interval calculation exists in the pure
+engine; persisted appointment occupancy is added in S06, not claimed here.
+
+Independent review and parent inspection drove two corrective rounds: shared
+overnight/holiday semantics (5 new failures before fix) and end-of-day24:00
+representation (manager rejection/API400 before fix). Final focused helper plus
+calculator32/32, DB15/15, API9/9; reviewer approved with zero open findings.
+Weekly starts remain00:00–23:59; only exact end24:00 is additionally accepted.
+ADR-0067 and ADR-0065's dated amendment record these explicit behavior changes.
+
+Final verification (2026-10-26): root478/478 (52 files), full DB305/305 (50),
+full API219/219 (27), isolation9/9 DB +37/37 API; no skipped tests. `pnpm build`,
+`pnpm typecheck`, `pnpm exec biome check .` (477 files), `git diff --check` PASS.
+Isolated clean-schema and pre-story upgrade checks found no Prisma difference;
+local additive migration applied successfully (29 migrations current). Full
+integrations used disposable schema-only-dump databases with raw SQL constraints
+preserved; the historical pristine migration-chain BOM limitation remains as
+recorded under S04. No migration history was rewritten. Commit/push pending.
+
+Development API was restored to HTTP200 using the existing image on2026-10-26;
+workers remain stopped. Source build/isolated authenticated Nest tests verify
+the new behavior; the older running image is not a deployed S05 proof.
 
 ### E14-S04 — Availability exceptions (PASS / COMPLETE)
 
@@ -70,9 +101,9 @@ under `/api/v1/appointments/availability-rules`; reads require
 require `module.appointments`. Rules use `0=Sunday` through `6=Saturday`, local
 same-day `HH:mm` intervals, and optional date bounds/timezone. Overlapping rules
 remain independent; availability calculation and precedence are deferred to
-E14-S05. ADR-0065 records the scope. The PRD §79 `service` field on
-AvailabilityRule is deferred to E14-S05 as an additive nullable `service_id`;
-ADR-0065 registers the conflict.
+E14-S05. ADR-0065 records the historical scope. The PRD §78 `service` link was
+deferred there and is now delivered by E14-S05 as additive nullable service_id
+with tenant-aware FK, as recorded in ADR-0067.
 
 Verification (2026-10-05): PostgreSQL manager integration 7/7 and Nest/API
 integration 6/6; root `pnpm test` 465/465; `pnpm typecheck`, `pnpm build`,

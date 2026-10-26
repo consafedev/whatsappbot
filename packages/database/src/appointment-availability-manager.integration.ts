@@ -32,6 +32,7 @@ async function cleanup(): Promise<void> {
   const ids = tenants.map(({ id }) => id);
   await prisma.appointmentAvailabilityRule.deleteMany({ where: { tenantId: { in: ids } } });
   await prisma.appointmentResource.deleteMany({ where: { tenantId: { in: ids } } });
+  await prisma.appointmentService.deleteMany({ where: { tenantId: { in: ids } } });
   await prisma.auditLog.deleteMany({ where: { tenantId: { in: ids } } });
   await prisma.domainEventOutbox.deleteMany({ where: { tenantId: { in: ids } } });
   await prisma.tenant.deleteMany({ where: { id: { in: ids } } });
@@ -152,6 +153,38 @@ describe.sequential("E14-S03 appointment availability rule manager", () => {
     ).rejects.toBeInstanceOf(AppointmentAvailabilityRuleValidationError);
     await expect(
       createAvailabilityRule(context, prisma, { ...valid, timezone: "Not/A_Timezone" }, metadata),
+    ).rejects.toBeInstanceOf(AppointmentAvailabilityRuleValidationError);
+  });
+
+  it("accepts 24:00 only as the end-of-day boundary on create and patch", async () => {
+    const context = createTenantContext(tenantAId);
+    const valid = { dayOfWeek: 1, resourceId: resourceAId, startTime: "22:00", endTime: "24:00" };
+    const created = await createAvailabilityRule(context, prisma, valid, metadata);
+    expect(created.endTime).toBe("24:00");
+    const patched = await updateAvailabilityRule(
+      context,
+      prisma,
+      created.id,
+      { endTime: "23:59" },
+      metadata,
+    );
+    expect(
+      (await updateAvailabilityRule(context, prisma, patched.id, { endTime: "24:00" }, metadata))
+        .endTime,
+    ).toBe("24:00");
+    for (const invalid of [
+      { ...valid, startTime: "24:00" },
+      { ...valid, endTime: "24:01" },
+    ]) {
+      await expect(
+        createAvailabilityRule(context, prisma, invalid, metadata),
+      ).rejects.toBeInstanceOf(AppointmentAvailabilityRuleValidationError);
+    }
+    await expect(
+      updateAvailabilityRule(context, prisma, created.id, { startTime: "24:00" }, metadata),
+    ).rejects.toBeInstanceOf(AppointmentAvailabilityRuleValidationError);
+    await expect(
+      updateAvailabilityRule(context, prisma, created.id, { endTime: "24:01" }, metadata),
     ).rejects.toBeInstanceOf(AppointmentAvailabilityRuleValidationError);
   });
 
@@ -381,5 +414,75 @@ describe.sequential("E14-S03 appointment availability rule manager", () => {
         metadata,
       ),
     ).rejects.toBeInstanceOf(TenantNotOperationalError);
+  });
+
+  it("links only active same-tenant services and supports explicit detachment", async () => {
+    const context = createTenantContext(tenantAId);
+    const [service, inactive, foreign] = await Promise.all([
+      prisma.appointmentService.create({
+        data: { tenantId: tenantAId, name: "Linked", durationMinutes: 30 },
+      }),
+      prisma.appointmentService.create({
+        data: { tenantId: tenantAId, name: "Inactive", durationMinutes: 30, active: false },
+      }),
+      prisma.appointmentService.create({
+        data: { tenantId: tenantBId, name: "Foreign", durationMinutes: 30 },
+      }),
+    ]);
+    const input = {
+      resourceId: resourceAId,
+      serviceId: service.id,
+      dayOfWeek: 1,
+      startTime: "09:00",
+      endTime: "10:00",
+    };
+    const created = await createAvailabilityRule(context, prisma, input, metadata);
+    expect(created.serviceId).toBe(service.id);
+    expect(
+      (await listAvailabilityRules(context, prisma, { serviceId: service.id })).items.some(
+        (rule) => rule.id === created.id,
+      ),
+    ).toBe(true);
+    for (const serviceId of [inactive.id, foreign.id]) {
+      await expect(
+        createAvailabilityRule(context, prisma, { ...input, serviceId }, metadata),
+      ).rejects.toBeInstanceOf(AppointmentAvailabilityRuleValidationError);
+      await expect(
+        updateAvailabilityRule(context, prisma, created.id, { serviceId }, metadata),
+      ).rejects.toBeInstanceOf(AppointmentAvailabilityRuleValidationError);
+    }
+    expect(
+      (await updateAvailabilityRule(context, prisma, created.id, { serviceId: null }, metadata))
+        .serviceId,
+    ).toBeNull();
+  });
+
+  it("serializes concurrent effective-boundary patches", async () => {
+    const context = createTenantContext(tenantAId);
+    const created = await createAvailabilityRule(
+      context,
+      prisma,
+      {
+        resourceId: resourceAId,
+        dayOfWeek: 2,
+        startTime: "09:00",
+        endTime: "10:00",
+        effectiveFrom: "2026-02-01",
+        effectiveTo: "2026-02-28",
+      },
+      metadata,
+    );
+    const results = await Promise.allSettled([
+      updateAvailabilityRule(
+        context,
+        prisma,
+        created.id,
+        { effectiveFrom: "2026-02-20" },
+        metadata,
+      ),
+      updateAvailabilityRule(context, prisma, created.id, { effectiveTo: "2026-02-10" }, metadata),
+    ]);
+    expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+    expect(results.filter((result) => result.status === "rejected")).toHaveLength(1);
   });
 });

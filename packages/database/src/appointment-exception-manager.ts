@@ -120,7 +120,7 @@ function normalizeReason(value: string | null | undefined): string | null | unde
   return reason || null;
 }
 
-function normalizeTimestamp(value: string, field: "startsAt" | "endsAt"): Date {
+export function parseAppointmentOffsetTimestamp(value: string, field: string): Date {
   if (typeof value !== "string")
     throw new AppointmentAvailabilityExceptionValidationError(
       `${field} must be a valid ISO timestamp with an explicit offset`,
@@ -163,6 +163,8 @@ function normalizeTimestamp(value: string, field: "startsAt" | "endsAt"): Date {
     );
   return date;
 }
+
+const normalizeTimestamp = parseAppointmentOffsetTimestamp;
 
 function assertInterval(startsAt: Date, endsAt: Date): void {
   if (startsAt >= endsAt)

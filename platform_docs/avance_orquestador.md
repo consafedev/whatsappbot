@@ -2,7 +2,7 @@
 
 **Formato:** 1 — conservar estas secciones y actualizar sus tablas; no sustituir
 el historial por un resumen sin evidencia. Fechas de coordinación: America/Mexico_City.
-**Actualización:** 2026-10-25. **Épica activa única:** E14 — Agenda.
+**Actualización:** 2026-10-26. **Épica activa única:** E14 — Agenda.
 **Responsable activo:** Codex, rama `codex/e14-agenda-completion`.
 **Base verificada:** `fb8639db15ec262fcc13432f9aee4536deb8367e`, integrada en
 `main` y `origin/main` al iniciar. Sin cambios locales iniciales.
@@ -59,8 +59,8 @@ todas las secciones, SHA remoto, siguiente prioridad y limitaciones reales.
 | E14-S01 | Integrada antes de esta sesión | DONE histórico | bd1363a + cc28f6d, main | STATUS/ADR-0063 |
 | E14-S02 | Integrada antes de esta sesión | DONE histórico | ba90a0b + 2db5dc8 + e047b28, main | STATUS/ADR-0064 |
 | E14-S03 | Integrada antes de esta sesión | DONE histórico | 32f1dbf + fb8639d, main | STATUS/ADR-0065 |
-| E14-S04 | Codex; reserva liberada tras cierre | PASS / COMPLETE | `058eee1348ed724f166c8b4cfa33849a55dd4bb7`; push origin/codex/e14-agenda-completion confirmado por ls-remote | ADR-0066; DB 297/297, API 217/217, isolation 46/46, unit 465/465; static/build PASS |
-| E14-S05 | Sin reserva hasta cerrar S04 | PENDING | — | disponibilidad, service link, timezone/DST |
+| E14-S04 | Codex/e14_s04 (gpt-6-luna); review_s04 (gpt-6-sol); coordinador Codex. Reserva liberada | PASS / COMPLETE | `058eee1348ed724f166c8b4cfa33849a55dd4bb7`; push origin/codex/e14-agenda-completion confirmado por ls-remote | ADR-0066; DB 297/297, API 217/217, isolation 46/46, unit 465/465; static/build PASS |
+| E14-S05 | Codex/e14_s05 y review_s05 (gpt-6-sol); código congelado, coordinador cierra/publica. Base9f533e6 | PASS implementación; publicación pendiente | pendiente de commit/push | ADR-0067; root478/478, DB305/305, API219/219, isolation46/46; static/build PASS |
 | E14-S06 | Sin reserva | PENDING | — | booking transaccional/capacidad/idempotencia |
 | E14-S07 | Sin reserva | PENDING | — | cancelación/reprogramación con historia |
 | E14-S08 | Sin reserva | PENDING | — | recordatorios persistentes |
@@ -85,6 +85,13 @@ todas las secciones, SHA remoto, siguiente prioridad y limitaciones reales.
 | S04 API completa final | mismo runner/config desde apps/api, DB temporal independiente | PASS: 217/217, 27 archivos, 0 skipped |
 | S04 aislamiento final | configs vitest.tenant-isolation.config.mts database/API, DB temporal | PASS: 9/9 + 37/37 |
 | S04 checks generales | `pnpm test`, `pnpm lint`, `pnpm typecheck`, `pnpm build`, `pnpm exec biome check .`, `git diff --check` | PASS: 465/465 tests; 473 archivos Biome; static/build sin errores |
+| Runtime26/10 | restablecer sólo API existente; HTTP /health | PASS200; workers detenidos, DB/Redis sanos. Imagen existente no acredita nuevas rutas sin rebuild |
+| S05 focalizadas finales | helper+calculator / availability manager+slot query / appointments API | PASS32/32,15/15,9/9; RED de nocturnos/feriados y end24 antes de corregir; revisión final aprobada |
+| S05 DB completa | runner Vitest package config, maxWorkers2, hookTimeout60000, DB temporal con schema-only pg_dump | PASS305/305,50 archivos,0 skipped |
+| S05 API completa | mismo runner/config desde apps/api, misma DB temporal aislada tras cleanup DB | PASS219/219,27 archivos,0 skipped |
+| S05 aislamiento | configs dedicados database/API, DB temporal | PASS9/9 +37/37 |
+| S05 checks generales finales | `pnpm test --maxWorkers=2`, `pnpm build`, `pnpm typecheck`, `pnpm exec biome check .`, `git diff --check` | PASS478/478 en52 archivos;477 archivos Biome; tipos/build sin errores |
+| S05 migration | isolated pre-story schema upgrade + clean-schema diff; local deploy | PASS sin drift;29 migrations actuales. No equivale a pristine-chain replay histórico |
 
 ## 6. Bloqueos, riesgos y siguiente prioridad
 
@@ -114,3 +121,15 @@ todas las secciones, SHA remoto, siguiente prioridad y limitaciones reales.
   push confirmado con igualdad de SHA local/remoto en
   `origin/codex/e14-agenda-completion`. `main` no contiene este commit. Un
   checkpoint documental posterior registra esta evidencia; no equivale a merge.
+- 2026-10-26: continuación desde 9f533e6. S05 sin commit hasta resolver la
+  auditoría: el evaluador compartido atribuía mal los turnos nocturnos y omitía
+  feriados cuando el horario semanal estaba vacío. Corrección acotada como
+  prerrequisito S05, con semántica explícita en ADR-0067 y regresiones RED/GREEN.
+  La revisión anterior se interrumpió por límite de uso antes de emitir dictamen
+  final; debe completarse de nuevo antes del cierre. No se abrió S06.
+- 2026-10-26: S05 cerrada en código tras dos rondas correctivas. Turnos por día
+  de apertura, feriados con horario24/7 y frontera24:00 tienen regresiones
+  demostradas RED/GREEN. Revisión independiente final aprobada, cero hallazgos;
+  suites completas y estáticas aprobadas según tabla. Se resolvió el service_id
+  diferido y la referencia errónea PRD§79→§78. Commit/push se registran al
+  comprobarlos; todavía no se inició S06.

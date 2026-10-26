@@ -79,6 +79,10 @@ function availabilityRulesUrl(path = ""): string {
   return `${baseUrl}/api/v1/appointments/availability-rules${path}`;
 }
 
+function availabilityUrl(path = ""): string {
+  return `${baseUrl}/api/v1/appointments/availability${path}`;
+}
+
 function availabilityExceptionsUrl(path = ""): string {
   return `${baseUrl}/api/v1/appointments/exceptions${path}`;
 }
@@ -871,5 +875,134 @@ describe.sequential("E14-S01 appointments API", () => {
         })
       ).status,
     ).toBe(404);
+  });
+
+  it("guards and validates the availability query", async () => {
+    const service = await prisma.appointmentService.create({
+      data: { tenantId: tenantAId, name: "Availability API service", durationMinutes: 30 },
+    });
+    const resource = await prisma.appointmentResource.create({
+      data: { tenantId: tenantAId, name: "Availability API resource" },
+    });
+    const ruleBody = {
+      resourceId: resource.id,
+      serviceId: service.id,
+      dayOfWeek: 1,
+      startTime: "09:00",
+      endTime: "11:00",
+      timezone: "UTC",
+    };
+    const created = await fetch(availabilityRulesUrl(), {
+      method: "POST",
+      headers: { cookie: manageCookie, "content-type": "application/json" },
+      body: JSON.stringify(ruleBody),
+    });
+    expect(created.status).toBe(201);
+    const listed = await fetch(availabilityRulesUrl(`?serviceId=${service.id}`), {
+      headers: { cookie: readCookie },
+    });
+    expect(listed.status).toBe(200);
+    const listedBody = (await listed.json()) as { data: { items: Array<{ serviceId: string }> } };
+    expect(listedBody.data.items.some((item) => item.serviceId === service.id)).toBe(true);
+    const foreignService = await prisma.appointmentService.create({
+      data: { tenantId: tenantBId, name: "Foreign availability service", durationMinutes: 30 },
+    });
+    expect(
+      (
+        await fetch(availabilityRulesUrl(), {
+          method: "POST",
+          headers: { cookie: manageCookie, "content-type": "application/json" },
+          body: JSON.stringify({ ...ruleBody, serviceId: foreignService.id }),
+        })
+      ).status,
+    ).toBe(400);
+    const query = `?serviceId=${service.id}&resourceId=${resource.id}&from=2026-10-26T09%3A00%3A00Z&to=2026-10-26T10%3A00%3A00Z&limit=1`;
+    expect((await fetch(availabilityUrl(query))).status).toBe(401);
+    expect(
+      (await fetch(availabilityUrl(query), { headers: { cookie: noPermissionCookie } })).status,
+    ).toBe(403);
+    expect(
+      (await fetch(availabilityUrl(query), { headers: { cookie: manageCookie } })).status,
+    ).toBe(403);
+    const response = await fetch(availabilityUrl(query), { headers: { cookie: readCookie } });
+    expect(response.status).toBe(200);
+    const result = (await response.json()) as {
+      data: { timezone: string; slots: Array<{ startsAt: string }>; nextFrom?: string };
+    };
+    expect(result.data.slots[0]?.startsAt).toBe("2026-10-26T09:00:00.000Z");
+    expect(result.data.nextFrom).toBe("2026-10-26T09:01:00.000Z");
+    expect(
+      (await fetch(availabilityUrl(`${query}&limit=2`), { headers: { cookie: readCookie } }))
+        .status,
+    ).toBe(400);
+    expect(
+      (await fetch(availabilityUrl(`${query}&unexpected=1`), { headers: { cookie: readCookie } }))
+        .status,
+    ).toBe(400);
+    expect(
+      (
+        await fetch(
+          availabilityUrl(query.replace("2026-10-26T09%3A00%3A00Z", "2026-10-26T09%3A00%3A00")),
+          { headers: { cookie: readCookie } },
+        )
+      ).status,
+    ).toBe(400);
+  });
+
+  it("accepts 24:00 only as an availability-rule end boundary over HTTP", async () => {
+    const resource = await prisma.appointmentResource.create({
+      data: { tenantId: tenantAId, name: "Midnight API resource" },
+    });
+    const valid = { resourceId: resource.id, dayOfWeek: 1, startTime: "22:00", endTime: "24:00" };
+    const headers = { cookie: manageCookie, "content-type": "application/json" };
+    const created = await fetch(availabilityRulesUrl(), {
+      method: "POST",
+      headers,
+      body: JSON.stringify(valid),
+    });
+    expect(created.status).toBe(201);
+    const response = (await created.json()) as { data: { id: string; endTime: string } };
+    expect(response.data.endTime).toBe("24:00");
+    expect(
+      (
+        await fetch(availabilityRulesUrl(`/${response.data.id}`), {
+          method: "PATCH",
+          headers,
+          body: JSON.stringify({ endTime: "23:59" }),
+        })
+      ).status,
+    ).toBe(200);
+    const restored = await fetch(availabilityRulesUrl(`/${response.data.id}`), {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify({ endTime: "24:00" }),
+    });
+    expect(restored.status).toBe(200);
+    expect(((await restored.json()) as { data: { endTime: string } }).data.endTime).toBe("24:00");
+    for (const invalid of [
+      { ...valid, startTime: "24:00" },
+      { ...valid, endTime: "24:01" },
+    ]) {
+      expect(
+        (
+          await fetch(availabilityRulesUrl(), {
+            method: "POST",
+            headers,
+            body: JSON.stringify(invalid),
+          })
+        ).status,
+      ).toBe(400);
+    }
+    for (const patch of [{ startTime: "24:00" }, { endTime: "24:01" }]) {
+      expect(
+        (
+          await fetch(availabilityRulesUrl(`/${response.data.id}`), {
+            method: "PATCH",
+            headers,
+            body: JSON.stringify(patch),
+          })
+        ).status,
+      ).toBe(400);
+    }
   });
 });

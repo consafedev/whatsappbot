@@ -974,7 +974,9 @@ model AppointmentService {
 
   tenant           Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   organizationUnit OrganizationUnit? @relation(fields: [tenantId, organizationUnitId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade)
+  availabilityRules AppointmentAvailabilityRule[]
 
+  @@unique([tenantId, id], map: "appointment_services_tenant_id_id_key")
   @@index([tenantId, active], map: "appointment_service_tenant_active_idx")
   @@index([tenantId, organizationUnitId], map: "appointment_service_tenant_organization_unit_idx")
   @@map("appointment_services")
@@ -1025,6 +1027,7 @@ model AppointmentAvailabilityRule {
   id            String    @id @default(dbgenerated("uuidv7()")) @db.Uuid
   tenantId      String    @map("tenant_id") @db.Uuid
   resourceId    String    @map("resource_id") @db.Uuid
+  serviceId     String?   @map("service_id") @db.Uuid
   dayOfWeek     Int       @map("day_of_week")
   startTime     String    @map("start_time") @db.VarChar(5)
   endTime       String    @map("end_time") @db.VarChar(5)
@@ -1038,8 +1041,10 @@ model AppointmentAvailabilityRule {
 
   tenant   Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   resource AppointmentResource @relation(fields: [tenantId, resourceId], references: [tenantId, id], onDelete: Cascade)
+  service AppointmentService? @relation(fields: [tenantId, serviceId], references: [tenantId, id], onDelete: Restrict, map: "appointment_availability_rules_tenant_service_fkey")
 
   @@index([tenantId, resourceId, dayOfWeek])
+  @@index([tenantId, serviceId, active], map: "appointment_availability_rules_tenant_service_active_idx")
   @@index([tenantId, active])
   @@map("appointment_availability_rules")
 }
