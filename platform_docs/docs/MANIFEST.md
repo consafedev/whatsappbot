@@ -1,7 +1,7 @@
 # docs/MANIFEST.md — Baseline documental verificada
 
 **Fecha:** 2026-10-25
-**Estado:** E14-S04 PASS / COMPLETE; publication tracked in avance_orquestador.md; E14-S05 next.
+**Estado:** E14-S04 PASS, commit 058eee1 pushed/verified on codex/e14-agenda-completion; E14-S05 next, main unchanged.
 **Propósito:** comprobar integridad y composición del conjunto de documentos que permite continuar el proyecto sin depender de memoria conversacional.
 
 > Las rutas son relativas a la raíz del repositorio. Los hashes cambian si se edita un archivo. Después de cambios intencionales, regenerar este manifest.
@@ -89,14 +89,14 @@
 | `platform_docs/RUNBOOK_BACKUP_RESTORE.md` | 4857 | 666 | `27e324b4cea0cd3a2514f44eeee4ce31db80a3a4701f0ba528ffb36afcebb3ff` |
 | `platform_docs/RUNBOOK_OPERATIONS.md` | 5777 | 796 | `23d4c537dd3bbcf4b8f08b39b4a948c42c10e3a458594c25ccf2b65937376252` |
 | `platform_docs/SECURITY.md` | 14589 | 2085 | `51b737e15512ae8136760024f2fcb78161276af0cf0699e8d06326ce1dc7b482` |
-| `platform_docs/STATUS.md` | 180462 | 21760 | `aa30e291127fc9179a5d81f124184f7972320ba464689c0553f5693044e8e2a8` |
+| `platform_docs/STATUS.md` | 180621 | 21777 | `515ae6201c2afd099b077834b41809c8dc1a42099bb4e4716f7814e2dea4b435` |
 | `platform_docs/SYSTEM_DESIGN.md` | 43132 | 5806 | `505a986349420062a4ff0f432436655154fd86cbde2abe2abf917713aa7667c6` |
 | `platform_docs/TESTING_STRATEGY.md` | 18229 | 2513 | `2659f25d06bcfe571830b291c6546ad481abb609049bede79003d80add2da358` |
 | `platform_docs/UI_FLOWS.md` | 22449 | 3253 | `311b1b44f7dcdd0e97003e0b29fa34cc789f95affa9052bf3ce86613ff86fddc` |
-| `platform_docs/avance_orquestador.md` | 9215 | 1313 | `246a0c1dfa360998db70ba61c2308611a0e49a3b37fb1a5ea857e246b1d2e7a0` |
+| `platform_docs/avance_orquestador.md` | 9444 | 1334 | `86b556fa4e0348259a8b7e4acdee50cf9326478b8bb1cb905fd65e16b684884d` |
 | `platform_docs/docs/adr/0066-e14-s04-availability-exceptions-scope.md` | 3358 | 407 | `1d5479a0bed7ec6cb7973afe37e4c6d39d63978e0f6dab6540b6cf3b611d118c` |
 | `docs/superpowers/specs/2026-10-25-e14-agenda-design.md` | 5263 | 645 | `d4f913fd5ddd2946d76c7659c2b68612b89aa23f0877618638937cc47ee77b73` |
-| `docs/superpowers/plans/2026-10-25-e14-agenda.md` | 7554 | 809 | `7d595594f7e18f530eca1f351736e7f54f044dfced120207360cd87d098c834c` |
+| `docs/superpowers/plans/2026-10-25-e14-agenda.md` | 7554 | 805 | `d49055665ee115ee8c44e63ec93317dbed10aef1626fa82abf4351c5b1145389` |
 
 ## Uso
 

@@ -59,7 +59,7 @@ todas las secciones, SHA remoto, siguiente prioridad y limitaciones reales.
 | E14-S01 | Integrada antes de esta sesión | DONE histórico | bd1363a + cc28f6d, main | STATUS/ADR-0063 |
 | E14-S02 | Integrada antes de esta sesión | DONE histórico | ba90a0b + 2db5dc8 + e047b28, main | STATUS/ADR-0064 |
 | E14-S03 | Integrada antes de esta sesión | DONE histórico | 32f1dbf + fb8639d, main | STATUS/ADR-0065 |
-| E14-S04 | Codex; código congelado y revisado. Coordinador: cierre/publicación. | PASS implementación; publicación pendiente | pendiente de commit/push | ADR-0066; DB 297/297, API 217/217, isolation 46/46, unit 465/465; static/build PASS |
+| E14-S04 | Codex; reserva liberada tras cierre | PASS / COMPLETE | `058eee1348ed724f166c8b4cfa33849a55dd4bb7`; push origin/codex/e14-agenda-completion confirmado por ls-remote | ADR-0066; DB 297/297, API 217/217, isolation 46/46, unit 465/465; static/build PASS |
 | E14-S05 | Sin reserva hasta cerrar S04 | PENDING | — | disponibilidad, service link, timezone/DST |
 | E14-S06 | Sin reserva | PENDING | — | booking transaccional/capacidad/idempotencia |
 | E14-S07 | Sin reserva | PENDING | — | cancelación/reprogramación con historia |
@@ -110,4 +110,7 @@ todas las secciones, SHA remoto, siguiente prioridad y limitaciones reales.
 - 2026-10-25: S04 implementada, auditada y corregida. Se reprodujo y eliminó
   una carrera de PATCH; se corrigieron tres pruebas heredadas que impedían un
   gate fiable, sin alterar comportamiento/FKs de producción. Verificaciones
-  finales completas arriba. Commit/push se registran después de comprobarlos.
+  finales completas arriba. Commit `058eee1348ed724f166c8b4cfa33849a55dd4bb7`,
+  push confirmado con igualdad de SHA local/remoto en
+  `origin/codex/e14-agenda-completion`. `main` no contiene este commit. Un
+  checkpoint documental posterior registra esta evidencia; no equivale a merge.

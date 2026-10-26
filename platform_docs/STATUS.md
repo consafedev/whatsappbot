@@ -8,7 +8,7 @@
 ## Current milestone
 
 Epic 14 — Agenda & Appointment Booking (E14-S01 through E14-S04 complete;
-E14-S05 next after S04 commit/push verification).
+E14-S05 next; S04 commit/push verified).
 Epic 13 — Task Scheduling & Distributed Orchestration remains tracked below.
 Shared coordination and reservations: `platform_docs/avance_orquestador.md`.
 
@@ -32,8 +32,10 @@ migrations current). Full integrations used disposable PostgreSQL databases
 populated with a schema-only dump of the migrated development database so raw
 SQL CHECKs/partial indexes were preserved; no development rows were copied.
 The historical full migration-chain BOM limitation remains a separate known
-baseline issue, not a passed pristine-chain replay. Publication remains pending
-the commit/push step recorded in avance_orquestador.md.
+baseline issue, not a passed pristine-chain replay. Feature commit
+`058eee1348ed724f166c8b4cfa33849a55dd4bb7` was pushed and its remote SHA verified
+on `origin/codex/e14-agenda-completion`; it is not in `main`. Subsequent
+documentation checkpoints may advance the branch HEAD. See avance_orquestador.md.
 
 Baseline `pnpm test`: 465/465. Initial full database run was not green: 277 passed,
 7 failed, 7 skipped (291 total). Investigation identified stale generated client,
