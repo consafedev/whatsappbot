@@ -8,7 +8,7 @@
 ## Current milestone
 
 Epic 14 — Agenda & Appointment Booking (E14-S01 through E14-S05 complete;
-E14-S06 next after S05 publication; S04 commit/push verified).
+E14-S06 next; S04/S05 commit/push verified).
 Epic 13 — Task Scheduling & Distributed Orchestration remains tracked below.
 Shared coordination and reservations: `platform_docs/avance_orquestador.md`.
 
@@ -37,7 +37,10 @@ Isolated clean-schema and pre-story upgrade checks found no Prisma difference;
 local additive migration applied successfully (29 migrations current). Full
 integrations used disposable schema-only-dump databases with raw SQL constraints
 preserved; the historical pristine migration-chain BOM limitation remains as
-recorded under S04. No migration history was rewritten. Commit/push pending.
+recorded under S04. No migration history was rewritten. Feature commit
+`a0ddc4f98dbc5818547ed62899fd710cd13c6014` was pushed with identical remote SHA
+verified on origin/codex/e14-agenda-completion; not in main. Documentation-only
+checkpoints may subsequently advance HEAD.
 
 Development API was restored to HTTP200 using the existing image on2026-10-26;
 workers remain stopped. Source build/isolated authenticated Nest tests verify

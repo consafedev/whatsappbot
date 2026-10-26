@@ -60,7 +60,7 @@ todas las secciones, SHA remoto, siguiente prioridad y limitaciones reales.
 | E14-S02 | Integrada antes de esta sesión | DONE histórico | ba90a0b + 2db5dc8 + e047b28, main | STATUS/ADR-0064 |
 | E14-S03 | Integrada antes de esta sesión | DONE histórico | 32f1dbf + fb8639d, main | STATUS/ADR-0065 |
 | E14-S04 | Codex/e14_s04 (gpt-6-luna); review_s04 (gpt-6-sol); coordinador Codex. Reserva liberada | PASS / COMPLETE | `058eee1348ed724f166c8b4cfa33849a55dd4bb7`; push origin/codex/e14-agenda-completion confirmado por ls-remote | ADR-0066; DB 297/297, API 217/217, isolation 46/46, unit 465/465; static/build PASS |
-| E14-S05 | Codex/e14_s05 y review_s05 (gpt-6-sol); código congelado, coordinador cierra/publica. Base9f533e6 | PASS implementación; publicación pendiente | pendiente de commit/push | ADR-0067; root478/478, DB305/305, API219/219, isolation46/46; static/build PASS |
+| E14-S05 | Codex/e14_s05 y review_s05 (gpt-6-sol); coordinador Codex; reserva liberada. Base9f533e6 | PASS / COMPLETE | `a0ddc4f98dbc5818547ed62899fd710cd13c6014`; push remoto SHA idéntico verificado | ADR-0067; root478/478, DB305/305, API219/219, isolation46/46; static/build PASS |
 | E14-S06 | Sin reserva | PENDING | — | booking transaccional/capacidad/idempotencia |
 | E14-S07 | Sin reserva | PENDING | — | cancelación/reprogramación con historia |
 | E14-S08 | Sin reserva | PENDING | — | recordatorios persistentes |
@@ -133,3 +133,7 @@ todas las secciones, SHA remoto, siguiente prioridad y limitaciones reales.
   suites completas y estáticas aprobadas según tabla. Se resolvió el service_id
   diferido y la referencia errónea PRD§79→§78. Commit/push se registran al
   comprobarlos; todavía no se inició S06.
+- 2026-10-26: publicación S05 verificada: commit
+  `a0ddc4f98dbc5818547ed62899fd710cd13c6014`, SHA local/remoto idéntico en
+  `origin/codex/e14-agenda-completion`. No está en main. Checkpoint documental
+  posterior registra esta evidencia antes de reservar S06.
