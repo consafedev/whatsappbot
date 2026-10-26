@@ -93,9 +93,12 @@ async function cleanup(): Promise<void> {
     where: { slug: { startsWith: prefix } },
   });
   const ids = tenants.map(({ id }) => id);
+  await prisma.appointment.deleteMany({ where: { tenantId: { in: ids } } });
   await prisma.appointmentAvailabilityRule.deleteMany({ where: { tenantId: { in: ids } } });
+  await prisma.appointmentAvailabilityException.deleteMany({ where: { tenantId: { in: ids } } });
   await prisma.appointmentResource.deleteMany({ where: { tenantId: { in: ids } } });
   await prisma.appointmentService.deleteMany({ where: { tenantId: { in: ids } } });
+  await prisma.contact.deleteMany({ where: { tenantId: { in: ids } } });
   await prisma.userSession.deleteMany({ where: { tenantId: { in: ids } } });
   await prisma.userRole.deleteMany({ where: { tenantId: { in: ids } } });
   await prisma.rolePermission.deleteMany({ where: { role: { tenantId: { in: ids } } } });
@@ -1004,5 +1007,103 @@ describe.sequential("E14-S01 appointments API", () => {
         ).status,
       ).toBe(400);
     }
+  });
+
+  it("creates a guarded booking with strict body/query, replay, conflict, and static paths", async () => {
+    const start = new Date();
+    start.setUTCDate(start.getUTCDate() + 14);
+    start.setUTCHours(9, 0, 0, 0);
+    const [service, resource, contact] = await Promise.all([
+      prisma.appointmentService.create({
+        data: { tenantId: tenantAId, name: "Booking API", durationMinutes: 30 },
+      }),
+      prisma.appointmentResource.create({
+        data: { tenantId: tenantAId, name: "Booking API resource" },
+      }),
+      prisma.contact.create({
+        data: { tenantId: tenantAId, name: "Booking API contact", phoneNumber: "+525500000099" },
+      }),
+    ]);
+    await prisma.appointmentAvailabilityRule.create({
+      data: {
+        tenantId: tenantAId,
+        serviceId: service.id,
+        resourceId: resource.id,
+        dayOfWeek: start.getUTCDay(),
+        startTime: "09:00",
+        endTime: "10:00",
+        timezone: "UTC",
+      },
+    });
+    const url = `${baseUrl}/api/v1/appointments`;
+    const headers = { cookie: manageCookie, "content-type": "application/json" };
+    const body = {
+      serviceId: service.id.toUpperCase(),
+      resourceId: resource.id.toUpperCase(),
+      contactId: contact.id.toUpperCase(),
+      startsAt: start.toISOString(),
+      idempotencyKey: "api-create",
+    };
+    expect((await fetch(url)).status).toBe(401);
+    expect((await fetch(url, { headers: { cookie: manageCookie } })).status).toBe(403);
+    expect(
+      (
+        await fetch(url, {
+          method: "POST",
+          headers: { cookie: readCookie, "content-type": "application/json" },
+          body: JSON.stringify(body),
+        })
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await fetch(url, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ ...body, source: "forged" }),
+        })
+      ).status,
+    ).toBe(400);
+    const created = await fetch(url, { method: "POST", headers, body: JSON.stringify(body) });
+    expect(created.status).toBe(201);
+    const receipt = (await created.json()) as {
+      success: boolean;
+      data: { id: string; source: string };
+    };
+    expect(receipt).toMatchObject({ success: true, data: { source: "dashboard" } });
+    const replay = await fetch(url, { method: "POST", headers, body: JSON.stringify(body) });
+    expect(replay.status).toBe(201);
+    expect(((await replay.json()) as { data: { id: string } }).data.id).toBe(receipt.data.id);
+    expect(
+      (
+        await fetch(url, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ ...body, notes: "different" }),
+        })
+      ).status,
+    ).toBe(409);
+    expect(
+      (
+        await fetch(url, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ ...body, idempotencyKey: "api-capacity" }),
+        })
+      ).status,
+    ).toBe(409);
+    expect(
+      (await fetch(`${url}?status=CONFIRMED`, { headers: { cookie: readCookie } })).status,
+    ).toBe(200);
+    expect(
+      (await fetch(`${url}?limit=1&limit=2`, { headers: { cookie: readCookie } })).status,
+    ).toBe(400);
+    expect(
+      (await fetch(`${url}/${receipt.data.id}`, { headers: { cookie: readCookie } })).status,
+    ).toBe(200);
+    expect((await fetch(`${url}/availability`, { headers: { cookie: readCookie } })).status).toBe(
+      400,
+    );
+    expect((await fetch(`${url}/services`, { headers: { cookie: readCookie } })).status).toBe(200);
   });
 });

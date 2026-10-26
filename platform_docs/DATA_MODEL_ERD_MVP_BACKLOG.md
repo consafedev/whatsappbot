@@ -1401,6 +1401,18 @@ Estados:
 
 No permitir double booking salvo que resource.capacity > 1.
 
+E14-S06 persistence (ADR-0068) adds tenant-aware creator references,
+tenant/idempotency-key uniqueness, immutable duration/buffer/occupied-interval
+snapshots and database interval checks. Dashboard commands require an active
+same-tenant actor/contact and a concrete compatible active resource/service.
+Resource/service locking protects transactional availability and snapshots;
+capacity decreases cannot undercut peak future occupancy. Canonical UUID
+identity is case insensitive; opaque idempotency keys are case sensitive.
+Process integration remains conceptual until its model exists; no orphan
+process_instance_id is persisted. Schema states are uppercase; newly created
+dashboard appointments are CONFIRMED with confirmationStatus CONFIRMED.
+Lifecycle mutations begin S07, reminders S08 and channel booking S10.
+
 ---
 
 # 17. Catalog
@@ -2624,7 +2636,14 @@ Final focused unit32/32, DB15/15, API9/9; full root478/478, DB305/305,
 API219/219, isolation46/46 and static/build gates PASS. S06 adds persisted
 appointment occupancy and transactional creation; returned slots are advisory.
 
-## E14-S06 Create appointment [L]
+## E14-S06 Create appointment [L] — DONE (publication pending)
+
+Transactional confirmed bookings, snapshots, guarded create/list/detail,
+canonical-UUID idempotent receipts, persisted occupied capacity and safe resource
+capacity reduction (ADR-0068). Independent initial and UUID correction reviews
+approved. Final root478/478, DB317/317, API220/220, isolation46/46 and static/
+build gates PASS; clean-schema/upgrade checks no drift, local migration30 applied.
+Commit/push checkpoint must close before S07 starts; see avance_orquestador.
 
 ## E14-S07 Cancel/rebook [L]
 

@@ -105,6 +105,19 @@ export {
   updateAvailabilityException,
 } from "./appointment-exception-manager";
 export {
+  AppointmentConflictError,
+  type AppointmentListFilters,
+  type AppointmentManagerDatabase,
+  type AppointmentMutationMetadata,
+  AppointmentNotFoundError,
+  AppointmentValidationError,
+  type CreateAppointmentInput,
+  createAppointment,
+  getAppointmentById,
+  listAppointments,
+} from "./appointment-manager";
+export {
+  AppointmentResourceCapacityConflictError,
   type AppointmentResourceInput,
   type AppointmentResourceListFilters,
   type AppointmentResourceListPage,

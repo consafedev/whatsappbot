@@ -917,7 +917,16 @@ settings, tenant settings. Opening weekday owns overnight carry; holidays apply
 even to24/7 weekly schedules. Weekly-rule end24:00 is an end-of-day boundary,
 not a valid start. ADR-0067 defines limits and calendar semantics. Returned
 availability is advisory until booking rechecks it in a resource-locked
-transaction; appointment persistence and database occupancy retrieval start S06.
+transaction. E14-S06 persists occupied-interval snapshots and reads requested/
+confirmed appointment occupancy in that transaction. Tenant-scoped idempotency
+locks precede receipt lookup; resource row locks serialize capacity decisions,
+and a shared service lock stabilizes duration/buffer snapshots. Appointment,
+AuditLog and Outbox commit atomically. Capacity decreases use the same resource
+lock and reject values below peak future occupancy. UUID spelling is
+canonicalized for receipt identity and tenant lock namespaces; opaque keys
+retain case. Guarded POST/GET /api/v1/appointments and GET /:id delegate to the
+central manager. ADR-0068 defines the contract; lifecycle/reminders/channel
+flows remain subsequent stories.
 
 Disponibilidad se calcula desde:
 

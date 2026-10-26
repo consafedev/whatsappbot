@@ -23,6 +23,7 @@ export type AppointmentAvailabilityQueryDatabase = Pick<
   | "appointmentResource"
   | "appointmentAvailabilityRule"
   | "appointmentAvailabilityException"
+  | "appointment"
 >;
 export type FindAppointmentAvailabilityInput = Readonly<{
   serviceId: string;
@@ -205,7 +206,7 @@ export async function findAppointmentAvailability(
       "buffer exceeds the bounded calculation range",
     );
   }
-  const [rules, exceptions] = await Promise.all([
+  const [rules, exceptions, appointments] = await Promise.all([
     database.appointmentAvailabilityRule.findMany({
       where: {
         tenantId: tenantContext.tenantId,
@@ -225,8 +226,19 @@ export async function findAppointmentAvailability(
       },
       take: 1_001,
     }),
+    database.appointment.findMany({
+      where: {
+        tenantId: tenantContext.tenantId,
+        resourceId: resource.id,
+        status: { in: ["REQUESTED", "CONFIRMED"] },
+        occupiedStartsAt: { lt: new Date(to + after) },
+        occupiedEndsAt: { gt: new Date(from - before) },
+      },
+      select: { occupiedStartsAt: true, occupiedEndsAt: true },
+      take: 1_001,
+    }),
   ]);
-  if (rules.length > 1_000 || exceptions.length > 1_000) {
+  if (rules.length > 1_000 || exceptions.length > 1_000 || appointments.length > 1_000) {
     throw new AppointmentAvailabilityQueryValidationError(
       "availability query exceeds the 1000-record limit",
     );
@@ -242,7 +254,11 @@ export async function findAppointmentAvailability(
     bufferAfterMinutes: service.bufferAfterMinutes,
     rules,
     exceptions,
-    occupied: [],
+    occupied: appointments.map((item) => ({
+      startsAt: item.occupiedStartsAt,
+      endsAt: item.occupiedEndsAt,
+      capacity: 1,
+    })),
     businessHours,
     ...(input.limit === undefined ? {} : { limit: input.limit }),
   });

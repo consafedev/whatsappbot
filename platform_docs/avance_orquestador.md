@@ -27,6 +27,11 @@ agente no sustituye verificar diff y salida real. No marcar PASS por tests
 omitidos, no iniciados o heredados de un informe. Al cerrar épica actualizar
 todas las secciones, SHA remoto, siguiente prioridad y limitaciones reales.
 
+Preferencia explícita de costo (26/10): usar gpt-6-luna para implementación y
+correcciones bien delimitadas siempre que sea fiable; reservar otros modelos
+para auditoría o destrabar problemas complejos. Calidad prevalece sobre costo.
+Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
+
 ## 2. Contraste del informe recibido
 
 | Afirmación | Evidencia y conclusión |
@@ -61,7 +66,7 @@ todas las secciones, SHA remoto, siguiente prioridad y limitaciones reales.
 | E14-S03 | Integrada antes de esta sesión | DONE histórico | 32f1dbf + fb8639d, main | STATUS/ADR-0065 |
 | E14-S04 | Codex/e14_s04 (gpt-6-luna); review_s04 (gpt-6-sol); coordinador Codex. Reserva liberada | PASS / COMPLETE | `058eee1348ed724f166c8b4cfa33849a55dd4bb7`; push origin/codex/e14-agenda-completion confirmado por ls-remote | ADR-0066; DB 297/297, API 217/217, isolation 46/46, unit 465/465; static/build PASS |
 | E14-S05 | Codex/e14_s05 y review_s05 (gpt-6-sol); coordinador Codex; reserva liberada. Base9f533e6 | PASS / COMPLETE | `a0ddc4f98dbc5818547ed62899fd710cd13c6014`; push remoto SHA idéntico verificado | ADR-0067; root478/478, DB305/305, API219/219, isolation46/46; static/build PASS |
-| E14-S06 | Sin reserva | PENDING | — | booking transaccional/capacidad/idempotencia |
+| E14-S06 | Codex/e14_s06 (gpt-6-sol) inicial; s06_uuid_luna (gpt-6-luna) corrección UUID; review_s06 auditoría; coordinador docs/gates. Base eaf88db | PASS; publicación pendiente | — | ADR-0068; root478, DB317, API220, aislamiento46; static/build PASS; ambas revisiones aprobadas |
 | E14-S07 | Sin reserva | PENDING | — | cancelación/reprogramación con historia |
 | E14-S08 | Sin reserva | PENDING | — | recordatorios persistentes |
 | E14-S09 | Sin reserva | PENDING | — | UI operativa de agenda |
@@ -92,6 +97,9 @@ todas las secciones, SHA remoto, siguiente prioridad y limitaciones reales.
 | S05 aislamiento | configs dedicados database/API, DB temporal | PASS9/9 +37/37 |
 | S05 checks generales finales | `pnpm test --maxWorkers=2`, `pnpm build`, `pnpm typecheck`, `pnpm exec biome check .`, `git diff --check` | PASS478/478 en52 archivos;477 archivos Biome; tipos/build sin errores |
 | S05 migration | isolated pre-story schema upgrade + clean-schema diff; local deploy | PASS sin drift;29 migrations actuales. No equivale a pristine-chain replay histórico |
+| S06 migration | isolated clean-schema y upgrade prehistoria; local deploy aditivo | PASS sin drift;30 migrations; no reescribir historial aplicado |
+| S06 auditoría/regresiones | revisión inicial + inspección coordinador + Luna RED/GREEN + re-review | UUID mayúsculas y namespace de tenant corregidos; DB12/12 y API seleccionada1/1 (9 excluidos); cero hallazgos abiertos |
+| S06 gates completos finales | build/typecheck/root/Biome, DB/API y aislamiento en DB desechable | PASS478/478 unit52files, DB317/317 en51files, API220/220 en27files, aislamiento9+37;0 skipped; Biome479files; diff limpio |
 
 ## 6. Bloqueos, riesgos y siguiente prioridad
 
@@ -137,3 +145,13 @@ todas las secciones, SHA remoto, siguiente prioridad y limitaciones reales.
   `a0ddc4f98dbc5818547ed62899fd710cd13c6014`, SHA local/remoto idéntico en
   `origin/codex/e14-agenda-completion`. No está en main. Checkpoint documental
   posterior registra esta evidencia antes de reservar S06.
+- 2026-10-26: S06 pasó gates iniciales (root478, DB314, API220, aislamiento46),
+  pero una inspección posterior detectó UUID equivalentes comparados como texto
+  sensible a mayúsculas. Nuevas regresiones reprodujeron conflicto en reintento
+  y concurrencia del mismo tenant; API409 en vez de201. Se delegó corrección
+  mecánica a Luna según preferencia del usuario; requiere nuevo dictamen/gates
+  antes de publicar. No se inició S07.
+- 2026-10-26: corrección UUID congelada y re-review aprobado. Gates finales
+  completos PASS según tabla, incluida API completa sin exclusiones. Se retiró
+  DB desechable preparada tras verificar cero conexiones; el runner retiró la
+  suya al terminar. S06 lista para commit/push, S07 aún sin implementación.

@@ -60,6 +60,10 @@ export class AppointmentResourceValidationError extends Error {
   override readonly name = "AppointmentResourceValidationError";
 }
 
+export class AppointmentResourceCapacityConflictError extends Error {
+  override readonly name = "AppointmentResourceCapacityConflictError";
+}
+
 const MAX_PAGE_SIZE = 100;
 const DEFAULT_PAGE_SIZE = 50;
 const MAX_CAPACITY = 2_147_483_647;
@@ -313,10 +317,38 @@ export async function updateAppointmentResource(
 
   return database.$transaction(async (transaction) => {
     await assertTenantOperational(tenant, transaction);
+    const locked = await transaction.$queryRaw<
+      Array<{ id: string }>
+    >`SELECT id FROM appointment_resources WHERE tenant_id = ${tenant.tenantId}::uuid AND id = ${id}::uuid FOR UPDATE`;
+    if (locked.length !== 1) throw new AppointmentResourceNotFoundError(id);
     const before = await transaction.appointmentResource.findFirst({
       where: { id, tenantId: tenant.tenantId },
     });
     if (before === null) throw new AppointmentResourceNotFoundError(id);
+    if (patch.capacity !== undefined && patch.capacity < before.capacity) {
+      const now = new Date();
+      const rows = await transaction.$queryRaw<Array<{ peak: number }>>`
+        WITH events AS (
+          SELECT GREATEST(occupied_starts_at, ${now}::timestamptz) AS instant, 1 AS delta
+          FROM appointments
+          WHERE tenant_id = ${tenant.tenantId}::uuid AND resource_id = ${id}::uuid
+            AND status IN ('REQUESTED', 'CONFIRMED') AND occupied_ends_at > ${now}::timestamptz
+          UNION ALL
+          SELECT occupied_ends_at AS instant, -1 AS delta
+          FROM appointments
+          WHERE tenant_id = ${tenant.tenantId}::uuid AND resource_id = ${id}::uuid
+            AND status IN ('REQUESTED', 'CONFIRMED') AND occupied_ends_at > ${now}::timestamptz
+        ), grouped AS (
+          SELECT instant, SUM(delta) AS delta FROM events GROUP BY instant
+        ), running AS (
+          SELECT SUM(delta) OVER (ORDER BY instant) AS occupied FROM grouped
+        )
+        SELECT COALESCE(MAX(occupied), 0)::int AS peak FROM running`;
+      if ((rows[0]?.peak ?? 0) > patch.capacity)
+        throw new AppointmentResourceCapacityConflictError(
+          "Capacity decrease would overbook future appointments",
+        );
+    }
     if (patch.organizationUnitId !== undefined) {
       if (patch.organizationUnitId !== null) {
         await assertOrganizationUnitBelongsToTenant(

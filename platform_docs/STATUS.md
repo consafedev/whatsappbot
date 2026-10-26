@@ -2,15 +2,34 @@
 
 **Actualizado:** 2026-10-26
 **Versión de producto:** `0.0.0`  
-**Latest validated story:** E14-S05 — PASS / COMPLETE; publication tracked in avance_orquestador.md.
+**Latest validated story:** E14-S06 — PASS; publication tracked in avance_orquestador.md.
 **Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; Epic 11 — Campaign Engine & Audience Broadcasts — PASS / COMPLETE; **Epic 12 — Reporting, Analytics & Operational Observability — PASS / COMPLETE (E12-S01, E12-S02, E12-S03, E12-S04, E12-S05 PASS); E13-S01 — PASS / COMPLETE; E13-S02 — PASS / COMPLETE; E13-S03 — PASS / COMPLETE; E13-S04 — PASS / COMPLETE; E14-S01 — PASS / COMPLETE; E14-S02 — PASS / COMPLETE; E14-S03 — PASS / COMPLETE**.
 
 ## Current milestone
 
-Epic 14 — Agenda & Appointment Booking (E14-S01 through E14-S05 complete;
-E14-S06 next; S04/S05 commit/push verified).
+Epic 14 — Agenda & Appointment Booking (E14-S01 through E14-S06 verified;
+S06 publication pending; S07 next after its commit/push checkpoint).
 Epic 13 — Task Scheduling & Distributed Orchestration remains tracked below.
 Shared coordination and reservations: `platform_docs/avance_orquestador.md`.
+
+### E14-S06 — Transactional appointment booking (PASS; publication pending)
+
+Appointment persistence/manager/API and database-backed availability occupancy
+are implemented from pushed eaf88db. ADR-0068 defines idempotent replay,
+resource/service locking, immutable snapshots and protection against unsafe
+resource-capacity decrease. Isolated clean-schema/upgrade checks passed; additive
+local migration30 applied. Parent inspection found a UUID spelling defect after
+initial full gates: uppercase replay conflicted and tenant spelling split lock
+namespaces. Luna reproduced the failures and corrected canonical UUID identity
+while preserving opaque key case. Independent re-review approved; focused DB
+12/12 and selected API regression1/1 passed (9 unrelated tests excluded in that
+selected run). Final parent verification on2026-10-26: root478/478 (52 files),
+full DB317/317 (51), full API220/220 (27), dedicated isolation9/9 +37/37;
+no skipped tests in these final suites. Build, typecheck, Biome479files and
+diff check passed. Full integrations used disposable schema-only-dump databases
+preserving raw SQL checks. The historical pristine-chain BOM limitation remains
+documented under S04. Owned prepared/test databases were removed after use.
+Commit/push pending below; S07 implementation has not started.
 
 ### E14-S05 — Availability calculation (PASS / COMPLETE)
 

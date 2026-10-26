@@ -3,6 +3,7 @@ import {
   applyDecorators,
   BadRequestException,
   Body,
+  ConflictException,
   Controller,
   Delete,
   ForbiddenException,
@@ -35,6 +36,11 @@ import {
   type AppointmentAvailabilityRulePatch,
   AppointmentAvailabilityRuleValidationError,
   AppointmentAvailabilityTargetNotFoundError,
+  AppointmentConflictError,
+  type AppointmentListFilters,
+  type AppointmentManagerDatabase,
+  AppointmentNotFoundError,
+  AppointmentResourceCapacityConflictError,
   type AppointmentResourceInput,
   type AppointmentResourceListFilters,
   type AppointmentResourceManagerDatabase,
@@ -50,8 +56,11 @@ import {
   AppointmentServiceNotFoundError,
   type AppointmentServicePatch,
   AppointmentServiceValidationError,
+  AppointmentValidationError,
   archiveAppointmentResource,
   archiveAppointmentService,
+  type CreateAppointmentInput,
+  createAppointment,
   createAppointmentResource,
   createAppointmentService,
   createAvailabilityException,
@@ -60,12 +69,14 @@ import {
   deleteAvailabilityRule,
   type FindAppointmentAvailabilityInput,
   findAppointmentAvailability,
+  getAppointmentById,
   getAppointmentResourceById,
   getAppointmentServiceById,
   getAvailabilityExceptionById,
   getAvailabilityRuleById,
   listAppointmentResources,
   listAppointmentServices,
+  listAppointments,
   listAvailabilityExceptions,
   listAvailabilityRules,
   type TenantContext,
@@ -692,6 +703,75 @@ function parseFindAvailabilityQuery(value: unknown): FindAppointmentAvailability
   };
 }
 
+function parseCreateAppointmentBody(value: unknown): CreateAppointmentInput {
+  const body = plainObject(value, "Invalid appointment request");
+  exactKeys(
+    body,
+    ["serviceId", "resourceId", "contactId", "startsAt", "idempotencyKey", "notes"],
+    "Invalid appointment request",
+  );
+  if (body.notes !== undefined && body.notes !== null && typeof body.notes !== "string")
+    throw new BadRequestException("notes must be a string or null");
+  return {
+    serviceId: requiredString(body.serviceId, "serviceId"),
+    resourceId: requiredString(body.resourceId, "resourceId"),
+    contactId: requiredString(body.contactId, "contactId"),
+    startsAt: requiredString(body.startsAt, "startsAt"),
+    idempotencyKey: requiredString(body.idempotencyKey, "idempotencyKey"),
+    ...(body.notes === undefined ? {} : { notes: body.notes as string | null }),
+  };
+}
+
+function parseAppointmentListFilters(value: unknown): AppointmentListFilters {
+  const query = plainObject(value, "Invalid appointment query");
+  exactKeys(
+    query,
+    [
+      "resourceId",
+      "serviceId",
+      "contactId",
+      "organizationUnitId",
+      "status",
+      "from",
+      "to",
+      "limit",
+      "offset",
+    ],
+    "Invalid appointment query",
+  );
+  const status = query.status === undefined ? undefined : requiredString(query.status, "status");
+  if (
+    status !== undefined &&
+    !["REQUESTED", "CONFIRMED", "CANCELLED", "COMPLETED", "NO_SHOW", "RESCHEDULED"].includes(status)
+  )
+    throw new BadRequestException("Invalid appointment status");
+  return {
+    ...(query.resourceId === undefined
+      ? {}
+      : { resourceId: requiredString(query.resourceId, "resourceId") }),
+    ...(query.serviceId === undefined
+      ? {}
+      : { serviceId: requiredString(query.serviceId, "serviceId") }),
+    ...(query.contactId === undefined
+      ? {}
+      : { contactId: requiredString(query.contactId, "contactId") }),
+    ...(query.organizationUnitId === undefined
+      ? {}
+      : { organizationUnitId: requiredString(query.organizationUnitId, "organizationUnitId") }),
+    ...(status === undefined
+      ? {}
+      : { status: status as NonNullable<AppointmentListFilters["status"]> }),
+    ...(query.from === undefined ? {} : { from: requiredString(query.from, "from") }),
+    ...(query.to === undefined ? {} : { to: requiredString(query.to, "to") }),
+    ...(query.limit === undefined
+      ? {}
+      : { limit: parseAvailabilityQueryInteger(query.limit, "limit") as number }),
+    ...(query.offset === undefined
+      ? {}
+      : { offset: parseAvailabilityQueryInteger(query.offset, "offset") as number }),
+  };
+}
+
 const APPOINTMENT_EXCEPTION_TYPES = new Set<AppointmentAvailabilityExceptionType>([
   "BLOCKED",
   "EXTRA_AVAILABILITY",
@@ -789,6 +869,26 @@ function parseAvailabilityExceptionListFilters(
 }
 
 function mapAppointmentError(error: unknown): never {
+  if (
+    error instanceof AppointmentConflictError ||
+    error instanceof AppointmentResourceCapacityConflictError
+  ) {
+    throw new ConflictException({
+      code: "APPOINTMENT_CONFLICT",
+      error: "Conflict",
+      message: error.message,
+      statusCode: 409,
+    });
+  }
+  if (error instanceof AppointmentNotFoundError) {
+    throw new NotFoundException({
+      code: "APPOINTMENT_NOT_FOUND",
+      error: "Not Found",
+      message: error.message,
+      statusCode: 404,
+    });
+  }
+  if (error instanceof AppointmentValidationError) throw new BadRequestException(error.message);
   if (error instanceof AppointmentAvailabilityTargetNotFoundError) {
     throw new NotFoundException({
       code: "APPOINTMENT_AVAILABILITY_TARGET_NOT_FOUND",
@@ -871,8 +971,41 @@ export class AppointmentsService {
       AppointmentResourceManagerDatabase &
       AppointmentAvailabilityRuleManagerDatabase &
       AppointmentAvailabilityExceptionManagerDatabase &
-      AppointmentAvailabilityQueryDatabase,
+      AppointmentAvailabilityQueryDatabase &
+      AppointmentManagerDatabase,
   ) {}
+
+  async createAppointment(
+    context: TenantContext,
+    identity: TenantSessionIdentity,
+    request: TenantAuthenticationRequest,
+    input: CreateAppointmentInput,
+  ) {
+    try {
+      return await createAppointment(context, this.database, input, {
+        actorUserId: identity.userId,
+        requestId: requestId(request),
+      });
+    } catch (error) {
+      return mapAppointmentError(error);
+    }
+  }
+
+  async listAppointments(context: TenantContext, filters: AppointmentListFilters) {
+    try {
+      return await listAppointments(context, this.database, filters);
+    } catch (error) {
+      return mapAppointmentError(error);
+    }
+  }
+
+  async getAppointment(context: TenantContext, id: string) {
+    try {
+      return await getAppointmentById(context, this.database, id);
+    } catch (error) {
+      return mapAppointmentError(error);
+    }
+  }
 
   async create(
     context: TenantContext,
@@ -1491,6 +1624,44 @@ export class AppointmentsController {
       request,
       appointmentAvailabilityExceptionId(rawId),
     );
+    return { success: true, data };
+  }
+
+  @Post()
+  @HttpCode(201)
+  @appointmentsAuthorized("appointments.manage")
+  async createBooking(
+    @CurrentTenantContext() context: TenantContext,
+    @CurrentTenantIdentity() identity: TenantSessionIdentity,
+    @Req() request: TenantAuthenticationRequest,
+    @Body() body: unknown,
+  ): Promise<ApiResponse<Awaited<ReturnType<AppointmentsService["createAppointment"]>>>> {
+    const data = await this.service.createAppointment(
+      context,
+      identity,
+      request,
+      parseCreateAppointmentBody(body),
+    );
+    return { success: true, data };
+  }
+
+  @Get()
+  @appointmentsAuthorized("appointments.read")
+  async listBookings(
+    @CurrentTenantContext() context: TenantContext,
+    @Query() query: unknown,
+  ): Promise<ApiResponse<Awaited<ReturnType<AppointmentsService["listAppointments"]>>>> {
+    const data = await this.service.listAppointments(context, parseAppointmentListFilters(query));
+    return { success: true, data };
+  }
+
+  @Get(":id")
+  @appointmentsAuthorized("appointments.read")
+  async getBooking(
+    @CurrentTenantContext() context: TenantContext,
+    @Param("id") rawId: string,
+  ): Promise<ApiResponse<Awaited<ReturnType<AppointmentsService["getAppointment"]>>>> {
+    const data = await this.service.getAppointment(context, rawId);
     return { success: true, data };
   }
 }

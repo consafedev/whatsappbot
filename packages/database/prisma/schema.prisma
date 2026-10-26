@@ -217,6 +217,7 @@ model Tenant {
   appointmentResources AppointmentResource[]
   appointmentAvailabilityRules AppointmentAvailabilityRule[]
   appointmentAvailabilityExceptions AppointmentAvailabilityException[]
+  appointments        Appointment[]
 
   @@index([status], map: "tenant_status_idx")
   @@index([deploymentId], map: "tenant_deployment_id_idx")
@@ -241,6 +242,7 @@ model User {
   passwordResetTokens UserPasswordResetToken[]
   roleAssignments     UserRole[]
   appointmentResources AppointmentResource[]
+  createdAppointments Appointment[] @relation("AppointmentCreator")
   outboundMessages    OutboundMessage[]
   assignedConversations Conversation[] @relation("ConversationAssignedUser")
 
@@ -445,6 +447,7 @@ model OrganizationUnit {
   rules           Rule[]
   appointmentServices AppointmentService[]
   appointmentResources AppointmentResource[]
+  appointments       Appointment[]
 
   @@unique([tenantId, id], map: "organization_unit_tenant_id_id_key")
   @@index([tenantId], map: "organization_unit_tenant_id_idx")
@@ -568,6 +571,7 @@ model Contact {
   conversations    Conversation[]
   messages         Message[]
   campaignAudienceMembers CampaignAudienceMember[]
+  appointments     Appointment[]
 
   @@unique([tenantId, id], map: "contact_tenant_id_id_key")
   @@unique([tenantId, phoneNumber], map: "contact_tenant_phone_number_key")
@@ -975,6 +979,7 @@ model AppointmentService {
   tenant           Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   organizationUnit OrganizationUnit? @relation(fields: [tenantId, organizationUnitId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade)
   availabilityRules AppointmentAvailabilityRule[]
+  appointments      Appointment[]
 
   @@unique([tenantId, id], map: "appointment_services_tenant_id_id_key")
   @@index([tenantId, active], map: "appointment_service_tenant_active_idx")
@@ -1014,6 +1019,7 @@ model AppointmentResource {
   user             User?             @relation(fields: [tenantId, userId], references: [tenantId, id], onDelete: Restrict)
   availabilityRules AppointmentAvailabilityRule[]
   availabilityExceptions AppointmentAvailabilityException[]
+  appointments      Appointment[]
 
   @@unique([tenantId, id], map: "appointment_resources_tenant_id_id_key")
   @@index([tenantId, active])
@@ -1067,4 +1073,57 @@ model AppointmentAvailabilityException {
   @@index([tenantId, resourceId, startsAt, endsAt], map: "appt_avail_exc_tenant_resource_time_idx")
   @@index([tenantId, active, startsAt], map: "appt_avail_exc_tenant_active_start_idx")
   @@map("appointment_availability_exceptions")
+}
+
+enum AppointmentStatus {
+  REQUESTED
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+  RESCHEDULED
+}
+
+enum AppointmentConfirmationStatus {
+  PENDING
+  CONFIRMED
+}
+
+model Appointment {
+  id                    String @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  tenantId              String @map("tenant_id") @db.Uuid
+  organizationUnitId    String? @map("organization_unit_id") @db.Uuid
+  contactId             String @map("contact_id") @db.Uuid
+  serviceId             String @map("service_id") @db.Uuid
+  resourceId            String? @map("resource_id") @db.Uuid
+  createdByUserId       String? @map("created_by_user_id") @db.Uuid
+  idempotencyKey        String @map("idempotency_key") @db.VarChar(128)
+  status                AppointmentStatus @default(CONFIRMED)
+  confirmationStatus    AppointmentConfirmationStatus @default(CONFIRMED) @map("confirmation_status")
+  startsAt              DateTime @map("starts_at") @db.Timestamptz(3)
+  endsAt                DateTime @map("ends_at") @db.Timestamptz(3)
+  occupiedStartsAt      DateTime @map("occupied_starts_at") @db.Timestamptz(3)
+  occupiedEndsAt        DateTime @map("occupied_ends_at") @db.Timestamptz(3)
+  durationMinutes       Int @map("duration_minutes")
+  bufferBeforeMinutes   Int @map("buffer_before_minutes")
+  bufferAfterMinutes    Int @map("buffer_after_minutes")
+  timezoneSnapshot      String @map("timezone_snapshot") @db.VarChar(100)
+  source                String @db.VarChar(30)
+  notes                 String? @db.VarChar(2000)
+  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  tenant                Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict, map: "appointments_tenant_fkey")
+  organizationUnit      OrganizationUnit? @relation(fields: [tenantId, organizationUnitId], references: [tenantId, id], onDelete: Restrict, map: "appointments_unit_fkey")
+  contact               Contact @relation(fields: [tenantId, contactId], references: [tenantId, id], onDelete: Restrict, map: "appointments_contact_fkey")
+  service               AppointmentService @relation(fields: [tenantId, serviceId], references: [tenantId, id], onDelete: Restrict, map: "appointments_service_fkey")
+  resource              AppointmentResource? @relation(fields: [tenantId, resourceId], references: [tenantId, id], onDelete: Restrict, map: "appointments_resource_fkey")
+  createdByUser         User? @relation("AppointmentCreator", fields: [tenantId, createdByUserId], references: [tenantId, id], onDelete: Restrict, map: "appointments_creator_fkey")
+
+  @@unique([tenantId, id], map: "appointments_tenant_id_id_key")
+  @@unique([tenantId, idempotencyKey], map: "appointments_tenant_idempotency_key")
+  @@index([tenantId, resourceId, status, occupiedStartsAt, occupiedEndsAt], map: "appointments_resource_occupied_idx")
+  @@index([tenantId, startsAt, id], map: "appointments_tenant_starts_idx")
+  @@index([tenantId, contactId, startsAt], map: "appointments_contact_starts_idx")
+  @@map("appointments")
 }

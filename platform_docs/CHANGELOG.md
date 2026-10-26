@@ -8,6 +8,13 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Added
 
+- E14-S06 transactional booking: tenant-owned appointments with immutable
+  duration/buffer/timezone occupancy snapshots, guarded create/list/detail APIs,
+  current-transaction availability checks, resource/service locks and atomic
+  audit/outbox. Tenant-scoped idempotent receipts compare canonical UUIDs while
+  preserving opaque key case. Resource capacity decreases reject values below
+  peak future occupancy. ADR-0068 defines the persistence/concurrency contract;
+  final verification/publication is tracked in STATUS and avance_orquestador.
 - E14-S05 availability calculation: tenant-scoped read API with deterministic
   UTC slots, rule-local timezones/DST, inclusive effective dates, exact exception
   boundaries, full duration/buffer coverage, peak occupancy input, capacity
