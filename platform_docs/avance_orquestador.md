@@ -67,7 +67,7 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
 | E14-S04 | Codex/e14_s04 (gpt-6-luna); review_s04 (gpt-6-sol); coordinador Codex. Reserva liberada | PASS / COMPLETE | `058eee1348ed724f166c8b4cfa33849a55dd4bb7`; push origin/codex/e14-agenda-completion confirmado por ls-remote | ADR-0066; DB 297/297, API 217/217, isolation 46/46, unit 465/465; static/build PASS |
 | E14-S05 | Codex/e14_s05 y review_s05 (gpt-6-sol); coordinador Codex; reserva liberada. Base9f533e6 | PASS / COMPLETE | `a0ddc4f98dbc5818547ed62899fd710cd13c6014`; push remoto SHA idéntico verificado | ADR-0067; root478/478, DB305/305, API219/219, isolation46/46; static/build PASS |
 | E14-S06 | Codex/e14_s06 (gpt-6-sol) inicial; s06_uuid_luna (gpt-6-luna) corrección UUID; review_s06 auditoría; coordinador docs/gates. Reserva liberada, base eaf88db | PASS / COMPLETE | `8137e15e0a13ea8d06302c86064929010d74db1c`; push SHA idéntico verificado | ADR-0068; root478, DB317, API220, aislamiento46; static/build PASS; ambas revisiones aprobadas |
-| E14-S07 | Codex/e14_s07_luna (gpt-6-luna); review_s06 (gpt-6-sol) auditor; coordinador docs/gates. Base a90a6c5 | PASS; publicación pendiente | — | ADR-0069; manager21/API11; parent DB afectada35/API11/root478; static/build PASS; revisión aprobada |
+| E14-S07 | Codex/e14_s07_luna (gpt-6-luna); review_s06 (gpt-6-sol) auditor; coordinador docs/gates. Reserva liberada, base a90a6c5 | PASS / COMPLETE | `3fe4927e77af0113ad418c969814c0a096cd7f4f`; push SHA idéntico verificado | ADR-0069; manager21/API11; parent DB afectada35/API11/root478; static/build PASS; revisión aprobada |
 | E14-S08 | Sin reserva | PENDING | — | recordatorios persistentes |
 | E14-S09 | Sin reserva | PENDING | — | UI operativa de agenda |
 | E14-S10 | Sin reserva | PENDING | — | flujo WhatsApp por reglas, servicio central |
@@ -168,3 +168,6 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
   completó además la aserción de timezone original/con reemplazo y se repitió
   manager21/21; re-review aprobado. DB preparada retirada tras cero conexiones;
   runner retiró su DB. Publicación pendiente antes de abrir recordatorios S08.
+- 2026-10-26: S07 publicada en3fe4927e77af0113ad418c969814c0a096cd7f4f;
+  SHA remoto idéntico comprobado. Fetch confirma main/origin main siguenfb8639d
+  y no contienen el cambio. Checkpoint documental precede reserva S08.

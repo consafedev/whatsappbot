@@ -2653,14 +2653,14 @@ approved. Final root478/478, DB317/317, API220/220, isolation46/46 and static/
 build gates PASS; clean-schema/upgrade checks no drift, local migration30 applied.
 Feature8137e15 pushed/verified; documentary checkpoint precedes S07.
 
-## E14-S07 Cancel/rebook [L] — DONE (publication pending)
+## E14-S07 Cancel/rebook [L] — DONE
 
 Idempotent cancellation, transactional linked replacement with retained original
 snapshots, current duration/buffer/timezone, sorted canonical resource locks and
 parent-aware receipt identity. Guarded lifecycle APIs; ADR-0069. Focused manager
 21/21, API11/11; parent affected DB35/35, API11/11, root478/478, types/Biome and
 database/API builds PASS. Clean-schema/upgrade no drift; local migration31.
-Independent review approved; commit/push checkpoint must precede S08.
+Independent review approved; feature3fe4927 pushed/verified, checkpoint precedes S08.
 
 ## E14-S08 Reminders [M]
 

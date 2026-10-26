@@ -2,17 +2,17 @@
 
 **Actualizado:** 2026-10-26
 **Versión de producto:** `0.0.0`  
-**Latest validated story:** E14-S07 — PASS; publication tracked in avance_orquestador.md.
+**Latest validated story:** E14-S07 — PASS / COMPLETE; publication tracked in avance_orquestador.md.
 **Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; Epic 11 — Campaign Engine & Audience Broadcasts — PASS / COMPLETE; **Epic 12 — Reporting, Analytics & Operational Observability — PASS / COMPLETE (E12-S01, E12-S02, E12-S03, E12-S04, E12-S05 PASS); E13-S01 — PASS / COMPLETE; E13-S02 — PASS / COMPLETE; E13-S03 — PASS / COMPLETE; E13-S04 — PASS / COMPLETE; E14-S01 — PASS / COMPLETE; E14-S02 — PASS / COMPLETE; E14-S03 — PASS / COMPLETE; E14-S04 — PASS / COMPLETE; E14-S05 — PASS / COMPLETE; E14-S06 — PASS / COMPLETE**.
 
 ## Current milestone
 
-Epic 14 — Agenda & Appointment Booking (E14-S01 through E14-S07 verified;
-S07 publication pending; S08 starts only after commit/push checkpoint).
+Epic 14 — Agenda & Appointment Booking (E14-S01 through E14-S07 complete;
+S07 push verified; S08 starts after this documentary checkpoint).
 Epic 13 — Task Scheduling & Distributed Orchestration remains tracked below.
 Shared coordination and reservations: `platform_docs/avance_orquestador.md`.
 
-### E14-S07 — Cancellation and rebooking (PASS; publication pending)
+### E14-S07 — Cancellation and rebooking (PASS / COMPLETE)
 
 Luna delivered manager/schema/API/tests from published checkpointa90a6c5. ADR-0069
 defines retained history, one direct replacement, cross-command receipt identity
@@ -40,7 +40,10 @@ Integrations used disposable schema-only-dump databases preserving raw SQL
 checks; both prepared and parent-run databases were removed. Full DB/API and
 dedicated isolation suites most recently passed at S06; S07 ran affected gates,
 not an invented new full-suite count. Full suites are repeated at epic closure
-or when a finding warrants broader coverage. Publication pending; S08 not begun.
+or when a finding warrants broader coverage. Feature commit
+`3fe4927e77af0113ad418c969814c0a096cd7f4f` pushed with identical remote SHA
+verified. Fresh fetch confirms main/origin main remainfb8639d and do not contain
+the feature. This documentary checkpoint precedes S08 implementation.
 
 ### E14-S06 — Transactional appointment booking (PASS / COMPLETE)
 
