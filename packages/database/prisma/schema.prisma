@@ -1096,6 +1096,7 @@ model Appointment {
   contactId             String @map("contact_id") @db.Uuid
   serviceId             String @map("service_id") @db.Uuid
   resourceId            String? @map("resource_id") @db.Uuid
+  rescheduledFromId     String? @map("rescheduled_from_id") @db.Uuid
   createdByUserId       String? @map("created_by_user_id") @db.Uuid
   idempotencyKey        String @map("idempotency_key") @db.VarChar(128)
   status                AppointmentStatus @default(CONFIRMED)
@@ -1119,9 +1120,12 @@ model Appointment {
   service               AppointmentService @relation(fields: [tenantId, serviceId], references: [tenantId, id], onDelete: Restrict, map: "appointments_service_fkey")
   resource              AppointmentResource? @relation(fields: [tenantId, resourceId], references: [tenantId, id], onDelete: Restrict, map: "appointments_resource_fkey")
   createdByUser         User? @relation("AppointmentCreator", fields: [tenantId, createdByUserId], references: [tenantId, id], onDelete: Restrict, map: "appointments_creator_fkey")
+  rescheduledFrom       Appointment? @relation("AppointmentRescheduling", fields: [tenantId, rescheduledFromId], references: [tenantId, id], onDelete: Restrict, map: "appointments_rescheduled_from_fkey")
+  rescheduledTo         Appointment? @relation("AppointmentRescheduling")
 
   @@unique([tenantId, id], map: "appointments_tenant_id_id_key")
   @@unique([tenantId, idempotencyKey], map: "appointments_tenant_idempotency_key")
+  @@unique([tenantId, rescheduledFromId], map: "appointments_tenant_rescheduled_from_key")
   @@index([tenantId, resourceId, status, occupiedStartsAt, occupiedEndsAt], map: "appointments_resource_occupied_idx")
   @@index([tenantId, startsAt, id], map: "appointments_tenant_starts_idx")
   @@index([tenantId, contactId, startsAt], map: "appointments_contact_starts_idx")

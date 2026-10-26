@@ -112,9 +112,12 @@ export {
   AppointmentNotFoundError,
   AppointmentValidationError,
   type CreateAppointmentInput,
+  cancelAppointment,
   createAppointment,
   getAppointmentById,
   listAppointments,
+  type RebookAppointmentInput,
+  rebookAppointment,
 } from "./appointment-manager";
 export {
   AppointmentResourceCapacityConflictError,

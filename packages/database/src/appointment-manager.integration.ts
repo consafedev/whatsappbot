@@ -4,9 +4,11 @@ import {
   AppointmentConflictError,
   AppointmentNotFoundError,
   AppointmentValidationError,
+  cancelAppointment,
   createAppointment,
   getAppointmentById,
   listAppointments,
+  rebookAppointment,
 } from "./appointment-manager";
 import {
   AppointmentResourceCapacityConflictError,
@@ -17,11 +19,12 @@ import { createTenantContext } from "./tenant-context";
 import { TenantModuleEntitlementRequiredError } from "./tenant-entitlements";
 import { TenantNotOperationalError } from "./tenant-operational";
 
-const prefix = "e14-s06-booking";
+const prefix = "e14-s07-lifecycle";
 let database: PrismaClient;
 let tenant = "",
   foreignTenant = "",
   user = "",
+  foreignUser = "",
   contact = "",
   service = "",
   longService = "";
@@ -64,6 +67,22 @@ async function resource(capacity: number) {
     },
   });
   return row.id;
+}
+
+async function booked(resourceId: string, minute: number, idempotencyKey: string) {
+  return createAppointment(
+    context(),
+    database,
+    {
+      serviceId: service,
+      resourceId,
+      contactId: contact,
+      startsAt: at(minute),
+      idempotencyKey,
+      notes: "keep appointment history",
+    },
+    actor(),
+  );
 }
 
 describe.sequential("E14-S06 transactional appointment booking", () => {
@@ -131,6 +150,18 @@ describe.sequential("E14-S06 transactional appointment booking", () => {
       }),
     ]);
     user = actorRow.id;
+    const foreignActor = await database.user.create({
+      data: {
+        tenantId: foreignTenant,
+        email: `${prefix}-foreign@example.invalid`,
+        passwordHash: "test-hash",
+        displayName: "Foreign Actor",
+        status: "active",
+        locale: "es-MX",
+        timezone: "UTC",
+      },
+    });
+    foreignUser = foreignActor.id;
     contact = contactRow.id;
     service = shortRow.id;
     longService = longRow.id;
@@ -688,5 +719,563 @@ describe.sequential("E14-S06 transactional appointment booking", () => {
       );
       await database.$executeRawUnsafe("DROP FUNCTION IF EXISTS e14_s06_reject_rollback()");
     }
+  });
+
+  it("cancels once, preserves the booking snapshot, and releases capacity", async () => {
+    const resourceId = await resource(1);
+    const old = await booked(resourceId, 0, "cancel-release");
+    const auditBefore = await database.auditLog.count({
+      where: { tenantId: tenant, entityId: old.id, action: "appointment.cancelled" },
+    });
+    const first = await cancelAppointment(context(), database, old.id.toUpperCase(), actor());
+    const replay = await cancelAppointment(context(), database, old.id, actor());
+    expect(first).toMatchObject({ id: old.id, status: "CANCELLED", notes: old.notes });
+    expect(first.occupiedStartsAt).toEqual(old.occupiedStartsAt);
+    expect(replay.id).toBe(first.id);
+    expect(
+      await database.auditLog.count({
+        where: { tenantId: tenant, entityId: old.id, action: "appointment.cancelled" },
+      }),
+    ).toBe(auditBefore + 1);
+    expect(
+      await database.domainEventOutbox.count({
+        where: { tenantId: tenant, aggregateId: old.id, eventType: "appointment.cancelled" },
+      }),
+    ).toBe(1);
+    const replacement = await booked(resourceId, 0, "cancel-capacity-released");
+    expect(replacement.status).toBe("CONFIRMED");
+  });
+
+  it("rejects cancellation from other states and rechecks tenant, module, and active actor on replay", async () => {
+    const resourceId = await resource(1);
+    const completed = await booked(resourceId, 0, "cancel-terminal");
+    await database.appointment.update({
+      where: { id: completed.id },
+      data: { status: "COMPLETED" },
+    });
+    await expect(
+      cancelAppointment(context(), database, completed.id, actor()),
+    ).rejects.toBeInstanceOf(AppointmentConflictError);
+    const cancelled = await booked(resourceId, 60, "cancel-authority");
+    await cancelAppointment(context(), database, cancelled.id, actor());
+    await database.user.update({ where: { id: user }, data: { status: "disabled" } });
+    await expect(
+      cancelAppointment(context(), database, cancelled.id, actor()),
+    ).rejects.toBeInstanceOf(AppointmentValidationError);
+    await database.user.update({ where: { id: user }, data: { status: "active" } });
+    await database.tenantEntitlement.update({
+      where: {
+        tenantId_entitlementKey: { tenantId: tenant, entitlementKey: "module.appointments" },
+      },
+      data: { enabled: false },
+    });
+    await expect(
+      cancelAppointment(context(), database, cancelled.id, actor()).then(() => undefined),
+    ).rejects.toBeInstanceOf(TenantModuleEntitlementRequiredError);
+    await database.tenantEntitlement.update({
+      where: {
+        tenantId_entitlementKey: { tenantId: tenant, entitlementKey: "module.appointments" },
+      },
+      data: { enabled: true },
+    });
+    await database.tenant.update({ where: { id: tenant }, data: { status: "suspended" } });
+    await expect(
+      cancelAppointment(context(), database, cancelled.id, actor()),
+    ).rejects.toBeInstanceOf(TenantNotOperationalError);
+    await database.tenant.update({ where: { id: tenant }, data: { status: "active" } });
+  });
+
+  it("rebooks in place with immutable lineage and current configuration snapshots", async () => {
+    const resourceId = await resource(1);
+    const old = await booked(resourceId, 0, "rebook-original");
+    expect(old.timezoneSnapshot).toBe("UTC");
+    await database.appointmentService.update({
+      where: { id: service },
+      data: { durationMinutes: 45, bufferBeforeMinutes: 5, bufferAfterMinutes: 10 },
+    });
+    await database.tenant.update({
+      where: { id: tenant },
+      data: { defaultTimezone: "America/Mexico_City" },
+    });
+    let replacement: Awaited<ReturnType<typeof rebookAppointment>>;
+    try {
+      replacement = await rebookAppointment(
+        context(),
+        database,
+        old.id.toUpperCase(),
+        { startsAt: at(0), idempotencyKey: "rebook-same-slot" },
+        actor(),
+      );
+    } finally {
+      await database.tenant.update({
+        where: { id: tenant },
+        data: { defaultTimezone: "UTC" },
+      });
+    }
+    const oldAfter = await database.appointment.findFirstOrThrow({
+      where: { tenantId: tenant, id: old.id },
+    });
+    expect(oldAfter.status).toBe("RESCHEDULED");
+    expect(oldAfter.notes).toBe(old.notes);
+    expect(oldAfter.durationMinutes).toBe(old.durationMinutes);
+    expect(replacement).toMatchObject({
+      status: "CONFIRMED",
+      rescheduledFromId: old.id,
+      notes: old.notes,
+    });
+    expect(replacement.durationMinutes).toBe(45);
+    expect(replacement.bufferBeforeMinutes).toBe(5);
+    expect(replacement.timezoneSnapshot).toBe("America/Mexico_City");
+    expect((await listAppointments(context(), database)).items.map((row) => row.id)).toEqual(
+      expect.arrayContaining([old.id, replacement.id]),
+    );
+  });
+
+  it("rolls back rebooking when the destination is unavailable", async () => {
+    const oldResource = await resource(1);
+    const targetResource = await resource(1);
+    const old = await booked(oldResource, 0, "rebook-rollback-old");
+    await booked(targetResource, 0, "rebook-rollback-occupier");
+    const auditBefore = await database.auditLog.count({
+      where: {
+        tenantId: tenant,
+        action: { in: ["appointment.rescheduled", "appointment.created"] },
+      },
+    });
+    const outboxBefore = await database.domainEventOutbox.count({
+      where: {
+        tenantId: tenant,
+        eventType: { in: ["appointment.rescheduled", "appointment.created"] },
+      },
+    });
+    await expect(
+      rebookAppointment(
+        context(),
+        database,
+        old.id,
+        {
+          startsAt: at(0),
+          resourceId: targetResource,
+          idempotencyKey: "rebook-rollback-new",
+        },
+        actor(),
+      ),
+    ).rejects.toBeInstanceOf(AppointmentConflictError);
+    expect((await database.appointment.findUniqueOrThrow({ where: { id: old.id } })).status).toBe(
+      "CONFIRMED",
+    );
+    expect(
+      await database.appointment.count({ where: { tenantId: tenant, rescheduledFromId: old.id } }),
+    ).toBe(0);
+    expect(
+      await database.auditLog.count({
+        where: {
+          tenantId: tenant,
+          action: { in: ["appointment.rescheduled", "appointment.created"] },
+        },
+      }),
+    ).toBe(auditBefore);
+    expect(
+      await database.domainEventOutbox.count({
+        where: {
+          tenantId: tenant,
+          eventType: { in: ["appointment.rescheduled", "appointment.created"] },
+        },
+      }),
+    ).toBe(outboxBefore);
+  });
+
+  it("rolls back cancellation and rebooking with their audit and outbox when the event write fails", async () => {
+    const resourceId = await resource(2);
+    const cancelTarget = await booked(resourceId, 0, "cancel-outbox-rollback");
+    const rebookTarget = await booked(resourceId, 60, "rebook-outbox-rollback");
+    const auditBefore = await database.auditLog.count({
+      where: {
+        tenantId: tenant,
+        action: { in: ["appointment.cancelled", "appointment.rescheduled"] },
+      },
+    });
+    const outboxBefore = await database.domainEventOutbox.count({
+      where: {
+        tenantId: tenant,
+        eventType: { in: ["appointment.cancelled", "appointment.rescheduled"] },
+      },
+    });
+    await database.$executeRawUnsafe(`CREATE FUNCTION e14_s07_reject_lifecycle_outbox() RETURNS trigger LANGUAGE plpgsql AS $$
+      BEGIN
+        IF NEW.event_type IN ('appointment.cancelled', 'appointment.rescheduled')
+          AND NEW.aggregate_id IN ('${cancelTarget.id}', '${rebookTarget.id}')
+        THEN RAISE EXCEPTION 'intentional E14-S07 lifecycle rollback'; END IF;
+        RETURN NEW;
+      END $$`);
+    await database.$executeRawUnsafe(
+      "CREATE TRIGGER e14_s07_reject_lifecycle_outbox BEFORE INSERT ON domain_event_outbox FOR EACH ROW EXECUTE FUNCTION e14_s07_reject_lifecycle_outbox()",
+    );
+    try {
+      await expect(
+        cancelAppointment(context(), database, cancelTarget.id, actor()),
+      ).rejects.toThrow("intentional E14-S07 lifecycle rollback");
+      await expect(
+        rebookAppointment(
+          context(),
+          database,
+          rebookTarget.id,
+          {
+            startsAt: at(120),
+            idempotencyKey: "rebook-outbox-rollback-new",
+          },
+          actor(),
+        ),
+      ).rejects.toThrow("intentional E14-S07 lifecycle rollback");
+      expect(
+        (await database.appointment.findUniqueOrThrow({ where: { id: cancelTarget.id } })).status,
+      ).toBe("CONFIRMED");
+      expect(
+        (await database.appointment.findUniqueOrThrow({ where: { id: rebookTarget.id } })).status,
+      ).toBe("CONFIRMED");
+      expect(
+        await database.appointment.count({
+          where: { tenantId: tenant, rescheduledFromId: rebookTarget.id },
+        }),
+      ).toBe(0);
+      expect(
+        await database.auditLog.count({
+          where: {
+            tenantId: tenant,
+            action: { in: ["appointment.cancelled", "appointment.rescheduled"] },
+          },
+        }),
+      ).toBe(auditBefore);
+      expect(
+        await database.domainEventOutbox.count({
+          where: {
+            tenantId: tenant,
+            eventType: { in: ["appointment.cancelled", "appointment.rescheduled"] },
+          },
+        }),
+      ).toBe(outboxBefore);
+    } finally {
+      await database.$executeRawUnsafe(
+        "DROP TRIGGER IF EXISTS e14_s07_reject_lifecycle_outbox ON domain_event_outbox",
+      );
+      await database.$executeRawUnsafe("DROP FUNCTION IF EXISTS e14_s07_reject_lifecycle_outbox()");
+    }
+  });
+
+  it("serializes rebooking against a capacity-one booking and sorts opposite resource locks", async () => {
+    const sourceResource = await resource(1);
+    const targetResource = await resource(1);
+    const source = await booked(sourceResource, 0, "rebook-capacity-source");
+    const race = await Promise.allSettled([
+      rebookAppointment(
+        context(),
+        database,
+        source.id,
+        {
+          startsAt: at(60),
+          resourceId: targetResource,
+          idempotencyKey: "rebook-capacity-race",
+        },
+        actor(),
+      ),
+      createAppointment(
+        context(),
+        database,
+        {
+          serviceId: service,
+          resourceId: targetResource,
+          contactId: contact,
+          startsAt: at(60),
+          idempotencyKey: "create-capacity-race",
+        },
+        actor(),
+      ),
+    ]);
+    expect(race.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+    expect(
+      race.filter(
+        (result) =>
+          result.status === "rejected" && result.reason instanceof AppointmentConflictError,
+      ),
+    ).toHaveLength(1);
+    const occupied = await database.appointment.count({
+      where: {
+        tenantId: tenant,
+        resourceId: targetResource,
+        status: { in: ["REQUESTED", "CONFIRMED"] },
+        occupiedStartsAt: { lt: new Date(start.getTime() + 90 * 60_000) },
+        occupiedEndsAt: { gt: new Date(start.getTime() + 60 * 60_000) },
+      },
+    });
+    expect(occupied).toBe(1);
+
+    const [leftResource, rightResource] = await Promise.all([resource(2), resource(2)]);
+    const [left, right] = await Promise.all([
+      booked(leftResource, 0, "opposite-rebook-left"),
+      booked(rightResource, 60, "opposite-rebook-right"),
+    ]);
+    const oppositeLocks = Promise.all([
+      rebookAppointment(
+        context(),
+        database,
+        left.id,
+        {
+          startsAt: at(120),
+          resourceId: rightResource,
+          idempotencyKey: "opposite-left-to-right",
+        },
+        actor(),
+      ),
+      rebookAppointment(
+        context(),
+        database,
+        right.id,
+        {
+          startsAt: at(90),
+          resourceId: leftResource,
+          idempotencyKey: "opposite-right-to-left",
+        },
+        actor(),
+      ),
+    ]);
+    await expect(
+      Promise.race([
+        oppositeLocks,
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("opposite rebooking deadlocked")), 5_000),
+        ),
+      ]),
+    ).resolves.toBeDefined();
+  });
+
+  it("serializes rebooking, distinguishes command receipts, and replays after replacement cancellation", async () => {
+    const resourceId = await resource(2);
+    const old = await booked(resourceId, 0, "rebook-race-old");
+    const command = { startsAt: at(60), idempotencyKey: "rebook-race-key" };
+    const [first, second] = await Promise.all([
+      rebookAppointment(context(), database, old.id, command, actor()),
+      rebookAppointment(context(), database, old.id.toUpperCase(), command, {
+        ...actor(),
+        actorUserId: user.toUpperCase(),
+      }),
+    ]);
+    expect(first.id).toBe(second.id);
+    expect(first.rescheduledFromId).toBe(old.id);
+    expect(
+      await database.appointment.count({ where: { tenantId: tenant, rescheduledFromId: old.id } }),
+    ).toBe(1);
+    await expect(
+      rebookAppointment(
+        context(),
+        database,
+        old.id,
+        {
+          startsAt: at(120),
+          idempotencyKey: "rebook-second-child",
+        },
+        actor(),
+      ),
+    ).rejects.toBeInstanceOf(AppointmentConflictError);
+    const secondParent = await booked(resourceId, 120, "rebook-other-parent");
+    await expect(
+      rebookAppointment(context(), database, secondParent.id, command, actor()),
+    ).rejects.toBeInstanceOf(AppointmentConflictError);
+    await database.appointmentService.update({
+      where: { id: service },
+      data: { active: false, durationMinutes: 60 },
+    });
+    await cancelAppointment(context(), database, first.id, actor());
+    expect((await rebookAppointment(context(), database, old.id, command, actor())).id).toBe(
+      first.id,
+    );
+    await database.appointmentService.update({
+      where: { id: service },
+      data: { active: true, durationMinutes: 30, bufferBeforeMinutes: 0, bufferAfterMinutes: 0 },
+    });
+    await expect(
+      createAppointment(
+        context(),
+        database,
+        {
+          serviceId: service,
+          resourceId,
+          contactId: contact,
+          startsAt: at(60),
+          idempotencyKey: command.idempotencyKey,
+        },
+        actor(),
+      ),
+    ).rejects.toBeInstanceOf(AppointmentConflictError);
+    const plainOnly = await createAppointment(
+      context(),
+      database,
+      {
+        serviceId: service,
+        resourceId,
+        contactId: contact,
+        startsAt: at(90),
+        idempotencyKey: "plain-create-receipt",
+      },
+      actor(),
+    );
+    await expect(
+      rebookAppointment(
+        context(),
+        database,
+        old.id,
+        {
+          startsAt: at(300),
+          idempotencyKey: plainOnly.idempotencyKey,
+        },
+        actor(),
+      ),
+    ).rejects.toBeInstanceOf(AppointmentConflictError);
+    await expect(
+      rebookAppointment(
+        context(),
+        database,
+        old.id,
+        {
+          startsAt: at(120),
+          idempotencyKey: command.idempotencyKey,
+        },
+        actor(),
+      ),
+    ).rejects.toBeInstanceOf(AppointmentConflictError);
+  });
+
+  it("allows only one concurrent rebook command to replace the same parent", async () => {
+    const resourceId = await resource(2);
+    const old = await booked(resourceId, 0, "rebook-different-keys-parent");
+    const attempts = await Promise.allSettled([
+      rebookAppointment(
+        context(),
+        database,
+        old.id,
+        {
+          startsAt: at(60),
+          idempotencyKey: "rebook-different-keys-a",
+        },
+        actor(),
+      ),
+      rebookAppointment(
+        context(),
+        database,
+        old.id.toUpperCase(),
+        {
+          startsAt: at(120),
+          idempotencyKey: "rebook-different-keys-b",
+        },
+        actor(),
+      ),
+    ]);
+    expect(attempts.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+    expect(
+      attempts.filter(
+        (result) =>
+          result.status === "rejected" && result.reason instanceof AppointmentConflictError,
+      ),
+    ).toHaveLength(1);
+    expect(
+      await database.appointment.count({
+        where: { tenantId: tenant, rescheduledFromId: old.id },
+      }),
+    ).toBe(1);
+  });
+
+  it("rejects tenant-mixed parents and resources and scopes replacement uniqueness", async () => {
+    const resourceId = await resource(1);
+    const old = await booked(resourceId, 0, "rebook-tenant-parent");
+    const foreignResource = await database.appointmentResource.create({
+      data: { tenantId: foreignTenant, name: `Foreign resource ${crypto.randomUUID()}` },
+    });
+    const foreignService = await database.appointmentService.create({
+      data: { tenantId: foreignTenant, name: "Foreign service", durationMinutes: 30 },
+    });
+    const foreignContact = await database.contact.create({
+      data: {
+        tenantId: foreignTenant,
+        name: "Foreign contact",
+        phoneNumber: "+525500000201",
+      },
+    });
+    const foreignParent = await database.appointment.create({
+      data: {
+        tenantId: foreignTenant,
+        contactId: foreignContact.id,
+        serviceId: foreignService.id,
+        resourceId: foreignResource.id,
+        idempotencyKey: "foreign-parent-row",
+        status: "CONFIRMED",
+        confirmationStatus: "CONFIRMED",
+        startsAt: start,
+        endsAt: new Date(start.getTime() + 30 * 60_000),
+        occupiedStartsAt: start,
+        occupiedEndsAt: new Date(start.getTime() + 30 * 60_000),
+        durationMinutes: 30,
+        bufferBeforeMinutes: 0,
+        bufferAfterMinutes: 0,
+        timezoneSnapshot: "UTC",
+        source: "dashboard",
+      },
+    });
+    await expect(
+      rebookAppointment(
+        context(),
+        database,
+        old.id,
+        {
+          startsAt: at(60),
+          resourceId: foreignResource.id,
+          idempotencyKey: "rebook-foreign-resource",
+        },
+        actor(),
+      ),
+    ).rejects.toBeInstanceOf(AppointmentNotFoundError);
+    await rebookAppointment(
+      context(),
+      database,
+      old.id,
+      {
+        startsAt: at(60),
+        idempotencyKey: "rebook-foreign-parent",
+      },
+      actor(),
+    );
+    await expect(
+      rebookAppointment(
+        createTenantContext(foreignTenant),
+        database,
+        old.id,
+        {
+          startsAt: at(60),
+          idempotencyKey: "rebook-foreign-tenant",
+        },
+        { ...actor(), actorUserId: foreignUser },
+      ),
+    ).rejects.toBeInstanceOf(AppointmentNotFoundError);
+    await expect(
+      database.appointment.create({
+        data: {
+          tenantId: tenant,
+          contactId: contact,
+          serviceId: service,
+          resourceId,
+          idempotencyKey: "cross-tenant-lineage",
+          status: "CONFIRMED",
+          confirmationStatus: "CONFIRMED",
+          startsAt: start,
+          endsAt: new Date(start.getTime() + 30 * 60_000),
+          occupiedStartsAt: start,
+          occupiedEndsAt: new Date(start.getTime() + 30 * 60_000),
+          durationMinutes: 30,
+          bufferBeforeMinutes: 0,
+          bufferAfterMinutes: 0,
+          timezoneSnapshot: "UTC",
+          source: "dashboard",
+          rescheduledFromId: foreignParent.id,
+        },
+      }),
+    ).rejects.toMatchObject({ code: "P2003" });
   });
 });

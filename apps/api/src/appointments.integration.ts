@@ -153,7 +153,7 @@ describe.sequential("E14-S01 appointments API", () => {
     app = await createApiApplication(loadNonSecretConfig({ NODE_ENV: "test" }));
     await app.listen(0, "127.0.0.1");
     baseUrl = await app.getUrl();
-  });
+  }, 60_000);
 
   afterAll(async () => {
     await app?.close();
@@ -1105,5 +1105,235 @@ describe.sequential("E14-S01 appointments API", () => {
       400,
     );
     expect((await fetch(`${url}/services`, { headers: { cookie: readCookie } })).status).toBe(200);
+  });
+
+  it("guards cancellation and rebooking with strict bodies, idempotent receipts, and tenant scope", async () => {
+    const start = new Date();
+    start.setUTCDate(start.getUTCDate() + 14);
+    start.setUTCHours(9, 0, 0, 0);
+    const [service, resource, contact, foreignService, foreignResource, foreignContact] =
+      await Promise.all([
+        prisma.appointmentService.create({
+          data: { tenantId: tenantAId, name: "Lifecycle API", durationMinutes: 30 },
+        }),
+        prisma.appointmentResource.create({
+          data: { tenantId: tenantAId, name: "Lifecycle API resource", capacity: 1 },
+        }),
+        prisma.contact.create({
+          data: {
+            tenantId: tenantAId,
+            name: "Lifecycle API contact",
+            phoneNumber: "+525500000198",
+          },
+        }),
+        prisma.appointmentService.create({
+          data: { tenantId: tenantBId, name: "Foreign Lifecycle API", durationMinutes: 30 },
+        }),
+        prisma.appointmentResource.create({
+          data: { tenantId: tenantBId, name: "Foreign Lifecycle API resource" },
+        }),
+        prisma.contact.create({
+          data: {
+            tenantId: tenantBId,
+            name: "Foreign Lifecycle API contact",
+            phoneNumber: "+525500000199",
+          },
+        }),
+      ]);
+    await prisma.appointmentAvailabilityRule.create({
+      data: {
+        tenantId: tenantAId,
+        serviceId: service.id,
+        resourceId: resource.id,
+        dayOfWeek: start.getUTCDay(),
+        startTime: "09:00",
+        endTime: "12:00",
+        timezone: "UTC",
+      },
+    });
+    const foreign = await prisma.appointment.create({
+      data: {
+        tenantId: tenantBId,
+        contactId: foreignContact.id,
+        serviceId: foreignService.id,
+        resourceId: foreignResource.id,
+        idempotencyKey: "foreign-lifecycle-api",
+        status: "CONFIRMED",
+        confirmationStatus: "CONFIRMED",
+        startsAt: start,
+        endsAt: new Date(start.getTime() + 30 * 60_000),
+        occupiedStartsAt: start,
+        occupiedEndsAt: new Date(start.getTime() + 30 * 60_000),
+        durationMinutes: 30,
+        bufferBeforeMinutes: 0,
+        bufferAfterMinutes: 0,
+        timezoneSnapshot: "UTC",
+        source: "dashboard",
+      },
+    });
+    const url = `${baseUrl}/api/v1/appointments`;
+    const headers = { cookie: manageCookie, "content-type": "application/json" };
+    const created = await fetch(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        serviceId: service.id,
+        resourceId: resource.id,
+        contactId: contact.id,
+        startsAt: start.toISOString(),
+        idempotencyKey: "lifecycle-api-create",
+      }),
+    });
+    expect(created.status).toBe(201);
+    const oldId = ((await created.json()) as { data: { id: string } }).data.id;
+    expect(
+      (
+        await fetch(`${url}/${oldId}/cancel`, {
+          method: "POST",
+          headers: { cookie: manageCookie, "content-type": "application/json" },
+          body: JSON.stringify({ actorUserId: "forged" }),
+        })
+      ).status,
+    ).toBe(400);
+    expect(
+      (
+        await fetch(`${url}/${oldId}/cancel`, {
+          method: "POST",
+          headers: { cookie: readCookie, "content-type": "application/json" },
+          body: "{}",
+        })
+      ).status,
+    ).toBe(403);
+    const cancelled = await fetch(`${url}/${oldId}/cancel`, {
+      method: "POST",
+      headers,
+      body: "{}",
+    });
+    expect(cancelled.status).toBe(200);
+    const cancelReceipt = (await cancelled.json()) as { data: { id: string; status: string } };
+    expect(cancelReceipt.data).toMatchObject({ id: oldId, status: "CANCELLED" });
+    expect(
+      (
+        await fetch(`${url}/${oldId}/cancel`, {
+          method: "POST",
+          headers,
+          body: "{}",
+        })
+      ).status,
+    ).toBe(200);
+    expect(
+      (
+        await fetch(`${url}/${foreign.id}/cancel`, {
+          method: "POST",
+          headers,
+          body: "{}",
+        })
+      ).status,
+    ).toBe(404);
+
+    const rebookSource = await fetch(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        serviceId: service.id,
+        resourceId: resource.id,
+        contactId: contact.id,
+        startsAt: new Date(start.getTime() + 60 * 60_000).toISOString(),
+        idempotencyKey: "lifecycle-api-rebook-source",
+      }),
+    });
+    const sourceId = ((await rebookSource.json()) as { data: { id: string } }).data.id;
+    const rebookUrl = `${url}/${sourceId}/rebook`;
+    const rebookBody = {
+      startsAt: new Date(start.getTime() + 2 * 60 * 60_000).toISOString(),
+      idempotencyKey: "lifecycle-api-rebook",
+    };
+    expect(
+      (
+        await fetch(rebookUrl, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ ...rebookBody, status: "CANCELLED" }),
+        })
+      ).status,
+    ).toBe(400);
+    for (const forged of [
+      { actorUserId: "forged" },
+      { tenantId: tenantBId },
+      { source: "whatsapp" },
+    ]) {
+      expect(
+        (
+          await fetch(rebookUrl, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ ...rebookBody, ...forged }),
+          })
+        ).status,
+      ).toBe(400);
+    }
+    expect(
+      (
+        await fetch(`${url}/${sourceId}/rebook`, {
+          method: "POST",
+          headers: { cookie: manageCookie, "content-type": "application/json" },
+          body: JSON.stringify({
+            ...rebookBody,
+            resourceId: foreignResource.id,
+          }),
+        })
+      ).status,
+    ).toBe(404);
+    const rebooked = await fetch(rebookUrl, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(rebookBody),
+    });
+    expect(rebooked.status).toBe(200);
+    const replacement = (await rebooked.json()) as {
+      success: boolean;
+      data: { id: string; status: string; rescheduledFromId: string | null };
+    };
+    expect(replacement).toMatchObject({
+      success: true,
+      data: { status: "CONFIRMED", rescheduledFromId: sourceId },
+    });
+    const replay = await fetch(rebookUrl, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(rebookBody),
+    });
+    expect(replay.status).toBe(200);
+    expect(((await replay.json()) as { data: { id: string } }).data.id).toBe(replacement.data.id);
+    expect(
+      (
+        await fetch(rebookUrl, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ ...rebookBody, startsAt: start.toISOString() }),
+        })
+      ).status,
+    ).toBe(409);
+    await prisma.tenantEntitlement.update({
+      where: {
+        tenantId_entitlementKey: { tenantId: tenantAId, entitlementKey: "module.appointments" },
+      },
+      data: { enabled: false },
+    });
+    expect(
+      (
+        await fetch(`${url}/${sourceId}/cancel`, {
+          method: "POST",
+          headers,
+          body: "{}",
+        })
+      ).status,
+    ).toBe(403);
+    await prisma.tenantEntitlement.update({
+      where: {
+        tenantId_entitlementKey: { tenantId: tenantAId, entitlementKey: "module.appointments" },
+      },
+      data: { enabled: true },
+    });
   });
 });

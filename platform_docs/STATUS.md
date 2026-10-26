@@ -2,15 +2,45 @@
 
 **Actualizado:** 2026-10-26
 **Versión de producto:** `0.0.0`  
-**Latest validated story:** E14-S06 — PASS / COMPLETE; publication tracked in avance_orquestador.md.
-**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; Epic 11 — Campaign Engine & Audience Broadcasts — PASS / COMPLETE; **Epic 12 — Reporting, Analytics & Operational Observability — PASS / COMPLETE (E12-S01, E12-S02, E12-S03, E12-S04, E12-S05 PASS); E13-S01 — PASS / COMPLETE; E13-S02 — PASS / COMPLETE; E13-S03 — PASS / COMPLETE; E13-S04 — PASS / COMPLETE; E14-S01 — PASS / COMPLETE; E14-S02 — PASS / COMPLETE; E14-S03 — PASS / COMPLETE**.
+**Latest validated story:** E14-S07 — PASS; publication tracked in avance_orquestador.md.
+**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; Epic 11 — Campaign Engine & Audience Broadcasts — PASS / COMPLETE; **Epic 12 — Reporting, Analytics & Operational Observability — PASS / COMPLETE (E12-S01, E12-S02, E12-S03, E12-S04, E12-S05 PASS); E13-S01 — PASS / COMPLETE; E13-S02 — PASS / COMPLETE; E13-S03 — PASS / COMPLETE; E13-S04 — PASS / COMPLETE; E14-S01 — PASS / COMPLETE; E14-S02 — PASS / COMPLETE; E14-S03 — PASS / COMPLETE; E14-S04 — PASS / COMPLETE; E14-S05 — PASS / COMPLETE; E14-S06 — PASS / COMPLETE**.
 
 ## Current milestone
 
-Epic 14 — Agenda & Appointment Booking (E14-S01 through E14-S06 complete;
-S06 commit/push verified; S07 next after this documentary checkpoint).
+Epic 14 — Agenda & Appointment Booking (E14-S01 through E14-S07 verified;
+S07 publication pending; S08 starts only after commit/push checkpoint).
 Epic 13 — Task Scheduling & Distributed Orchestration remains tracked below.
 Shared coordination and reservations: `platform_docs/avance_orquestador.md`.
+
+### E14-S07 — Cancellation and rebooking (PASS; publication pending)
+
+Luna delivered manager/schema/API/tests from published checkpointa90a6c5. ADR-0069
+defines retained history, one direct replacement, cross-command receipt identity
+and canonical sorted resource locking. The additive self-link migration passed
+isolated clean-schema and pre-story upgrade checks without drift. Local apply
+succeeded (31 migrations). Cancellation is idempotent and preserves snapshots;
+rebooking atomically supersedes the original and creates a linked replacement
+with current duration/buffer/timezone snapshots. Destination/event-write failure
+preserves the original reservation. POST /:id/cancel accepts {}; POST /:id/rebook
+accepts startsAt, optional resourceId and idempotencyKey under manage permission.
+
+Actual pre-implementation DB RED:12 existing tests passed,8 missing-command tests
+failed after fixtures. Final Luna manager21/21 (including timezone preservation)
+and API11/11 passed. Independent source review approved, including the final
+test-only extension. Parent verification: root478/478 (52files), affected DB
+35/35 (manager/slot/resource,3files), appointment API11/11, root/database/API
+typechecks, global Biome479files, diff check PASS; database/API builds passed.
+Final database typecheck and Biome repeated after the snapshot-test extension.
+Tenant A/B mutation, composite self-FK, concurrency and rollback are covered by
+the affected suites. No skipped tests in valid final runs. An attempted later
+API baseline probe timed out during setup (11 skipped) and is explicitly not
+claimed as RED or PASS. API fixture setup timeout is now60s.
+
+Integrations used disposable schema-only-dump databases preserving raw SQL
+checks; both prepared and parent-run databases were removed. Full DB/API and
+dedicated isolation suites most recently passed at S06; S07 ran affected gates,
+not an invented new full-suite count. Full suites are repeated at epic closure
+or when a finding warrants broader coverage. Publication pending; S08 not begun.
 
 ### E14-S06 — Transactional appointment booking (PASS / COMPLETE)
 

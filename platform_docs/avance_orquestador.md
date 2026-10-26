@@ -67,7 +67,7 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
 | E14-S04 | Codex/e14_s04 (gpt-6-luna); review_s04 (gpt-6-sol); coordinador Codex. Reserva liberada | PASS / COMPLETE | `058eee1348ed724f166c8b4cfa33849a55dd4bb7`; push origin/codex/e14-agenda-completion confirmado por ls-remote | ADR-0066; DB 297/297, API 217/217, isolation 46/46, unit 465/465; static/build PASS |
 | E14-S05 | Codex/e14_s05 y review_s05 (gpt-6-sol); coordinador Codex; reserva liberada. Base9f533e6 | PASS / COMPLETE | `a0ddc4f98dbc5818547ed62899fd710cd13c6014`; push remoto SHA idéntico verificado | ADR-0067; root478/478, DB305/305, API219/219, isolation46/46; static/build PASS |
 | E14-S06 | Codex/e14_s06 (gpt-6-sol) inicial; s06_uuid_luna (gpt-6-luna) corrección UUID; review_s06 auditoría; coordinador docs/gates. Reserva liberada, base eaf88db | PASS / COMPLETE | `8137e15e0a13ea8d06302c86064929010d74db1c`; push SHA idéntico verificado | ADR-0068; root478, DB317, API220, aislamiento46; static/build PASS; ambas revisiones aprobadas |
-| E14-S07 | Sin reserva | PENDING | — | cancelación/reprogramación con historia |
+| E14-S07 | Codex/e14_s07_luna (gpt-6-luna); review_s06 (gpt-6-sol) auditor; coordinador docs/gates. Base a90a6c5 | PASS; publicación pendiente | — | ADR-0069; manager21/API11; parent DB afectada35/API11/root478; static/build PASS; revisión aprobada |
 | E14-S08 | Sin reserva | PENDING | — | recordatorios persistentes |
 | E14-S09 | Sin reserva | PENDING | — | UI operativa de agenda |
 | E14-S10 | Sin reserva | PENDING | — | flujo WhatsApp por reglas, servicio central |
@@ -100,6 +100,9 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
 | S06 migration | isolated clean-schema y upgrade prehistoria; local deploy aditivo | PASS sin drift;30 migrations; no reescribir historial aplicado |
 | S06 auditoría/regresiones | revisión inicial + inspección coordinador + Luna RED/GREEN + re-review | UUID mayúsculas y namespace de tenant corregidos; DB12/12 y API seleccionada1/1 (9 excluidos); cero hallazgos abiertos |
 | S06 gates completos finales | build/typecheck/root/Biome, DB/API y aislamiento en DB desechable | PASS478/478 unit52files, DB317/317 en51files, API220/220 en27files, aislamiento9+37;0 skipped; Biome479files; diff limpio |
+| S07 migration | esquema limpio y upgrade desde S06 en DBs aisladas; local apply | PASS ambos sin diferencia;31 migrations locales; sólo cambio aditivo |
+| S07 focalizadas/auditoría | Luna RED DB12PASS/8FAIL antes de implementar; GREEN manager21/API11; reviewer inspección final | PASS, historial/locks/recibos/rollback/tenantFK/timezone; cero hallazgos. API probe posterior falló setup y no cuenta como RED |
+| S07 gates del coordinador | root, DB manager/slot/resource y API agenda en otra DB temporal, tipos/Biome/diff | PASS478unit(52files),35DB(3files),11API;0 skipped; tipos root/database/API; Biome479; builds database/API PASS. No equivale a suite DB/API completa nueva |
 
 ## 6. Bloqueos, riesgos y siguiente prioridad
 
@@ -158,3 +161,10 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
 - 2026-10-26: S06 publicada en8137e15e0a13ea8d06302c86064929010d74db1c,
   igualdad SHA local/remoto comprobada. No está en main. Checkpoint documental
   registra publicación antes de reservar S07 a Luna.
+- 2026-10-26: S07 reservada a Luna desde checkpointa90a6c5 ya publicado.
+  Brief acotado: cancelación idempotente, reemplazo con vínculo tenant-aware,
+  locks ordenados y claves separadas semánticamente de creación simple.
+- 2026-10-26: S07 congelada, auditoría aprobada y gates afectados PASS. Se
+  completó además la aserción de timezone original/con reemplazo y se repitió
+  manager21/21; re-review aprobado. DB preparada retirada tras cero conexiones;
+  runner retiró su DB. Publicación pendiente antes de abrir recordatorios S08.

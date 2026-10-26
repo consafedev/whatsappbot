@@ -1413,6 +1413,14 @@ process_instance_id is persisted. Schema states are uppercase; newly created
 dashboard appointments are CONFIRMED with confirmationStatus CONFIRMED.
 Lifecycle mutations begin S07, reminders S08 and channel booking S10.
 
+E14-S07 (ADR-0069) adds rescheduledFromId with a composite tenant-aware self-FK
+and tenant/from uniqueness. A replacement retains original service/contact/
+notes and captures current configuration; the original becomes RESCHEDULED
+without losing its snapshots. Failed rebooking rolls back to the original
+reservation. Cancellation is idempotent; history is never deleted. Lifecycle
+commands share the booking transaction and lock order; plain-create and rebook
+receipts cannot adopt each other.
+
 ---
 
 # 17. Catalog
@@ -2645,7 +2653,14 @@ approved. Final root478/478, DB317/317, API220/220, isolation46/46 and static/
 build gates PASS; clean-schema/upgrade checks no drift, local migration30 applied.
 Feature8137e15 pushed/verified; documentary checkpoint precedes S07.
 
-## E14-S07 Cancel/rebook [L]
+## E14-S07 Cancel/rebook [L] — DONE (publication pending)
+
+Idempotent cancellation, transactional linked replacement with retained original
+snapshots, current duration/buffer/timezone, sorted canonical resource locks and
+parent-aware receipt identity. Guarded lifecycle APIs; ADR-0069. Focused manager
+21/21, API11/11; parent affected DB35/35, API11/11, root478/478, types/Biome and
+database/API builds PASS. Clean-schema/upgrade no drift; local migration31.
+Independent review approved; commit/push checkpoint must precede S08.
 
 ## E14-S08 Reminders [M]
 

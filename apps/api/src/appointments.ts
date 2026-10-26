@@ -60,6 +60,7 @@ import {
   archiveAppointmentResource,
   archiveAppointmentService,
   type CreateAppointmentInput,
+  cancelAppointment,
   createAppointment,
   createAppointmentResource,
   createAppointmentService,
@@ -79,6 +80,8 @@ import {
   listAppointments,
   listAvailabilityExceptions,
   listAvailabilityRules,
+  type RebookAppointmentInput,
+  rebookAppointment,
   type TenantContext,
   TenantModuleEntitlementRequiredError,
   TenantNotOperationalError,
@@ -722,6 +725,27 @@ function parseCreateAppointmentBody(value: unknown): CreateAppointmentInput {
   };
 }
 
+function parseCancelAppointmentBody(value: unknown): void {
+  const body = plainObject(value, "Invalid appointment cancellation request");
+  exactKeys(body, [], "Invalid appointment cancellation request");
+}
+
+function parseRebookAppointmentBody(value: unknown): RebookAppointmentInput {
+  const body = plainObject(value, "Invalid appointment rebooking request");
+  exactKeys(
+    body,
+    ["startsAt", "resourceId", "idempotencyKey"],
+    "Invalid appointment rebooking request",
+  );
+  return {
+    startsAt: requiredString(body.startsAt, "startsAt"),
+    ...(body.resourceId === undefined
+      ? {}
+      : { resourceId: requiredString(body.resourceId, "resourceId") }),
+    idempotencyKey: requiredString(body.idempotencyKey, "idempotencyKey"),
+  };
+}
+
 function parseAppointmentListFilters(value: unknown): AppointmentListFilters {
   const query = plainObject(value, "Invalid appointment query");
   exactKeys(
@@ -983,6 +1007,39 @@ export class AppointmentsService {
   ) {
     try {
       return await createAppointment(context, this.database, input, {
+        actorUserId: identity.userId,
+        requestId: requestId(request),
+      });
+    } catch (error) {
+      return mapAppointmentError(error);
+    }
+  }
+
+  async cancelAppointment(
+    context: TenantContext,
+    identity: TenantSessionIdentity,
+    request: TenantAuthenticationRequest,
+    id: string,
+  ) {
+    try {
+      return await cancelAppointment(context, this.database, id, {
+        actorUserId: identity.userId,
+        requestId: requestId(request),
+      });
+    } catch (error) {
+      return mapAppointmentError(error);
+    }
+  }
+
+  async rebookAppointment(
+    context: TenantContext,
+    identity: TenantSessionIdentity,
+    request: TenantAuthenticationRequest,
+    id: string,
+    input: RebookAppointmentInput,
+  ) {
+    try {
+      return await rebookAppointment(context, this.database, id, input, {
         actorUserId: identity.userId,
         requestId: requestId(request),
       });
@@ -1306,6 +1363,11 @@ function appointmentAvailabilityExceptionId(value: string): string {
   if (!UUID_V7_PATTERN.test(value)) {
     throw new BadRequestException("Invalid appointment availability exception id");
   }
+  return value;
+}
+
+function appointmentId(value: string): string {
+  if (!UUID_V7_PATTERN.test(value)) throw new BadRequestException("Invalid appointment id");
   return value;
 }
 
@@ -1652,6 +1714,46 @@ export class AppointmentsController {
     @Query() query: unknown,
   ): Promise<ApiResponse<Awaited<ReturnType<AppointmentsService["listAppointments"]>>>> {
     const data = await this.service.listAppointments(context, parseAppointmentListFilters(query));
+    return { success: true, data };
+  }
+
+  @Post(":id/cancel")
+  @HttpCode(200)
+  @appointmentsAuthorized("appointments.manage")
+  async cancelBooking(
+    @CurrentTenantContext() context: TenantContext,
+    @CurrentTenantIdentity() identity: TenantSessionIdentity,
+    @Req() request: TenantAuthenticationRequest,
+    @Param("id") rawId: string,
+    @Body() body: unknown,
+  ): Promise<ApiResponse<Awaited<ReturnType<AppointmentsService["cancelAppointment"]>>>> {
+    parseCancelAppointmentBody(body);
+    const data = await this.service.cancelAppointment(
+      context,
+      identity,
+      request,
+      appointmentId(rawId),
+    );
+    return { success: true, data };
+  }
+
+  @Post(":id/rebook")
+  @HttpCode(200)
+  @appointmentsAuthorized("appointments.manage")
+  async rebookBooking(
+    @CurrentTenantContext() context: TenantContext,
+    @CurrentTenantIdentity() identity: TenantSessionIdentity,
+    @Req() request: TenantAuthenticationRequest,
+    @Param("id") rawId: string,
+    @Body() body: unknown,
+  ): Promise<ApiResponse<Awaited<ReturnType<AppointmentsService["rebookAppointment"]>>>> {
+    const data = await this.service.rebookAppointment(
+      context,
+      identity,
+      request,
+      appointmentId(rawId),
+      parseRebookAppointmentBody(body),
+    );
     return { success: true, data };
   }
 

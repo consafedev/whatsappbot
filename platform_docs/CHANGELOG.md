@@ -8,6 +8,12 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Added
 
+- E14-S07 cancellation/rebooking: central manager commands and guarded POST
+  lifecycle routes, idempotent cancellation, atomic replacement with retained
+  original snapshots, tenant-aware lineage and one direct successor, canonical
+  sorted resource locks, cross-command idempotency separation and transactional
+  audit/outbox. ADR-0069 defines the boundary; verification/publication status
+  remains explicit in STATUS and avance_orquestador.
 - E14-S06 transactional booking: tenant-owned appointments with immutable
   duration/buffer/timezone occupancy snapshots, guarded create/list/detail APIs,
   current-transaction availability checks, resource/service locks and atomic

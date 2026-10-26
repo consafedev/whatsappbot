@@ -1,7 +1,7 @@
 # docs/MANIFEST.md — Baseline documental verificada
 
 **Fecha:** 2026-10-26
-**Estado:** E14-S06 PASS, 8137e15 pushed/verified on codex/e14-agenda-completion; S07 next, main unchanged.
+**Estado:** E14-S07 verified PASS; publication pending; S08 not started.
 **Propósito:** comprobar integridad y composición del conjunto de documentos que permite continuar el proyecto sin depender de memoria conversacional.
 
 > Las rutas son relativas a la raíz del repositorio. Los hashes cambian si se edita un archivo. Después de cambios intencionales, regenerar este manifest.
@@ -12,8 +12,8 @@
 | `README.md` | 8295 | 989 | `9a7e11c0e0281f8838c1b19182ba26aa13b5abc910dc1c05cd7e9055030dab84` |
 | `.agents/agents.md` | 388 | 41 | `d52b02af7fdab6d2ecbf7af4dd2f311d5d244f153817498ff9e542427e9e1675` |
 | `.agents/skills/whatsapp-platform-engineering/SKILL.md` | 21738 | 3044 | `f116702eecb0b7e9aafd72713ac1b250b9eafca85693072ed4796086ccc22082` |
-| `platform_docs/CHANGELOG.md` | 123590 | 14261 | `edd920b2db4544190adccea398f09ad74ae667609e63b82487034edd40679c65` |
-| `platform_docs/DATA_MODEL_ERD_MVP_BACKLOG.md` | 77702 | 10421 | `a5680e9fbe19791170f775c7f9684c27d417bd68ce0c8a17533d4447adb4d7f7` |
+| `platform_docs/CHANGELOG.md` | 124035 | 14308 | `6b701e67122edc572dd6c22c2f7a4da26f5865900c1df3b0cac9b7396e8b0e09` |
+| `platform_docs/DATA_MODEL_ERD_MVP_BACKLOG.md` | 78700 | 10537 | `7d8c0b08b437627ed93bc7d0f4d1cc27a96f6ed6a411e686f0b5670a12be7897` |
 | `platform_docs/DEMO_AND_SALES.md` | 8689 | 1253 | `28944d7c37827e10f72d6cdac811eb8bda92fbc9da96fa4947f09ef42eb5b9f4` |
 | `platform_docs/DEPLOYMENT.md` | 5766 | 811 | `665319a6f0a460d4cd509c062af9e5879416c795f2227f63287d076f1c3d7293` |
 | `platform_docs/DESIGN.md` | 16996 | 2456 | `e9de8994278a140e2e3596391102bc14727cf6c6c00658cb33183f7643b5d6b2` |
@@ -89,16 +89,17 @@
 | `platform_docs/RUNBOOK_BACKUP_RESTORE.md` | 4857 | 666 | `27e324b4cea0cd3a2514f44eeee4ce31db80a3a4701f0ba528ffb36afcebb3ff` |
 | `platform_docs/RUNBOOK_OPERATIONS.md` | 5777 | 796 | `23d4c537dd3bbcf4b8f08b39b4a948c42c10e3a458594c25ccf2b65937376252` |
 | `platform_docs/SECURITY.md` | 14589 | 2085 | `51b737e15512ae8136760024f2fcb78161276af0cf0699e8d06326ce1dc7b482` |
-| `platform_docs/STATUS.md` | 184333 | 22226 | `9f961c86b3042ae58535d18a5932264606eb3414559b556d0d126b81ac13e43a` |
-| `platform_docs/SYSTEM_DESIGN.md` | 44866 | 6019 | `58723519ab52c5b053e5b5f22a22dc1415bfea9047ebb21fb560cc55eb31f188` |
+| `platform_docs/STATUS.md` | 186449 | 22492 | `cab0fe72f43890dd728695676b71484c5ed41da6da79d9cad036a3ddc61f4978` |
+| `platform_docs/SYSTEM_DESIGN.md` | 45623 | 6117 | `cb6078c7a430ab54e7dd1f5d60ce9107136cf9e40a389f832a569f15971539b8` |
 | `platform_docs/TESTING_STRATEGY.md` | 18229 | 2513 | `2659f25d06bcfe571830b291c6546ad481abb609049bede79003d80add2da358` |
 | `platform_docs/UI_FLOWS.md` | 22449 | 3253 | `311b1b44f7dcdd0e97003e0b29fa34cc789f95affa9052bf3ce86613ff86fddc` |
-| `platform_docs/avance_orquestador.md` | 14146 | 1932 | `a22819f8b53e7e0e25593806d8af2f1343487893af8cfda777206ede551b84d6` |
+| `platform_docs/avance_orquestador.md` | 15547 | 2107 | `af56d89c14984aa913a83eed39c558cad19e426ff5c868c5ba616e23ca6e6b26` |
 | `platform_docs/docs/adr/0066-e14-s04-availability-exceptions-scope.md` | 3358 | 407 | `1d5479a0bed7ec6cb7973afe37e4c6d39d63978e0f6dab6540b6cf3b611d118c` |
 | `docs/superpowers/specs/2026-10-25-e14-agenda-design.md` | 5562 | 687 | `5d10a7cff1a7b80fd99bb865c608df6202239f6b337f61f9c13f4ad294880733` |
-| `docs/superpowers/plans/2026-10-25-e14-agenda.md` | 7554 | 798 | `6246af22b166c1ac357a2cf50902021c036d49b2774cf9ee3a8507781ff0eb45` |
+| `docs/superpowers/plans/2026-10-25-e14-agenda.md` | 7554 | 796 | `7ccff43823a878fd165f63a431df06c75d970e06bbaf040428b050e02cbd5870` |
 | `platform_docs/docs/adr/0067-e14-s05-availability-calculation.md` | 5799 | 730 | `589f600ed5ff3fd22a8c1593cb5beb253d9191e510069d028a3ba7b019ecb847` |
 | `platform_docs/docs/adr/0068-e14-s06-transactional-appointment-booking.md` | 4729 | 581 | `2a002362ed08176358d939667811952b16b0267bc3cd366b108a8fe1ffe1cbbb` |
+| `platform_docs/docs/adr/0069-e14-s07-appointment-cancellation-and-rebooking.md` | 3773 | 467 | `650dd315f370d5b644a034db4b004cba3b3a4665305b09c93ea6b8b36dd2d324` |
 
 ## Uso
 

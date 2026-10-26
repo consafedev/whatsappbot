@@ -928,6 +928,17 @@ retain case. Guarded POST/GET /api/v1/appointments and GET /:id delegate to the
 central manager. ADR-0068 defines the contract; lifecycle/reminders/channel
 flows remain subsequent stories.
 
+E14-S07 adds central cancellation/rebooking commands behind appointments.manage.
+Cancellation locks the appointment and resource, preserves snapshots and emits
+one audit/outbox transition; repeating CANCELLED has no new side effects.
+Rebooking locks tenant/key, original appointment, canonical sorted distinct
+resources and shared service; it supersedes the original and creates a linked
+replacement in one transaction. The tenant-aware unique self-link admits at
+most one direct successor. Unavailable destination rolls back the original
+status, new row and events. Receipt identity includes the original appointment,
+so plain creation and rebooking cannot reuse each other's receipt. ADR-0069
+records these decisions. Reminder lifecycle is added in S08.
+
 Disponibilidad se calcula desde:
 
 - service duration;
