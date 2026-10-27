@@ -2679,7 +2679,7 @@ parent-aware receipt identity. Guarded lifecycle APIs; ADR-0069. Focused manager
 database/API builds PASS. Clean-schema/upgrade no drift; local migration31.
 Independent review approved; feature3fe4927 pushed/verified, checkpoint precedes S08.
 
-## E14-S08 Reminders [M] — DONE (publication pending)
+## E14-S08 Reminders [M] — DONE
 
 Optional immutable same-contact policy, durable children/tasks, cancellation/
 rebooking suppression and canonical outbound. Narrow real WorkflowOrchestrator,
@@ -2688,7 +2688,7 @@ tasks, AUTO-only post-lock due/final-dispatch guards and atomic claim-aware
 attempt/run transitions. ADR-0070; local additive migrations32/33. Final parent
 root485/485, full DB352/352, API225/225, worker PG1/1 +outbound2/2, isolation46/46,
 full build/types/Biome485files and diff PASS; no skipped tests. Independent
-reviews approved after fixes. Commit/push checkpoint precedes S09.
+reviews approved after fixes. Featureccef6d2 pushed/verified; checkpoint precedes S09.
 
 ## E14-S09 Appointment UI [L]
 

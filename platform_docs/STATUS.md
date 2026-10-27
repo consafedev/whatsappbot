@@ -2,17 +2,17 @@
 
 **Actualizado:** 2026-10-26
 **Versión de producto:** `0.0.0`  
-**Latest validated story:** E14-S08 — PASS; publication tracked in avance_orquestador.md.
-**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; Epic 11 — Campaign Engine & Audience Broadcasts — PASS / COMPLETE; **Epic 12 — Reporting, Analytics & Operational Observability — PASS / COMPLETE (E12-S01, E12-S02, E12-S03, E12-S04, E12-S05 PASS); E13-S01 — PASS / COMPLETE; E13-S02 — PASS / COMPLETE; E13-S03 — PASS / COMPLETE; E13-S04 — PASS / COMPLETE; E14-S01 — PASS / COMPLETE; E14-S02 — PASS / COMPLETE; E14-S03 — PASS / COMPLETE; E14-S04 — PASS / COMPLETE; E14-S05 — PASS / COMPLETE; E14-S06 — PASS / COMPLETE; E14-S07 — PASS / COMPLETE**.
+**Latest validated story:** E14-S08 — PASS / COMPLETE; publication tracked in avance_orquestador.md.
+**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; Epic 11 — Campaign Engine & Audience Broadcasts — PASS / COMPLETE; **Epic 12 — Reporting, Analytics & Operational Observability — PASS / COMPLETE (E12-S01, E12-S02, E12-S03, E12-S04, E12-S05 PASS); E13-S01 — PASS / COMPLETE; E13-S02 — PASS / COMPLETE; E13-S03 — PASS / COMPLETE; E13-S04 — PASS / COMPLETE; E14-S01 — PASS / COMPLETE; E14-S02 — PASS / COMPLETE; E14-S03 — PASS / COMPLETE; E14-S04 — PASS / COMPLETE; E14-S05 — PASS / COMPLETE; E14-S06 — PASS / COMPLETE; E14-S07 — PASS / COMPLETE; E14-S08 — PASS / COMPLETE**.
 
 ## Current milestone
 
-Epic 14 — Agenda & Appointment Booking (E14-S01 through E14-S08 verified;
-S08 publication pending; S09 starts only after commit/push checkpoint).
+Epic 14 — Agenda & Appointment Booking (E14-S01 through E14-S08 complete;
+S08 push verified; S09 starts after this documentary checkpoint).
 Epic 13 — Task Scheduling & Distributed Orchestration remains tracked below.
 Shared coordination and reservations: `platform_docs/avance_orquestador.md`.
 
-### E14-S08 — Persistent reminders (PASS; publication pending)
+### E14-S08 — Persistent reminders (PASS / COMPLETE)
 
 Luna delivered explicit optional reminder policy, durable children/tasks,
 atomic cancellation/rebooking suppression and current-state dispatch checks.
@@ -50,7 +50,9 @@ runner and prepared databases were removed after use. Applied migration32/33
 SHA256 values match PostgreSQL's recorded checksums. The pristine historical
 migration-chain BOM limitation remains separate and unchanged. No production
 deployment or authenticated browser QA is claimed for this backend story.
-Commit/push pending; S09/S10 have not started.
+Feature commit `ccef6d2ba55fae26ae294aaac73fa4055d729a4f` pushed with identical
+remote SHA verified on origin/codex/e14-agenda-completion. It is not in main.
+Documentation checkpoints may advance HEAD. S09/S10 have not started.
 
 ### E14-S07 — Cancellation and rebooking (PASS / COMPLETE)
 

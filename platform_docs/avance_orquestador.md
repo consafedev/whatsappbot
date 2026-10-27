@@ -51,7 +51,7 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
 | Core, tenancy, auth/RBAC, entitlements, dashboard | Implementación presente, historial en STATUS. No equivale a recertificación completa de producción en esta sesión. |
 | Messaging/inbox/rules/canales | Contratos, normalización, persistencia/colas/UI presentes; transporte real Baileys pendiente P0. |
 | IA/campañas/reportes/scheduler | Implementaciones presentes con IDs históricos distintos al backlog. E13-S05 conserva estado normativo pendiente de cierre. |
-| Agenda E14 | S01–S03 integradas; S04–S10 en ejecución secuencial abajo. |
+| Agenda E14 | S01–S03 integradas; S04–S08 completas/publicadas en rama; S09/S10 pendientes abajo. |
 | Procesos/timeline/Action Requests | Pendientes según backlog y equivalencias históricas; no confundir E10/E11 implementadas de IA/campañas con Process/Timeline originales. |
 | Catálogo/cotizaciones/documentos/portal | Pendientes; presencia de una ruta o package vacío no acredita implementación. |
 | Backups/restore y hardening precliente | No certificados; restore drill y transporte real bloquean declaración de MVP vendible. |
@@ -68,7 +68,7 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
 | E14-S05 | Codex/e14_s05 y review_s05 (gpt-6-sol); coordinador Codex; reserva liberada. Base9f533e6 | PASS / COMPLETE | `a0ddc4f98dbc5818547ed62899fd710cd13c6014`; push remoto SHA idéntico verificado | ADR-0067; root478/478, DB305/305, API219/219, isolation46/46; static/build PASS |
 | E14-S06 | Codex/e14_s06 (gpt-6-sol) inicial; s06_uuid_luna (gpt-6-luna) corrección UUID; review_s06 auditoría; coordinador docs/gates. Reserva liberada, base eaf88db | PASS / COMPLETE | `8137e15e0a13ea8d06302c86064929010d74db1c`; push SHA idéntico verificado | ADR-0068; root478, DB317, API220, aislamiento46; static/build PASS; ambas revisiones aprobadas |
 | E14-S07 | Codex/e14_s07_luna (gpt-6-luna); review_s06 (gpt-6-sol) auditor; coordinador docs/gates. Reserva liberada, base a90a6c5 | PASS / COMPLETE | `3fe4927e77af0113ad418c969814c0a096cd7f4f`; push SHA idéntico verificado | ADR-0069; manager21/API11; parent DB afectada35/API11/root478; static/build PASS; revisión aprobada |
-| E14-S08 | Codex/e14_s08_luna y s08_scheduler_luna (gpt-6-luna), archivos exclusivos; review_s06 (gpt-6-sol) auditor; coordinador docs/gates. Base4c67c3d | PASS; publicación pendiente | — | ADR-0070; root485, full DB352/API225, workers1+2, aislamiento46; build/types/Biome485 PASS; revisiones aprobadas |
+| E14-S08 | Codex/e14_s08_luna y s08_scheduler_luna (gpt-6-luna), archivos exclusivos; review_s06 (gpt-6-sol) auditor; coordinador docs/gates. Reserva liberada, base4c67c3d | PASS / COMPLETE | `ccef6d2ba55fae26ae294aaac73fa4055d729a4f`; push SHA idéntico verificado | ADR-0070; root485, full DB352/API225, workers1+2, aislamiento46; build/types/Biome485 PASS; revisiones aprobadas |
 | E14-S09 | Sin reserva | PENDING | — | UI operativa de agenda |
 | E14-S10 | Sin reserva | PENDING | — | flujo WhatsApp por reglas, servicio central |
 
@@ -105,7 +105,7 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
 | S07 gates del coordinador | root, DB manager/slot/resource y API agenda en otra DB temporal, tipos/Biome/diff | PASS478unit(52files),35DB(3files),11API;0 skipped; tipos root/database/API; Biome479; builds database/API PASS. No equivale a suite DB/API completa nueva |
 | S08 migration/RED | esquema limpio + upgrade; local deploy; regresión de conducta PG | Migración PASS sin drift,32 locales. RED4FAIL/1PASS con fixtures correctos por policy/tasks/idempotencia/validación faltantes; no es gate final |
 | S08 migration adicional | upgrade ordenado31→32→33 y clean; deploy local | PASS ambos sin drift;33 locales. workflowRunAt separa intención inmutable de scheduledFor operativo; SQL32 no se reescribió |
-| S08 scheduler genérico | API RED antes de guards; GREEN API14/14 +viewmodel21/21; revisión independiente | PASS del slice;0 findings. S08 completa sigue pendiente de dominio/workers/gates agregados |
+| S08 scheduler genérico | API RED antes de guards; GREEN API14/14 +viewmodel21/21; revisión independiente | PASS del slice;0 findings. Gates completos posteriores registrados debajo |
 | S08 gates completos finales | full build/types/root/Biome; full DB/API +ambos workers PG +aislamiento en schema33 temporal | PASS485unit/52files, DB352/53files, API225/27files, worker-jobs1, outbound2, aislamiento9+37;0 skipped; Biome485files; diff limpio |
 | S08 migraciones aplicadas | SHA256 de SQL32/33 contra _prisma_migrations.checksum local | MATCH ambos; no SQL aplicado reescrito; no pristine-chain replay histórico ni deploy producción |
 
@@ -196,3 +196,6 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
   corregidos sólo en14 rutas propias, sin cambios semánticos.
   Todas las DBs temporales/preparadas se retiraron. Publicación pendiente antes
   de reservar UI S09. Prueba de outbound es con mock, no teléfono real.
+- 2026-10-26: S08 publicada enccef6d2ba55fae26ae294aaac73fa4055d729a4f,
+  igualdad SHA local/remoto verificada. No está en main. Checkpoint documental
+  registra publicación antes de abrir S09. No hay DBs de test preparadas activas.
