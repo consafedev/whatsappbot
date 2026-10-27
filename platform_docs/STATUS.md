@@ -8,11 +8,11 @@
 ## Current milestone
 
 Epic 14 — Agenda & Appointment Booking (E14-S01 through E14-S09 complete;
-S09 checks complete, publication pending before S10).
+S09 push verified; S10 is next and has not started).
 Epic 13 — Task Scheduling & Distributed Orchestration remains tracked below.
 Shared coordination and reservations: `platform_docs/avance_orquestador.md`.
 
-### E14-S09 — Appointment UI (PASS / COMPLETE; publication pending)
+### E14-S09 — Appointment UI (PASS / COMPLETE)
 
 Luna data/UI slices deliver /app/appointments with day/week/list, explicit
 timezones/offsets, resource/service/unit/status filters, create/detail/cancel/
@@ -58,7 +58,9 @@ which was fixed in product code and independently re-reviewed. Final source
 gates above supersede earlier partial counts. Only owned QA listeners stopped;
 the temporary database was dropped after verifying zero connections, and its
 credentials/session/pointer removed. No production deployment or handset send
-is claimed. Source audit has no open P1/P2. Commit/push follows before S10.
+is claimed. Source audit has no open P1/P2. Feature commit ad56a3c5a9309627e23706017317ea1191c5427f pushed with identical remote SHA verified on
+origin/codex/e14-agenda-completion. It is not in main. Documentation checkpoints
+may advance HEAD; S10 has not started.
 
 ### E14-S08 — Persistent reminders (PASS / COMPLETE)
 

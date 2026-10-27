@@ -1,7 +1,7 @@
 # docs/MANIFEST.md — Baseline documental verificada
 
 **Fecha:** 2026-10-27
-**Estado:** s09-complete-publication-pending
+**Estado:** s09-published
 **Propósito:** comprobar integridad y composición del conjunto de documentos que permite continuar el proyecto sin depender de memoria conversacional.
 
 > Las rutas son relativas a la raíz del repositorio. Los hashes cambian si se edita un archivo. Después de cambios intencionales, regenerar este manifest.
@@ -89,14 +89,14 @@
 | `platform_docs/RUNBOOK_BACKUP_RESTORE.md` | 4857 | 666 | `27e324b4cea0cd3a2514f44eeee4ce31db80a3a4701f0ba528ffb36afcebb3ff` |
 | `platform_docs/RUNBOOK_OPERATIONS.md` | 5777 | 796 | `23d4c537dd3bbcf4b8f08b39b4a948c42c10e3a458594c25ccf2b65937376252` |
 | `platform_docs/SECURITY.md` | 14589 | 2085 | `51b737e15512ae8136760024f2fcb78161276af0cf0699e8d06326ce1dc7b482` |
-| `platform_docs/STATUS.md` | 193077 | 23313 | `a53ec65dc9257cf6a8704374bd1596988a238b3dcc5d21806c8d3d65b21f1e00` |
+| `platform_docs/STATUS.md` | 193244 | 23335 | `cd0e3b91a0553c6c9e00b5a21fed69af6a4dc075033025bbbf456ebf40d6832f` |
 | `platform_docs/SYSTEM_DESIGN.md` | 47643 | 6359 | `0941e3d79380f0f2c767a67e98b3537c814d8a55f597001d0f6e93a0fd340cc8` |
 | `platform_docs/TESTING_STRATEGY.md` | 20437 | 2794 | `332cec2d2cb9645cfd1d7ddc1fda800ba76974644d6403e8d3c9469b57063595` |
 | `platform_docs/UI_FLOWS.md` | 23828 | 3423 | `6a20745bda662e564555b91f424edf4fc523dd794165d99b1e70997ff665d115` |
-| `platform_docs/avance_orquestador.md` | 20917 | 2755 | `959d4460ec4a9e712d5ae3e55bbc67696deed6c503f159db73ddaea9ef90d570` |
+| `platform_docs/avance_orquestador.md` | 21189 | 2781 | `8484e2c86862f788d5b32b09a6dfd910e10158f96b750fd67a0d0c4575a5b7a0` |
 | `platform_docs/docs/adr/0066-e14-s04-availability-exceptions-scope.md` | 3358 | 407 | `1d5479a0bed7ec6cb7973afe37e4c6d39d63978e0f6dab6540b6cf3b611d118c` |
 | `docs/superpowers/specs/2026-10-25-e14-agenda-design.md` | 5562 | 687 | `5d10a7cff1a7b80fd99bb865c608df6202239f6b337f61f9c13f4ad294880733` |
-| `docs/superpowers/plans/2026-10-25-e14-agenda.md` | 7700 | 794 | `6b6ae107cb7f83d2f7cd788a46ec719b9f1010f430c93ff4d7e8b01a911c5747` |
+| `docs/superpowers/plans/2026-10-25-e14-agenda.md` | 7700 | 793 | `d573899d43b07067410ada34d16331aad1f23580e3b8d13f87bffa1ab62fe56b` |
 | `platform_docs/docs/adr/0067-e14-s05-availability-calculation.md` | 5799 | 730 | `589f600ed5ff3fd22a8c1593cb5beb253d9191e510069d028a3ba7b019ecb847` |
 | `platform_docs/docs/adr/0068-e14-s06-transactional-appointment-booking.md` | 4729 | 581 | `2a002362ed08176358d939667811952b16b0267bc3cd366b108a8fe1ffe1cbbb` |
 | `platform_docs/docs/adr/0069-e14-s07-appointment-cancellation-and-rebooking.md` | 3773 | 467 | `650dd315f370d5b644a034db4b004cba3b3a4665305b09c93ea6b8b36dd2d324` |

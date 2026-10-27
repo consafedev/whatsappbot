@@ -69,7 +69,7 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
 | E14-S06 | Codex/e14_s06 (gpt-6-sol) inicial; s06_uuid_luna (gpt-6-luna) corrección UUID; review_s06 auditoría; coordinador docs/gates. Reserva liberada, base eaf88db | PASS / COMPLETE | `8137e15e0a13ea8d06302c86064929010d74db1c`; push SHA idéntico verificado | ADR-0068; root478, DB317, API220, aislamiento46; static/build PASS; ambas revisiones aprobadas |
 | E14-S07 | Codex/e14_s07_luna (gpt-6-luna); review_s06 (gpt-6-sol) auditor; coordinador docs/gates. Reserva liberada, base a90a6c5 | PASS / COMPLETE | `3fe4927e77af0113ad418c969814c0a096cd7f4f`; push SHA idéntico verificado | ADR-0069; manager21/API11; parent DB afectada35/API11/root478; static/build PASS; revisión aprobada |
 | E14-S08 | Codex/e14_s08_luna y s08_scheduler_luna (gpt-6-luna), archivos exclusivos; review_s06 (gpt-6-sol) auditor; coordinador docs/gates. Reserva liberada, base4c67c3d | PASS / COMPLETE | `ccef6d2ba55fae26ae294aaac73fa4055d729a4f`; push SHA idéntico verificado | ADR-0070; root485, full DB352/API225, workers1+2, aislamiento46; build/types/Biome485 PASS; revisiones aprobadas |
-| E14-S09 | Codex/e14_s09_data_luna y e14_s09_ui_luna (gpt-6-luna); e14_s09_audit (gpt-6-sol); coordinador runtime/docs/gates. Reserva liberada, base4562cc9 | PASS / COMPLETE; publicación pendiente | — | root516/56files; web build/types; Biome496; browser real lifecycle/readonly/module/carryover/config/mobile PASS; sin backend/schema/deps |
+| E14-S09 | Codex/e14_s09_data_luna y e14_s09_ui_luna (gpt-6-luna); e14_s09_audit (gpt-6-sol); coordinador runtime/docs/gates. Reserva liberada, base4562cc9 | PASS / COMPLETE | `ad56a3c5a9309627e23706017317ea1191c5427f`; push SHA idéntico verificado | root516/56files; web build/types; Biome496; browser real lifecycle/readonly/module/carryover/config/mobile PASS; sin backend/schema/deps |
 | E14-S10 | Sin reserva | PENDING | — | flujo WhatsApp por reglas, servicio central |
 
 ## 5. Verificaciones y auditorías de esta iteración
@@ -214,3 +214,7 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
   DB retirada tras cero conexiones y credenciales/session temporales borradas.
   Se documentaron fallos de setup/harness separados del límite Inbox100→50 que
   sí exigió corrección de producto. Publicación pendiente antes de S10.
+
+- 2026-10-27: S09 publicada enad56a3c5a9309627e23706017317ea1191c5427f;
+  SHA local/remoto idéntico verificado. main/origin main siguenfb8639d y no
+  contienen la historia. Este checkpoint documental precede la reserva S10.
