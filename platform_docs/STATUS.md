@@ -1,16 +1,64 @@
 # STATUS.md — Estado operativo actual del proyecto
 
-**Actualizado:** 2026-10-26
+**Actualizado:** 2026-10-27
 **Versión de producto:** `0.0.0`  
-**Latest validated story:** E14-S08 — PASS / COMPLETE; publication tracked in avance_orquestador.md.
-**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; Epic 11 — Campaign Engine & Audience Broadcasts — PASS / COMPLETE; **Epic 12 — Reporting, Analytics & Operational Observability — PASS / COMPLETE (E12-S01, E12-S02, E12-S03, E12-S04, E12-S05 PASS); E13-S01 — PASS / COMPLETE; E13-S02 — PASS / COMPLETE; E13-S03 — PASS / COMPLETE; E13-S04 — PASS / COMPLETE; E14-S01 — PASS / COMPLETE; E14-S02 — PASS / COMPLETE; E14-S03 — PASS / COMPLETE; E14-S04 — PASS / COMPLETE; E14-S05 — PASS / COMPLETE; E14-S06 — PASS / COMPLETE; E14-S07 — PASS / COMPLETE; E14-S08 — PASS / COMPLETE**.
+**Latest validated story:** E14-S09 — PASS / COMPLETE; publication tracked in avance_orquestador.md.
+**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; Epic 11 — Campaign Engine & Audience Broadcasts — PASS / COMPLETE; **Epic 12 — Reporting, Analytics & Operational Observability — PASS / COMPLETE (E12-S01, E12-S02, E12-S03, E12-S04, E12-S05 PASS); E13-S01 — PASS / COMPLETE; E13-S02 — PASS / COMPLETE; E13-S03 — PASS / COMPLETE; E13-S04 — PASS / COMPLETE; E14-S01 — PASS / COMPLETE; E14-S02 — PASS / COMPLETE; E14-S03 — PASS / COMPLETE; E14-S04 — PASS / COMPLETE; E14-S05 — PASS / COMPLETE; E14-S06 — PASS / COMPLETE; E14-S07 — PASS / COMPLETE; E14-S08 — PASS / COMPLETE; E14-S09 — PASS / COMPLETE**.
 
 ## Current milestone
 
-Epic 14 — Agenda & Appointment Booking (E14-S01 through E14-S08 complete;
-S08 push verified; S09 starts after this documentary checkpoint).
+Epic 14 — Agenda & Appointment Booking (E14-S01 through E14-S09 complete;
+S09 checks complete, publication pending before S10).
 Epic 13 — Task Scheduling & Distributed Orchestration remains tracked below.
 Shared coordination and reservations: `platform_docs/avance_orquestador.md`.
+
+### E14-S09 — Appointment UI (PASS / COMPLETE; publication pending)
+
+Luna data/UI slices deliver /app/appointments with day/week/list, explicit
+timezones/offsets, resource/service/unit/status filters, create/detail/cancel/
+rebook and service/resource/weekly-rule/exception configuration. The screen
+uses existing APIs and permission/module bootstrap; no backend, schema or new
+dependency was added. Availability remains server-authoritative (500/page,
+168 elapsed hours, nextFrom); presentation shows25 slots/page with a retained
+selection summary. Contact conversations use the actual50-record cursor API
+and exact contact ownership. Booking/rebooking retain command keys on retries.
+Rebooking edits the recorded snapshot zone. Reminder enrollment is explicit;
+offsets cannot be silently discarded without a selected conversation.
+
+Independent source reviews corrected API limits, hidden/inactive relationship
+loss, stale availability and detail replies, busy modal closure, reminder-policy
+ambiguity, DST fold labels and calendar carryovers. Configuration preserves
+currency and unchanged sub-minute exception times. Weekly end24:00 remains
+supported. Tests cover valid/skipped local days, historical years and DST;
+overlapping reservations retain their original interval in every visible day.
+
+Final parent gates2026-10-27: root516/516 unit tests in56 files, production web
+build, explicit web typecheck, global Biome496 files and diff check PASS.
+Backend/full integration and isolation suites most recently passed at S08;
+S09 did not modify backend/schema and does not claim a fabricated new full-suite
+count. Browser QA used current production-built web and API on local3105/3101,
+an owned schema33-only disposable PostgreSQL DB and actual tenant sessions.
+Actual UI login; service create/edit withJPY, resource, end24 rule and local→UTC
+exception; hidden/inactive unit+GBP preservation; overnight booking carryover
+week/day/list; availability with server cursor continuation; create with reminder,
+lost-response retry with the same key/one reservation, snapshot-zone rebooking,
+cancel, nested Tab/Escape/focus restoration all passed. PostgreSQL confirmed
+original RESCHEDULED/replacement CANCELLED, two linked reminders/tasks cancelled
+and no outbound sends. A separate earlier harness reservation was cancelled
+before the final run; lineage/key assertions scope the final command, not all
+unrelated fixtures. The readonly session could read an active reservation without
+mutation controls; disabled module direct navigation made no agenda API calls.
+Desktop1440, tablet768, mobile390, forms/configuration, reduced-motion and body
+overflow checks passed; final screenshots were visually inspected.
+
+Early QA setup failures (expired stored session, development NODE_ENV in a QA
+production build and exact-label harness selectors) were corrected in the local
+test harness. Real browser testing also caught the Inbox100→50 limit mismatch,
+which was fixed in product code and independently re-reviewed. Final source
+gates above supersede earlier partial counts. Only owned QA listeners stopped;
+the temporary database was dropped after verifying zero connections, and its
+credentials/session/pointer removed. No production deployment or handset send
+is claimed. Source audit has no open P1/P2. Commit/push follows before S10.
 
 ### E14-S08 — Persistent reminders (PASS / COMPLETE)
 
@@ -26,9 +74,9 @@ drift, including the appended immutable workflow-time column; local additive
 migrations32/33 applied. Behavioral PostgreSQL RED reproduced four
 missing-policy/reminder/idempotency-validation cases after successful fixtures
 (4 failed/1 passed); final verification supersedes that initial RED. Source
-audit approved; publication pending. No real-handset capability is inferred.
+audit approved; feature and documentation checkpoint pushed. No real-handset capability is inferred.
 Automatic reminder authorization requires AUTO: ASSISTED needs approval per
-PRD§19; HUMAN/MONITOR and takeover pauses suppress. S09/S10 have not started.
+PRD§19; HUMAN/MONITOR and takeover pauses suppress. S09 is complete; S10 is not started.
 
 The independent scheduler slice is frozen: real API RED before the guard,
 then14/14 API and21/21 existing view-model tests, scoped Biome/diff PASS;
@@ -52,7 +100,7 @@ migration-chain BOM limitation remains separate and unchanged. No production
 deployment or authenticated browser QA is claimed for this backend story.
 Feature commit `ccef6d2ba55fae26ae294aaac73fa4055d729a4f` pushed with identical
 remote SHA verified on origin/codex/e14-agenda-completion. It is not in main.
-Documentation checkpoints may advance HEAD. S09/S10 have not started.
+Documentation checkpoints may advance HEAD. S09 is complete; S10 is not started.
 
 ### E14-S07 — Cancellation and rebooking (PASS / COMPLETE)
 

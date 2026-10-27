@@ -184,13 +184,23 @@ describe("tenant app navigation", () => {
     expect(TENANT_MODULE_LABELS["module.scheduling"]).toBe("Programación de Tareas");
   });
 
-  it("keeps Agenda independent as the upcoming appointments placeholder", () => {
+  it("exposes Agenda only with its module and read permission", () => {
+    const withoutModule = resolveTenantNavigation([], ["appointments.read"]).flatMap(
+      (group) => group.items,
+    );
+    expect(withoutModule.some((item) => item.id === "appointments")).toBe(false);
+
+    const withoutPermission = resolveTenantNavigation(["module.appointments"], []).flatMap(
+      (group) => group.items,
+    );
+    expect(withoutPermission.some((item) => item.id === "appointments")).toBe(false);
+
     const items = resolveTenantNavigation(["module.appointments"], ["appointments.read"]).flatMap(
       (group) => group.items,
     );
 
     expect(items.find((item) => item.id === "appointments")).toMatchObject({
-      href: null,
+      href: "/app/appointments",
       label: "Agenda",
       requiredModule: "module.appointments",
       requiredPermission: "appointments.read",

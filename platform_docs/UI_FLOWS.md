@@ -834,6 +834,17 @@ Actions:
 
 No permitir double-booking aunque UI muestre slot libre; API es autoridad.
 
+S09 delivered /app/appointments: a reservation overlapping the visible period
+remains visible even if it starts earlier, with its original interval shown.
+Slot choices include UTC offsets and25-item presentation pages; server cursor
+pages are retained. Detail/rebooking display the snapshot timezone explicitly.
+Services/resources/weekly rules/exceptions are configured in the agenda dialog;
+weekly end24:00 and ambiguous local-time choices are explicit. Hidden or inactive
+associations and existing currency are preserved on unrelated edits. A selected
+reminder requires a same-contact conversation; pending/queued/sent evidence stays
+separate. Busy mutations retain their dialog; nested keyboard focus returns to
+the trigger after confirmation closes.
+
 ---
 
 # 31. Appointment Create/Edit

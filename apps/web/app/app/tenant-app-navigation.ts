@@ -75,7 +75,7 @@ const navigation: readonly TenantAppNavigationGroup[] = Object.freeze([
         requiredPermission: "action_requests.read",
       },
       {
-        href: null,
+        href: "/app/appointments",
         id: "appointments",
         label: "Agenda",
         requiredModule: "module.appointments",

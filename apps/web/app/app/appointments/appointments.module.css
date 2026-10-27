@@ -1,0 +1,1088 @@
+.page {
+  --agenda-gap: 1rem;
+  display: grid;
+  gap: var(--agenda-gap);
+  min-width: 0;
+  color: var(--tenant-text);
+}
+
+.pageHeader,
+.headerActions,
+.dateControls,
+.calendarToolbar,
+.filters,
+.formActions,
+.pager,
+.pager > div,
+.dialogHeader,
+.selectedContact,
+.detailHeading,
+.rowActions,
+.configToolbar,
+.configRow,
+.configTabs,
+.confirmBox > div {
+  display: flex;
+  align-items: center;
+}
+
+.pageHeader,
+.calendarToolbar,
+.pager,
+.dialogHeader,
+.selectedContact,
+.detailHeading,
+.configToolbar,
+.configRow,
+.confirmBox > div {
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.pageHeader {
+  align-items: flex-end;
+}
+.pageHeader h1 {
+  margin: 0;
+  font-size: clamp(1.65rem, 3vw, 2.25rem);
+  letter-spacing: -0.035em;
+}
+.pageHeader p {
+  margin: 0.35rem 0 0;
+  color: var(--tenant-muted);
+}
+.pageHeader .eyebrow {
+  margin: 0 0 0.35rem;
+  color: var(--tenant-primary);
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.headerActions {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.primaryButton,
+.secondaryButton,
+.dangerButton,
+.iconButton,
+.pager button,
+.viewSwitch button,
+.configTabs button,
+.rowActions button,
+.errorBanner button,
+.selectedContact button {
+  min-height: 2.5rem;
+  border: 1px solid transparent;
+  border-radius: 0.65rem;
+  padding: 0.55rem 0.9rem;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 650;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.primaryButton {
+  color: var(--tenant-on-primary);
+  background: var(--tenant-primary);
+}
+.primaryButton:hover {
+  background: var(--tenant-primary-dark);
+}
+.secondaryButton,
+.iconButton,
+.pager button,
+.viewSwitch button,
+.rowActions button,
+.selectedContact button {
+  color: var(--tenant-text);
+  background: var(--tenant-surface);
+  border-color: var(--tenant-border);
+}
+.secondaryButton:hover,
+.iconButton:hover,
+.pager button:not(:disabled):hover,
+.rowActions button:hover {
+  border-color: var(--tenant-primary);
+  background: var(--tenant-primary-soft);
+}
+.dangerButton {
+  color: #8f2b2b;
+  background: #fff3f1;
+  border-color: #e7b7b3;
+}
+.dangerButton:hover {
+  background: #ffe8e4;
+}
+.iconButton {
+  width: 2.5rem;
+  padding: 0;
+  font-size: 1.25rem;
+}
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--tenant-primary) 38%, transparent);
+  outline-offset: 2px;
+}
+
+.notice,
+.warning,
+.errorBanner,
+.loadingState,
+.emptyState,
+.errorState,
+.accessState {
+  border: 1px solid var(--tenant-border);
+  border-radius: 0.85rem;
+  background: var(--tenant-surface);
+  padding: 1rem 1.1rem;
+}
+.notice {
+  color: var(--tenant-text);
+  background: color-mix(in srgb, var(--tenant-primary-soft) 45%, var(--tenant-surface));
+}
+.warning {
+  color: #694b0c;
+  border-color: #ead8a2;
+  background: #fff9e9;
+}
+.errorBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  color: #842e2e;
+  border-color: #e5b9b6;
+  background: #fff2f0;
+}
+.errorBanner button {
+  flex: 0 0 auto;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-decoration: underline;
+  font: inherit;
+  cursor: pointer;
+}
+.loadingState {
+  padding: 2rem;
+  text-align: center;
+  color: var(--tenant-muted);
+}
+.emptyState,
+.errorState,
+.accessState {
+  display: grid;
+  justify-items: center;
+  gap: 0.55rem;
+  padding: clamp(2rem, 5vw, 4rem) 1.2rem;
+  text-align: center;
+}
+.emptyState > span,
+.accessMark {
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  color: var(--tenant-primary);
+  background: var(--tenant-primary-soft);
+  font-size: 1.45rem;
+}
+.emptyState h2,
+.errorState h1,
+.accessState h1 {
+  margin: 0.25rem 0;
+  font-size: 1.15rem;
+}
+.emptyState p,
+.errorState p,
+.accessState p {
+  max-width: 34rem;
+  margin: 0 0 0.5rem;
+  color: var(--tenant-muted);
+  line-height: 1.55;
+}
+.accessState {
+  max-width: 42rem;
+  margin: 3rem auto;
+}
+
+.calendarToolbar {
+  flex-wrap: wrap;
+  border: 1px solid var(--tenant-border);
+  border-radius: 0.85rem;
+  background: var(--tenant-surface);
+  padding: 0.8rem;
+}
+.dateControls {
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+.periodLabel {
+  margin-left: 0.4rem;
+  font-size: 0.95rem;
+  text-transform: capitalize;
+}
+.dateInput {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--tenant-muted);
+  font-size: 0.78rem;
+}
+.viewSwitch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  margin: 0;
+  border: 0;
+  padding: 0.2rem;
+  border-radius: 0.75rem;
+  background: var(--tenant-canvas);
+}
+.viewSwitch legend {
+  padding: 0 0.35rem;
+  color: var(--tenant-muted);
+  font-size: 0.7rem;
+  font-weight: 650;
+}
+.viewSwitch button {
+  min-height: 2.2rem;
+  padding: 0.4rem 0.8rem;
+  background: transparent;
+}
+.viewSwitch .selectedView {
+  color: var(--tenant-on-primary);
+  background: var(--tenant-primary);
+}
+.filters {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(8.5rem, 1fr));
+  gap: 0.7rem;
+  padding: 0.85rem;
+  border: 1px solid var(--tenant-border);
+  border-radius: 0.85rem;
+  background: var(--tenant-surface);
+}
+.filters label,
+.dateInput {
+  min-width: 0;
+}
+.filters label,
+.field,
+.formGrid label,
+.configForm label,
+.searchLabel {
+  display: grid;
+  gap: 0.35rem;
+  color: var(--tenant-muted);
+  font-size: 0.76rem;
+  font-weight: 650;
+}
+.filters select,
+.dateInput input,
+.field input,
+.field textarea,
+.formGrid input,
+.formGrid select,
+.configForm input,
+.configForm select,
+.configForm textarea,
+.searchLabel input,
+.field select,
+.reminderOptions select {
+  width: 100%;
+  min-width: 0;
+  min-height: 2.55rem;
+  box-sizing: border-box;
+  border: 1px solid var(--tenant-border);
+  border-radius: 0.55rem;
+  padding: 0.55rem 0.65rem;
+  color: var(--tenant-text);
+  background: var(--tenant-surface);
+  font: inherit;
+  font-size: 0.875rem;
+}
+.field textarea,
+.configForm textarea {
+  resize: vertical;
+}
+
+.weekGrid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid var(--tenant-border);
+  border-radius: 0.85rem;
+  background: var(--tenant-surface);
+}
+.weekDay {
+  min-width: 0;
+  min-height: 15rem;
+  border-right: 1px solid var(--tenant-border);
+}
+.weekDay:last-child {
+  border-right: 0;
+}
+.weekDay > h2 {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.3rem;
+  margin: 0;
+  border-bottom: 1px solid var(--tenant-border);
+  padding: 0.7rem 0.55rem;
+  color: var(--tenant-muted);
+  font-size: 0.78rem;
+  text-transform: capitalize;
+}
+.weekDay > h2 strong {
+  color: var(--tenant-text);
+}
+.weekAppointments {
+  display: grid;
+  align-content: start;
+  gap: 0.45rem;
+  padding: 0.45rem;
+}
+.appointmentList,
+.dayView {
+  display: grid;
+  gap: 0.9rem;
+}
+.dayGroup {
+  display: grid;
+  gap: 0.45rem;
+}
+.dayGroup h2,
+.dayView h2 {
+  margin: 0;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid var(--tenant-border);
+  font-size: 0.95rem;
+  text-transform: capitalize;
+}
+.appointmentCard {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  min-width: 0;
+  text-align: left;
+  border: 1px solid var(--tenant-border);
+  border-radius: 0.7rem;
+  padding: 0.7rem;
+  color: var(--tenant-text);
+  background: var(--tenant-surface);
+  cursor: pointer;
+}
+.appointmentCard:hover {
+  border-color: var(--tenant-primary);
+  background: color-mix(in srgb, var(--tenant-primary-soft) 25%, var(--tenant-surface));
+}
+.cardTime {
+  display: grid;
+  flex: 0 0 4.2rem;
+  gap: 0.1rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+.cardTime small {
+  color: var(--tenant-muted);
+  font-size: 0.67rem;
+  font-weight: 500;
+}
+.cardContent {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 0.15rem;
+}
+.page .cardContent strong,
+.page .cardContent span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cardContent span {
+  color: var(--tenant-muted);
+  font-size: 0.78rem;
+}
+.compactCard {
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  padding: 0.5rem;
+}
+.compactCard .cardTime {
+  flex-basis: 100%;
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+}
+.compactCard .cardContent {
+  flex-basis: 100%;
+  font-size: 0.72rem;
+}
+.status {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.3rem;
+  border: 1px solid currentColor;
+  border-radius: 99px;
+  padding: 0.18rem 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.page .compactCard .status {
+  font-size: 0.64rem;
+}
+.statusREQUESTED {
+  color: #775500;
+  background: #fff8df;
+}
+.statusCONFIRMED {
+  color: #23633f;
+  background: #eaf7ef;
+}
+.statusCANCELLED,
+.statusNO_SHOW {
+  color: #8d3737;
+  background: #fff0ee;
+}
+.statusCOMPLETED {
+  color: #345584;
+  background: #edf3fb;
+}
+.statusRESCHEDULED {
+  color: #5e4c88;
+  background: #f2effa;
+}
+.pager {
+  gap: 0.6rem;
+  color: var(--tenant-muted);
+  font-size: 0.78rem;
+}
+.pager > div {
+  gap: 0.55rem;
+}
+.pager button {
+  min-height: 2.15rem;
+  padding: 0.4rem 0.65rem;
+}
+
+.backdrop {
+  position: fixed;
+  z-index: 80;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow-y: auto;
+  padding: 1rem;
+  background: rgb(10 18 28 / 48%);
+}
+.dialog {
+  position: relative;
+  width: min(100%, 42rem);
+  max-height: min(92vh, 55rem);
+  overflow: auto;
+  border: 1px solid var(--tenant-border);
+  border-radius: 1rem;
+  background: var(--tenant-surface);
+  box-shadow: 0 22px 70px rgb(15 23 42 / 25%);
+}
+.dialogWide {
+  width: min(100%, 60rem);
+}
+.dialogHeader {
+  position: sticky;
+  z-index: 1;
+  top: 0;
+  border-bottom: 1px solid var(--tenant-border);
+  padding: 0.9rem 1.1rem;
+  background: var(--tenant-surface);
+}
+.dialogHeader h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+.formBody {
+  display: grid;
+  gap: 1rem;
+  padding: 1.1rem;
+}
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+.formGrid small,
+.field small,
+.configForm small {
+  color: var(--tenant-muted);
+  font-size: 0.74rem;
+  font-weight: 400;
+  line-height: 1.45;
+}
+.field {
+  position: relative;
+}
+.page .fieldError {
+  color: #972f2f;
+}
+.helperText {
+  margin: 0;
+  color: var(--tenant-muted);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+.selectedContact {
+  border: 1px solid var(--tenant-border);
+  border-radius: 0.65rem;
+  padding: 0.7rem;
+}
+.selectedContact span {
+  display: grid;
+  gap: 0.15rem;
+}
+.selectedContact small {
+  color: var(--tenant-muted);
+}
+.lookupList {
+  display: grid;
+  max-height: 14rem;
+  overflow-y: auto;
+  border: 1px solid var(--tenant-border);
+  border-radius: 0.6rem;
+}
+.lookupList button {
+  display: grid;
+  gap: 0.15rem;
+  border: 0;
+  border-bottom: 1px solid var(--tenant-border);
+  padding: 0.65rem;
+  text-align: left;
+  color: var(--tenant-text);
+  background: var(--tenant-surface);
+  cursor: pointer;
+}
+.lookupList button:last-child {
+  border-bottom: 0;
+}
+.lookupList button:hover {
+  background: var(--tenant-primary-soft);
+}
+.lookupList span {
+  color: var(--tenant-muted);
+  font-size: 0.8rem;
+}
+.lookupPager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  color: var(--tenant-muted);
+  font-size: 0.72rem;
+}
+.lookupPager button {
+  border: 1px solid var(--tenant-border);
+  border-radius: 0.45rem;
+  padding: 0.35rem 0.55rem;
+  color: var(--tenant-text);
+  background: var(--tenant-surface);
+  font: inherit;
+  cursor: pointer;
+}
+.lookupPager button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.foldChoice,
+.slotPagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+.slotPagination > span {
+  color: var(--tenant-muted);
+  font-size: 0.76rem;
+}
+.slotPagination > div {
+  display: flex;
+  gap: 0.5rem;
+}
+.slotPagination button {
+  min-height: 2.25rem;
+  border: 1px solid var(--tenant-border);
+  border-radius: 0.5rem;
+  padding: 0.35rem 0.7rem;
+  color: var(--tenant-text);
+  background: var(--tenant-surface);
+  cursor: pointer;
+}
+.slotPagination button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.slotSummary {
+  display: grid;
+  gap: 0.2rem;
+  margin-top: 0.5rem;
+  border: 1px solid var(--tenant-border);
+  border-radius: 0.6rem;
+  padding: 0.65rem 0.75rem;
+  color: var(--tenant-text);
+  background: var(--tenant-surface);
+  font-size: 0.8rem;
+}
+.slotSummary span {
+  color: var(--tenant-muted);
+}
+.slotChoices,
+.reminderOptions {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0;
+  border: 1px solid var(--tenant-border);
+  border-radius: 0.7rem;
+  padding: 0.8rem;
+}
+.foldChoice legend,
+.slotChoices legend,
+.reminderOptions legend {
+  padding: 0 0.25rem;
+  font-weight: 700;
+}
+.foldChoice label,
+.slotChoices label,
+.offsets label {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+}
+.slotChoices label {
+  border: 1px solid var(--tenant-border);
+  border-radius: 0.55rem;
+  padding: 0.6rem;
+  cursor: pointer;
+}
+.slotChoices label span {
+  display: grid;
+  gap: 0.15rem;
+}
+.slotChoices small {
+  color: var(--tenant-muted);
+}
+.slotChoices label.slotSelected {
+  border-color: var(--tenant-primary);
+  background: var(--tenant-primary-soft);
+}
+.reminderOptions p {
+  margin: 0;
+  color: var(--tenant-muted);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+.offsets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  font-size: 0.82rem;
+}
+.formActions {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 0.35rem;
+}
+.detailHeading {
+  align-items: flex-start;
+  border-bottom: 1px solid var(--tenant-border);
+  padding-bottom: 0.8rem;
+}
+.detailHeading h3 {
+  margin: 0.45rem 0 0.1rem;
+}
+.detailHeading p {
+  margin: 0;
+  color: var(--tenant-muted);
+}
+.dialog .detailHeading > strong {
+  text-align: right;
+}
+.detailGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.7rem;
+  margin: 0;
+}
+.detailGrid > div {
+  min-width: 0;
+  border: 1px solid var(--tenant-border);
+  border-radius: 0.6rem;
+  padding: 0.65rem;
+}
+.detailGrid dt {
+  color: var(--tenant-muted);
+  font-size: 0.7rem;
+}
+.detailGrid dd {
+  margin: 0.25rem 0 0;
+  overflow-wrap: anywhere;
+  font-size: 0.83rem;
+  font-weight: 650;
+}
+.notesBlock,
+.reminderHistory,
+.rebookPanel {
+  display: grid;
+  gap: 0.6rem;
+  border-top: 1px solid var(--tenant-border);
+  padding-top: 0.8rem;
+}
+.notesBlock h4,
+.reminderHistory h3,
+.rebookPanel h3 {
+  margin: 0;
+  font-size: 0.9rem;
+}
+.notesBlock p,
+.reminderHistory > p {
+  margin: 0;
+  color: var(--tenant-muted);
+  white-space: pre-wrap;
+}
+.reminderHistory article {
+  display: grid;
+  gap: 0.35rem;
+  border: 1px solid var(--tenant-border);
+  border-radius: 0.65rem;
+  padding: 0.65rem;
+}
+.reminderHistory article > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 1rem;
+  font-size: 0.78rem;
+}
+.reminderHistory article span,
+.reminderHistory article small {
+  color: var(--tenant-muted);
+}
+.reminderHistory article p {
+  margin: 0;
+  color: #8d3737;
+}
+.rebookPanel {
+  padding: 0.8rem;
+  border: 1px solid var(--tenant-border);
+  border-radius: 0.7rem;
+  background: var(--tenant-canvas);
+}
+
+.configLayout {
+  position: relative;
+  display: grid;
+  grid-template-columns: 11rem minmax(0, 1fr);
+  min-height: 35rem;
+}
+.configTabs {
+  align-items: stretch;
+  flex-direction: column;
+  gap: 0.25rem;
+  border-right: 1px solid var(--tenant-border);
+  padding: 0.8rem;
+}
+.configTabs button {
+  text-align: left;
+  color: var(--tenant-muted);
+  background: transparent;
+}
+.configTabs .configTabActive {
+  color: var(--tenant-primary);
+  background: var(--tenant-primary-soft);
+}
+.configPanel {
+  display: grid;
+  align-content: start;
+  gap: 0.8rem;
+  min-width: 0;
+  padding: 1rem;
+}
+.configToolbar {
+  align-items: flex-start;
+}
+.configToolbar h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+.configToolbar p {
+  margin: 0.25rem 0 0;
+  color: var(--tenant-muted);
+  font-size: 0.78rem;
+}
+.searchLabel {
+  max-width: 22rem;
+}
+.configList {
+  display: grid;
+  gap: 0.45rem;
+}
+.configRow {
+  align-items: flex-start;
+  border: 1px solid var(--tenant-border);
+  border-radius: 0.65rem;
+  padding: 0.65rem;
+}
+.configRow > div:first-child {
+  display: grid;
+  gap: 0.18rem;
+  min-width: 0;
+}
+.configRow small {
+  color: var(--tenant-muted);
+  line-height: 1.4;
+}
+.rowActions {
+  flex: 0 0 auto;
+  gap: 0.3rem;
+}
+.rowActions button {
+  min-height: 2.15rem;
+  padding: 0.35rem 0.55rem;
+  font-size: 0.75rem;
+}
+.rowActions .removeLink {
+  color: #923939;
+}
+.configEmpty {
+  border: 1px dashed var(--tenant-border);
+  border-radius: 0.65rem;
+  padding: 1rem;
+  color: var(--tenant-muted);
+  text-align: center;
+}
+.configForm {
+  display: grid;
+  gap: 0.7rem;
+  border: 1px solid var(--tenant-border);
+  border-radius: 0.75rem;
+  padding: 0.85rem;
+  background: var(--tenant-canvas);
+}
+.configForm h4 {
+  margin: 0;
+  font-size: 0.9rem;
+}
+.configForm label.checkField {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+.checkField input {
+  width: auto;
+  min-height: auto;
+}
+.confirmLayer {
+  position: absolute;
+  z-index: 6;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow-y: auto;
+  padding: 1rem;
+  background: rgb(10 18 28 / 48%);
+}
+.confirmBox {
+  width: min(100%, 25rem);
+  border: 1px solid var(--tenant-border);
+  border-radius: 0.85rem;
+  padding: 1rem;
+  background: var(--tenant-surface);
+  box-shadow: 0 18px 55px rgb(15 23 42 / 25%);
+}
+.confirmBox h3 {
+  margin: 0 0 0.5rem;
+}
+.confirmBox p {
+  color: var(--tenant-muted);
+  line-height: 1.5;
+}
+.toast {
+  position: fixed;
+  z-index: 95;
+  right: 1.25rem;
+  bottom: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  max-width: min(28rem, calc(100vw - 2rem));
+  border: 1px solid var(--tenant-border);
+  border-radius: 0.75rem;
+  padding: 0.8rem 1rem;
+  color: var(--tenant-text);
+  background: var(--tenant-surface);
+  box-shadow: 0 8px 30px rgb(15 23 42 / 18%);
+}
+.toast button {
+  border: 0;
+  color: inherit;
+  background: none;
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
+@media (max-width: 1100px) {
+  .filters {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .weekGrid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .weekDay {
+    border-bottom: 1px solid var(--tenant-border);
+  }
+}
+
+@media (max-width: 700px) {
+  .pageHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .headerActions {
+    justify-content: flex-start;
+    width: 100%;
+  }
+  .headerActions button {
+    flex: 1;
+  }
+  .calendarToolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .dateControls {
+    width: 100%;
+  }
+  .periodLabel {
+    flex-basis: 100%;
+    margin: 0.25rem 0 0;
+  }
+  .viewSwitch {
+    width: 100%;
+  }
+  .viewSwitch button {
+    flex: 1;
+  }
+  .filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .weekGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .weekDay {
+    min-height: 10rem;
+  }
+  .weekDay:nth-child(2n) {
+    border-right: 0;
+  }
+  .appointmentCard {
+    flex-wrap: wrap;
+  }
+  .page .appointmentCard > .status {
+    margin-left: auto;
+  }
+  .pager {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .pager > div {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .formGrid,
+  .detailGrid {
+    grid-template-columns: 1fr;
+  }
+  .backdrop {
+    align-items: end;
+    padding: 0;
+  }
+  .dialog,
+  .dialogWide {
+    width: 100%;
+    max-height: 94vh;
+    border-radius: 1rem 1rem 0 0;
+  }
+  .configLayout {
+    display: block;
+    min-height: auto;
+  }
+  .configTabs {
+    flex-direction: row;
+    overflow-x: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--tenant-border);
+  }
+  .configTabs button {
+    flex: 0 0 auto;
+  }
+  .configPanel {
+    padding: 0.8rem;
+  }
+  .configRow {
+    flex-direction: column;
+  }
+  .rowActions {
+    width: 100%;
+  }
+  .rowActions button {
+    flex: 1;
+  }
+  .detailHeading {
+    flex-direction: column;
+  }
+  .dialog .detailHeading > strong {
+    text-align: left;
+  }
+  .confirmBox {
+    top: 50%;
+    transform: translate(-50%, -50%);
+  }
+}
+
+@media (max-width: 390px) {
+  .filters {
+    grid-template-columns: 1fr;
+  }
+  .weekGrid {
+    grid-template-columns: 1fr;
+  }
+  .weekDay {
+    border-right: 0;
+  }
+  .headerActions {
+    flex-direction: column;
+  }
+  .headerActions button {
+    width: 100%;
+  }
+}

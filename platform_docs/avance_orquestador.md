@@ -2,7 +2,7 @@
 
 **Formato:** 1 — conservar estas secciones y actualizar sus tablas; no sustituir
 el historial por un resumen sin evidencia. Fechas de coordinación: America/Mexico_City.
-**Actualización:** 2026-10-26. **Épica activa única:** E14 — Agenda.
+**Actualización:** 2026-10-27. **Épica activa única:** E14 — Agenda.
 **Responsable activo:** Codex, rama `codex/e14-agenda-completion`.
 **Base verificada:** `fb8639db15ec262fcc13432f9aee4536deb8367e`, integrada en
 `main` y `origin/main` al iniciar. Sin cambios locales iniciales.
@@ -69,7 +69,7 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
 | E14-S06 | Codex/e14_s06 (gpt-6-sol) inicial; s06_uuid_luna (gpt-6-luna) corrección UUID; review_s06 auditoría; coordinador docs/gates. Reserva liberada, base eaf88db | PASS / COMPLETE | `8137e15e0a13ea8d06302c86064929010d74db1c`; push SHA idéntico verificado | ADR-0068; root478, DB317, API220, aislamiento46; static/build PASS; ambas revisiones aprobadas |
 | E14-S07 | Codex/e14_s07_luna (gpt-6-luna); review_s06 (gpt-6-sol) auditor; coordinador docs/gates. Reserva liberada, base a90a6c5 | PASS / COMPLETE | `3fe4927e77af0113ad418c969814c0a096cd7f4f`; push SHA idéntico verificado | ADR-0069; manager21/API11; parent DB afectada35/API11/root478; static/build PASS; revisión aprobada |
 | E14-S08 | Codex/e14_s08_luna y s08_scheduler_luna (gpt-6-luna), archivos exclusivos; review_s06 (gpt-6-sol) auditor; coordinador docs/gates. Reserva liberada, base4c67c3d | PASS / COMPLETE | `ccef6d2ba55fae26ae294aaac73fa4055d729a4f`; push SHA idéntico verificado | ADR-0070; root485, full DB352/API225, workers1+2, aislamiento46; build/types/Biome485 PASS; revisiones aprobadas |
-| E14-S09 | Sin reserva | PENDING | — | UI operativa de agenda |
+| E14-S09 | Codex/e14_s09_data_luna y e14_s09_ui_luna (gpt-6-luna); e14_s09_audit (gpt-6-sol); coordinador runtime/docs/gates. Reserva liberada, base4562cc9 | PASS / COMPLETE; publicación pendiente | — | root516/56files; web build/types; Biome496; browser real lifecycle/readonly/module/carryover/config/mobile PASS; sin backend/schema/deps |
 | E14-S10 | Sin reserva | PENDING | — | flujo WhatsApp por reglas, servicio central |
 
 ## 5. Verificaciones y auditorías de esta iteración
@@ -199,3 +199,18 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
 - 2026-10-26: S08 publicada enccef6d2ba55fae26ae294aaac73fa4055d729a4f,
   igualdad SHA local/remoto verificada. No está en main. Checkpoint documental
   registra publicación antes de abrir S09. No hay DBs de test preparadas activas.
+- 2026-10-27: continuación con fecha del cliente; Git limpio en4562cc9,
+  SHA remoto idéntico y mainfb8639d. S09 reservada a dos slices Luna con archivos
+  exclusivos: transporte/modelo/zonas y componentes/interacción. Contrato de
+  interfaz compartido publicado antes de integrar UI; S10 sigue pendiente.
+- 2026-10-27: primer freeze S09 pasó types web,15 tests comando/nav y Biome11; coordinador root509/509 antes de correcciones. Browser autenticado pasó servicio create/edit JPY, recurso, regla fin24:00 y excepción con conversión local→UTC en DB aislada. Auditoría UI reabrió seis hallazgos (límite500, preservar FK ocultas/inactivas, respuestas obsoletas, cierre durante mutación, offsets sin conversación y zona explícita al reprogramar). Luna los corrige; S09 no está completa ni publicada y S10 sigue pendiente.
+
+- 2026-10-27: S09 fuente final aprobada tras auditoría y correcciones. Gates
+  finales root516/56files, producción web/types, Biome496 y diff PASS; navegador
+  real pasó reserva con recordatorio, pérdida de respuesta/reintento sin duplicar,
+  reprogramación por snapshot, cancelación, foco, readonly/no-module, configuración
+  con FK/moneda conservadas, carryover nocturno y1440/768/390. PG confirmó
+  lineage y2 hijos/tareas canceladas, sin outbound. QA listeners propios parados,
+  DB retirada tras cero conexiones y credenciales/session temporales borradas.
+  Se documentaron fallos de setup/harness separados del límite Inbox100→50 que
+  sí exigió corrección de producto. Publicación pendiente antes de S10.

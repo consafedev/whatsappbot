@@ -477,3 +477,40 @@ Bloquean release:
 - quote calculation regression;
 - backup/restore broken before paid production;
 - provider adapter breaks current primary channel.
+
+
+## E14-S09 authenticated agenda UI verification (2026-10-27)
+
+Final gates: root Vitest516/516 (56 files), web production build and explicit
+web TypeScript, global Biome496 files, diff check; independent source review
+closed API-limit, association, async ownership, modal, reminder and timezone
+findings. No S09 backend/schema change; S08 is the latest full DB/API/worker/
+isolation gate, not a new S09 count.
+
+Browser protocol uses a disposable schema-only PostgreSQL clone (including raw
+SQL checks), real provisioning/RBAC/auth and mock channel infrastructure.
+Credentials/session live outside Git and are removed after the owned DB is
+dropped. Production-mode QA builds must set NODE_ENV=production and the actual
+NEXT_PUBLIC_API_BASE_URL; do not reuse a stale session as authenticated proof.
+
+Verified critical cases:
+
+1. Actual login; service create/edit withJPY decimal price, resource, weekly
+   end24:00 and local-time exception; manager without tenant.settings.manage
+   preserves unit links, and owner preserves the currently inactive option/GBP.
+2. Domain-available overnight reservation Sunday23:30→Monday00:30 appears in
+   next week/day/list with its original interval and explicit offset.
+3. Availability uses max500/cursor continuation; conversation lookup uses max50
+   and exact selected-contact identity. Source review additionally verifies that
+   display paging retains the selected slot; this is not claimed as a separate
+   browser page-navigation case.
+4. Intercept only the first POST response after its real server commit, abort
+   delivery, retry the unchanged UI command and prove identical key/one row;
+   rebook while calendar is UTC and snapshot is Mexico City, then cancel.
+   Verify lineage, child/task cancellation and no external outbound.
+5. Tab/Escape/focus restoration in nested cancellation; busy creation survives
+   Escape. Readonly active-detail has no mutations; disabled module direct
+   route makes no agenda API request.
+6. Desktop1440/tablet768/mobile390, mobile configuration/form, reduced motion,
+   no body overflow and visual screenshots. Distinguish successful UI operations
+   from harness locator/setup failures and do not claim a real handset send.

@@ -8,6 +8,14 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Added
 
+- E14-S09 operational agenda UI: day/week/list, timezone-aware overlap and DST
+  offsets, real availability/booking/cancel/rebook/reminder history, and complete
+  service/resource/rule/exception configuration. Permissions/module gating,
+  stable retry keys, cursor-aware lookup,25-slot presentation, preserved hidden
+  associations, accessible modal flow and responsive layouts are verified
+  against an isolated authenticated local API. Validation/publication is tracked
+  in STATUS and avance_orquestador. No backend/schema/dependency change.
+
 - E14-S08 durable appointment reminders: optional normalized same-contact policy,
   tenant-aware reminder/task/outbound links and immutable schedule intent,
   atomic cancellation/rebooking suppression, skipped past-due history, and a
