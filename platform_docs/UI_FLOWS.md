@@ -851,6 +851,15 @@ Fields:
 
 Display timezone explicitly when tenant operates multiple zones in future.
 
+S08 API reminder enrollment is optional: same-contact conversation and1–3
+distinct offsetMinutes (1–10080). UI must explain module dependencies
+(appointments/scheduling/messaging.basic/crm_lite), skipped past-due offsets and
+suppression. Do not display QUEUED as delivered; use the linked outbound result.
+Rebooking inherits policy and cancels prior pending reminders. Automatic sends
+require AUTO; ASSISTED requires approval. Internal scheduler reminder rows keep
+history/read but their mutations belong to agenda. S09 implements the agenda
+screen against these real APIs; no UI-only business authority is introduced.
+
 ---
 
 # 32. Catalog

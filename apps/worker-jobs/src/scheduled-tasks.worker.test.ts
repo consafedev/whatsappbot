@@ -2,11 +2,14 @@ import type { ScheduledTask } from "@whatsapp-platform/database";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const databaseMocks = vi.hoisted(() => ({
+  AppointmentReminderTaskMismatchError: class AppointmentReminderTaskMismatchError extends Error {},
   assertTenantModuleEntitled: vi.fn(),
   claimScheduledTask: vi.fn(),
+  calculateRetryDelayMs: vi.fn(() => 5_000),
   createScheduledTaskTriggerPayload: vi.fn(),
   createTenantContext: vi.fn((tenantId: string) => ({ tenantId })),
   dispatchRuleTriggers: vi.fn(),
+  executeAppointmentReminder: vi.fn(),
   markScheduledTaskFailed: vi.fn(),
   recordTaskRun: vi.fn(),
   rescheduleRecurringTask: vi.fn(),
@@ -44,6 +47,7 @@ function task(overrides: Partial<ScheduledTask> = {}): ScheduledTask {
     taskType: "TRIGGER_RULE",
     tenantId: tenantAId,
     updatedAt: now,
+    workflowRunAt: null,
     ...overrides,
   } as ScheduledTask;
 }
@@ -76,6 +80,10 @@ describe("processScheduledTaskJob", () => {
       triggerType: "ON_SCHEDULED_TASK",
     });
     databaseMocks.dispatchRuleTriggers.mockResolvedValue({});
+    databaseMocks.executeAppointmentReminder.mockResolvedValue({
+      kind: "queued",
+      outboundMessageId: "outbound-1",
+    });
     databaseMocks.markScheduledTaskFailed.mockResolvedValue(task({ status: "FAILED" }));
     databaseMocks.recordTaskRun.mockResolvedValue(true);
     databaseMocks.rescheduleRecurringTask.mockResolvedValue(task({ status: "PENDING" }));
@@ -137,6 +145,152 @@ describe("processScheduledTaskJob", () => {
       deps.database,
       expect.objectContaining({ status: "SUCCESS", taskId, tenantId: tenantAId }),
     );
+  });
+
+  it("runs reminders through the appointment handler and completes with a processing CAS", async () => {
+    databaseMocks.claimScheduledTask.mockResolvedValue(task({ taskType: "APPOINTMENT_REMINDER" }));
+    const updateMany = vi.fn().mockResolvedValue({ count: 1 });
+    const createMany = vi.fn().mockResolvedValue({ count: 1 });
+    const deps = dependencies();
+    (deps as { database: ScheduledTaskProcessorDependencies["database"] }).database = {
+      $transaction: (callback: (transaction: unknown) => Promise<unknown>) =>
+        callback({ scheduledTask: { updateMany }, scheduledTaskRun: { createMany } }),
+    } as ScheduledTaskProcessorDependencies["database"];
+
+    await processScheduledTaskJob(job(), deps);
+
+    expect(databaseMocks.assertTenantModuleEntitled).not.toHaveBeenCalled();
+    expect(databaseMocks.executeAppointmentReminder).toHaveBeenCalledWith(
+      deps.database,
+      expect.objectContaining({ taskType: "APPOINTMENT_REMINDER", status: "PROCESSING" }),
+      expect.any(Function),
+    );
+    expect(updateMany).toHaveBeenCalledWith({
+      data: { lastRunAt: now, status: "COMPLETED" },
+      where: {
+        id: taskId,
+        tenantId: tenantAId,
+        status: "PROCESSING",
+        retryCount: 0,
+        scheduledFor: now,
+        updatedAt: now,
+      },
+    });
+    expect(databaseMocks.rescheduleRecurringTask).not.toHaveBeenCalled();
+    expect(createMany).toHaveBeenCalledWith({
+      data: [expect.objectContaining({ status: "SUCCESS", taskId, tenantId: tenantAId })],
+      skipDuplicates: true,
+    });
+    expect(databaseMocks.recordTaskRun).not.toHaveBeenCalled();
+  });
+
+  it("does not resurrect a reminder task cancelled during execution", async () => {
+    databaseMocks.claimScheduledTask.mockResolvedValue(task({ taskType: "APPOINTMENT_REMINDER" }));
+    const updateMany = vi.fn().mockResolvedValue({ count: 0 });
+    const deps = dependencies();
+    (deps as { database: ScheduledTaskProcessorDependencies["database"] }).database = {
+      $transaction: (callback: (transaction: unknown) => Promise<unknown>) =>
+        callback({ scheduledTask: { updateMany }, scheduledTaskRun: { createMany: vi.fn() } }),
+    } as ScheduledTaskProcessorDependencies["database"];
+
+    await expect(processScheduledTaskJob(job(), deps)).resolves.toBeUndefined();
+    expect(databaseMocks.recordTaskRun).not.toHaveBeenCalled();
+  });
+
+  it("does not complete or record a stale reminder attempt after recovery", async () => {
+    databaseMocks.claimScheduledTask.mockResolvedValue(task({ taskType: "APPOINTMENT_REMINDER" }));
+    const updateMany = vi.fn().mockResolvedValue({ count: 0 });
+    const deps = dependencies();
+    (deps as { database: ScheduledTaskProcessorDependencies["database"] }).database = {
+      $transaction: (callback: (transaction: unknown) => Promise<unknown>) =>
+        callback({ scheduledTask: { updateMany }, scheduledTaskRun: { createMany: vi.fn() } }),
+    } as ScheduledTaskProcessorDependencies["database"];
+    await processScheduledTaskJob(job(), deps);
+
+    expect(updateMany).toHaveBeenCalledWith({
+      data: { lastRunAt: now, status: "COMPLETED" },
+      where: {
+        id: taskId,
+        tenantId: tenantAId,
+        status: "PROCESSING",
+        retryCount: 0,
+        scheduledFor: now,
+        updatedAt: now,
+      },
+    });
+    expect(databaseMocks.recordTaskRun).not.toHaveBeenCalled();
+  });
+
+  it("does not fail or record a stale reminder attempt after a newer retry was claimed", async () => {
+    databaseMocks.claimScheduledTask.mockResolvedValue(task({ taskType: "APPOINTMENT_REMINDER" }));
+    databaseMocks.executeAppointmentReminder.mockRejectedValueOnce(
+      new databaseMocks.AppointmentReminderTaskMismatchError(),
+    );
+    const updateMany = vi.fn().mockResolvedValue({ count: 0 });
+    const deps = dependencies();
+    (deps as { database: ScheduledTaskProcessorDependencies["database"] }).database = {
+      $transaction: (callback: (transaction: unknown) => Promise<unknown>) =>
+        callback({ scheduledTask: { updateMany }, scheduledTaskRun: { createMany: vi.fn() } }),
+    } as ScheduledTaskProcessorDependencies["database"];
+    await processScheduledTaskJob(job(), deps);
+
+    expect(updateMany).toHaveBeenCalledWith({
+      data: { errorMessage: "APPOINTMENT_REMINDER_TASK_MISMATCH", status: "FAILED" },
+      where: {
+        id: taskId,
+        tenantId: tenantAId,
+        status: "PROCESSING",
+        retryCount: 0,
+        scheduledFor: now,
+        updatedAt: now,
+      },
+    });
+    expect(databaseMocks.markScheduledTaskFailed).not.toHaveBeenCalled();
+    expect(databaseMocks.recordTaskRun).not.toHaveBeenCalled();
+  });
+
+  it("records one terminal failure and schedules bounded backoff for an operational reminder error", async () => {
+    databaseMocks.claimScheduledTask.mockResolvedValue(task({ taskType: "APPOINTMENT_REMINDER" }));
+    databaseMocks.executeAppointmentReminder.mockRejectedValueOnce(
+      new Error("private provider detail"),
+    );
+    const updateMany = vi.fn().mockResolvedValue({ count: 1 });
+    const createMany = vi.fn().mockResolvedValue({ count: 1 });
+    const deps = dependencies();
+    (deps as { database: ScheduledTaskProcessorDependencies["database"] }).database = {
+      $transaction: (callback: (transaction: unknown) => Promise<unknown>) =>
+        callback({ scheduledTask: { updateMany }, scheduledTaskRun: { createMany } }),
+    } as ScheduledTaskProcessorDependencies["database"];
+    await processScheduledTaskJob(job(), deps);
+
+    expect(updateMany).toHaveBeenCalledWith({
+      data: {
+        errorMessage: "APPOINTMENT_REMINDER_EXECUTION_FAILED",
+        retryCount: 1,
+        scheduledFor: new Date(now.getTime() + 5_000),
+        status: "PENDING",
+      },
+      where: {
+        id: taskId,
+        tenantId: tenantAId,
+        status: "PROCESSING",
+        retryCount: 0,
+        scheduledFor: now,
+        updatedAt: now,
+      },
+    });
+    expect(createMany).toHaveBeenCalledWith({
+      data: [
+        expect.objectContaining({
+          errorMessage: "APPOINTMENT_REMINDER_EXECUTION_FAILED",
+          retryAttempt: 0,
+          startedAt: now,
+          status: "FAILED",
+        }),
+      ],
+      skipDuplicates: true,
+    });
+    expect(databaseMocks.recordTaskRun).not.toHaveBeenCalled();
   });
 
   it("does nothing when the task cannot be claimed", async () => {

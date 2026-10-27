@@ -825,6 +825,17 @@ MVP adapter: BullMQ.
 
 El dominio no importa BullMQ directamente.
 
+E14-S08 concretizes the required port as schedule/cancel/getStatus in
+packages/workflows, with a transaction-bound PostgreSQL ScheduledTask adapter.
+The existing reconciler and BullMQ worker execute committed intention. Stable
+task UUID equals the reminder UUID and an explicit tenant-aware taskId FK links
+them. Native tenant/reference UUID identity is canonical; opaque payload values
+retain their case. Conflicting same-reference intent is rejected.
+workflowRunAt preserves original scheduling intent while scheduledFor may move
+for recovery/backoff; idempotent receipt comparison uses the original time.
+Conceptual enqueue/retry/signal/startWorkflow capabilities are not claimed implemented;
+there are no throwing placeholder methods. ADR-0070 records this concrete scope.
+
 ## 17.1 Reconciliación
 
 Jobs críticos deben tener una referencia PostgreSQL y un proceso periódico debe detectar:
@@ -953,6 +964,24 @@ Disponibilidad se calcula desde:
 La operación `bookAppointment` debe proteger contra double-booking con constraint/locking transaccional adecuado.
 
 Recordatorios se programan mediante `WorkflowOrchestrator`, no con timers en memoria.
+
+E14-S08 reminder policy is optional and immutable in the booking receipt:
+an owned same-contact conversation plus 1–3 distinct offsets of1–10080 minutes.
+Appointment, policy, reminder children, tasks, AuditLog and Outbox commit
+together. Cancellation/rebooking cancels old pending work; replacement inherits
+policy. Past-due offsets or unavailable inherited notification capabilities are
+retained as suppressed history. Automatic dispatch requires AUTO; ASSISTED
+requires human approval and is suppressed in this bounded story.
+
+Due handling reuses canonical Message/OutboundMessage/inbox persistence inside
+the same transaction. Generation state QUEUED is separate from provider-confirmed
+delivery. Due and final dispatch checks take conversation advisory before
+appointment/reminder locks; dashboard lifecycle does not acquire conversation
+after appointment/resource locks. A final linked-reminder guard rechecks current
+state, phone, modes and modules before provider IO. Already-authorized IO cannot
+be retracted. Internal APPOINTMENT_REMINDER tasks are domain managed, protected
+from generic scheduler HTTP mutations. Actual S08 validation/publication remains
+tracked in STATUS; this architectural contract is not a delivery claim.
 
 ---
 

@@ -218,6 +218,7 @@ model Tenant {
   appointmentAvailabilityRules AppointmentAvailabilityRule[]
   appointmentAvailabilityExceptions AppointmentAvailabilityException[]
   appointments        Appointment[]
+  appointmentReminders AppointmentReminder[]
 
   @@index([status], map: "tenant_status_idx")
   @@index([deploymentId], map: "tenant_deployment_id_idx")
@@ -544,6 +545,7 @@ model OutboundMessage {
   channelAccount    ChannelAccount  @relation(fields: [channelAccountId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   actorUser         User?           @relation(fields: [tenantId, actorUserId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade)
   message           Message?        @relation("OutboundCanonicalMessage")
+  appointmentReminders AppointmentReminder[]
 
   @@unique([tenantId, id], map: "outbound_message_tenant_id_key")
   @@unique([tenantId, idempotencyKey], map: "outbound_message_tenant_idempotency_key")
@@ -609,6 +611,7 @@ model Conversation {
   assignedUser          User?             @relation("ConversationAssignedUser", fields: [tenantId, assignedUserId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade)
   assignedUnit          OrganizationUnit? @relation("ConversationAssignedUnit", fields: [tenantId, assignedUnitId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade)
   messages              Message[]
+  appointmentReminders AppointmentReminder[]
 
   @@unique([tenantId, id], map: "conversation_tenant_id_id_key")
   @@index([tenantId, status, lastMessageAt], map: "conversation_tenant_status_last_message_idx")
@@ -923,6 +926,7 @@ model ScheduledTask {
   payload        Json               @default("{}") @db.JsonB
   cronExpression String?            @map("cron_expression")
   scheduledFor   DateTime           @map("scheduled_for") @db.Timestamptz(3)
+  workflowRunAt  DateTime?          @map("workflow_run_at") @db.Timestamptz(3)
   lastRunAt      DateTime?          @map("last_run_at") @db.Timestamptz(3)
   nextRunAt      DateTime?          @map("next_run_at") @db.Timestamptz(3)
   retryCount     Int                @default(0) @map("retry_count")
@@ -933,6 +937,7 @@ model ScheduledTask {
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   runs   ScheduledTaskRun[]
+  appointmentReminders AppointmentReminder[]
 
   @@index([tenantId, status, scheduledFor], map: "scheduled_task_tenant_status_scheduled_idx")
   @@unique([tenantId, id], map: "scheduled_task_tenant_id_key")
@@ -1122,6 +1127,8 @@ model Appointment {
   createdByUser         User? @relation("AppointmentCreator", fields: [tenantId, createdByUserId], references: [tenantId, id], onDelete: Restrict, map: "appointments_creator_fkey")
   rescheduledFrom       Appointment? @relation("AppointmentRescheduling", fields: [tenantId, rescheduledFromId], references: [tenantId, id], onDelete: Restrict, map: "appointments_rescheduled_from_fkey")
   rescheduledTo         Appointment? @relation("AppointmentRescheduling")
+  reminderPolicy        Json? @map("reminder_policy") @db.JsonB
+  reminders             AppointmentReminder[]
 
   @@unique([tenantId, id], map: "appointments_tenant_id_id_key")
   @@unique([tenantId, idempotencyKey], map: "appointments_tenant_idempotency_key")
@@ -1130,4 +1137,42 @@ model Appointment {
   @@index([tenantId, startsAt, id], map: "appointments_tenant_starts_idx")
   @@index([tenantId, contactId, startsAt], map: "appointments_contact_starts_idx")
   @@map("appointments")
+}
+
+enum AppointmentReminderStatus {
+  PENDING
+  QUEUED
+  CANCELLED
+  SUPPRESSED
+
+  @@map("appointment_reminder_status")
+}
+
+model AppointmentReminder {
+  id                   String                    @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  tenantId             String                    @map("tenant_id") @db.Uuid
+  appointmentId        String                    @map("appointment_id") @db.Uuid
+  conversationId       String                    @map("conversation_id") @db.Uuid
+  offsetMinutes        Int                       @map("offset_minutes")
+  dueAt                DateTime                  @map("due_at") @db.Timestamptz(3)
+  status               AppointmentReminderStatus @default(PENDING)
+  reason               String?                   @db.VarChar(64)
+  taskId               String?                   @map("task_id") @db.Uuid
+  outboundMessageId    String?                   @map("outbound_message_id") @db.Uuid
+  dispatchAuthorizedAt DateTime?                 @map("dispatch_authorized_at") @db.Timestamptz(3)
+  createdAt            DateTime                  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt            DateTime                  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  tenant       Tenant          @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "appointment_reminders_tenant_fkey")
+  appointment  Appointment     @relation(fields: [tenantId, appointmentId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade, map: "appointment_reminders_appointment_fkey")
+  conversation Conversation    @relation(fields: [tenantId, conversationId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade, map: "appointment_reminders_conversation_fkey")
+  task         ScheduledTask?  @relation(fields: [tenantId, taskId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade, map: "appointment_reminders_task_fkey")
+  outbound     OutboundMessage? @relation(fields: [tenantId, outboundMessageId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade, map: "appointment_reminders_outbound_fkey")
+
+  @@unique([tenantId, id], map: "appointment_reminder_tenant_id_key")
+  @@unique([tenantId, appointmentId, offsetMinutes], map: "appointment_reminder_tenant_appt_offset_key")
+  @@unique([tenantId, taskId], map: "appointment_reminder_tenant_task_key")
+  @@unique([tenantId, outboundMessageId], map: "appointment_reminder_tenant_outbound_key")
+  @@index([tenantId, status, dueAt], map: "appointment_reminder_tenant_status_due_idx")
+  @@map("appointment_reminders")
 }

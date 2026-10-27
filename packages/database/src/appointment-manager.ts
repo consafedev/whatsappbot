@@ -1,7 +1,14 @@
 import { AppointmentAvailabilityQueryValidationError } from "./appointment-availability-calculator";
 import { parseAppointmentOffsetTimestamp } from "./appointment-exception-manager";
+import {
+  type AppointmentReminderPolicy,
+  appointmentReminderPolicyFromJson,
+  cancelAppointmentRemindersInTransaction,
+  normalizeAppointmentReminderPolicy,
+  scheduleAppointmentRemindersInTransaction,
+} from "./appointment-reminder-manager";
 import { findAppointmentAvailability } from "./appointment-slot-query";
-import type { Appointment, AppointmentStatus, Prisma } from "./generated/prisma/client";
+import { type Appointment, type AppointmentStatus, Prisma } from "./generated/prisma/client";
 import { createTenantContext, type TenantContext } from "./tenant-context";
 import { createTenantDataAccess, type TenantTransactionDatabase } from "./tenant-data-access";
 import { assertTenantModuleEntitled } from "./tenant-entitlements";
@@ -15,6 +22,7 @@ export type CreateAppointmentInput = Readonly<{
   startsAt: string;
   idempotencyKey: string;
   notes?: string | null;
+  reminderPolicy?: AppointmentReminderPolicy | null;
 }>;
 export type RebookAppointmentInput = Readonly<{
   startsAt: string;
@@ -44,6 +52,10 @@ export type AppointmentManagerDatabase = TenantTransactionDatabase &
     | "appointmentResource"
     | "appointmentAvailabilityRule"
     | "appointmentAvailabilityException"
+    | "appointmentReminder"
+    | "scheduledTask"
+    | "conversation"
+    | "channelAccount"
   >;
 export class AppointmentValidationError extends Error {
   override readonly name = "AppointmentValidationError";
@@ -82,6 +94,7 @@ function normalize(input: CreateAppointmentInput): {
   startsAt: Date;
   notes: string | null;
   idempotencyKey: string;
+  reminderPolicy: AppointmentReminderPolicy | null;
 } {
   uuid(input.serviceId, "serviceId");
   uuid(input.resourceId, "resourceId");
@@ -95,7 +108,22 @@ function normalize(input: CreateAppointmentInput): {
   const notes = input.notes?.trim() || null;
   if (notes !== null && notes.length > 2000)
     throw new AppointmentValidationError("notes must not exceed 2000 characters");
-  return { startsAt, notes, idempotencyKey: key.trim() };
+  let reminderPolicy: AppointmentReminderPolicy | null;
+  try {
+    reminderPolicy = normalizeAppointmentReminderPolicy(input.reminderPolicy);
+  } catch (error) {
+    throw new AppointmentValidationError(
+      error instanceof Error ? error.message : "Invalid reminder policy",
+    );
+  }
+  return { startsAt, notes, idempotencyKey: key.trim(), reminderPolicy };
+}
+
+function samePolicy(
+  left: AppointmentReminderPolicy | null,
+  right: AppointmentReminderPolicy | null,
+): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
 }
 
 function sameCommand(
@@ -112,6 +140,10 @@ function sameCommand(
     existing.contactId === input.contactId.toLowerCase() &&
     existing.startsAt.getTime() === normalized.startsAt.getTime() &&
     existing.notes === normalized.notes &&
+    samePolicy(
+      appointmentReminderPolicyFromJson(existing.reminderPolicy),
+      normalized.reminderPolicy,
+    ) &&
     existing.createdByUserId === actor.toLowerCase() &&
     existing.source === "dashboard"
   );
@@ -232,8 +264,19 @@ export async function createAppointmentInTransaction(
       timezoneSnapshot: availability.timezone,
       source: "dashboard",
       notes: normalized.notes,
+      reminderPolicy:
+        normalized.reminderPolicy === null
+          ? Prisma.DbNull
+          : (normalized.reminderPolicy as Prisma.InputJsonValue),
     },
   });
+  await scheduleAppointmentRemindersInTransaction(
+    tenant,
+    transaction,
+    appointment,
+    normalized.reminderPolicy,
+    { inherited: expectedParentId !== null },
+  );
   const access = createTenantDataAccess(tenant, transaction);
   const summary = {
     appointmentId: appointment.id,
@@ -249,6 +292,7 @@ export async function createAppointmentInTransaction(
     durationMinutes: appointment.durationMinutes,
     bufferBeforeMinutes: appointment.bufferBeforeMinutes,
     bufferAfterMinutes: appointment.bufferAfterMinutes,
+    reminderPolicy: normalized.reminderPolicy,
   };
   await access.audit.append({
     action: "appointment.created",
@@ -350,6 +394,7 @@ export async function cancelAppointment(
     if (current.status === "CANCELLED") return current;
     if (current.status !== "REQUESTED" && current.status !== "CONFIRMED")
       throw new AppointmentConflictError("Appointment cannot be cancelled from its current state");
+    await cancelAppointmentRemindersInTransaction(tenant, transaction, current.id);
     const cancelled = await transaction.appointment.update({
       where: { tenantId_id: { tenantId: tenant.tenantId, id: current.id } },
       data: { status: "CANCELLED" },
@@ -416,6 +461,7 @@ export async function rebookAppointment(
       startsAt: startsAt.toISOString(),
       idempotencyKey: key,
       notes: old.notes,
+      reminderPolicy: appointmentReminderPolicyFromJson(old.reminderPolicy),
     };
     const normalized = normalize(command);
     const existing = await transaction.appointment.findUnique({
@@ -441,6 +487,7 @@ export async function rebookAppointment(
     for (const resourceId of resourceIds)
       await lockAppointmentResource(tenant, transaction, resourceId);
 
+    await cancelAppointmentRemindersInTransaction(tenant, transaction, old.id);
     const rescheduled = await transaction.appointment.update({
       where: { tenantId_id: { tenantId: tenant.tenantId, id: old.id } },
       data: { status: "RESCHEDULED" },

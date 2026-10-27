@@ -1,6 +1,7 @@
 import {
   assertTenantModuleEntitled,
   assertTenantOperational,
+  authorizeAppointmentReminderDispatch,
   createTenantContext,
   type OutboundMessageManager,
   type OutboundMessageRecord,
@@ -19,8 +20,6 @@ export const OUTBOUND_ATTEMPT_TIMEOUT_MS = 15_000;
 export const OUTBOUND_WORKER_CONCURRENCY = 5;
 export const OUTBOUND_WORKER_LEASE_MS = 30_000;
 export const OUTBOUND_WORKER_POLL_MS = 500;
-
-type DatabaseChannelReader = Pick<PrismaClient, "channelAccount" | "tenant" | "tenantEntitlement">;
 
 export type OutboundWorkerOptions = Readonly<{
   attemptTimeoutMs?: number;
@@ -113,7 +112,7 @@ export class OutboundWorker {
 
   constructor(
     manager: OutboundMessageManager,
-    database: DatabaseChannelReader,
+    database: PrismaClient,
     options: OutboundWorkerOptions = {},
   ) {
     this.manager = manager;
@@ -143,6 +142,7 @@ export class OutboundWorker {
           select: { active: true, providerType: true, status: true },
           where: { id: channelAccountId, tenantId },
         }),
+      authorizeDispatch: async (message) => authorizeAppointmentReminderDispatch(database, message),
       ...(options.providerFactory === undefined
         ? {}
         : { providerFactory: options.providerFactory }),

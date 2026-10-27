@@ -4,6 +4,7 @@ import {
   formatDateTime,
   formatTaskStatus,
   formatTaskType,
+  isAgendaManagedTaskType,
   type ScheduledTaskItem,
   type ScheduledTaskStatusTone,
 } from "./scheduled-tasks-view-model";
@@ -64,8 +65,11 @@ export function ScheduledTasksList({
           {tasks.map((task) => {
             const status = formatTaskStatus(task.status);
             const pending = isPending(task.id);
-            const canCancel = task.status === "PENDING" || task.status === "PROCESSING";
-            const canRetry = task.status === "FAILED" || task.status === "CANCELLED";
+            const agendaManaged = isAgendaManagedTaskType(task.taskType);
+            const canCancel =
+              !agendaManaged && (task.status === "PENDING" || task.status === "PROCESSING");
+            const canRetry =
+              !agendaManaged && (task.status === "FAILED" || task.status === "CANCELLED");
 
             return (
               <tr className="align-top text-slate-700 dark:text-slate-200" key={task.id}>

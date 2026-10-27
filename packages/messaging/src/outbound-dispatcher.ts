@@ -35,6 +35,7 @@ export type OutboundDispatchOutcome =
 export type OutboundDispatcherDependencies = Readonly<{
   assertMessagingEntitled(tenantId: string): Promise<void>;
   assertTenantOperational(tenantId: string): Promise<void>;
+  authorizeDispatch?(message: OutboundDispatchMessage): Promise<void>;
   findChannel(tenantId: string, channelAccountId: string): Promise<OutboundDispatchChannel | null>;
   providerFactory?: (channel: OutboundDispatchChannel) => MessagingProvider;
   now?: () => Date;
@@ -54,6 +55,7 @@ const TRANSIENT_ERROR_MARKERS = [
   "502",
   "503",
   "504",
+  "REMINDER_DISPATCH_GUARD_UNAVAILABLE",
 ] as const;
 
 const PERMANENT_ERROR_MARKERS = [
@@ -131,6 +133,7 @@ export class OutboundMessageDispatcher {
   }
 
   async dispatch(message: OutboundDispatchMessage): Promise<OutboundDispatchOutcome> {
+    let authorizationAttempted = false;
     try {
       await this.dependencies.assertTenantOperational(message.tenantId);
       await this.dependencies.assertMessagingEntitled(message.tenantId);
@@ -139,11 +142,18 @@ export class OutboundMessageDispatcher {
         message.channelAccountId,
       );
       if (channel === null || !channel.active) {
+        authorizationAttempted = true;
+        await this.dependencies.authorizeDispatch?.(message);
         return this.permanentFailure("Channel account is inactive or unavailable");
       }
       if (channel.status !== "connected") {
+        authorizationAttempted = true;
+        await this.dependencies.authorizeDispatch?.(message);
         return this.permanentFailure(`Channel account is not connected: ${channel.status}`);
       }
+
+      authorizationAttempted = true;
+      await this.dependencies.authorizeDispatch?.(message);
 
       const providerFactory = this.dependencies.providerFactory ?? getMessagingProvider;
       const provider = providerFactory(channel);
@@ -154,6 +164,13 @@ export class OutboundMessageDispatcher {
       }
       return this.failureFrom(providerFailure(result), message.retryCount);
     } catch (error) {
+      if (!authorizationAttempted && this.dependencies.authorizeDispatch !== undefined) {
+        try {
+          await this.dependencies.authorizeDispatch(message);
+        } catch (authorizationError) {
+          return this.failureFrom(authorizationError, message.retryCount);
+        }
+      }
       return this.failureFrom(error, message.retryCount);
     }
   }

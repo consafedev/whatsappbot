@@ -93,12 +93,17 @@ async function cleanup(): Promise<void> {
     where: { slug: { startsWith: prefix } },
   });
   const ids = tenants.map(({ id }) => id);
+  await prisma.appointmentReminder.deleteMany({ where: { tenantId: { in: ids } } });
   await prisma.appointment.deleteMany({ where: { tenantId: { in: ids } } });
   await prisma.appointmentAvailabilityRule.deleteMany({ where: { tenantId: { in: ids } } });
   await prisma.appointmentAvailabilityException.deleteMany({ where: { tenantId: { in: ids } } });
   await prisma.appointmentResource.deleteMany({ where: { tenantId: { in: ids } } });
   await prisma.appointmentService.deleteMany({ where: { tenantId: { in: ids } } });
+  await prisma.message.deleteMany({ where: { tenantId: { in: ids } } });
+  await prisma.outboundMessage.deleteMany({ where: { tenantId: { in: ids } } });
+  await prisma.conversation.deleteMany({ where: { tenantId: { in: ids } } });
   await prisma.contact.deleteMany({ where: { tenantId: { in: ids } } });
+  await prisma.channelAccount.deleteMany({ where: { tenantId: { in: ids } } });
   await prisma.userSession.deleteMany({ where: { tenantId: { in: ids } } });
   await prisma.userRole.deleteMany({ where: { tenantId: { in: ids } } });
   await prisma.rolePermission.deleteMany({ where: { role: { tenantId: { in: ids } } } });
@@ -106,6 +111,7 @@ async function cleanup(): Promise<void> {
   await prisma.auditLog.deleteMany({ where: { tenantId: { in: ids } } });
   await prisma.domainEventOutbox.deleteMany({ where: { tenantId: { in: ids } } });
   await prisma.tenantEntitlement.deleteMany({ where: { tenantId: { in: ids } } });
+  await prisma.scheduledTask.deleteMany({ where: { tenantId: { in: ids } } });
   await prisma.user.deleteMany({ where: { tenantId: { in: ids } } });
   await prisma.tenant.deleteMany({ where: { id: { in: ids } } });
 }
@@ -1105,6 +1111,128 @@ describe.sequential("E14-S01 appointments API", () => {
       400,
     );
     expect((await fetch(`${url}/services`, { headers: { cookie: readCookie } })).status).toBe(200);
+  });
+
+  it("validates opt-in reminder policy and returns scoped reminder delivery state", async () => {
+    for (const entitlementKey of [
+      "module.scheduling",
+      "module.messaging.basic",
+      "module.crm_lite",
+    ]) {
+      await prisma.tenantEntitlement.upsert({
+        create: { enabled: true, entitlementKey, source: "contract", tenantId: tenantAId },
+        update: { enabled: true },
+        where: { tenantId_entitlementKey: { entitlementKey, tenantId: tenantAId } },
+      });
+    }
+    const start = new Date();
+    start.setUTCDate(start.getUTCDate() + 18);
+    start.setUTCHours(10, 0, 0, 0);
+    const [service, resource, contact, channel] = await Promise.all([
+      prisma.appointmentService.create({
+        data: { tenantId: tenantAId, name: "Reminder API service", durationMinutes: 30 },
+      }),
+      prisma.appointmentResource.create({
+        data: { tenantId: tenantAId, name: "Reminder API resource", capacity: 5 },
+      }),
+      prisma.contact.create({
+        data: { tenantId: tenantAId, name: "Reminder API contact", phoneNumber: "+525500001188" },
+      }),
+      prisma.channelAccount.create({
+        data: {
+          active: true,
+          displayName: "Reminder API channel",
+          providerType: "mock",
+          status: "connected",
+          tenantId: tenantAId,
+        },
+      }),
+    ]);
+    const conversation = await prisma.conversation.create({
+      data: {
+        channelAccountId: channel.id,
+        contactId: contact.id,
+        status: "open",
+        tenantId: tenantAId,
+      },
+    });
+    await prisma.appointmentAvailabilityRule.create({
+      data: {
+        tenantId: tenantAId,
+        resourceId: resource.id,
+        serviceId: service.id,
+        dayOfWeek: start.getUTCDay(),
+        startTime: "09:00",
+        endTime: "11:00",
+        timezone: "UTC",
+        capacity: 5,
+      },
+    });
+    const url = `${baseUrl}/api/v1/appointments`;
+    const headers = { cookie: manageCookie, "content-type": "application/json" };
+    const body = {
+      serviceId: service.id,
+      resourceId: resource.id,
+      contactId: contact.id,
+      startsAt: start.toISOString(),
+      idempotencyKey: "api-reminder-create",
+      reminderPolicy: { conversationId: conversation.id.toUpperCase(), offsetMinutes: [60, 30] },
+    };
+    expect(
+      (
+        await fetch(url, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            ...body,
+            reminderPolicy: { ...body.reminderPolicy, text: "forged" },
+          }),
+        })
+      ).status,
+    ).toBe(400);
+    const created = await fetch(url, { method: "POST", headers, body: JSON.stringify(body) });
+    expect(created.status).toBe(201);
+    const receipt = (await created.json()) as {
+      data: { id: string; reminderPolicy: { conversationId: string; offsetMinutes: number[] } };
+    };
+    expect(receipt.data.reminderPolicy).toEqual({
+      conversationId: conversation.id,
+      offsetMinutes: [30, 60],
+    });
+    expect(
+      await prisma.appointmentReminder.count({
+        where: { tenantId: tenantAId, appointmentId: receipt.data.id },
+      }),
+    ).toBe(2);
+    const reminderRead = await fetch(`${url}/${receipt.data.id}/reminders`, {
+      headers: { cookie: readCookie },
+    });
+    expect(reminderRead.status).toBe(200);
+    const reminderReceipt = (await reminderRead.json()) as {
+      data: Array<{ status: string; taskStatus: string }>;
+    };
+    expect(reminderReceipt.data).toHaveLength(2);
+    expect(reminderReceipt.data).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ status: "PENDING", taskStatus: "PENDING" }),
+      ]),
+    );
+    expect(
+      (await fetch(`${url}/${receipt.data.id}/reminders`, { headers: { cookie: manageCookie } }))
+        .status,
+    ).toBe(403);
+    expect(
+      (
+        await fetch(url, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            ...body,
+            reminderPolicy: { conversationId: conversation.id, offsetMinutes: [30] },
+          }),
+        })
+      ).status,
+    ).toBe(409);
   });
 
   it("guards cancellation and rebooking with strict bodies, idempotent receipts, and tenant scope", async () => {

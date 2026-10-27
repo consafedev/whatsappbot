@@ -64,6 +64,7 @@
     "@whatsapp-platform/messaging": "workspace:*",
     "@whatsapp-platform/rbac": "workspace:*",
     "@whatsapp-platform/themes": "workspace:*",
+    "@whatsapp-platform/workflows": "workspace:*",
     "cron-parser": "5.10.0"
   },
   "devDependencies": {

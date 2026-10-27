@@ -1,9 +1,13 @@
 import {
+  type AppointmentReminderExecutionDatabase,
+  AppointmentReminderTaskMismatchError,
   assertTenantModuleEntitled,
+  calculateRetryDelayMs,
   claimScheduledTask,
   createScheduledTaskTriggerPayload,
   createTenantContext,
   dispatchRuleTriggers,
+  executeAppointmentReminder,
   markScheduledTaskFailed,
   type RuleTriggerDispatcherDatabase,
   recordTaskRun,
@@ -26,10 +30,93 @@ const SCHEDULED_TASK_UNSUPPORTED_TYPE = "SCHEDULED_TASK_UNSUPPORTED_TYPE";
 
 export interface ScheduledTaskProcessorDependencies {
   readonly database: ScheduledTaskDatabase &
+    AppointmentReminderExecutionDatabase &
     RuleTriggerDispatcherDatabase &
     TenantEntitlementReadDatabase;
   readonly enqueue: (task: ScheduledTask) => Promise<void>;
   readonly now?: () => Date;
+}
+
+function appointmentReminderAttemptWhere(task: ScheduledTask) {
+  return {
+    id: task.id,
+    tenantId: task.tenantId,
+    status: "PROCESSING" as const,
+    retryCount: task.retryCount,
+    scheduledFor: task.scheduledFor,
+    updatedAt: task.updatedAt,
+  };
+}
+
+async function completeAppointmentReminderTask(
+  task: ScheduledTask,
+  database: ScheduledTaskProcessorDependencies["database"],
+  completedAt: Date,
+): Promise<void> {
+  await database.$transaction(async (transaction) => {
+    const result = await transaction.scheduledTask.updateMany({
+      data: { lastRunAt: completedAt, status: "COMPLETED" },
+      where: appointmentReminderAttemptWhere(task),
+    });
+    if (result.count === 0) return false;
+    await transaction.scheduledTaskRun.createMany({
+      data: [
+        {
+          completedAt,
+          durationMs: Math.max(0, completedAt.getTime() - task.updatedAt.getTime()),
+          errorMessage: null,
+          retryAttempt: task.retryCount,
+          startedAt: task.updatedAt,
+          status: ScheduledTaskRunStatus.SUCCESS,
+          taskId: task.id,
+          tenantId: task.tenantId,
+        },
+      ],
+      skipDuplicates: true,
+    });
+  });
+}
+
+async function failAppointmentReminderAttempt(
+  task: ScheduledTask,
+  database: ScheduledTaskProcessorDependencies["database"],
+  error: string,
+  completedAt: Date,
+  retryable: boolean,
+): Promise<void> {
+  await database.$transaction(async (transaction) => {
+    const canRetry = retryable && task.retryCount < task.maxRetries;
+    const result = await transaction.scheduledTask.updateMany({
+      data: canRetry
+        ? {
+            errorMessage: error,
+            retryCount: task.retryCount + 1,
+            scheduledFor: new Date(
+              completedAt.getTime() +
+                calculateRetryDelayMs(task.retryCount, { jitterSeed: task.id }),
+            ),
+            status: "PENDING",
+          }
+        : { errorMessage: error, status: "FAILED" },
+      where: appointmentReminderAttemptWhere(task),
+    });
+    if (result.count === 0) return;
+    await transaction.scheduledTaskRun.createMany({
+      data: [
+        {
+          completedAt,
+          durationMs: Math.max(0, completedAt.getTime() - task.updatedAt.getTime()),
+          errorMessage: error,
+          retryAttempt: task.retryCount,
+          startedAt: task.updatedAt,
+          status: ScheduledTaskRunStatus.FAILED,
+          taskId: task.id,
+          tenantId: task.tenantId,
+        },
+      ],
+      skipDuplicates: true,
+    });
+  });
 }
 
 async function markTaskFailed(
@@ -79,6 +166,38 @@ export async function processScheduledTaskJob(
   }
 
   const tenant = createTenantContext(task.tenantId);
+  if (task.taskType === "APPOINTMENT_REMINDER") {
+    try {
+      await executeAppointmentReminder(
+        dependencies.database,
+        task,
+        dependencies.now ?? (() => new Date()),
+      );
+      const completedAt = dependencies.now?.() ?? new Date();
+      await completeAppointmentReminderTask(task, dependencies.database, completedAt);
+    } catch (error) {
+      const completedAt = dependencies.now?.() ?? new Date();
+      if (error instanceof AppointmentReminderTaskMismatchError) {
+        await failAppointmentReminderAttempt(
+          task,
+          dependencies.database,
+          "APPOINTMENT_REMINDER_TASK_MISMATCH",
+          completedAt,
+          false,
+        );
+        return;
+      }
+      await failAppointmentReminderAttempt(
+        task,
+        dependencies.database,
+        "APPOINTMENT_REMINDER_EXECUTION_FAILED",
+        completedAt,
+        true,
+      );
+    }
+    return;
+  }
+
   try {
     await assertTenantModuleEntitled(tenant, "module.scheduling", dependencies.database);
 

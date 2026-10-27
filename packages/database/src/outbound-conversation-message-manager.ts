@@ -219,6 +219,7 @@ export interface OutboundConversationMessageManager {
     context: TenantContext,
     conversationId: string,
     input: OutboundConversationMessageInput,
+    transaction?: Prisma.TransactionClient,
   ): Promise<OutboundConversationMessageResult>;
 }
 
@@ -231,13 +232,14 @@ export function createOutboundConversationMessageManager(
     context: TenantContext,
     conversationId: string,
     input: OutboundConversationMessageInput,
+    transaction?: Prisma.TransactionClient,
   ): Promise<OutboundConversationMessageResult> => {
     const tenant = createTenantContext(context.tenantId);
     const key = idempotencyKey(input.idempotencyKey);
     const actorUserId = input.actorUserId ?? null;
     const mutationRequestId = input.requestId ?? "outbound-conversation-message";
 
-    return database.$transaction(async (transaction) => {
+    const execute = async (transaction: Prisma.TransactionClient) => {
       await assertTenantOperational(tenant, transaction);
       await assertTenantModuleEntitled(tenant, "module.messaging.basic", transaction);
       await assertTenantModuleEntitled(tenant, "module.crm_lite", transaction);
@@ -438,7 +440,8 @@ export function createOutboundConversationMessageManager(
       });
 
       return result(conversation.id, false, created, queued);
-    });
+    };
+    return transaction === undefined ? database.$transaction(execute) : execute(transaction);
   };
 
   return Object.freeze({ sendConversationMessage });

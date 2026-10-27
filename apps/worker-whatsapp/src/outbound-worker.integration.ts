@@ -1,8 +1,12 @@
 import { loadDatabaseConfig } from "@whatsapp-platform/config";
 import {
+  cancelAppointment,
+  createAppointment,
   createOutboundMessageManager,
   createTenantContext,
+  executeAppointmentReminder,
   type OutboundMessageManager,
+  rebookAppointment,
 } from "@whatsapp-platform/database";
 import type { PrismaClient } from "@whatsapp-platform/database/platform";
 import {
@@ -23,6 +27,7 @@ const prefix = "e05-s03-outbound-worker";
 let prisma: PrismaClient;
 let manager: OutboundMessageManager;
 let tenantId = "";
+let ownerId = "";
 let channelId = "";
 
 class FlakyMessagingProvider extends MockMessagingProvider {
@@ -54,8 +59,17 @@ async function cleanup(): Promise<void> {
   });
   const ids = tenants.map(({ id }) => id);
   if (ids.length === 0) return;
+  await prisma.appointmentReminder.deleteMany({ where: { tenantId: { in: ids } } });
+  await prisma.appointment.deleteMany({ where: { tenantId: { in: ids } } });
+  await prisma.appointmentAvailabilityRule.deleteMany({ where: { tenantId: { in: ids } } });
+  await prisma.appointmentResource.deleteMany({ where: { tenantId: { in: ids } } });
+  await prisma.appointmentService.deleteMany({ where: { tenantId: { in: ids } } });
+  await prisma.message.deleteMany({ where: { tenantId: { in: ids } } });
   await prisma.outboundMessage.deleteMany({ where: { tenantId: { in: ids } } });
+  await prisma.conversation.deleteMany({ where: { tenantId: { in: ids } } });
+  await prisma.contact.deleteMany({ where: { tenantId: { in: ids } } });
   await prisma.channelAccount.deleteMany({ where: { tenantId: { in: ids } } });
+  await prisma.scheduledTask.deleteMany({ where: { tenantId: { in: ids } } });
   await prisma.userSession.deleteMany({ where: { tenantId: { in: ids } } });
   await prisma.userPasswordResetToken.deleteMany({ where: { tenantId: { in: ids } } });
   await prisma.userRole.deleteMany({ where: { tenantId: { in: ids } } });
@@ -82,7 +96,12 @@ describe.sequential("E05-S03 outbound worker", () => {
       defaultTimezone: "America/Mexico_City",
       deploymentId: null,
       displayName: "Outbound Worker",
-      enabledModules: ["module.messaging.basic"],
+      enabledModules: [
+        "module.appointments",
+        "module.scheduling",
+        "module.messaging.basic",
+        "module.crm_lite",
+      ],
       legalName: "Outbound Worker SA",
       limits: {
         channelAccounts: 2,
@@ -102,6 +121,7 @@ describe.sequential("E05-S03 outbound worker", () => {
       slug: `${prefix}-tenant`,
     });
     tenantId = result.tenant.id;
+    ownerId = result.owner.id;
     const channel = await prisma.channelAccount.create({
       data: {
         active: true,
@@ -164,6 +184,223 @@ describe.sequential("E05-S03 outbound worker", () => {
         where: { aggregateId: message.id, eventType: "messaging.outbound.sent" },
       }),
     ).resolves.toBe(1);
+    await worker.stop();
+  });
+
+  it("rechecks queued reminder authority before provider IO and sends an authorized reminder", async () => {
+    const contact = await prisma.contact.create({
+      data: { tenantId, name: "Reminder Worker Contact", phoneNumber: `+5255${Date.now()}` },
+    });
+    const conversation = await prisma.conversation.create({
+      data: {
+        tenantId,
+        channelAccountId: channelId,
+        contactId: contact.id,
+        status: "open",
+        automationMode: "AUTO",
+      },
+    });
+    const service = await prisma.appointmentService.create({
+      data: { tenantId, name: "Worker Service", durationMinutes: 30 },
+    });
+    const resource = await prisma.appointmentResource.create({
+      data: { tenantId, name: "Worker Resource", capacity: 10 },
+    });
+    const baseStart = new Date();
+    baseStart.setUTCDate(baseStart.getUTCDate() + 14);
+    baseStart.setUTCHours(9, 0, 0, 0);
+    await prisma.appointmentAvailabilityRule.createMany({
+      data: Array.from({ length: 7 }, (_, dayOfWeek) => ({
+        tenantId,
+        resourceId: resource.id,
+        dayOfWeek,
+        startTime: "00:00",
+        endTime: "24:00",
+        timezone: "UTC",
+        capacity: 10,
+      })),
+    });
+
+    const enqueueReminder = async (idempotencyKey: string, startsAt: Date) => {
+      const appointment = await createAppointment(
+        createTenantContext(tenantId),
+        prisma,
+        {
+          contactId: contact.id,
+          serviceId: service.id,
+          resourceId: resource.id,
+          startsAt: startsAt.toISOString(),
+          idempotencyKey,
+          reminderPolicy: { conversationId: conversation.id, offsetMinutes: [30] },
+        },
+        { actorUserId: ownerId, requestId: `${prefix}-${idempotencyKey}` },
+      );
+      const reminder = await prisma.appointmentReminder.findFirstOrThrow({
+        where: { tenantId, appointmentId: appointment.id },
+      });
+      const dueAt = new Date(Date.now() - 1_000);
+      await prisma.$transaction(async (transaction) => {
+        await transaction.appointmentReminder.update({
+          data: { dueAt },
+          where: { tenantId_id: { id: reminder.id, tenantId } },
+        });
+        await transaction.scheduledTask.update({
+          data: { scheduledFor: dueAt, status: "PROCESSING" },
+          where: { tenantId_id: { id: reminder.id, tenantId } },
+        });
+      });
+      const task = await prisma.scheduledTask.findUniqueOrThrow({
+        where: { tenantId_id: { id: reminder.id, tenantId } },
+      });
+      expect((await executeAppointmentReminder(prisma, task, new Date())).kind).toBe("queued");
+      return prisma.appointmentReminder.findUniqueOrThrow({
+        where: { tenantId_id: { id: reminder.id, tenantId } },
+        include: { outbound: true },
+      });
+    };
+
+    const stale = await enqueueReminder("s08-worker-stale-phone", baseStart);
+    if (stale.outbound === null) throw new Error("Expected queued reminder outbound");
+    await prisma.contact.update({
+      data: { phoneNumber: `+5299${Date.now()}` },
+      where: { id: contact.id, tenantId },
+    });
+    const blockedProvider = new MockMessagingProvider();
+    const blockedWorker = new OutboundWorker(manager, prisma, {
+      providerFactory: () => blockedProvider,
+    });
+    await expect(blockedWorker.runOnce()).resolves.toBe(1);
+    expect(blockedProvider.sentMessages).toHaveLength(0);
+    await expect(
+      prisma.appointmentReminder.findUniqueOrThrow({
+        where: { tenantId_id: { id: stale.id, tenantId } },
+      }),
+    ).resolves.toMatchObject({ status: "SUPPRESSED", reason: "RECIPIENT_CHANGED" });
+    await expect(
+      prisma.outboundMessage.findUniqueOrThrow({ where: { id: stale.outbound.id, tenantId } }),
+    ).resolves.toMatchObject({ status: "FAILED" });
+    await blockedWorker.stop();
+
+    await prisma.contact.update({
+      data: { phoneNumber: `+5255${Date.now()}` },
+      where: { id: contact.id, tenantId },
+    });
+    const cancelled = await enqueueReminder(
+      "s08-worker-cancelled-reminder",
+      new Date(baseStart.getTime() + 24 * 60 * 60_000),
+    );
+    await cancelAppointment(createTenantContext(tenantId), prisma, cancelled.appointmentId, {
+      actorUserId: ownerId,
+      requestId: `${prefix}-cancel-before-dispatch`,
+    });
+    const cancelledProvider = new MockMessagingProvider();
+    const cancelledWorker = new OutboundWorker(manager, prisma, {
+      providerFactory: () => cancelledProvider,
+    });
+    await expect(cancelledWorker.runOnce()).resolves.toBe(1);
+    expect(cancelledProvider.sentMessages).toHaveLength(0);
+    await expect(
+      prisma.appointmentReminder.findUniqueOrThrow({
+        where: { tenantId_id: { id: cancelled.id, tenantId } },
+      }),
+    ).resolves.toMatchObject({ status: "CANCELLED" });
+    await cancelledWorker.stop();
+
+    const rebooked = await enqueueReminder(
+      "s08-worker-rebooked-reminder",
+      new Date(baseStart.getTime() + 48 * 60 * 60_000),
+    );
+    await rebookAppointment(
+      createTenantContext(tenantId),
+      prisma,
+      rebooked.appointmentId,
+      {
+        startsAt: new Date(baseStart.getTime() + 72 * 60 * 60_000).toISOString(),
+        idempotencyKey: "s08-worker-rebooked-replacement",
+      },
+      { actorUserId: ownerId, requestId: `${prefix}-rebook-before-dispatch` },
+    );
+    const rebookProvider = new MockMessagingProvider();
+    const rebookWorker = new OutboundWorker(manager, prisma, {
+      providerFactory: () => rebookProvider,
+    });
+    await expect(rebookWorker.runOnce()).resolves.toBe(1);
+    expect(rebookProvider.sentMessages).toHaveLength(0);
+    await expect(
+      prisma.appointmentReminder.findUniqueOrThrow({
+        where: { tenantId_id: { id: rebooked.id, tenantId } },
+      }),
+    ).resolves.toMatchObject({ status: "CANCELLED" });
+    await rebookWorker.stop();
+
+    const modeChanged = await enqueueReminder(
+      "s08-worker-mode-changed-reminder",
+      new Date(baseStart.getTime() + 96 * 60 * 60_000),
+    );
+    await prisma.conversation.update({
+      data: { automationMode: "HUMAN" },
+      where: { tenantId_id: { id: conversation.id, tenantId } },
+    });
+    const modeProvider = new MockMessagingProvider();
+    const modeWorker = new OutboundWorker(manager, prisma, { providerFactory: () => modeProvider });
+    await expect(modeWorker.runOnce()).resolves.toBe(1);
+    expect(modeProvider.sentMessages).toHaveLength(0);
+    await expect(
+      prisma.appointmentReminder.findUniqueOrThrow({
+        where: { tenantId_id: { id: modeChanged.id, tenantId } },
+      }),
+    ).resolves.toMatchObject({ status: "SUPPRESSED", reason: "AUTOMATION_PAUSED" });
+    await modeWorker.stop();
+    await prisma.conversation.update({
+      data: { automationMode: "AUTO" },
+      where: { tenantId_id: { id: conversation.id, tenantId } },
+    });
+
+    const moduleChanged = await enqueueReminder(
+      "s08-worker-module-changed-reminder",
+      new Date(baseStart.getTime() + 120 * 60 * 60_000),
+    );
+    await prisma.tenantEntitlement.update({
+      data: { enabled: false },
+      where: { tenantId_entitlementKey: { tenantId, entitlementKey: "module.scheduling" } },
+    });
+    const moduleProvider = new MockMessagingProvider();
+    const moduleWorker = new OutboundWorker(manager, prisma, {
+      providerFactory: () => moduleProvider,
+    });
+    await expect(moduleWorker.runOnce()).resolves.toBe(1);
+    expect(moduleProvider.sentMessages).toHaveLength(0);
+    await expect(
+      prisma.appointmentReminder.findUniqueOrThrow({
+        where: { tenantId_id: { id: moduleChanged.id, tenantId } },
+      }),
+    ).resolves.toMatchObject({ status: "SUPPRESSED", reason: "MODULE_DISABLED" });
+    await moduleWorker.stop();
+    await prisma.tenantEntitlement.update({
+      data: { enabled: true },
+      where: { tenantId_entitlementKey: { tenantId, entitlementKey: "module.scheduling" } },
+    });
+
+    const valid = await enqueueReminder(
+      "s08-worker-valid-reminder",
+      new Date(baseStart.getTime() + 24 * 60 * 60_000),
+    );
+    if (valid.outbound === null) throw new Error("Expected queued reminder outbound");
+    const provider = new MockMessagingProvider();
+    const worker = new OutboundWorker(manager, prisma, { providerFactory: () => provider });
+    await expect(worker.runOnce()).resolves.toBe(1);
+    expect(provider.sentMessages).toHaveLength(1);
+    await expect(
+      prisma.outboundMessage.findUniqueOrThrow({ where: { id: valid.outbound.id, tenantId } }),
+    ).resolves.toMatchObject({
+      status: "SENT",
+      providerMessageId: expect.stringContaining("mock-"),
+    });
+    await expect(
+      prisma.appointmentReminder.findUniqueOrThrow({
+        where: { tenantId_id: { id: valid.id, tenantId } },
+      }),
+    ).resolves.toMatchObject({ status: "QUEUED", dispatchAuthorizedAt: expect.any(Date) });
     await worker.stop();
   });
 });

@@ -40,6 +40,7 @@ import {
   type AppointmentListFilters,
   type AppointmentManagerDatabase,
   AppointmentNotFoundError,
+  AppointmentReminderNotFoundError,
   AppointmentResourceCapacityConflictError,
   type AppointmentResourceInput,
   type AppointmentResourceListFilters,
@@ -75,6 +76,7 @@ import {
   getAppointmentServiceById,
   getAvailabilityExceptionById,
   getAvailabilityRuleById,
+  listAppointmentReminders,
   listAppointmentResources,
   listAppointmentServices,
   listAppointments,
@@ -710,7 +712,15 @@ function parseCreateAppointmentBody(value: unknown): CreateAppointmentInput {
   const body = plainObject(value, "Invalid appointment request");
   exactKeys(
     body,
-    ["serviceId", "resourceId", "contactId", "startsAt", "idempotencyKey", "notes"],
+    [
+      "serviceId",
+      "resourceId",
+      "contactId",
+      "startsAt",
+      "idempotencyKey",
+      "notes",
+      "reminderPolicy",
+    ],
     "Invalid appointment request",
   );
   if (body.notes !== undefined && body.notes !== null && typeof body.notes !== "string")
@@ -722,6 +732,14 @@ function parseCreateAppointmentBody(value: unknown): CreateAppointmentInput {
     startsAt: requiredString(body.startsAt, "startsAt"),
     idempotencyKey: requiredString(body.idempotencyKey, "idempotencyKey"),
     ...(body.notes === undefined ? {} : { notes: body.notes as string | null }),
+    ...(body.reminderPolicy === undefined
+      ? {}
+      : {
+          reminderPolicy: body.reminderPolicy as Exclude<
+            CreateAppointmentInput["reminderPolicy"],
+            undefined
+          >,
+        }),
   };
 }
 
@@ -912,6 +930,14 @@ function mapAppointmentError(error: unknown): never {
       statusCode: 404,
     });
   }
+  if (error instanceof AppointmentReminderNotFoundError) {
+    throw new NotFoundException({
+      code: "APPOINTMENT_REMINDER_NOT_FOUND",
+      error: "Not Found",
+      message: "Appointment reminder target was not found",
+      statusCode: 404,
+    });
+  }
   if (error instanceof AppointmentValidationError) throw new BadRequestException(error.message);
   if (error instanceof AppointmentAvailabilityTargetNotFoundError) {
     throw new NotFoundException({
@@ -1059,6 +1085,14 @@ export class AppointmentsService {
   async getAppointment(context: TenantContext, id: string) {
     try {
       return await getAppointmentById(context, this.database, id);
+    } catch (error) {
+      return mapAppointmentError(error);
+    }
+  }
+
+  async getAppointmentReminders(context: TenantContext, id: string) {
+    try {
+      return await listAppointmentReminders(context, this.database, id);
     } catch (error) {
       return mapAppointmentError(error);
     }
@@ -1754,6 +1788,16 @@ export class AppointmentsController {
       appointmentId(rawId),
       parseRebookAppointmentBody(body),
     );
+    return { success: true, data };
+  }
+
+  @Get(":id/reminders")
+  @appointmentsAuthorized("appointments.read")
+  async getBookingReminders(
+    @CurrentTenantContext() context: TenantContext,
+    @Param("id") rawId: string,
+  ): Promise<ApiResponse<Awaited<ReturnType<AppointmentsService["getAppointmentReminders"]>>>> {
+    const data = await this.service.getAppointmentReminders(context, appointmentId(rawId));
     return { success: true, data };
   }
 

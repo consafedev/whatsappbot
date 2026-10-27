@@ -68,7 +68,7 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
 | E14-S05 | Codex/e14_s05 y review_s05 (gpt-6-sol); coordinador Codex; reserva liberada. Base9f533e6 | PASS / COMPLETE | `a0ddc4f98dbc5818547ed62899fd710cd13c6014`; push remoto SHA idéntico verificado | ADR-0067; root478/478, DB305/305, API219/219, isolation46/46; static/build PASS |
 | E14-S06 | Codex/e14_s06 (gpt-6-sol) inicial; s06_uuid_luna (gpt-6-luna) corrección UUID; review_s06 auditoría; coordinador docs/gates. Reserva liberada, base eaf88db | PASS / COMPLETE | `8137e15e0a13ea8d06302c86064929010d74db1c`; push SHA idéntico verificado | ADR-0068; root478, DB317, API220, aislamiento46; static/build PASS; ambas revisiones aprobadas |
 | E14-S07 | Codex/e14_s07_luna (gpt-6-luna); review_s06 (gpt-6-sol) auditor; coordinador docs/gates. Reserva liberada, base a90a6c5 | PASS / COMPLETE | `3fe4927e77af0113ad418c969814c0a096cd7f4f`; push SHA idéntico verificado | ADR-0069; manager21/API11; parent DB afectada35/API11/root478; static/build PASS; revisión aprobada |
-| E14-S08 | Sin reserva | PENDING | — | recordatorios persistentes |
+| E14-S08 | Codex/e14_s08_luna y s08_scheduler_luna (gpt-6-luna), archivos exclusivos; review_s06 (gpt-6-sol) auditor; coordinador docs/gates. Base4c67c3d | PASS; publicación pendiente | — | ADR-0070; root485, full DB352/API225, workers1+2, aislamiento46; build/types/Biome485 PASS; revisiones aprobadas |
 | E14-S09 | Sin reserva | PENDING | — | UI operativa de agenda |
 | E14-S10 | Sin reserva | PENDING | — | flujo WhatsApp por reglas, servicio central |
 
@@ -103,6 +103,11 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
 | S07 migration | esquema limpio y upgrade desde S06 en DBs aisladas; local apply | PASS ambos sin diferencia;31 migrations locales; sólo cambio aditivo |
 | S07 focalizadas/auditoría | Luna RED DB12PASS/8FAIL antes de implementar; GREEN manager21/API11; reviewer inspección final | PASS, historial/locks/recibos/rollback/tenantFK/timezone; cero hallazgos. API probe posterior falló setup y no cuenta como RED |
 | S07 gates del coordinador | root, DB manager/slot/resource y API agenda en otra DB temporal, tipos/Biome/diff | PASS478unit(52files),35DB(3files),11API;0 skipped; tipos root/database/API; Biome479; builds database/API PASS. No equivale a suite DB/API completa nueva |
+| S08 migration/RED | esquema limpio + upgrade; local deploy; regresión de conducta PG | Migración PASS sin drift,32 locales. RED4FAIL/1PASS con fixtures correctos por policy/tasks/idempotencia/validación faltantes; no es gate final |
+| S08 migration adicional | upgrade ordenado31→32→33 y clean; deploy local | PASS ambos sin drift;33 locales. workflowRunAt separa intención inmutable de scheduledFor operativo; SQL32 no se reescribió |
+| S08 scheduler genérico | API RED antes de guards; GREEN API14/14 +viewmodel21/21; revisión independiente | PASS del slice;0 findings. S08 completa sigue pendiente de dominio/workers/gates agregados |
+| S08 gates completos finales | full build/types/root/Biome; full DB/API +ambos workers PG +aislamiento en schema33 temporal | PASS485unit/52files, DB352/53files, API225/27files, worker-jobs1, outbound2, aislamiento9+37;0 skipped; Biome485files; diff limpio |
+| S08 migraciones aplicadas | SHA256 de SQL32/33 contra _prisma_migrations.checksum local | MATCH ambos; no SQL aplicado reescrito; no pristine-chain replay histórico ni deploy producción |
 
 ## 6. Bloqueos, riesgos y siguiente prioridad
 
@@ -171,3 +176,23 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
 - 2026-10-26: S07 publicada en3fe4927e77af0113ad418c969814c0a096cd7f4f;
   SHA remoto idéntico comprobado. Fetch confirma main/origin main siguenfb8639d
   y no contienen el cambio. Checkpoint documental precede reserva S08.
+- 2026-10-26: checkpoint4c67c3d publicado/verificado antes de abrir S08.
+  Se revisan contratos reales scheduler/workflows/outbound y se fija orden de
+  locks compatible con la futura conversación; ningún runtime/dependencia nuevo.
+- 2026-10-26: auditoría de límites S08 concluida; brief concreto entregado a
+  Luna. WorkflowOrchestrator durable acotado, tareas internas protegidas, policy
+  opcional y supresión antes del envío. Un job completado sólo acredita manejo/
+  encolado; confirmación de provider es otra evidencia. No se promete retractar
+  IO ya autorizado ni entrega exactamente una vez sin soporte del provider.
+- 2026-10-26: primer bloque S08 GREEN8 tests PG tras RED real; port probado
+  además contra carrera del mismo UUID y variantes de mayúsculas, corregidos.
+  Se separó a otro Luna el guard HTTP/read-only del scheduler, archivos sin
+  colisión y DB aislada propia, para economizar manteniendo revisión final común.
+- 2026-10-26: fuente S08 congelada y auditoría integral aprobada tras corregir
+  historial FAILED/TIMEOUT duplicado, reloj previo a locks y ownership de intentos
+  obsoletos. Regresiones deterministas observan espera de lock real; suite PG
+  del worker demuestra falla→retry→recovery sin historial falso. Gates finales
+  completos PASS según tabla. Biome inicial encontró23 ajustes de estilo,
+  corregidos sólo en14 rutas propias, sin cambios semánticos.
+  Todas las DBs temporales/preparadas se retiraron. Publicación pendiente antes
+  de reservar UI S09. Prueba de outbound es con mock, no teléfono real.

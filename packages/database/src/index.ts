@@ -120,6 +120,19 @@ export {
   rebookAppointment,
 } from "./appointment-manager";
 export {
+  APPOINTMENT_REMINDER_TASK_TYPE,
+  type AppointmentReminderDispatchMessage,
+  type AppointmentReminderExecutionDatabase,
+  AppointmentReminderNotFoundError,
+  type AppointmentReminderPolicy,
+  type AppointmentReminderRecord,
+  AppointmentReminderTaskMismatchError,
+  authorizeAppointmentReminderDispatch,
+  executeAppointmentReminder,
+  listAppointmentReminders,
+  normalizeAppointmentReminderPolicy,
+} from "./appointment-reminder-manager";
+export {
   AppointmentResourceCapacityConflictError,
   type AppointmentResourceInput,
   type AppointmentResourceListFilters,
@@ -517,6 +530,11 @@ export {
   type PhoneNormalizationOptions,
   PhoneNumberInvalidError,
 } from "./phone-utils";
+export {
+  createPostgresWorkflowOrchestrator,
+  WorkflowIntentConflictError,
+  WorkflowReferenceNotFoundError,
+} from "./postgres-workflow-orchestrator";
 export {
   TenantRbacRecordNotFoundError,
   UnknownPermissionKeyError,

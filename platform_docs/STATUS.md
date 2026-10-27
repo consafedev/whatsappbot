@@ -2,15 +2,55 @@
 
 **Actualizado:** 2026-10-26
 **Versión de producto:** `0.0.0`  
-**Latest validated story:** E14-S07 — PASS / COMPLETE; publication tracked in avance_orquestador.md.
-**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; Epic 11 — Campaign Engine & Audience Broadcasts — PASS / COMPLETE; **Epic 12 — Reporting, Analytics & Operational Observability — PASS / COMPLETE (E12-S01, E12-S02, E12-S03, E12-S04, E12-S05 PASS); E13-S01 — PASS / COMPLETE; E13-S02 — PASS / COMPLETE; E13-S03 — PASS / COMPLETE; E13-S04 — PASS / COMPLETE; E14-S01 — PASS / COMPLETE; E14-S02 — PASS / COMPLETE; E14-S03 — PASS / COMPLETE; E14-S04 — PASS / COMPLETE; E14-S05 — PASS / COMPLETE; E14-S06 — PASS / COMPLETE**.
+**Latest validated story:** E14-S08 — PASS; publication tracked in avance_orquestador.md.
+**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; Epic 11 — Campaign Engine & Audience Broadcasts — PASS / COMPLETE; **Epic 12 — Reporting, Analytics & Operational Observability — PASS / COMPLETE (E12-S01, E12-S02, E12-S03, E12-S04, E12-S05 PASS); E13-S01 — PASS / COMPLETE; E13-S02 — PASS / COMPLETE; E13-S03 — PASS / COMPLETE; E13-S04 — PASS / COMPLETE; E14-S01 — PASS / COMPLETE; E14-S02 — PASS / COMPLETE; E14-S03 — PASS / COMPLETE; E14-S04 — PASS / COMPLETE; E14-S05 — PASS / COMPLETE; E14-S06 — PASS / COMPLETE; E14-S07 — PASS / COMPLETE**.
 
 ## Current milestone
 
-Epic 14 — Agenda & Appointment Booking (E14-S01 through E14-S07 complete;
-S07 push verified; S08 starts after this documentary checkpoint).
+Epic 14 — Agenda & Appointment Booking (E14-S01 through E14-S08 verified;
+S08 publication pending; S09 starts only after commit/push checkpoint).
 Epic 13 — Task Scheduling & Distributed Orchestration remains tracked below.
 Shared coordination and reservations: `platform_docs/avance_orquestador.md`.
+
+### E14-S08 — Persistent reminders (PASS; publication pending)
+
+Luna delivered explicit optional reminder policy, durable children/tasks,
+atomic cancellation/rebooking suppression and current-state dispatch checks.
+Independent boundary audit confirmed the existing scheduler/outbound paths and
+the missing concrete WorkflowOrchestrator port. This story supplies the narrow
+durable scheduling surface over PostgreSQL and the existing BullMQ adapter;
+no new runtime or external dependency was introduced. Internal task HTTP
+protection and minimal generic scheduler UI action gating are delivered.
+S08 clean-schema and ordered pre-story upgrade migration checks passed without
+drift, including the appended immutable workflow-time column; local additive
+migrations32/33 applied. Behavioral PostgreSQL RED reproduced four
+missing-policy/reminder/idempotency-validation cases after successful fixtures
+(4 failed/1 passed); final verification supersedes that initial RED. Source
+audit approved; publication pending. No real-handset capability is inferred.
+Automatic reminder authorization requires AUTO: ASSISTED needs approval per
+PRD§19; HUMAN/MONITOR and takeover pauses suppress. S09/S10 have not started.
+
+The independent scheduler slice is frozen: real API RED before the guard,
+then14/14 API and21/21 existing view-model tests, scoped Biome/diff PASS;
+independent source audit approved. Primary partial tests exposed and corrected
+UUID/concurrent-port/payload-opacity and recovery-time receipt defects.
+Stale-attempt worker protections and negative notification coverage are now in
+the frozen source. Independent full source review approved after correcting
+duplicate FAILED/TIMEOUT history and pre-lock eligibility clocks. Deterministic
+clock regressions observe real PostgreSQL lock waits. Parent full build and
+typecheck passed, root485/485 (52files) passed, and global Biome485files passed
+after safe formatting/import organization. Final parent integration gates on
+2026-10-26: full DB352/352 (53files), full API225/225 (27), worker-jobs real-PG
+1/1, outbound-worker integration2/2, dedicated isolation9/9 DB +37/37 API;
+zero skipped tests. The worker retry regression confirms one FAILED run without
+a recovery TIMEOUT duplicate, and outbound cases use an explicit mock provider.
+These results establish tested queue/guard behavior, not a real handset send.
+All suites used an owned disposable schema-only-dump DB preserving SQL checks;
+runner and prepared databases were removed after use. Applied migration32/33
+SHA256 values match PostgreSQL's recorded checksums. The pristine historical
+migration-chain BOM limitation remains separate and unchanged. No production
+deployment or authenticated browser QA is claimed for this backend story.
+Commit/push pending; S09/S10 have not started.
 
 ### E14-S07 — Cancellation and rebooking (PASS / COMPLETE)
 

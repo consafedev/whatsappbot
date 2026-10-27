@@ -318,6 +318,7 @@ export function formatTaskRunDuration(durationMs: number | null): string {
 }
 
 export function formatTaskType(type: string): string {
+  if (isAgendaManagedTaskType(type)) return "Recordatorio de cita (gestionado por Agenda)";
   switch (type) {
     case "TRIGGER_RULE":
       return "Disparador de Regla";
@@ -326,6 +327,10 @@ export function formatTaskType(type: string): string {
     default:
       return type;
   }
+}
+
+export function isAgendaManagedTaskType(type: string): boolean {
+  return type.trim().toUpperCase() === "APPOINTMENT_REMINDER";
 }
 
 export function formatDateTime(dateStr?: string | null): string {

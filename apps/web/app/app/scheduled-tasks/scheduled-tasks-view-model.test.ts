@@ -190,6 +190,9 @@ describe("scheduled-tasks-view-model", () => {
   it("formats known task types and preserves unknown values", () => {
     expect(formatTaskType("TRIGGER_RULE")).toBe("Disparador de Regla");
     expect(formatTaskType("CUSTOM_ACTION")).toBe("Acción Personalizada");
+    expect(formatTaskType(" appointment_reminder ")).toBe(
+      "Recordatorio de cita (gestionado por Agenda)",
+    );
     expect(formatTaskType("CUSTOM")).toBe("CUSTOM");
   });
 

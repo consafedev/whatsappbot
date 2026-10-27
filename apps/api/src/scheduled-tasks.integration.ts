@@ -304,6 +304,109 @@ describe.sequential("Scheduled Tasks API Integration", () => {
     expect(body.data.scheduledFor).toBe(scheduledFor);
   });
 
+  it("rejects generic creation of the agenda-managed task type before persistence or enqueue", async () => {
+    const beforeCount = await prisma.scheduledTask.count({ where: { tenantId: tenantAId } });
+    const beforeEnqueued = scheduledTaskQueue.enqueued.length;
+    for (const taskType of [
+      "APPOINTMENT_REMINDER",
+      " appointment_reminder ",
+      "appointment_reminder",
+    ]) {
+      const response = await fetch(`${baseUrl}/api/v1/scheduled-tasks`, {
+        body: JSON.stringify({
+          name: "Forged agenda reminder",
+          scheduledFor: new Date(Date.now() + 600_000).toISOString(),
+          taskType,
+        }),
+        headers: {
+          "content-type": "application/json",
+          cookie: ownerACookie,
+          "x-tenant-id": tenantAId,
+        },
+        method: "POST",
+      });
+      expect(response.status).toBe(400);
+      expect(await response.text()).toContain("managed by Agenda");
+    }
+    expect(await prisma.scheduledTask.count({ where: { tenantId: tenantAId } })).toBe(beforeCount);
+    expect(scheduledTaskQueue.enqueued).toHaveLength(beforeEnqueued);
+  });
+
+  it("blocks generic cancellation and retry of agenda-managed tasks without state or queue side effects", async () => {
+    for (const status of ["PENDING", "PROCESSING", "FAILED", "CANCELLED"] as const) {
+      const internal = await prisma.scheduledTask.create({
+        data: {
+          name: `Agenda reminder ${status}`,
+          retryCount: 2,
+          scheduledFor: new Date(Date.now() + 600_000),
+          status,
+          taskType: "APPOINTMENT_REMINDER",
+          tenantId: tenantAId,
+        },
+      });
+      const before = await prisma.scheduledTask.findUniqueOrThrow({
+        where: { tenantId_id: { id: internal.id, tenantId: tenantAId } },
+        select: { retryCount: true, scheduledFor: true, status: true },
+      });
+      const beforeEnqueued = scheduledTaskQueue.enqueued.length;
+
+      const cancel = await fetch(`${baseUrl}/api/v1/scheduled-tasks/${internal.id}`, {
+        headers: { cookie: ownerACookie, "x-tenant-id": tenantAId },
+        method: "DELETE",
+      });
+      expect(cancel.status).toBe(400);
+      expect(await cancel.text()).toContain("managed by Agenda");
+
+      const retry = await fetch(`${baseUrl}/api/v1/scheduled-tasks/${internal.id}/retry`, {
+        headers: { cookie: ownerACookie, "x-tenant-id": tenantAId },
+        method: "POST",
+      });
+      expect(retry.status).toBe(400);
+      expect(await retry.text()).toContain("managed by Agenda");
+
+      await expect(
+        prisma.scheduledTask.findUniqueOrThrow({
+          where: { tenantId_id: { id: internal.id, tenantId: tenantAId } },
+          select: { retryCount: true, scheduledFor: true, status: true },
+        }),
+      ).resolves.toEqual(before);
+      expect(scheduledTaskQueue.enqueued).toHaveLength(beforeEnqueued);
+    }
+  });
+
+  it("does not reveal another tenant's internal task type", async () => {
+    const internal = await prisma.scheduledTask.create({
+      data: {
+        name: "Tenant A agenda reminder",
+        scheduledFor: new Date(Date.now() + 600_000),
+        taskType: "APPOINTMENT_REMINDER",
+        tenantId: tenantAId,
+      },
+    });
+    const beforeEnqueued = scheduledTaskQueue.enqueued.length;
+    for (const taskId of [internal.id, "019c0000-0000-7000-8000-0000000000fe"]) {
+      const cancel = await fetch(`${baseUrl}/api/v1/scheduled-tasks/${taskId}`, {
+        headers: { cookie: ownerBCookie, "x-tenant-id": tenantBId },
+        method: "DELETE",
+      });
+      expect(cancel.status).toBe(404);
+      expect(await cancel.text()).not.toContain("APPOINTMENT_REMINDER");
+
+      const retry = await fetch(`${baseUrl}/api/v1/scheduled-tasks/${taskId}/retry`, {
+        body: JSON.stringify({ runAt: "invalid" }),
+        headers: {
+          "content-type": "application/json",
+          cookie: ownerBCookie,
+          "x-tenant-id": tenantBId,
+        },
+        method: "POST",
+      });
+      expect(retry.status).toBe(404);
+      expect(await retry.text()).not.toContain("APPOINTMENT_REMINDER");
+    }
+    expect(scheduledTaskQueue.enqueued).toHaveLength(beforeEnqueued);
+  });
+
   it("manually retries failed tasks and enforces tenant and lifecycle boundaries", async () => {
     const failed = await prisma.scheduledTask.create({
       data: {

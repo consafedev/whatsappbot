@@ -19,6 +19,7 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import {
+  assertTenantOperational,
   calculateNextRun,
   cancelScheduledTask,
   createScheduledTask,
@@ -43,6 +44,18 @@ import { RequirePermissions, TenantPermissionGuard } from "./tenant-rbac";
 
 export const SCHEDULED_TASKS_DATABASE = Symbol("SCHEDULED_TASKS_DATABASE");
 export const SCHEDULED_TASKS_QUEUE = Symbol("SCHEDULED_TASKS_QUEUE");
+
+const DOMAIN_MANAGED_SCHEDULED_TASK_TYPES = new Set(["APPOINTMENT_REMINDER"]);
+
+function isDomainManagedScheduledTaskType(taskType: string): boolean {
+  return DOMAIN_MANAGED_SCHEDULED_TASK_TYPES.has(taskType.trim().toUpperCase());
+}
+
+function assertGenericScheduledTaskType(taskType: string): void {
+  if (isDomainManagedScheduledTaskType(taskType)) {
+    throw new ScheduledTaskValidationError("APPOINTMENT_REMINDER tasks are managed by Agenda");
+  }
+}
 
 function scheduledTasksAuthorized(
   ...permissions: readonly PermissionKey[]
@@ -117,6 +130,7 @@ export class ScheduledTasksService {
 
   async create(context: TenantContext, dto: CreateScheduledTaskDto) {
     try {
+      assertGenericScheduledTaskType(dto.taskType ?? "");
       const cronExpression =
         dto.cronExpression === undefined || dto.cronExpression === null
           ? dto.cronExpression
@@ -204,6 +218,20 @@ export class ScheduledTasksService {
 
   async cancel(context: TenantContext, taskId: string) {
     try {
+      const existing = await this.database.scheduledTask.findUnique({
+        where: { tenantId_id: { id: taskId, tenantId: context.tenantId } },
+        select: { taskType: true },
+      });
+      if (existing === null) {
+        return await cancelScheduledTask(this.database, {
+          tenantId: context.tenantId,
+          id: taskId,
+        });
+      }
+      if (isDomainManagedScheduledTaskType(existing.taskType)) {
+        await assertTenantOperational(context, this.database);
+        assertGenericScheduledTaskType(existing.taskType);
+      }
       return await cancelScheduledTask(this.database, {
         tenantId: context.tenantId,
         id: taskId,
@@ -224,6 +252,20 @@ export class ScheduledTasksService {
 
   async retry(context: TenantContext, taskId: string, dto: RetryScheduledTaskDto = {}) {
     try {
+      const existing = await this.database.scheduledTask.findUnique({
+        where: { tenantId_id: { id: taskId, tenantId: context.tenantId } },
+        select: { taskType: true },
+      });
+      if (existing === null) {
+        return await retryScheduledTask(this.database, {
+          tenantId: context.tenantId,
+          id: taskId,
+        });
+      }
+      if (isDomainManagedScheduledTaskType(existing.taskType)) {
+        await assertTenantOperational(context, this.database);
+        assertGenericScheduledTaskType(existing.taskType);
+      }
       if (dto.runAt !== undefined && typeof dto.runAt !== "string") {
         throw new ScheduledTaskValidationError("runAt must be a valid date");
       }

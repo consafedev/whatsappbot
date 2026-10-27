@@ -1421,6 +1421,23 @@ reservation. Cancellation is idempotent; history is never deleted. Lifecycle
 commands share the booking transaction and lock order; plain-create and rebook
 receipts cannot adopt each other.
 
+## 16.6 `appointment_reminders` — E14-S08
+
+ADR-0070 defines tenant-owned reminder intent: UUIDv7, appointment/conversation
+links, positive bounded offsetMinutes, dueAt, status, reason, optional taskId/
+outboundMessageId, dispatch authorization time and timestamps. Composite FKs
+enforce tenant ownership; tenant/appointment/offset, tenant/task and tenant/
+outbound uniqueness prevent duplicate work. Status is PENDING, QUEUED, CANCELLED
+or SUPPRESSED; provider delivery remains the linked outbound status. Suppressed
+past-due offsets may have no task. Appointments retain normalized optional
+reminderPolicy JSON configuration, not arbitrary message or actor instructions.
+Same create key cannot change that intent. Rebook inherits it while preserving
+the original's history. The real narrow WorkflowOrchestrator stores stable
+ScheduledTask references; BullMQ transports only tenant/task IDs. Generic
+scheduler HTTP cannot create/cancel/retry internal reminder jobs. Validation
+and publication follow STATUS; the schema definition alone does not establish
+completion.
+
 ---
 
 # 17. Catalog
@@ -2662,7 +2679,16 @@ parent-aware receipt identity. Guarded lifecycle APIs; ADR-0069. Focused manager
 database/API builds PASS. Clean-schema/upgrade no drift; local migration31.
 Independent review approved; feature3fe4927 pushed/verified, checkpoint precedes S08.
 
-## E14-S08 Reminders [M]
+## E14-S08 Reminders [M] — DONE (publication pending)
+
+Optional immutable same-contact policy, durable children/tasks, cancellation/
+rebooking suppression and canonical outbound. Narrow real WorkflowOrchestrator,
+immutable workflowRunAt distinct from retry time, reserved internal scheduler
+tasks, AUTO-only post-lock due/final-dispatch guards and atomic claim-aware
+attempt/run transitions. ADR-0070; local additive migrations32/33. Final parent
+root485/485, full DB352/352, API225/225, worker PG1/1 +outbound2/2, isolation46/46,
+full build/types/Biome485files and diff PASS; no skipped tests. Independent
+reviews approved after fixes. Commit/push checkpoint precedes S09.
 
 ## E14-S09 Appointment UI [L]
 

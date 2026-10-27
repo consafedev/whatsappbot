@@ -16,6 +16,7 @@ function taskWithPayload(payload: ScheduledTask["payload"]): ScheduledTask {
     payload,
     retryCount: 0,
     scheduledFor: new Date("2026-01-05T09:00:00.000Z"),
+    workflowRunAt: null,
     status: ScheduledTaskStatus.PENDING,
     taskType: "send.follow-up",
     tenantId: "019c0000-0000-7000-8000-000000000001",

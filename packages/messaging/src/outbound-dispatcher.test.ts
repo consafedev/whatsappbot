@@ -79,6 +79,71 @@ describe("OutboundMessageDispatcher", () => {
     });
   });
 
+  it("honors the durable final authorization hook before provider IO", async () => {
+    const provider = new MockMessagingProvider();
+    const dependencies = {
+      assertMessagingEntitled: async () => undefined,
+      assertTenantOperational: async () => undefined,
+      findChannel: async () => channel,
+      authorizeDispatch: async () => {
+        throw new Error("REMINDER_DISPATCH_SUPPRESSED:RECIPIENT_CHANGED");
+      },
+      providerFactory: () => provider,
+    };
+    const subject = new OutboundMessageDispatcher(dependencies);
+
+    const outcome = await subject.dispatch({
+      channelAccountId: "019c0000-0000-7000-8000-000000000001",
+      content: { text: "no enviar" },
+      id: "019c0000-0000-7000-8000-000000000014",
+      maxRetries: 3,
+      messageType: "text",
+      recipientPhone: "+5215512345678",
+      retryCount: 0,
+      tenantId: "019c0000-0000-7000-8000-000000000002",
+    });
+
+    expect(outcome).toMatchObject({
+      error: "REMINDER_DISPATCH_SUPPRESSED:RECIPIENT_CHANGED",
+      failureKind: "permanent",
+      kind: "failed",
+      nextRetryAt: null,
+    });
+    expect(provider.sentMessages).toHaveLength(0);
+  });
+
+  it("retries a final-guard infrastructure failure without calling the provider", async () => {
+    const provider = new MockMessagingProvider();
+    const subject = new OutboundMessageDispatcher({
+      assertMessagingEntitled: async () => undefined,
+      assertTenantOperational: async () => undefined,
+      findChannel: async () => channel,
+      authorizeDispatch: async () => {
+        throw new Error("REMINDER_DISPATCH_GUARD_UNAVAILABLE");
+      },
+      providerFactory: () => provider,
+      now: () => new Date("2026-08-19T12:00:00.000Z"),
+    });
+    const outcome = await subject.dispatch({
+      channelAccountId: "019c0000-0000-7000-8000-000000000001",
+      content: { text: "reintentar" },
+      id: "019c0000-0000-7000-8000-000000000015",
+      maxRetries: 3,
+      messageType: "text",
+      recipientPhone: "+5215512345678",
+      retryCount: 0,
+      tenantId: "019c0000-0000-7000-8000-000000000002",
+    });
+
+    expect(outcome).toMatchObject({
+      error: "REMINDER_DISPATCH_GUARD_UNAVAILABLE",
+      failureKind: "transient",
+      kind: "failed",
+      nextRetryAt: new Date("2026-08-19T12:00:01.000Z"),
+    });
+    expect(provider.sentMessages).toHaveLength(0);
+  });
+
   it("calculates deterministic exponential backoff with a cap", () => {
     expect(calculateOutboundBackoff(0)).toBe(1_000);
     expect(calculateOutboundBackoff(1)).toBe(2_000);

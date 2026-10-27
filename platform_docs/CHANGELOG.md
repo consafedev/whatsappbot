@@ -8,6 +8,18 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Added
 
+- E14-S08 durable appointment reminders: optional normalized same-contact policy,
+  tenant-aware reminder/task/outbound links and immutable schedule intent,
+  atomic cancellation/rebooking suppression, skipped past-due history, and a
+  real narrow WorkflowOrchestrator over PostgreSQL plus the existing BullMQ
+  execution adapter. Generic scheduler mutations cannot manage internal agenda
+  tasks; its list keeps read/history. Due handling reuses canonical outbound
+  persistence, and a final guard rechecks current contact/phone, mode, modules
+  and appointment before provider IO. Only AUTO can dispatch automatically.
+  Atomic claim-aware attempt transitions/history, bounded retry and refreshed
+  post-lock clocks protect recovery. QUEUED, task status and provider-confirmed
+  delivery remain distinct. ADR-0070 records scope and append-only migrations;
+  final validation/publication remains tracked in STATUS and avance_orquestador.
 - E14-S07 cancellation/rebooking: central manager commands and guarded POST
   lifecycle routes, idempotent cancellation, atomic replacement with retained
   original snapshots, tenant-aware lineage and one direct successor, canonical
