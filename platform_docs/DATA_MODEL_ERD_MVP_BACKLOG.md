@@ -2700,8 +2700,8 @@ or real-handset proof is implied.
 
 ## E14-S10 WhatsApp booking flow [L]
 
-PASS / COMPLETE in source (2026-10-28); publication is tracked in
-avance_orquestador. Rules-driven, AI optional. ADR-0071 defines deterministic
+PASS / COMPLETE (2026-10-28). Feature58fb917 pushed/remote SHA verified;
+not in main. Publication is tracked in avance_orquestador. Rules-driven, AI optional. ADR-0071 defines deterministic
 customer flow through the central booking/lifecycle services with explicit
 proposal-bound confirmation. Final root528, DB379, API227, workers1+3 and
 isolation9+37 passed with zero skips; static/build gates and migration checks

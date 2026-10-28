@@ -67,8 +67,10 @@ This source release does not certify those images as current.
 Rules configuration uses the existing API; a production rule-editor GUI and real
 Baileys transport are not supplied here. Mock dispatch is not handset delivery.
 The documented legacy crash gap after a LEGACY verdict and before its generic
-action remains outside S10. Publication is recorded in avance_orquestador after
-the remote SHA is verified; E14 source gates are complete, push pending here.
+action remains outside S10. Feature 58fb9171a392c76471c9ee4cd95bf6e653450d0a pushed to
+origin/codex/e14-agenda-completion; identical remote SHA verified. It is not in
+main (main/origin main remain fb8639d). E14 is complete on the feature branch.
+Documentation checkpoints may advance HEAD without changing the feature SHA.
 
 ### E14-S09 — Appointment UI (PASS / COMPLETE)
 

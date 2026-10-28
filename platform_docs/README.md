@@ -6,7 +6,7 @@ El producto está diseñado para múltiples industrias y para ejecutarse desde u
 
 ## Estado actual
 
-**Fase:** E14 — Agenda completa en código; publicación y evidencia por historia en `STATUS.md` y `avance_orquestador.md`.
+**Fase:** E14 — Agenda completa/publicada en rama; evidencia y límites de entrega en `STATUS.md` y `avance_orquestador.md`.
 **Coordinación:** una épica activa y cierres por historia en
 [`avance_orquestador.md`](avance_orquestador.md). Mantener visibles los gates
 P0 pendientes de transporte real y backup/restore antes de declarar MVP vendible.

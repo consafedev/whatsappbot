@@ -2,8 +2,8 @@
 
 **Formato:** 1 — conservar estas secciones y actualizar sus tablas; no sustituir
 el historial por un resumen sin evidencia. Fechas de coordinación: America/Mexico_City.
-**Actualización:** 2026-10-28. **Épica activa única:** E14 — Agenda.
-**Responsable activo:** Codex, rama `codex/e14-agenda-completion`.
+**Actualización:** 2026-10-28. **Épica activa única:** ninguna; E14 — Agenda cerrada/publicada en rama.
+**Responsable activo:** sin reserva abierta; último cierre Codex, rama `codex/e14-agenda-completion`.
 **Base verificada:** `fb8639db15ec262fcc13432f9aee4536deb8367e`, integrada en
 `main` y `origin/main` al iniciar. Sin cambios locales iniciales.
 
@@ -51,7 +51,7 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
 | Core, tenancy, auth/RBAC, entitlements, dashboard | Implementación presente, historial en STATUS. No equivale a recertificación completa de producción en esta sesión. |
 | Messaging/inbox/rules/canales | Contratos, normalización, persistencia/colas/UI presentes; transporte real Baileys pendiente P0. |
 | IA/campañas/reportes/scheduler | Implementaciones presentes con IDs históricos distintos al backlog. E13-S05 conserva estado normativo pendiente de cierre. |
-| Agenda E14 | S01–S03 integradas; S04–S09 publicadas en rama; S10 completa en código, publicación pendiente abajo. |
+| Agenda E14 | S01–S10 completas; S01–S03 integradas en main y S04–S10 publicadas en rama. |
 | Procesos/timeline/Action Requests | Pendientes según backlog y equivalencias históricas; no confundir E10/E11 implementadas de IA/campañas con Process/Timeline originales. |
 | Catálogo/cotizaciones/documentos/portal | Pendientes; presencia de una ruta o package vacío no acredita implementación. |
 | Backups/restore y hardening precliente | No certificados; restore drill y transporte real bloquean declaración de MVP vendible. |
@@ -70,7 +70,7 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
 | E14-S07 | Codex/e14_s07_luna (gpt-6-luna); review_s06 (gpt-6-sol) auditor; coordinador docs/gates. Reserva liberada, base a90a6c5 | PASS / COMPLETE | `3fe4927e77af0113ad418c969814c0a096cd7f4f`; push SHA idéntico verificado | ADR-0069; manager21/API11; parent DB afectada35/API11/root478; static/build PASS; revisión aprobada |
 | E14-S08 | Codex/e14_s08_luna y s08_scheduler_luna (gpt-6-luna), archivos exclusivos; review_s06 (gpt-6-sol) auditor; coordinador docs/gates. Reserva liberada, base4c67c3d | PASS / COMPLETE | `ccef6d2ba55fae26ae294aaac73fa4055d729a4f`; push SHA idéntico verificado | ADR-0070; root485, full DB352/API225, workers1+2, aislamiento46; build/types/Biome485 PASS; revisiones aprobadas |
 | E14-S09 | Codex/e14_s09_data_luna y e14_s09_ui_luna (gpt-6-luna); e14_s09_audit (gpt-6-sol); coordinador runtime/docs/gates. Reserva liberada, base4562cc9 | PASS / COMPLETE | `ad56a3c5a9309627e23706017317ea1191c5427f`; push SHA idéntico verificado | root516/56files; web build/types; Biome496; browser real lifecycle/readonly/module/carryover/config/mobile PASS; sin backend/schema/deps |
-| E14-S10 | Core/integración/seguridad gpt-6-luna; auditoría final e14_s10_final_audit gpt-6-sol; coordinador docs/gates/Git. Basebc29a6f; fuente congelada, reserva hasta publicación | PASS / COMPLETE en código | Pendiente commit/push | ADR-0071; root528/58files, full DB379/API227, workers1+3, aislamiento9+37; build/types/Biome502 y migraciones34–36 PASS; rereview aprobado |
+| E14-S10 | Core/integración/seguridad gpt-6-luna; auditoría final e14_s10_final_audit gpt-6-sol; coordinador docs/gates/Git. Basebc29a6f; reservas liberadas | PASS / COMPLETE | `58fb9171a392c76471c9ee4cd95bf6e653450d0a`; push SHA idéntico verificado | ADR-0071; root528/58files, full DB379/API227, workers1+3, aislamiento9+37; build/types/Biome502 y migraciones34–36 PASS; rereview aprobado |
 
 ## 5. Verificaciones y auditorías de esta iteración
 
@@ -117,12 +117,12 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
 
 ## 6. Bloqueos, riesgos y siguiente prioridad
 
-- E14 no está terminada mientras quede una historia PENDING/IN PROGRESS o sus
-  gates sin evidencia. No afirmar cierre por haber creado este documento.
-- La suite DB completa y la cadena histórica de migrations tenían fallos
-  documentados en main; reproducir y corregir prerrequisitos necesarios sin
-  ocultarlos ni modificar migrations compartidas aplicadas.
-- Terminar E14 es continuar el hito activo solicitado; no cambia la prioridad
+- E14 está cerrada: S01–S10 completas, S04–S10 publicadas en la rama indicada.
+  No hay otra épica reservada; main no contiene todavía estas historias.
+- Las suites actuales completas pasan. Persiste el límite histórico de BOM
+  al reproducir toda la cadena pristine; se verificó esquema limpio y upgrade
+  relevante, sin modificar SQL compartido aplicado ni afirmar replay histórico.
+- El cierre de E14 cumple el hito solicitado; se conserva la prioridad
   comercial P0 de conectar Baileys y probar backup/restore antes de cobrar.
 - Siguiente trabajo tras E14: reconciliar identificadores y cerrar el transporte
   real P0 del alcance original E05; luego los demás gates P0 antes de ampliar
@@ -272,3 +272,13 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
   retiradas tras cero conexiones; runner retiró su DB. Workers de desarrollo
   siguen parados y API3001/web3005 usan imágenes anteriores; no son prueba de
   runtime actualizado. Commit/push se registrarán tras comprobar SHA remoto.
+
+- 2026-10-28: E14-S10 publicada en
+  58fb9171a392c76471c9ee4cd95bf6e653450d0a; ls-remote confirma SHA idéntico.
+  main/origin main siguen fb8639db15ec262fcc13432f9aee4536deb8367e;
+  merge-base confirma que S10 no está en main. E14 termina con S01–S10 completas;
+  reservas liberadas y ninguna épica nueva abierta. El checkpoint documental
+  posterior registra este cierre; puede avanzar HEAD respecto al feature.
+  Siguiente prioridad: transporte real Baileys del alcance original E05 y los
+  gates P0 de backup/restore; reconciliar IDs y E13-S05 antes de declarar MVP
+  vendible. E15 Catalog+Quote es la siguiente numérica, no prioridad automática.

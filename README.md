@@ -2,7 +2,7 @@
 
 Multi-tenant B2B automation platform with WhatsApp as its primary channel and
 Messenger as a secondary target through a future verified unofficial connector.
-E14 — Agenda has passed its source gates; publication is tracked below. See [STATUS](platform_docs/STATUS.md) for
+E14 — Agenda is complete on the published feature branch. See [STATUS](platform_docs/STATUS.md) for
 implemented behavior and [orchestration progress](platform_docs/avance_orquestador.md)
 for story ownership, verification, commits and remaining scope. Real Baileys
 transport and backup/restore commercial gates remain outstanding.
