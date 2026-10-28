@@ -5,6 +5,8 @@ import {
   createOutboundMessageManager,
   createTenantContext,
   executeAppointmentReminder,
+  hashAppointmentBookingRuleDefinition,
+  normalizeAppointmentBookingPolicy,
   type OutboundMessageManager,
   rebookAppointment,
 } from "@whatsapp-platform/database";
@@ -21,6 +23,8 @@ import {
   type SendMessageMetadata,
 } from "@whatsapp-platform/messaging";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { processPersistedBookingTurn } from "../../../packages/database/dist/appointment-booking-manager";
+import { createTenantContext as createSourceTenantContext } from "../../../packages/database/dist/tenant-context";
 import { OutboundWorker } from "./outbound-worker";
 
 const prefix = "e05-s03-outbound-worker";
@@ -59,8 +63,15 @@ async function cleanup(): Promise<void> {
   });
   const ids = tenants.map(({ id }) => id);
   if (ids.length === 0) return;
+  await prisma.appointmentBookingTurn.deleteMany({ where: { tenantId: { in: ids } } });
+  await prisma.appointmentBookingFlow.updateMany({
+    where: { tenantId: { in: ids }, selectedAppointmentId: { not: null } },
+    data: { selectedAppointmentId: null },
+  });
   await prisma.appointmentReminder.deleteMany({ where: { tenantId: { in: ids } } });
   await prisma.appointment.deleteMany({ where: { tenantId: { in: ids } } });
+  await prisma.appointmentBookingFlow.deleteMany({ where: { tenantId: { in: ids } } });
+  await prisma.rule.deleteMany({ where: { tenantId: { in: ids } } });
   await prisma.appointmentAvailabilityRule.deleteMany({ where: { tenantId: { in: ids } } });
   await prisma.appointmentResource.deleteMany({ where: { tenantId: { in: ids } } });
   await prisma.appointmentService.deleteMany({ where: { tenantId: { in: ids } } });
@@ -98,6 +109,7 @@ describe.sequential("E05-S03 outbound worker", () => {
       displayName: "Outbound Worker",
       enabledModules: [
         "module.appointments",
+        "module.automation.basic",
         "module.scheduling",
         "module.messaging.basic",
         "module.crm_lite",
@@ -402,5 +414,811 @@ describe.sequential("E05-S03 outbound worker", () => {
       }),
     ).resolves.toMatchObject({ status: "QUEUED", dispatchAuthorizedAt: expect.any(Date) });
     await worker.stop();
+  });
+
+  it("suppresses queued booking prompts after HUMAN takeover before provider IO", async () => {
+    const contact = await prisma.contact.create({
+      data: { tenantId, name: "Booking worker contact", phoneNumber: `+5255${Date.now()}` },
+    });
+    const conversation = await prisma.conversation.create({
+      data: {
+        tenantId,
+        channelAccountId: channelId,
+        contactId: contact.id,
+        status: "open",
+        automationMode: "AUTO",
+      },
+    });
+    const service = await prisma.appointmentService.create({
+      data: { tenantId, name: `Booking worker service ${Date.now()}`, durationMinutes: 30 },
+    });
+    const resource = await prisma.appointmentResource.create({
+      data: { tenantId, name: `Booking worker resource ${Date.now()}`, capacity: 1 },
+    });
+    const policy = normalizeAppointmentBookingPolicy({
+      serviceIds: [service.id],
+      resourceIds: [resource.id],
+    });
+    const rule = await prisma.rule.create({
+      data: {
+        tenantId,
+        channelAccountId: channelId,
+        name: `Booking worker rule ${Date.now()}`,
+        triggerType: "ON_MESSAGE_RECEIVED",
+        status: "active",
+        executionMode: "first_match_stop",
+        conditions: [],
+        actions: [{ actionType: "start_appointment_booking", parameters: policy }],
+      },
+    });
+    const inbound = await prisma.message.create({
+      data: {
+        tenantId,
+        conversationId: conversation.id,
+        channelAccountId: channelId,
+        contactId: contact.id,
+        direction: "inbound",
+        origin: "provider",
+        actorType: "customer",
+        messageType: "text",
+        textBody: "Quiero reservar",
+      },
+    });
+    const flow = await prisma.appointmentBookingFlow.create({
+      data: {
+        tenantId,
+        conversationId: conversation.id,
+        contactId: contact.id,
+        channelAccountId: channelId,
+        originatingRuleId: rule.id,
+        liveRuleId: rule.id,
+        policyHash: hashAppointmentBookingRuleDefinition(rule),
+        policySnapshot: policy,
+        intent: "CREATE",
+        phase: "SELECT_SERVICE",
+        expiresAt: new Date(Date.now() + 10 * 60_000),
+      },
+    });
+    const outbound = await manager.enqueueOutboundMessage(
+      createTenantContext(tenantId),
+      channelId,
+      {
+        content: { text: "Elige un servicio" },
+        idempotencyKey: `s10-booking-worker-${crypto.randomUUID()}`,
+        maxRetries: 0,
+        messageType: "text",
+        recipientPhone: contact.phoneNumber,
+      },
+    );
+    await prisma.appointmentBookingTurn.create({
+      data: {
+        tenantId,
+        inboundMessageId: inbound.id,
+        conversationId: conversation.id,
+        contactId: contact.id,
+        channelAccountId: channelId,
+        route: "BOOKING",
+        originatingRuleId: rule.id,
+        liveRuleId: rule.id,
+        policyHash: flow.policyHash,
+        policySnapshot: policy,
+        flowId: flow.id,
+        outboundMessageId: outbound.id,
+        outboundPurpose: "PROMPT",
+        outboundFlowPhase: flow.phase,
+        outboundFlowVersion: flow.proposalVersion,
+      },
+    });
+    const firstTurnKey = {
+      tenantId_inboundMessageId: { tenantId, inboundMessageId: inbound.id },
+    };
+    await expect(
+      prisma.appointmentBookingTurn.update({
+        where: firstTurnKey,
+        data: { outboundFlowVersion: null },
+      }),
+    ).rejects.toThrow();
+    await expect(
+      prisma.appointmentBookingTurn.update({
+        where: firstTurnKey,
+        data: { outboundFlowPhase: "COMPLETED" },
+      }),
+    ).rejects.toThrow();
+    await prisma.conversation.update({
+      data: { automationMode: "HUMAN" },
+      where: { tenantId_id: { id: conversation.id, tenantId } },
+    });
+
+    const provider = new MockMessagingProvider();
+    const worker = new OutboundWorker(manager, prisma, { providerFactory: () => provider });
+    await expect(worker.runOnce()).resolves.toBe(1);
+    expect(provider.sentMessages).toHaveLength(0);
+    await expect(
+      prisma.outboundMessage.findUniqueOrThrow({ where: { id: outbound.id } }),
+    ).resolves.toMatchObject({
+      status: "FAILED",
+      lastError: expect.stringContaining("BOOKING_DISPATCH_SUPPRESSED"),
+    });
+    await worker.stop();
+    await prisma.appointmentBookingFlow.update({
+      data: { phase: "CANCELLED", closedAt: new Date(), terminalReason: "test_cleanup" },
+      where: { tenantId_id: { id: flow.id, tenantId } },
+    });
+    await prisma.conversation.update({
+      data: { automationMode: "AUTO" },
+      where: { tenantId_id: { id: conversation.id, tenantId } },
+    });
+
+    const moduleInbound = await prisma.message.create({
+      data: {
+        tenantId,
+        conversationId: conversation.id,
+        channelAccountId: channelId,
+        contactId: contact.id,
+        direction: "inbound",
+        origin: "provider",
+        actorType: "customer",
+        messageType: "text",
+        textBody: "Quiero otra cita",
+      },
+    });
+    const moduleFlow = await prisma.appointmentBookingFlow.create({
+      data: {
+        tenantId,
+        conversationId: conversation.id,
+        contactId: contact.id,
+        channelAccountId: channelId,
+        originatingRuleId: rule.id,
+        liveRuleId: rule.id,
+        policyHash: flow.policyHash,
+        policySnapshot: policy,
+        intent: "CREATE",
+        phase: "SELECT_SERVICE",
+        expiresAt: new Date(Date.now() + 10 * 60_000),
+      },
+    });
+    const moduleOutbound = await manager.enqueueOutboundMessage(
+      createTenantContext(tenantId),
+      channelId,
+      {
+        content: { text: "Elige un servicio" },
+        idempotencyKey: `s10-booking-worker-module-${crypto.randomUUID()}`,
+        maxRetries: 0,
+        messageType: "text",
+        recipientPhone: contact.phoneNumber,
+      },
+    );
+    await prisma.appointmentBookingTurn.create({
+      data: {
+        tenantId,
+        inboundMessageId: moduleInbound.id,
+        conversationId: conversation.id,
+        contactId: contact.id,
+        channelAccountId: channelId,
+        route: "BOOKING",
+        originatingRuleId: rule.id,
+        liveRuleId: rule.id,
+        policyHash: moduleFlow.policyHash,
+        policySnapshot: policy,
+        flowId: moduleFlow.id,
+        outboundMessageId: moduleOutbound.id,
+        outboundPurpose: "PROMPT",
+        outboundFlowPhase: moduleFlow.phase,
+        outboundFlowVersion: moduleFlow.proposalVersion,
+      },
+    });
+    await prisma.tenantEntitlement.update({
+      data: { enabled: false },
+      where: { tenantId_entitlementKey: { tenantId, entitlementKey: "module.appointments" } },
+    });
+    const moduleProvider = new MockMessagingProvider();
+    const moduleWorker = new OutboundWorker(manager, prisma, {
+      providerFactory: () => moduleProvider,
+    });
+    await expect(moduleWorker.runOnce()).resolves.toBe(1);
+    expect(moduleProvider.sentMessages).toHaveLength(0);
+    await expect(
+      prisma.outboundMessage.findUniqueOrThrow({ where: { id: moduleOutbound.id } }),
+    ).resolves.toMatchObject({
+      status: "FAILED",
+      lastError: expect.stringContaining("BOOKING_DISPATCH_SUPPRESSED"),
+    });
+    await moduleWorker.stop();
+    await prisma.tenantEntitlement.update({
+      data: { enabled: true },
+      where: { tenantId_entitlementKey: { tenantId, entitlementKey: "module.appointments" } },
+    });
+    await prisma.appointmentBookingFlow.update({
+      data: { phase: "CANCELLED", closedAt: new Date(), terminalReason: "test_cleanup" },
+      where: { tenantId_id: { id: moduleFlow.id, tenantId } },
+    });
+
+    const reminderPolicy = normalizeAppointmentBookingPolicy({
+      serviceIds: [service.id],
+      resourceIds: [resource.id],
+      reminderOffsetsMinutes: [60],
+    });
+    const reminderRule = await prisma.rule.create({
+      data: {
+        tenantId,
+        channelAccountId: channelId,
+        name: `Booking reminder worker rule ${Date.now()}`,
+        triggerType: "ON_MESSAGE_RECEIVED",
+        status: "active",
+        executionMode: "first_match_stop",
+        conditions: [],
+        actions: [{ actionType: "start_appointment_booking", parameters: reminderPolicy }],
+      },
+    });
+    const schedulingInbound = await prisma.message.create({
+      data: {
+        tenantId,
+        conversationId: conversation.id,
+        channelAccountId: channelId,
+        contactId: contact.id,
+        direction: "inbound",
+        origin: "provider",
+        actorType: "customer",
+        messageType: "text",
+        textBody: "Quiero cita con recordatorio",
+      },
+    });
+    const schedulingFlow = await prisma.appointmentBookingFlow.create({
+      data: {
+        tenantId,
+        conversationId: conversation.id,
+        contactId: contact.id,
+        channelAccountId: channelId,
+        originatingRuleId: reminderRule.id,
+        liveRuleId: reminderRule.id,
+        policyHash: hashAppointmentBookingRuleDefinition(reminderRule),
+        policySnapshot: reminderPolicy,
+        intent: "CREATE",
+        phase: "SELECT_SERVICE",
+        expiresAt: new Date(Date.now() + 10 * 60_000),
+      },
+    });
+    const schedulingOutbound = await manager.enqueueOutboundMessage(
+      createTenantContext(tenantId),
+      channelId,
+      {
+        content: { text: "Elige un servicio con recordatorio" },
+        idempotencyKey: `s10-booking-worker-scheduling-${crypto.randomUUID()}`,
+        maxRetries: 0,
+        messageType: "text",
+        recipientPhone: contact.phoneNumber,
+      },
+    );
+    await prisma.appointmentBookingTurn.create({
+      data: {
+        tenantId,
+        inboundMessageId: schedulingInbound.id,
+        conversationId: conversation.id,
+        contactId: contact.id,
+        channelAccountId: channelId,
+        route: "BOOKING",
+        originatingRuleId: reminderRule.id,
+        liveRuleId: reminderRule.id,
+        policyHash: schedulingFlow.policyHash,
+        policySnapshot: reminderPolicy,
+        flowId: schedulingFlow.id,
+        outboundMessageId: schedulingOutbound.id,
+        outboundPurpose: "PROMPT",
+        outboundFlowPhase: schedulingFlow.phase,
+        outboundFlowVersion: schedulingFlow.proposalVersion,
+      },
+    });
+    await prisma.tenantEntitlement.update({
+      data: { enabled: false },
+      where: { tenantId_entitlementKey: { tenantId, entitlementKey: "module.scheduling" } },
+    });
+    const schedulingProvider = new MockMessagingProvider();
+    const schedulingWorker = new OutboundWorker(manager, prisma, {
+      providerFactory: () => schedulingProvider,
+    });
+    await expect(schedulingWorker.runOnce()).resolves.toBe(1);
+    expect(schedulingProvider.sentMessages).toHaveLength(0);
+    await expect(
+      prisma.outboundMessage.findUniqueOrThrow({ where: { id: schedulingOutbound.id } }),
+    ).resolves.toMatchObject({
+      status: "FAILED",
+      lastError: expect.stringContaining("BOOKING_DISPATCH_SUPPRESSED"),
+    });
+    await schedulingWorker.stop();
+    await prisma.tenantEntitlement.update({
+      data: { enabled: true },
+      where: { tenantId_entitlementKey: { tenantId, entitlementKey: "module.scheduling" } },
+    });
+    await prisma.appointmentBookingFlow.update({
+      data: { phase: "CANCELLED", closedAt: new Date(), terminalReason: "test_cleanup" },
+      where: { tenantId_id: { id: schedulingFlow.id, tenantId } },
+    });
+
+    const takeoverInbound = await prisma.message.create({
+      data: {
+        tenantId,
+        conversationId: conversation.id,
+        channelAccountId: channelId,
+        contactId: contact.id,
+        direction: "inbound",
+        origin: "provider",
+        actorType: "customer",
+        messageType: "text",
+        textBody: "Otra cita",
+      },
+    });
+    const takeoverFlow = await prisma.appointmentBookingFlow.create({
+      data: {
+        tenantId,
+        conversationId: conversation.id,
+        contactId: contact.id,
+        channelAccountId: channelId,
+        originatingRuleId: rule.id,
+        liveRuleId: rule.id,
+        policyHash: flow.policyHash,
+        policySnapshot: policy,
+        intent: "CREATE",
+        phase: "SELECT_SERVICE",
+        expiresAt: new Date(Date.now() + 10 * 60_000),
+      },
+    });
+    const takeoverOutbound = await manager.enqueueOutboundMessage(
+      createTenantContext(tenantId),
+      channelId,
+      {
+        content: { text: "Elige un servicio" },
+        idempotencyKey: `s10-booking-worker-takeover-${crypto.randomUUID()}`,
+        maxRetries: 0,
+        messageType: "text",
+        recipientPhone: contact.phoneNumber,
+      },
+    );
+    await prisma.appointmentBookingTurn.create({
+      data: {
+        tenantId,
+        inboundMessageId: takeoverInbound.id,
+        conversationId: conversation.id,
+        contactId: contact.id,
+        channelAccountId: channelId,
+        route: "BOOKING",
+        originatingRuleId: rule.id,
+        liveRuleId: rule.id,
+        policyHash: takeoverFlow.policyHash,
+        policySnapshot: policy,
+        flowId: takeoverFlow.id,
+        outboundMessageId: takeoverOutbound.id,
+        outboundPurpose: "PROMPT",
+        outboundFlowPhase: takeoverFlow.phase,
+        outboundFlowVersion: takeoverFlow.proposalVersion,
+      },
+    });
+    await prisma.conversation.update({
+      data: { humanTakeoverUntil: new Date(Date.now() + 5 * 60_000) },
+      where: { tenantId_id: { id: conversation.id, tenantId } },
+    });
+    const takeoverProvider = new MockMessagingProvider();
+    const takeoverWorker = new OutboundWorker(manager, prisma, {
+      providerFactory: () => takeoverProvider,
+    });
+    await expect(takeoverWorker.runOnce()).resolves.toBe(1);
+    expect(takeoverProvider.sentMessages).toHaveLength(0);
+    await expect(
+      prisma.outboundMessage.findUniqueOrThrow({ where: { id: takeoverOutbound.id } }),
+    ).resolves.toMatchObject({
+      status: "FAILED",
+      lastError: expect.stringContaining("BOOKING_DISPATCH_SUPPRESSED"),
+    });
+    await takeoverWorker.stop();
+    await prisma.conversation.update({
+      data: { humanTakeoverUntil: null },
+      where: { tenantId_id: { id: conversation.id, tenantId } },
+    });
+    await prisma.appointmentBookingFlow.update({
+      data: { phase: "CANCELLED", closedAt: new Date(), terminalReason: "test_cleanup" },
+      where: { tenantId_id: { id: takeoverFlow.id, tenantId } },
+    });
+
+    const availabilityStart = new Date();
+    availabilityStart.setUTCDate(availabilityStart.getUTCDate() + 14);
+    availabilityStart.setUTCHours(9, 0, 0, 0);
+    await prisma.appointmentAvailabilityRule.createMany({
+      data: Array.from({ length: 7 }, (_, dayOfWeek) => ({
+        tenantId,
+        resourceId: resource.id,
+        dayOfWeek,
+        startTime: "08:00",
+        endTime: "12:00",
+        timezone: "UTC",
+        capacity: 1,
+      })),
+    });
+    const promptContact = await prisma.contact.create({
+      data: {
+        tenantId,
+        name: `Booking prompt contact ${Date.now()}`,
+        phoneNumber: `+5255${String(Date.now()).slice(-8)}`,
+      },
+    });
+    const promptConversation = await prisma.conversation.create({
+      data: {
+        tenantId,
+        channelAccountId: channelId,
+        contactId: promptContact.id,
+        status: "open",
+        automationMode: "AUTO",
+      },
+    });
+    const persistPromptInbound = async (textBody: string) => {
+      const inbound = await prisma.message.create({
+        data: {
+          tenantId,
+          conversationId: promptConversation.id,
+          channelAccountId: channelId,
+          contactId: promptContact.id,
+          direction: "inbound",
+          origin: "provider",
+          actorType: "customer",
+          messageType: "text",
+          textBody,
+        },
+      });
+      await prisma.appointmentBookingTurn.create({
+        data: {
+          tenantId,
+          inboundMessageId: inbound.id,
+          conversationId: promptConversation.id,
+          contactId: promptContact.id,
+          channelAccountId: channelId,
+          route: "UNDECIDED",
+        },
+      });
+      return inbound;
+    };
+    const selectPromptRoute = async () => ({
+      kind: "BOOKING" as const,
+      ruleId: rule.id,
+      trigger: "ON_MESSAGE_RECEIVED" as const,
+      policy,
+      policyHash: hashAppointmentBookingRuleDefinition(rule),
+    });
+    const promptProvider = new MockMessagingProvider();
+    const promptWorker = new OutboundWorker(manager, prisma, {
+      providerFactory: () => promptProvider,
+    });
+    const createPromptInbound = await persistPromptInbound("Quiero reservar");
+    const createPrompt = await processPersistedBookingTurn(
+      createSourceTenantContext(tenantId),
+      prisma as never,
+      createPromptInbound.id,
+      selectPromptRoute,
+    );
+    if (!createPrompt.outboundMessageId) throw new Error("service prompt was not queued");
+    await expect(promptWorker.runOnce()).resolves.toBe(1);
+    expect(promptProvider.sentMessages).toHaveLength(1);
+
+    const resourcePromptInbound = await persistPromptInbound("1");
+    const resourcePrompt = await processPersistedBookingTurn(
+      createSourceTenantContext(tenantId),
+      prisma as never,
+      resourcePromptInbound.id,
+      selectPromptRoute,
+    );
+    if (!resourcePrompt.outboundMessageId) throw new Error("resource prompt was not queued");
+    await expect(promptWorker.runOnce()).resolves.toBe(1);
+    expect(promptProvider.sentMessages).toHaveLength(2);
+
+    const slotPromptInbound = await persistPromptInbound("1");
+    const slotPrompt = await processPersistedBookingTurn(
+      createSourceTenantContext(tenantId),
+      prisma as never,
+      slotPromptInbound.id,
+      selectPromptRoute,
+    );
+    if (!slotPrompt.outboundMessageId) throw new Error("slot prompt was not queued");
+    const slotPromptTurn = await prisma.appointmentBookingTurn.findUniqueOrThrow({
+      where: {
+        tenantId_inboundMessageId: {
+          tenantId,
+          inboundMessageId: slotPromptInbound.id,
+        },
+      },
+    });
+    expect(slotPromptTurn).toMatchObject({
+      outboundPurpose: "PROMPT",
+      outboundFlowPhase: "SELECT_SLOT",
+      outboundFlowVersion: 3,
+    });
+    await expect(promptWorker.runOnce()).resolves.toBe(1);
+    expect(promptProvider.sentMessages).toHaveLength(3);
+
+    const slotFlowId = slotPromptTurn.flowId;
+    if (slotFlowId === null) throw new Error("slot prompt lost its flow lineage");
+    await prisma.appointmentBookingFlow.update({
+      where: { tenantId_id: { id: slotFlowId, tenantId } },
+      data: {
+        phase: "CANCELLED",
+        closedAt: new Date(),
+        terminalReason: "test_cleanup",
+        confirmationTokenHash: null,
+        proposalVersion: { increment: 1 },
+      },
+    });
+    const expiringInbound = await persistPromptInbound("Quiero reservar");
+    const expiringPrompt = await processPersistedBookingTurn(
+      createSourceTenantContext(tenantId),
+      prisma as never,
+      expiringInbound.id,
+      selectPromptRoute,
+    );
+    if (!expiringPrompt.outboundMessageId) throw new Error("expiring prompt was not queued");
+    const expiringTurn = await prisma.appointmentBookingTurn.findUniqueOrThrow({
+      where: {
+        tenantId_inboundMessageId: {
+          tenantId,
+          inboundMessageId: expiringInbound.id,
+        },
+      },
+    });
+    if (expiringTurn.flowId === null) throw new Error("expiring prompt lost its flow lineage");
+    let releaseRule!: () => void;
+    let announceRuleLock!: () => void;
+    const ruleHeld = new Promise<void>((resolve) => {
+      announceRuleLock = resolve;
+    });
+    const releaseSignal = new Promise<void>((resolve) => {
+      releaseRule = resolve;
+    });
+    const ruleBlocker = prisma.$transaction(
+      async (transaction) => {
+        await transaction.$queryRaw`SELECT id FROM "rule" WHERE tenant_id = ${tenantId}::uuid AND id = ${rule.id}::uuid FOR UPDATE`;
+        announceRuleLock();
+        await releaseSignal;
+      },
+      { timeout: 15_000 },
+    );
+    await ruleHeld;
+    const expiringAttempt = promptWorker.runOnce();
+    let waitingOnRule = false;
+    const waitDeadline = Date.now() + 5_000;
+    while (!waitingOnRule && Date.now() < waitDeadline) {
+      const rows = await prisma.$queryRaw<Array<{ count: number }>>`
+        SELECT count(*)::int AS count FROM pg_stat_activity
+        WHERE datname = current_database() AND wait_event_type = 'Lock' AND query ILIKE '%FOR SHARE%'`;
+      waitingOnRule = (rows[0]?.count ?? 0) > 0;
+      if (!waitingOnRule) await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    if (!waitingOnRule) {
+      releaseRule();
+      await ruleBlocker;
+      await expiringAttempt;
+      throw new Error("booking dispatch did not wait on the held rule row");
+    }
+    await prisma.appointmentBookingFlow.update({
+      where: { tenantId_id: { id: expiringTurn.flowId, tenantId } },
+      data: { expiresAt: new Date(Date.now() - 1) },
+    });
+    releaseRule();
+    await ruleBlocker;
+    await expect(expiringAttempt).resolves.toBe(1);
+    expect(promptProvider.sentMessages).toHaveLength(3);
+    await expect(
+      prisma.outboundMessage.findUniqueOrThrow({ where: { id: expiringPrompt.outboundMessageId } }),
+    ).resolves.toMatchObject({
+      status: "FAILED",
+      lastError: expect.stringContaining("BOOKING_DISPATCH_SUPPRESSED"),
+    });
+    await promptWorker.stop();
+
+    const appointment = await createAppointment(
+      createTenantContext(tenantId),
+      prisma,
+      {
+        serviceId: service.id,
+        resourceId: resource.id,
+        contactId: contact.id,
+        startsAt: availabilityStart.toISOString(),
+        idempotencyKey: `s10-booking-worker-completed-${crypto.randomUUID()}`,
+      },
+      { actorUserId: ownerId, requestId: `${prefix}-completed-ack` },
+    );
+    const completedInbound = await prisma.message.create({
+      data: {
+        tenantId,
+        conversationId: conversation.id,
+        channelAccountId: channelId,
+        contactId: contact.id,
+        direction: "inbound",
+        origin: "provider",
+        actorType: "customer",
+        messageType: "text",
+        textBody: "Confirmado",
+      },
+    });
+    const completedFlow = await prisma.appointmentBookingFlow.create({
+      data: {
+        tenantId,
+        conversationId: conversation.id,
+        contactId: contact.id,
+        channelAccountId: channelId,
+        originatingRuleId: rule.id,
+        liveRuleId: null,
+        policyHash: flow.policyHash,
+        policySnapshot: policy,
+        intent: "CREATE",
+        phase: "COMPLETED",
+        selectedAppointmentId: appointment.id,
+        expiresAt: new Date(Date.now() + 10 * 60_000),
+        closedAt: new Date(),
+        terminalReason: "confirmed",
+      },
+    });
+    await prisma.appointment.update({
+      where: { tenantId_id: { id: appointment.id, tenantId } },
+      data: { bookingFlowId: completedFlow.id },
+    });
+    const stalePromptInbound = await prisma.message.create({
+      data: {
+        tenantId,
+        conversationId: conversation.id,
+        channelAccountId: channelId,
+        contactId: contact.id,
+        direction: "inbound",
+        origin: "provider",
+        actorType: "customer",
+        messageType: "text",
+        textBody: "Quiero reservar",
+      },
+    });
+    const staleCompletedPrompt = await manager.enqueueOutboundMessage(
+      createTenantContext(tenantId),
+      channelId,
+      {
+        content: { text: "Elige un servicio" },
+        idempotencyKey: `s10-booking-worker-stale-completed-prompt-${crypto.randomUUID()}`,
+        maxRetries: 0,
+        messageType: "text",
+        recipientPhone: contact.phoneNumber,
+      },
+    );
+    await prisma.appointmentBookingTurn.create({
+      data: {
+        tenantId,
+        inboundMessageId: stalePromptInbound.id,
+        conversationId: conversation.id,
+        contactId: contact.id,
+        channelAccountId: channelId,
+        route: "BOOKING",
+        originatingRuleId: rule.id,
+        liveRuleId: null,
+        policyHash: completedFlow.policyHash,
+        policySnapshot: policy,
+        flowId: completedFlow.id,
+        outboundMessageId: staleCompletedPrompt.id,
+        outboundPurpose: "PROMPT",
+        outboundFlowPhase: "SELECT_SERVICE",
+        outboundFlowVersion: completedFlow.proposalVersion,
+        appointmentId: appointment.id,
+      },
+    });
+    const completedOutbound = await manager.enqueueOutboundMessage(
+      createTenantContext(tenantId),
+      channelId,
+      {
+        content: { text: "Listo. Reservé tu cita." },
+        idempotencyKey: `s10-booking-worker-completed-ack-${crypto.randomUUID()}`,
+        maxRetries: 0,
+        messageType: "text",
+        recipientPhone: contact.phoneNumber,
+      },
+    );
+    await prisma.appointmentBookingTurn.create({
+      data: {
+        tenantId,
+        inboundMessageId: completedInbound.id,
+        conversationId: conversation.id,
+        contactId: contact.id,
+        channelAccountId: channelId,
+        route: "BOOKING",
+        originatingRuleId: rule.id,
+        liveRuleId: null,
+        policyHash: completedFlow.policyHash,
+        policySnapshot: policy,
+        flowId: completedFlow.id,
+        outboundMessageId: completedOutbound.id,
+        outboundPurpose: "ACK",
+        outboundFlowPhase: completedFlow.phase,
+        outboundFlowVersion: completedFlow.proposalVersion,
+        appointmentId: appointment.id,
+      },
+    });
+    const exitInbound = await prisma.message.create({
+      data: {
+        tenantId,
+        conversationId: conversation.id,
+        channelAccountId: channelId,
+        contactId: contact.id,
+        direction: "inbound",
+        origin: "provider",
+        actorType: "customer",
+        messageType: "text",
+        textBody: "SALIR",
+      },
+    });
+    const exitFlow = await prisma.appointmentBookingFlow.create({
+      data: {
+        tenantId,
+        conversationId: conversation.id,
+        contactId: contact.id,
+        channelAccountId: channelId,
+        originatingRuleId: rule.id,
+        liveRuleId: null,
+        policyHash: flow.policyHash,
+        policySnapshot: policy,
+        intent: "CREATE",
+        phase: "CANCELLED",
+        proposalVersion: 2,
+        expiresAt: new Date(Date.now() + 10 * 60_000),
+        closedAt: new Date(),
+        terminalReason: "customer_exit",
+      },
+    });
+    const exitOutbound = await manager.enqueueOutboundMessage(
+      createTenantContext(tenantId),
+      channelId,
+      {
+        content: { text: "Solicitud cerrada." },
+        idempotencyKey: `s10-booking-worker-exit-ack-${crypto.randomUUID()}`,
+        maxRetries: 0,
+        messageType: "text",
+        recipientPhone: contact.phoneNumber,
+      },
+    );
+    await prisma.appointmentBookingTurn.create({
+      data: {
+        tenantId,
+        inboundMessageId: exitInbound.id,
+        conversationId: conversation.id,
+        contactId: contact.id,
+        channelAccountId: channelId,
+        route: "BOOKING",
+        originatingRuleId: rule.id,
+        liveRuleId: null,
+        policyHash: exitFlow.policyHash,
+        policySnapshot: policy,
+        flowId: exitFlow.id,
+        outboundMessageId: exitOutbound.id,
+        outboundPurpose: "ACK",
+        outboundFlowPhase: "CANCELLED",
+        outboundFlowVersion: exitFlow.proposalVersion,
+      },
+    });
+    await prisma.appointmentBookingFlow.updateMany({
+      data: { liveRuleId: null },
+      where: { tenantId, liveRuleId: { not: null } },
+    });
+    await prisma.appointmentBookingTurn.updateMany({
+      data: { liveRuleId: null },
+      where: { tenantId, liveRuleId: { not: null } },
+    });
+    await prisma.rule.deleteMany({ where: { tenantId } });
+    const completedProvider = new MockMessagingProvider();
+    const completedWorker = new OutboundWorker(manager, prisma, {
+      providerFactory: () => completedProvider,
+    });
+    await expect(completedWorker.runOnce()).resolves.toBe(3);
+    expect(completedProvider.sentMessages).toHaveLength(2);
+    await expect(
+      prisma.outboundMessage.findUniqueOrThrow({ where: { id: staleCompletedPrompt.id } }),
+    ).resolves.toMatchObject({
+      status: "FAILED",
+      lastError: expect.stringContaining("BOOKING_DISPATCH_SUPPRESSED"),
+    });
+    await expect(
+      prisma.outboundMessage.findUniqueOrThrow({ where: { id: completedOutbound.id } }),
+    ).resolves.toMatchObject({ status: "SENT" });
+    await expect(
+      prisma.outboundMessage.findUniqueOrThrow({ where: { id: exitOutbound.id } }),
+    ).resolves.toMatchObject({ status: "SENT" });
+    await completedWorker.stop();
   });
 });

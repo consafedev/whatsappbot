@@ -158,6 +158,7 @@ describe.sequential("E06-S03 inbound message persistence", () => {
     });
 
     expect(result).toMatchObject({ duplicate: false });
+    expect(result.isNewConversation).toBe(true);
     expect(result.message).toMatchObject({
       actorType: "contact",
       direction: "inbound",
@@ -165,6 +166,21 @@ describe.sequential("E06-S03 inbound message persistence", () => {
       origin: "customer",
       providerMessageId: "message-1",
       textBody: "hola",
+      tenantId: tenantAId,
+    });
+    await expect(
+      prisma.appointmentBookingTurn.findUniqueOrThrow({
+        where: {
+          tenantId_inboundMessageId: { inboundMessageId: result.message.id, tenantId: tenantAId },
+        },
+      }),
+    ).resolves.toMatchObject({
+      channelAccountId: channelAId,
+      contactId: result.message.contactId,
+      conversationId: result.conversationId,
+      createdNewConversation: true,
+      inboundMessageId: result.message.id,
+      route: "UNDECIDED",
       tenantId: tenantAId,
     });
     await expect(
@@ -193,6 +209,21 @@ describe.sequential("E06-S03 inbound message persistence", () => {
 
     expect(results.filter(({ duplicate }) => !duplicate)).toHaveLength(1);
     expect(results.filter(({ duplicate }) => duplicate)).toHaveLength(1);
+    expect(results[0]?.message.id).toBe(results[1]?.message.id);
+    expect(results.find(({ duplicate }) => !duplicate)?.isNewConversation).toBe(false);
+    expect(results.find(({ duplicate }) => duplicate)?.isNewConversation).toBeUndefined();
+    const persistedMessage = results[0]?.message;
+    if (persistedMessage === undefined) throw new Error("Expected a persisted inbound message");
+    await expect(
+      prisma.appointmentBookingTurn.findUniqueOrThrow({
+        where: {
+          tenantId_inboundMessageId: {
+            inboundMessageId: persistedMessage.id,
+            tenantId: tenantAId,
+          },
+        },
+      }),
+    ).resolves.toMatchObject({ createdNewConversation: false, route: "UNDECIDED" });
     await expect(
       prisma.message.count({ where: { inboundEventId: eventId, tenantId: tenantAId } }),
     ).resolves.toBe(1);

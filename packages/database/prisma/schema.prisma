@@ -219,6 +219,8 @@ model Tenant {
   appointmentAvailabilityExceptions AppointmentAvailabilityException[]
   appointments        Appointment[]
   appointmentReminders AppointmentReminder[]
+  appointmentBookingFlows AppointmentBookingFlow[]
+  appointmentBookingTurns AppointmentBookingTurn[]
 
   @@index([status], map: "tenant_status_idx")
   @@index([deploymentId], map: "tenant_deployment_id_idx")
@@ -489,6 +491,8 @@ model ChannelAccount {
   messages              Message[]
   rules                 Rule[]
   campaigns             Campaign[]
+  appointmentBookingFlows AppointmentBookingFlow[]
+  appointmentBookingTurns AppointmentBookingTurn[]
 
   @@unique([tenantId, id], map: "channel_account_tenant_id_id_key")
   @@unique([tenantId, phoneNumberUniqueKey], map: "channel_account_tenant_phone_active_key")
@@ -546,6 +550,7 @@ model OutboundMessage {
   actorUser         User?           @relation(fields: [tenantId, actorUserId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade)
   message           Message?        @relation("OutboundCanonicalMessage")
   appointmentReminders AppointmentReminder[]
+  appointmentBookingTurns AppointmentBookingTurn[]
 
   @@unique([tenantId, id], map: "outbound_message_tenant_id_key")
   @@unique([tenantId, idempotencyKey], map: "outbound_message_tenant_idempotency_key")
@@ -574,6 +579,8 @@ model Contact {
   messages         Message[]
   campaignAudienceMembers CampaignAudienceMember[]
   appointments     Appointment[]
+  appointmentBookingFlows AppointmentBookingFlow[]
+  appointmentBookingTurns AppointmentBookingTurn[]
 
   @@unique([tenantId, id], map: "contact_tenant_id_id_key")
   @@unique([tenantId, phoneNumber], map: "contact_tenant_phone_number_key")
@@ -612,6 +619,8 @@ model Conversation {
   assignedUnit          OrganizationUnit? @relation("ConversationAssignedUnit", fields: [tenantId, assignedUnitId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade)
   messages              Message[]
   appointmentReminders AppointmentReminder[]
+  appointmentBookingFlows AppointmentBookingFlow[]
+  appointmentBookingTurns AppointmentBookingTurn[]
 
   @@unique([tenantId, id], map: "conversation_tenant_id_id_key")
   @@index([tenantId, status, lastMessageAt], map: "conversation_tenant_status_last_message_idx")
@@ -654,6 +663,7 @@ model Message {
   outboundMessage    OutboundMessage?     @relation("OutboundCanonicalMessage", fields: [tenantId, outboundMessageId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade)
   replyTo            Message?             @relation("MessageReplies", fields: [tenantId, replyToMessageId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade)
   replies            Message[]            @relation("MessageReplies")
+  appointmentBookingTurn AppointmentBookingTurn?
 
   @@unique([tenantId, id], map: "message_tenant_id_key")
   @@unique([tenantId, channelAccountId, providerMessageId], map: "message_provider_identity_key")
@@ -686,6 +696,8 @@ model Rule {
   tenant             Tenant            @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   channelAccount     ChannelAccount?   @relation(fields: [tenantId, channelAccountId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade)
   organizationUnit   OrganizationUnit? @relation(fields: [tenantId, organizationUnitId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade)
+  liveAppointmentBookingFlows AppointmentBookingFlow[] @relation("BookingFlowLiveRule")
+  liveAppointmentBookingTurns AppointmentBookingTurn[] @relation("BookingTurnLiveRule")
 
   @@unique([tenantId, id], map: "rule_tenant_id_key")
   @@index([tenantId, status, triggerType, priority], map: "rule_tenant_status_trigger_priority_idx")
@@ -985,6 +997,7 @@ model AppointmentService {
   organizationUnit OrganizationUnit? @relation(fields: [tenantId, organizationUnitId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade)
   availabilityRules AppointmentAvailabilityRule[]
   appointments      Appointment[]
+  appointmentBookingFlows AppointmentBookingFlow[]
 
   @@unique([tenantId, id], map: "appointment_services_tenant_id_id_key")
   @@index([tenantId, active], map: "appointment_service_tenant_active_idx")
@@ -1025,6 +1038,7 @@ model AppointmentResource {
   availabilityRules AppointmentAvailabilityRule[]
   availabilityExceptions AppointmentAvailabilityException[]
   appointments      Appointment[]
+  appointmentBookingFlows AppointmentBookingFlow[]
 
   @@unique([tenantId, id], map: "appointment_resources_tenant_id_id_key")
   @@index([tenantId, active])
@@ -1128,11 +1142,16 @@ model Appointment {
   rescheduledFrom       Appointment? @relation("AppointmentRescheduling", fields: [tenantId, rescheduledFromId], references: [tenantId, id], onDelete: Restrict, map: "appointments_rescheduled_from_fkey")
   rescheduledTo         Appointment? @relation("AppointmentRescheduling")
   reminderPolicy        Json? @map("reminder_policy") @db.JsonB
+  bookingFlowId         String? @map("booking_flow_id") @db.Uuid
   reminders             AppointmentReminder[]
+  bookingFlow           AppointmentBookingFlow? @relation("AppointmentBookingFlowCreated", fields: [tenantId, bookingFlowId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade, map: "appointments_booking_flow_fkey")
+  flowsTargetingAppointment AppointmentBookingFlow[] @relation("AppointmentBookingFlowTarget")
+  appointmentBookingTurns AppointmentBookingTurn[]
 
   @@unique([tenantId, id], map: "appointments_tenant_id_id_key")
   @@unique([tenantId, idempotencyKey], map: "appointments_tenant_idempotency_key")
   @@unique([tenantId, rescheduledFromId], map: "appointments_tenant_rescheduled_from_key")
+  @@unique([tenantId, bookingFlowId], map: "appointments_tenant_booking_flow_key")
   @@index([tenantId, resourceId, status, occupiedStartsAt, occupiedEndsAt], map: "appointments_resource_occupied_idx")
   @@index([tenantId, startsAt, id], map: "appointments_tenant_starts_idx")
   @@index([tenantId, contactId, startsAt], map: "appointments_contact_starts_idx")
@@ -1175,4 +1194,125 @@ model AppointmentReminder {
   @@unique([tenantId, outboundMessageId], map: "appointment_reminder_tenant_outbound_key")
   @@index([tenantId, status, dueAt], map: "appointment_reminder_tenant_status_due_idx")
   @@map("appointment_reminders")
+}
+
+enum AppointmentBookingTurnRoute {
+  UNDECIDED
+  LEGACY
+  BOOKING
+
+  @@map("appointment_booking_turn_route")
+}
+
+enum AppointmentBookingOutboundPurpose {
+  PROMPT
+  ACK
+
+  @@map("appointment_booking_outbound_purpose")
+}
+
+enum AppointmentBookingFlowIntent {
+  CREATE
+  CANCEL
+  REBOOK
+
+  @@map("appointment_booking_flow_intent")
+}
+
+enum AppointmentBookingFlowPhase {
+  SELECT_SERVICE
+  SELECT_RESOURCE
+  SELECT_SLOT
+  SELECT_APPOINTMENT
+  CONFIRM_BOOKING
+  CONFIRM_CANCELLATION
+  CONFIRM_REBOOKING
+  COMPLETED
+  CANCELLED
+  EXPIRED
+
+  @@map("appointment_booking_flow_phase")
+}
+
+model AppointmentBookingFlow {
+  id                     String                        @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  tenantId               String                        @map("tenant_id") @db.Uuid
+  conversationId         String                        @map("conversation_id") @db.Uuid
+  contactId              String                        @map("contact_id") @db.Uuid
+  channelAccountId       String                        @map("channel_account_id") @db.Uuid
+  originatingRuleId      String                        @map("originating_rule_id") @db.Uuid
+  liveRuleId             String?                       @map("live_rule_id") @db.Uuid
+  policyHash             String                        @map("policy_hash") @db.Char(64)
+  policySnapshot         Json                          @map("policy_snapshot") @db.JsonB
+  intent                 AppointmentBookingFlowIntent
+  phase                  AppointmentBookingFlowPhase
+  selectedServiceId      String?                       @map("selected_service_id") @db.Uuid
+  selectedResourceId     String?                       @map("selected_resource_id") @db.Uuid
+  selectedAppointmentId  String?                       @map("selected_appointment_id") @db.Uuid
+  proposedStartsAt       DateTime?                     @map("proposed_starts_at") @db.Timestamptz(3)
+  proposalVersion        Int                           @default(1) @map("proposal_version")
+  confirmationTokenHash  String?                       @map("confirmation_token_hash") @db.Char(64)
+  offeredChoices         Json?                         @map("offered_choices") @db.JsonB
+  expiresAt              DateTime                      @map("expires_at") @db.Timestamptz(3)
+  closedAt               DateTime?                     @map("closed_at") @db.Timestamptz(3)
+  terminalReason         String?                       @map("terminal_reason") @db.VarChar(64)
+  createdAt              DateTime                      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt              DateTime                      @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  tenant                Tenant              @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "appointment_booking_flows_tenant_fkey")
+  conversation          Conversation         @relation(fields: [tenantId, conversationId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade, map: "appointment_booking_flows_conversation_fkey")
+  contact               Contact              @relation(fields: [tenantId, contactId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade, map: "appointment_booking_flows_contact_fkey")
+  channelAccount        ChannelAccount      @relation(fields: [tenantId, channelAccountId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade, map: "appointment_booking_flows_channel_fkey")
+  liveRule              Rule?                @relation("BookingFlowLiveRule", fields: [tenantId, liveRuleId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade, map: "appointment_booking_flows_live_rule_fkey")
+  selectedService       AppointmentService?  @relation(fields: [tenantId, selectedServiceId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade, map: "appointment_booking_flows_service_fkey")
+  selectedResource      AppointmentResource? @relation(fields: [tenantId, selectedResourceId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade, map: "appointment_booking_flows_resource_fkey")
+  selectedAppointment   Appointment?         @relation("AppointmentBookingFlowTarget", fields: [tenantId, selectedAppointmentId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade, map: "appointment_booking_flows_selected_appointment_fkey")
+  createdAppointment    Appointment?         @relation("AppointmentBookingFlowCreated")
+  turns                 AppointmentBookingTurn[]
+
+  @@unique([tenantId, id], map: "appointment_booking_flows_tenant_id_id_key")
+  @@index([tenantId, conversationId, closedAt], map: "appointment_booking_flows_conversation_live_idx")
+  @@index([tenantId, liveRuleId], map: "appointment_booking_flows_live_rule_idx")
+  @@map("appointment_booking_flows")
+}
+
+model AppointmentBookingTurn {
+  id                    String                       @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  tenantId              String                       @map("tenant_id") @db.Uuid
+  inboundMessageId      String                       @map("inbound_message_id") @db.Uuid
+  conversationId        String                       @map("conversation_id") @db.Uuid
+  contactId             String                       @map("contact_id") @db.Uuid
+  channelAccountId      String                       @map("channel_account_id") @db.Uuid
+  createdNewConversation Boolean                      @default(false) @map("created_new_conversation")
+  route                 AppointmentBookingTurnRoute @default(UNDECIDED)
+  originatingRuleId     String?                      @map("originating_rule_id") @db.Uuid
+  liveRuleId            String?                      @map("live_rule_id") @db.Uuid
+  policyHash            String?                      @map("policy_hash") @db.Char(64)
+  policySnapshot        Json?                        @map("policy_snapshot") @db.JsonB
+  flowId                String?                      @map("flow_id") @db.Uuid
+  outboundMessageId     String?                      @map("outbound_message_id") @db.Uuid
+  outboundPurpose       AppointmentBookingOutboundPurpose? @map("outbound_purpose")
+  outboundFlowPhase     AppointmentBookingFlowPhase? @map("outbound_flow_phase")
+  outboundFlowVersion   Int?                         @map("outbound_flow_version")
+  appointmentId         String?                      @map("appointment_id") @db.Uuid
+  createdAt             DateTime                     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime                     @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  tenant           Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "appointment_booking_turns_tenant_fkey")
+  inboundMessage   Message                @relation(fields: [tenantId, inboundMessageId], references: [tenantId, id], onDelete: Cascade, onUpdate: Cascade, map: "appointment_booking_turns_message_fkey")
+  conversation     Conversation           @relation(fields: [tenantId, conversationId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade, map: "appointment_booking_turns_conversation_fkey")
+  contact          Contact                @relation(fields: [tenantId, contactId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade, map: "appointment_booking_turns_contact_fkey")
+  channelAccount   ChannelAccount        @relation(fields: [tenantId, channelAccountId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade, map: "appointment_booking_turns_channel_fkey")
+  liveRule         Rule?                  @relation("BookingTurnLiveRule", fields: [tenantId, liveRuleId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade, map: "appointment_booking_turns_live_rule_fkey")
+  flow             AppointmentBookingFlow? @relation(fields: [tenantId, flowId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade, map: "appointment_booking_turns_flow_fkey")
+  outboundMessage  OutboundMessage?      @relation(fields: [tenantId, outboundMessageId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade, map: "appointment_booking_turns_outbound_fkey")
+  appointment      Appointment?          @relation(fields: [tenantId, appointmentId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade, map: "appointment_booking_turns_appointment_fkey")
+
+  @@unique([tenantId, id], map: "appointment_booking_turns_tenant_id_id_key")
+  @@unique([tenantId, inboundMessageId], map: "appointment_booking_turns_tenant_message_key")
+  @@unique([tenantId, outboundMessageId], map: "appointment_booking_turns_tenant_outbound_key")
+  @@index([tenantId, conversationId, createdAt], map: "appointment_booking_turns_conversation_created_idx")
+  @@index([tenantId, flowId], map: "appointment_booking_turns_flow_idx")
+  @@index([tenantId, liveRuleId], map: "appointment_booking_turns_live_rule_idx")
+  @@map("appointment_booking_turns")
 }

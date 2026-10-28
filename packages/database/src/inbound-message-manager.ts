@@ -1,3 +1,4 @@
+import { createAppointmentBookingTurnPlaceholderInTransaction } from "./appointment-booking-manager";
 import {
   type ConversationManagerDatabase,
   routeInboundEventToConversationInTransaction,
@@ -216,6 +217,14 @@ export function createInboundMessageManager(
       const created = await transaction.message.create({
         data: messageData(inboundEvent, conversation.id, conversation.contactId),
       });
+      if (created.direction === "inbound" && created.origin === "customer") {
+        await createAppointmentBookingTurnPlaceholderInTransaction(
+          tenant,
+          transaction,
+          created.id,
+          conversation.isNew ?? false,
+        );
+      }
       const currentConversation = await transaction.conversation.findFirst({
         select: { lastInboundAt: true, lastMessageAt: true },
         where: { id: conversation.id, tenantId: tenant.tenantId },

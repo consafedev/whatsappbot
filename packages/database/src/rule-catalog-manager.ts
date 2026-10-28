@@ -1,3 +1,8 @@
+import { terminateAppointmentBookingFlowsForDeletedRuleInTransaction } from "./appointment-booking-manager";
+import {
+  AppointmentBookingValidationError,
+  normalizeAppointmentBookingPolicy,
+} from "./appointment-booking-policy";
 import type { Prisma, Rule } from "./generated/prisma/client";
 import { RULE_OPERATORS } from "./rule-condition-evaluator";
 import { createTenantContext, type TenantContext } from "./tenant-context";
@@ -54,6 +59,7 @@ export type RuleConditionOperator = (typeof RULE_CONDITION_OPERATORS)[number];
 
 export const RULE_ACTION_TYPES = [
   "send_message",
+  "start_appointment_booking",
   "set_conversation_mode",
   "assign_user",
   "assign_unit",
@@ -135,7 +141,13 @@ export type RuleMutationMetadata = Readonly<{
 export type RuleCatalogManagerDatabase = TenantTransactionDatabase &
   Pick<
     Prisma.TransactionClient,
-    "rule" | "tenant" | "channelAccount" | "organizationUnit" | "tenantEntitlement"
+    | "appointmentResource"
+    | "appointmentService"
+    | "rule"
+    | "tenant"
+    | "channelAccount"
+    | "organizationUnit"
+    | "tenantEntitlement"
   >;
 export type RuleCatalogTransaction = Prisma.TransactionClient;
 
@@ -149,6 +161,14 @@ export class RuleNotFoundError extends Error {
 
 export class RuleValidationError extends Error {
   override readonly name = "RuleValidationError";
+}
+
+export class RuleAppointmentBookingManagementRequiredError extends Error {
+  override readonly name = "RuleAppointmentBookingManagementRequiredError";
+
+  constructor() {
+    super("Appointment booking rules require appointments.manage");
+  }
 }
 
 export class RuleChannelAccountNotFoundError extends Error {
@@ -306,12 +326,18 @@ export function validateActions(value: unknown): readonly RuleAction[] {
         `Invalid actionType at actions[${i}]: ${actionType}. Allowed: ${RULE_ACTION_TYPES.join(", ")}`,
       );
     }
+    if (actionType === "start_appointment_booking" && value.length !== 1) {
+      throw new RuleValidationError("Appointment booking must be the only rule action");
+    }
     const parameters = (item as Record<string, unknown>).parameters;
     if (
       parameters !== undefined &&
       (parameters === null || typeof parameters !== "object" || Array.isArray(parameters))
     ) {
       throw new RuleValidationError(`Action parameters at index ${i} must be an object`);
+    }
+    if (actionType === "start_appointment_booking") {
+      validateAppointmentBookingParameters(parameters);
     }
     const action: RuleAction =
       parameters !== undefined
@@ -320,6 +346,124 @@ export function validateActions(value: unknown): readonly RuleAction[] {
     result.push(action);
   }
   return result;
+}
+
+function validateAppointmentBookingParameters(value: unknown): void {
+  try {
+    normalizeAppointmentBookingPolicy(value);
+  } catch (error) {
+    if (error instanceof AppointmentBookingValidationError) {
+      throw new RuleValidationError(error.message);
+    }
+    throw error;
+  }
+}
+
+function hasAppointmentBookingAction(actions: readonly RuleAction[]): boolean {
+  return actions.some((action) => action.actionType === "start_appointment_booking");
+}
+
+async function validateAppointmentBookingRelations(
+  tenantId: string,
+  actions: readonly RuleAction[],
+  transaction: RuleCatalogTransaction,
+): Promise<void> {
+  const action = actions.find((item) => item.actionType === "start_appointment_booking");
+  if (!action) return;
+  const policy = normalizeAppointmentBookingPolicy(action.parameters);
+  const [services, resources] = await Promise.all([
+    transaction.appointmentService.findMany({
+      select: { id: true, organizationUnitId: true },
+      where: { active: true, id: { in: [...policy.serviceIds] }, tenantId },
+    }),
+    transaction.appointmentResource.findMany({
+      select: { id: true, organizationUnitId: true },
+      where: { active: true, id: { in: [...policy.resourceIds] }, tenantId },
+    }),
+  ]);
+  if (services.length !== policy.serviceIds.length) {
+    throw new RuleValidationError("Appointment booking references an unknown or inactive service");
+  }
+  if (resources.length !== policy.resourceIds.length) {
+    throw new RuleValidationError("Appointment booking references an unknown or inactive resource");
+  }
+  const unitIds = [
+    ...new Set(
+      [...services, ...resources]
+        .map(({ organizationUnitId }) => organizationUnitId)
+        .filter((id): id is string => id !== null),
+    ),
+  ];
+  const activeUnitIds = new Set(
+    unitIds.length === 0
+      ? []
+      : (
+          await transaction.organizationUnit.findMany({
+            select: { id: true },
+            where: { active: true, id: { in: unitIds }, tenantId },
+          })
+        ).map(({ id }) => id),
+  );
+  const hasCompatiblePair = services.some((service) =>
+    resources.some((resource) => {
+      if (service.organizationUnitId !== null && !activeUnitIds.has(service.organizationUnitId)) {
+        return false;
+      }
+      if (resource.organizationUnitId !== null && !activeUnitIds.has(resource.organizationUnitId)) {
+        return false;
+      }
+      return (
+        service.organizationUnitId === null ||
+        resource.organizationUnitId === null ||
+        service.organizationUnitId === resource.organizationUnitId
+      );
+    }),
+  );
+  if (!hasCompatiblePair) {
+    throw new RuleValidationError(
+      "Appointment booking service and resource targets have no compatible active pair",
+    );
+  }
+}
+
+async function validateAppointmentReminderEntitlement(
+  context: TenantContext,
+  actions: readonly RuleAction[],
+  transaction: RuleCatalogTransaction,
+): Promise<void> {
+  const action = actions.find((item) => item.actionType === "start_appointment_booking");
+  if (!action) return;
+  const policy = normalizeAppointmentBookingPolicy(action.parameters);
+  if (policy.reminderOffsetsMinutes !== undefined) {
+    await assertTenantModuleEntitled(context, "module.scheduling", transaction);
+  }
+}
+
+async function assertAppointmentBookingManagement(
+  context: TenantContext,
+  transaction: RuleCatalogTransaction,
+  actorUserId: string,
+): Promise<void> {
+  const permissions = await createTenantDataAccess(context, transaction).permissions.resolveForUser(
+    actorUserId,
+  );
+  if (!permissions.has("appointments.manage")) {
+    throw new RuleAppointmentBookingManagementRequiredError();
+  }
+}
+
+function validateAppointmentBookingTrigger(
+  triggerType: string,
+  executionMode: string,
+  actions: readonly RuleAction[],
+): void {
+  if (!hasAppointmentBookingAction(actions)) return;
+  if (triggerType !== "ON_MESSAGE_RECEIVED") {
+    throw new RuleValidationError("Appointment booking must use ON_MESSAGE_RECEIVED");
+  }
+  if (executionMode !== "first_match_stop") {
+    throw new RuleValidationError("Appointment booking must use first_match_stop");
+  }
 }
 
 function ruleItem(rule: Rule): RuleItem {
@@ -456,6 +600,13 @@ export function createRuleCatalogManager(database: RuleCatalogManagerDatabase) {
 
       const conditions = validateConditions(input.conditions);
       const actions = validateActions(input.actions);
+      validateAppointmentBookingTrigger(triggerType, executionMode, actions);
+      if (hasAppointmentBookingAction(actions)) {
+        await assertAppointmentBookingManagement(validatedContext, transaction, actorId);
+        await assertTenantModuleEntitled(validatedContext, "module.appointments", transaction);
+        await validateAppointmentReminderEntitlement(validatedContext, actions, transaction);
+        await validateAppointmentBookingRelations(validatedContext.tenantId, actions, transaction);
+      }
 
       await validateRelations(validatedContext, channelAccountId, organizationUnitId, transaction);
 
@@ -508,6 +659,12 @@ export function createRuleCatalogManager(database: RuleCatalogManagerDatabase) {
     return runInTransaction(undefined, async (transaction) => {
       await assertTenantOperational(validatedContext, transaction);
       await assertTenantModuleEntitled(validatedContext, "module.automation.basic", transaction);
+
+      const lockedRule = await transaction.$queryRaw<Array<{ id: string }>>`
+        SELECT id FROM "rule"
+        WHERE tenant_id = ${validatedContext.tenantId}::uuid AND id = ${cleanedRuleId}::uuid
+        FOR UPDATE`;
+      if (lockedRule.length !== 1) throw new RuleNotFoundError();
 
       const current = await transaction.rule.findFirst({
         where: { id: cleanedRuleId, tenantId: validatedContext.tenantId },
@@ -565,6 +722,28 @@ export function createRuleCatalogManager(database: RuleCatalogManagerDatabase) {
           await validateRelations(validatedContext, undefined, organizationUnitId, transaction);
         }
         updatePayload.organizationUnitId = organizationUnitId ?? null;
+      }
+
+      const actions = (updatePayload.actions ??
+        current.actions) as unknown as readonly RuleAction[];
+      const triggerType = String(updatePayload.triggerType ?? current.triggerType);
+      const executionMode = String(updatePayload.executionMode ?? current.executionMode);
+      const pureDisable =
+        Object.keys(updatePayload).length === 1 && updatePayload.status === "inactive";
+      if (!pureDisable) {
+        validateAppointmentBookingTrigger(triggerType, executionMode, actions);
+        if (hasAppointmentBookingAction(actions) || hasAppointmentBookingAction(before.actions)) {
+          await assertAppointmentBookingManagement(validatedContext, transaction, actorId);
+        }
+        if (hasAppointmentBookingAction(actions)) {
+          await assertTenantModuleEntitled(validatedContext, "module.appointments", transaction);
+          await validateAppointmentReminderEntitlement(validatedContext, actions, transaction);
+          await validateAppointmentBookingRelations(
+            validatedContext.tenantId,
+            actions,
+            transaction,
+          );
+        }
       }
 
       if (Object.keys(updatePayload).length === 0) {
@@ -651,12 +830,23 @@ export function createRuleCatalogManager(database: RuleCatalogManagerDatabase) {
       await assertTenantOperational(validatedContext, transaction);
       await assertTenantModuleEntitled(validatedContext, "module.automation.basic", transaction);
 
+      const lockedRule = await transaction.$queryRaw<Array<{ id: string }>>`
+        SELECT id FROM "rule"
+        WHERE tenant_id = ${validatedContext.tenantId}::uuid AND id = ${cleanedRuleId}::uuid
+        FOR UPDATE`;
+      if (lockedRule.length !== 1) throw new RuleNotFoundError();
+
       const current = await transaction.rule.findFirst({
         where: { id: cleanedRuleId, tenantId: validatedContext.tenantId },
       });
       if (current === null) throw new RuleNotFoundError();
 
       const before = ruleItem(current);
+      await terminateAppointmentBookingFlowsForDeletedRuleInTransaction(
+        validatedContext,
+        transaction,
+        current.id,
+      );
       await transaction.rule.delete({
         where: { id: current.id },
       });

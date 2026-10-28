@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { MockMessagingProvider } from "./mock-provider";
-import { calculateOutboundBackoff, OutboundMessageDispatcher } from "./outbound-dispatcher";
+import {
+  calculateOutboundBackoff,
+  classifyOutboundError,
+  OutboundMessageDispatcher,
+} from "./outbound-dispatcher";
 
 const channel = { active: true, providerType: "mock", status: "connected" } as const;
 
@@ -142,6 +146,12 @@ describe("OutboundMessageDispatcher", () => {
       nextRetryAt: new Date("2026-08-19T12:00:01.000Z"),
     });
     expect(provider.sentMessages).toHaveLength(0);
+    expect(classifyOutboundError(new Error("BOOKING_DISPATCH_GUARD_UNAVAILABLE"))).toBe(
+      "transient",
+    );
+    expect(classifyOutboundError(new Error("BOOKING_DISPATCH_SUPPRESSED:HUMAN_TAKEOVER"))).toBe(
+      "permanent",
+    );
   });
 
   it("calculates deterministic exponential backoff with a cap", () => {

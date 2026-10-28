@@ -1,13 +1,24 @@
+import { createHash } from "node:crypto";
 import { loadDatabaseConfig } from "@whatsapp-platform/config";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import {
+  createAppointmentBookingTurnPlaceholderInTransaction,
+  processPersistedBookingTurn,
+} from "./appointment-booking-manager";
+import {
+  hashAppointmentBookingRuleDefinition,
+  normalizeAppointmentBookingPolicy,
+} from "./appointment-booking-policy";
 import {
   AppointmentConflictError,
   AppointmentNotFoundError,
   AppointmentValidationError,
   cancelAppointment,
   createAppointment,
+  createAppointmentInTransaction,
   getAppointmentById,
   listAppointments,
+  normalizeCreateAppointmentInput,
   rebookAppointment,
 } from "./appointment-manager";
 import {
@@ -39,7 +50,18 @@ async function cleanup() {
     select: { id: true },
   });
   const ids = rows.map((row) => row.id);
+  await database.message.deleteMany({ where: { tenantId: { in: ids } } });
+  await database.outboundMessage.deleteMany({ where: { tenantId: { in: ids } } });
+  await database.appointmentBookingTurn.deleteMany({ where: { tenantId: { in: ids } } });
+  await database.appointmentBookingFlow.updateMany({
+    where: { tenantId: { in: ids }, selectedAppointmentId: { not: null } },
+    data: { selectedAppointmentId: null },
+  });
   await database.appointment.deleteMany({ where: { tenantId: { in: ids } } });
+  await database.appointmentBookingFlow.deleteMany({ where: { tenantId: { in: ids } } });
+  await database.rule.deleteMany({ where: { tenantId: { in: ids } } });
+  await database.conversation.deleteMany({ where: { tenantId: { in: ids } } });
+  await database.channelAccount.deleteMany({ where: { tenantId: { in: ids } } });
   await database.appointmentAvailabilityRule.deleteMany({ where: { tenantId: { in: ids } } });
   await database.appointmentResource.deleteMany({ where: { tenantId: { in: ids } } });
   await database.appointmentService.deleteMany({ where: { tenantId: { in: ids } } });
@@ -118,6 +140,16 @@ describe.sequential("E14-S06 transactional appointment booking", () => {
         enabled: true,
         source: "contract",
       },
+    });
+    await database.tenantEntitlement.createMany({
+      data: ["module.automation.basic", "module.messaging.basic", "module.crm_lite"].map(
+        (entitlementKey) => ({
+          tenantId: tenant,
+          entitlementKey,
+          enabled: true,
+          source: "contract" as const,
+        }),
+      ),
     });
     await database.tenantEntitlement.create({
       data: {
@@ -225,6 +257,736 @@ describe.sequential("E14-S06 transactional appointment booking", () => {
         where: { tenantId: tenant, aggregateId: winner.value.id, eventType: "appointment.created" },
       }),
     ).toBe(1);
+  });
+
+  it("records WhatsApp rule booking with system provenance and no fabricated creator", async () => {
+    const resourceId = await resource(1);
+    const channel = await database.channelAccount.create({
+      data: {
+        tenantId: tenant,
+        providerType: "test",
+        displayName: "Booking test",
+        status: "connected",
+        active: true,
+      },
+    });
+    const conversation = await database.conversation.create({
+      data: {
+        tenantId: tenant,
+        channelAccountId: channel.id,
+        contactId: contact,
+        status: "open",
+        automationMode: "AUTO",
+      },
+    });
+    const rule = await database.rule.create({
+      data: {
+        tenantId: tenant,
+        name: "Booking source",
+        triggerType: "ON_MESSAGE_RECEIVED",
+        status: "active",
+        conditions: [],
+        actions: [],
+      },
+    });
+    const flow = await database.appointmentBookingFlow.create({
+      data: {
+        tenantId: tenant,
+        conversationId: conversation.id,
+        contactId: contact,
+        channelAccountId: channel.id,
+        originatingRuleId: rule.id,
+        liveRuleId: rule.id,
+        policyHash: "a".repeat(64),
+        policySnapshot: { serviceIds: [service], resourceIds: [resourceId] },
+        intent: "CREATE",
+        phase: "CONFIRM_BOOKING",
+        expiresAt: new Date(Date.now() + 60_000),
+      },
+    });
+    const command = {
+      serviceId: service,
+      resourceId,
+      contactId: contact,
+      startsAt: at(30),
+      idempotencyKey: "whatsapp-rule-source",
+    };
+    const automationActor = {
+      kind: "whatsapp_rule" as const,
+      ruleId: rule.id,
+      bookingFlowId: flow.id,
+      requestId: "booking-test-request",
+    };
+    const appointment = await database.$transaction((transaction) =>
+      createAppointmentInTransaction(
+        context(),
+        transaction,
+        command,
+        normalizeCreateAppointmentInput(command),
+        automationActor,
+      ),
+    );
+
+    expect(appointment.createdByUserId).toBeNull();
+    expect(appointment.source).toBe("whatsapp_rule");
+    expect(
+      await database.auditLog.findFirstOrThrow({
+        where: { tenantId: tenant, entityId: appointment.id, action: "appointment.created" },
+      }),
+    ).toMatchObject({ actorId: null, actorType: "system" });
+  });
+
+  it("persists LEGACY before generic handling and never replays it for duplicate inbound delivery", async () => {
+    const channel = await database.channelAccount.create({
+      data: {
+        tenantId: tenant,
+        providerType: "test",
+        displayName: "Route test",
+        status: "connected",
+        active: true,
+      },
+    });
+    const conversation = await database.conversation.create({
+      data: {
+        tenantId: tenant,
+        channelAccountId: channel.id,
+        contactId: contact,
+        status: "open",
+        automationMode: "AUTO",
+      },
+    });
+    const inbound = await database.message.create({
+      data: {
+        tenantId: tenant,
+        conversationId: conversation.id,
+        channelAccountId: channel.id,
+        contactId: contact,
+        direction: "inbound",
+        origin: "provider",
+        actorType: "customer",
+        messageType: "text",
+        textBody: "hola",
+      },
+    });
+    await database.$transaction((transaction) =>
+      createAppointmentBookingTurnPlaceholderInTransaction(
+        context(),
+        transaction,
+        inbound.id,
+        false,
+      ),
+    );
+    let selections = 0;
+    const selectRoute = async () => {
+      selections += 1;
+      return { kind: "LEGACY" as const };
+    };
+    const first = await processPersistedBookingTurn(
+      context(),
+      database as never,
+      inbound.id,
+      selectRoute,
+    );
+    const duplicate = await processPersistedBookingTurn(
+      context(),
+      database as never,
+      inbound.id,
+      selectRoute,
+    );
+    expect(first).toMatchObject({
+      route: "LEGACY",
+      legacyShouldRun: true,
+      duplicate: false,
+      handled: false,
+    });
+    expect(duplicate).toMatchObject({
+      route: "LEGACY",
+      legacyShouldRun: false,
+      duplicate: true,
+      handled: false,
+    });
+    expect(selections).toBe(1);
+  });
+
+  it("fixes an undecided message to LEGACY when the tenant lacks booking modules", async () => {
+    const foreignContact = await database.contact.create({
+      data: {
+        tenantId: foreignTenant,
+        name: "No booking entitlement",
+        phoneNumber: `+52${Date.now()}${Math.floor(Math.random() * 1000)}`,
+      },
+    });
+    const channel = await database.channelAccount.create({
+      data: {
+        tenantId: foreignTenant,
+        providerType: "test",
+        displayName: "No booking entitlement",
+        status: "connected",
+        active: true,
+      },
+    });
+    const conversation = await database.conversation.create({
+      data: {
+        tenantId: foreignTenant,
+        channelAccountId: channel.id,
+        contactId: foreignContact.id,
+        status: "open",
+        automationMode: "AUTO",
+      },
+    });
+    const inbound = await database.message.create({
+      data: {
+        tenantId: foreignTenant,
+        conversationId: conversation.id,
+        channelAccountId: channel.id,
+        contactId: foreignContact.id,
+        direction: "inbound",
+        origin: "provider",
+        actorType: "customer",
+        messageType: "text",
+        textBody: "reservar",
+      },
+    });
+    const foreignContext = createTenantContext(foreignTenant);
+    await database.$transaction((transaction) =>
+      createAppointmentBookingTurnPlaceholderInTransaction(
+        foreignContext,
+        transaction,
+        inbound.id,
+        false,
+      ),
+    );
+    const selectRoute = async () => {
+      throw new Error("selector must not run without booking entitlements");
+    };
+    const first = await processPersistedBookingTurn(
+      foreignContext,
+      database as never,
+      inbound.id,
+      selectRoute,
+    );
+    const duplicate = await processPersistedBookingTurn(
+      foreignContext,
+      database as never,
+      inbound.id,
+      selectRoute,
+    );
+    expect(first).toMatchObject({
+      route: "LEGACY",
+      legacyShouldRun: true,
+      duplicate: false,
+    });
+    expect(duplicate).toMatchObject({
+      route: "LEGACY",
+      legacyShouldRun: false,
+      duplicate: true,
+    });
+  });
+
+  it("fixes an undecided message to LEGACY when booking entitlements are absent", async () => {
+    const foreignContact = await database.contact.create({
+      data: {
+        tenantId: foreignTenant,
+        name: "No booking entitlement",
+        phoneNumber: "+525500000207",
+      },
+    });
+    const channel = await database.channelAccount.create({
+      data: {
+        tenantId: foreignTenant,
+        providerType: "test",
+        displayName: "No booking entitlement",
+        status: "connected",
+        active: true,
+      },
+    });
+    const conversation = await database.conversation.create({
+      data: {
+        tenantId: foreignTenant,
+        channelAccountId: channel.id,
+        contactId: foreignContact.id,
+        status: "open",
+        automationMode: "AUTO",
+      },
+    });
+    const inbound = await database.message.create({
+      data: {
+        tenantId: foreignTenant,
+        conversationId: conversation.id,
+        channelAccountId: channel.id,
+        contactId: foreignContact.id,
+        direction: "inbound",
+        origin: "provider",
+        actorType: "customer",
+        messageType: "text",
+        textBody: "reservar",
+      },
+    });
+    const foreignContext = createTenantContext(foreignTenant);
+    await database.$transaction((transaction) =>
+      createAppointmentBookingTurnPlaceholderInTransaction(
+        foreignContext,
+        transaction,
+        inbound.id,
+        false,
+      ),
+    );
+    const selectRoute = async () => {
+      throw new Error("selector must not run without booking entitlements");
+    };
+    const first = await processPersistedBookingTurn(
+      foreignContext,
+      database as never,
+      inbound.id,
+      selectRoute,
+    );
+    const duplicate = await processPersistedBookingTurn(
+      foreignContext,
+      database as never,
+      inbound.id,
+      selectRoute,
+    );
+    expect(first).toMatchObject({ route: "LEGACY", legacyShouldRun: true, duplicate: false });
+    expect(duplicate).toMatchObject({ route: "LEGACY", legacyShouldRun: false, duplicate: true });
+  });
+
+  it("commits a BOOKING route, flow, and canonical outbound together and consumes the next turn", async () => {
+    const resourceId = await resource(1);
+    await database.appointmentAvailabilityRule.createMany({
+      data: Array.from({ length: 7 }, (_, dayOfWeek) => ({
+        tenantId: tenant,
+        resourceId,
+        dayOfWeek,
+        startTime: "08:00",
+        endTime: "12:00",
+        timezone: "UTC",
+        capacity: 1,
+      })).filter((row) => row.dayOfWeek !== start.getUTCDay()),
+    });
+    const channel = await database.channelAccount.create({
+      data: {
+        tenantId: tenant,
+        providerType: "test",
+        displayName: "Booking flow test",
+        status: "connected",
+        active: true,
+      },
+    });
+    const bookingContact = await database.contact.create({
+      data: {
+        tenantId: tenant,
+        name: "Booking flow customer",
+        phoneNumber: `+52${Date.now()}${Math.floor(Math.random() * 1000)}`,
+      },
+    });
+    const conversation = await database.conversation.create({
+      data: {
+        tenantId: tenant,
+        channelAccountId: channel.id,
+        contactId: bookingContact.id,
+        status: "open",
+        automationMode: "AUTO",
+      },
+    });
+    const policy = normalizeAppointmentBookingPolicy({
+      serviceIds: [service],
+      resourceIds: [resourceId],
+    });
+    const rule = await database.rule.create({
+      data: {
+        tenantId: tenant,
+        name: "Booking flow",
+        triggerType: "ON_MESSAGE_RECEIVED",
+        status: "active",
+        executionMode: "first_match_stop",
+        conditions: [],
+        actions: [{ actionType: "start_appointment_booking", parameters: policy }],
+      },
+    });
+    const makeMessage = (textBody: string) =>
+      database.message.create({
+        data: {
+          tenantId: tenant,
+          conversationId: conversation.id,
+          channelAccountId: channel.id,
+          contactId: bookingContact.id,
+          direction: "inbound",
+          origin: "provider",
+          actorType: "customer",
+          messageType: "text",
+          textBody,
+        },
+      });
+    const firstMessage = await makeMessage("Quiero una cita");
+    await database.$transaction((transaction) =>
+      createAppointmentBookingTurnPlaceholderInTransaction(
+        context(),
+        transaction,
+        firstMessage.id,
+        false,
+      ),
+    );
+    let selectorCalls = 0;
+    const selectRoute = async () => {
+      selectorCalls += 1;
+      return {
+        kind: "BOOKING" as const,
+        ruleId: rule.id,
+        trigger: "ON_MESSAGE_RECEIVED" as const,
+        policy,
+        policyHash: hashAppointmentBookingRuleDefinition(rule),
+      };
+    };
+    const first = await processPersistedBookingTurn(
+      context(),
+      database as never,
+      firstMessage.id,
+      selectRoute,
+    );
+    const replay = await processPersistedBookingTurn(
+      context(),
+      database as never,
+      firstMessage.id,
+      selectRoute,
+    );
+    expect(first.route).toBe("BOOKING");
+    expect(first.outboundMessageId).toBeTruthy();
+    expect(replay).toMatchObject({
+      route: "BOOKING",
+      legacyShouldRun: false,
+      duplicate: true,
+      outboundMessageId: first.outboundMessageId,
+    });
+    expect(selectorCalls).toBe(1);
+    expect(
+      await database.appointmentBookingFlow.count({
+        where: { tenantId: tenant, conversationId: conversation.id, closedAt: null },
+      }),
+    ).toBe(1);
+
+    const nextMessage = await makeMessage("1");
+    await database.$transaction((transaction) =>
+      createAppointmentBookingTurnPlaceholderInTransaction(
+        context(),
+        transaction,
+        nextMessage.id,
+        false,
+      ),
+    );
+    const nextTurn = await processPersistedBookingTurn(
+      context(),
+      database as never,
+      nextMessage.id,
+      selectRoute,
+    );
+    expect(nextTurn).toMatchObject({ route: "BOOKING", legacyShouldRun: false, handled: true });
+    expect(selectorCalls).toBe(1);
+
+    let lastFollowupMessageId: string | null = null;
+    const followup = async (text: string) => {
+      const message = await makeMessage(text);
+      lastFollowupMessageId = message.id;
+      await database.$transaction((transaction) =>
+        createAppointmentBookingTurnPlaceholderInTransaction(
+          context(),
+          transaction,
+          message.id,
+          false,
+        ),
+      );
+      return processPersistedBookingTurn(context(), database as never, message.id, selectRoute);
+    };
+    const resourceTurn = await followup("1");
+    const slotTurn = await followup("1");
+    if (!slotTurn.outboundMessageId)
+      throw new Error("slot selection did not persist a proposal prompt");
+    const proposalText = await database.message.findFirstOrThrow({
+      where: { outboundMessageId: slotTurn.outboundMessageId },
+    });
+    const confirmationToken = proposalText.textBody?.split("\n").at(-1)?.trim();
+    if (!confirmationToken?.startsWith("CONFIRM-"))
+      throw new Error("booking confirmation token is missing");
+    const activeFlow = await database.appointmentBookingFlow.findFirstOrThrow({
+      where: { tenantId: tenant, conversationId: conversation.id, closedAt: null },
+    });
+    await followup("CONFIRM-invalid-token");
+    expect(
+      await database.appointment.count({
+        where: { tenantId: tenant, bookingFlowId: activeFlow.id },
+      }),
+    ).toBe(0);
+    const confirmed = await followup(confirmationToken);
+    if (!confirmed.appointmentId) throw new Error("confirmation did not create an appointment");
+    if (!lastFollowupMessageId) throw new Error("confirmation message identity was not captured");
+    const confirmedFlow = await database.appointmentBookingFlow.findFirstOrThrow({
+      where: { id: activeFlow.id, tenantId: tenant },
+    });
+    await expect(
+      database.appointmentBookingTurn.findUniqueOrThrow({
+        where: {
+          tenantId_inboundMessageId: {
+            tenantId: tenant,
+            inboundMessageId: lastFollowupMessageId,
+          },
+        },
+      }),
+    ).resolves.toMatchObject({
+      outboundPurpose: "ACK",
+      outboundFlowPhase: "COMPLETED",
+      outboundFlowVersion: confirmedFlow.proposalVersion,
+      appointmentId: confirmed.appointmentId,
+    });
+    const duplicateConfirmation = await processPersistedBookingTurn(
+      context(),
+      database as never,
+      lastFollowupMessageId,
+      selectRoute,
+    );
+    expect(duplicateConfirmation).toMatchObject({
+      route: "BOOKING",
+      duplicate: true,
+      appointmentId: confirmed.appointmentId,
+    });
+    expect(
+      await database.appointment.findFirstOrThrow({ where: { id: confirmed.appointmentId } }),
+    ).toMatchObject({
+      createdByUserId: null,
+      bookingFlowId: expect.any(String),
+      source: "whatsapp_rule",
+      status: "CONFIRMED",
+    });
+    expect(
+      await database.appointmentBookingTurn.count({
+        where: { tenantId: tenant, outboundMessageId: { not: null } },
+      }),
+    ).toBeGreaterThanOrEqual(5);
+    expect(selectorCalls).toBe(1);
+    expect(resourceTurn.outboundMessageId).toBeTruthy();
+
+    const cancelStart = await makeMessage("cancelar mi cita");
+    await database.$transaction((transaction) =>
+      createAppointmentBookingTurnPlaceholderInTransaction(
+        context(),
+        transaction,
+        cancelStart.id,
+        false,
+      ),
+    );
+    await processPersistedBookingTurn(context(), database as never, cancelStart.id, selectRoute);
+    const cancelChoice = await followup("1");
+    if (!cancelChoice.outboundMessageId)
+      throw new Error("cancel selection did not create a confirmation prompt");
+    const cancelPrompt = await database.message.findFirstOrThrow({
+      where: { outboundMessageId: cancelChoice.outboundMessageId },
+    });
+    const cancelToken = cancelPrompt.textBody?.split("\n").at(-1)?.trim();
+    if (!cancelToken) throw new Error("cancel confirmation token is missing");
+    const cancelled = await followup(cancelToken);
+    expect(cancelled.appointmentId).toBe(confirmed.appointmentId);
+    expect(
+      (await database.appointment.findFirstOrThrow({ where: { id: confirmed.appointmentId } }))
+        .status,
+    ).toBe("CANCELLED");
+
+    const rescheduleSource = await createAppointment(
+      context(),
+      database,
+      {
+        serviceId: service,
+        resourceId,
+        contactId: bookingContact.id,
+        startsAt: at(0),
+        idempotencyKey: "booking-flow-rebook-source",
+      },
+      actor(),
+    );
+    const rebookStart = await makeMessage("reagendar mi cita");
+    await database.$transaction((transaction) =>
+      createAppointmentBookingTurnPlaceholderInTransaction(
+        context(),
+        transaction,
+        rebookStart.id,
+        false,
+      ),
+    );
+    await processPersistedBookingTurn(context(), database as never, rebookStart.id, selectRoute);
+    await followup("1");
+    await followup("1");
+    const rebookProposal = await followup("1");
+    if (!rebookProposal.outboundMessageId) throw new Error("rebook proposal prompt is missing");
+    const rebookPrompt = await database.message.findFirstOrThrow({
+      where: { outboundMessageId: rebookProposal.outboundMessageId },
+    });
+    const rebookToken = rebookPrompt.textBody?.split("\n").at(-1)?.trim();
+    if (!rebookToken) throw new Error("rebook confirmation token is missing");
+    const rebooked = await followup(rebookToken);
+    if (!rebooked.appointmentId) throw new Error("rebook did not create a replacement appointment");
+    expect(
+      (await database.appointment.findFirstOrThrow({ where: { id: rescheduleSource.id } })).status,
+    ).toBe("RESCHEDULED");
+    expect(
+      await database.appointment.findFirstOrThrow({ where: { id: rebooked.appointmentId } }),
+    ).toMatchObject({
+      rescheduledFromId: rescheduleSource.id,
+      bookingFlowId: expect.any(String),
+      source: "whatsapp_rule",
+    });
+    expect(selectorCalls).toBe(3);
+  });
+
+  it("rejects a confirmation whose flow expires while waiting for the central resource lock", async () => {
+    const resourceId = await resource(1);
+    const channel = await database.channelAccount.create({
+      data: {
+        tenantId: tenant,
+        providerType: "test",
+        displayName: "Expiry lock test",
+        status: "connected",
+        active: true,
+      },
+    });
+    const conversation = await database.conversation.create({
+      data: {
+        tenantId: tenant,
+        channelAccountId: channel.id,
+        contactId: contact,
+        status: "open",
+        automationMode: "AUTO",
+      },
+    });
+    const policy = normalizeAppointmentBookingPolicy({
+      serviceIds: [service],
+      resourceIds: [resourceId],
+    });
+    const rule = await database.rule.create({
+      data: {
+        tenantId: tenant,
+        name: "Expiry lock booking",
+        triggerType: "ON_MESSAGE_RECEIVED",
+        status: "active",
+        executionMode: "first_match_stop",
+        conditions: [],
+        actions: [{ actionType: "start_appointment_booking", parameters: policy }],
+      },
+    });
+    const proposal = at(30);
+    const flow = await database.appointmentBookingFlow.create({
+      data: {
+        tenantId: tenant,
+        conversationId: conversation.id,
+        contactId: contact,
+        channelAccountId: channel.id,
+        originatingRuleId: rule.id,
+        liveRuleId: rule.id,
+        policyHash: hashAppointmentBookingRuleDefinition(rule),
+        policySnapshot: policy,
+        intent: "CREATE",
+        phase: "CONFIRM_BOOKING",
+        selectedServiceId: service,
+        selectedResourceId: resourceId,
+        proposedStartsAt: new Date(proposal),
+        proposalVersion: 1,
+        expiresAt: new Date(Date.now() + 60_000),
+      },
+    });
+    const token = `CONFIRM-${crypto.randomUUID()}`;
+    const confirmationHash = createHash("sha256")
+      .update(`${flow.id}:CREATE:1:${new Date(proposal).toISOString()}:${token}`)
+      .digest("hex");
+    await database.appointmentBookingFlow.update({
+      where: { tenantId_id: { tenantId: tenant, id: flow.id } },
+      data: { confirmationTokenHash: confirmationHash },
+    });
+    const inbound = await database.message.create({
+      data: {
+        tenantId: tenant,
+        conversationId: conversation.id,
+        channelAccountId: channel.id,
+        contactId: contact,
+        direction: "inbound",
+        origin: "provider",
+        actorType: "customer",
+        messageType: "text",
+        textBody: token,
+      },
+    });
+    await database.appointmentBookingTurn.create({
+      data: {
+        tenantId: tenant,
+        inboundMessageId: inbound.id,
+        conversationId: conversation.id,
+        contactId: contact,
+        channelAccountId: channel.id,
+        route: "UNDECIDED",
+      },
+    });
+
+    let releaseResource!: () => void;
+    let announceResourceLock!: () => void;
+    const lockHeld = new Promise<void>((resolve) => {
+      announceResourceLock = resolve;
+    });
+    const releaseSignal = new Promise<void>((resolve) => {
+      releaseResource = resolve;
+    });
+    const blocker = database.$transaction(
+      async (transaction) => {
+        await transaction.$queryRaw`SELECT id FROM appointment_resources WHERE tenant_id = ${tenant}::uuid AND id = ${resourceId}::uuid FOR UPDATE`;
+        announceResourceLock();
+        await releaseSignal;
+      },
+      {
+        // The test holds this lock until PostgreSQL reports the confirmation is waiting.
+        timeout: 15_000,
+      },
+    );
+    await lockHeld;
+    const process = processPersistedBookingTurn(
+      context(),
+      database as never,
+      inbound.id,
+      async () => ({ kind: "LEGACY" as const }),
+    );
+    let waitingOnResource = false;
+    const waitDeadline = Date.now() + 5_000;
+    while (!waitingOnResource && Date.now() < waitDeadline) {
+      const rows = await database.$queryRaw<
+        Array<{ count: number }>
+      >`SELECT count(*)::int AS count FROM pg_stat_activity WHERE datname = current_database() AND wait_event_type = 'Lock' AND query ILIKE '%appointment_resources%'`;
+      waitingOnResource = (rows[0]?.count ?? 0) > 0;
+      if (!waitingOnResource) await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    if (!waitingOnResource) {
+      releaseResource();
+      await blocker;
+      throw new Error("confirmation did not wait on the held resource row");
+    }
+    await database.appointmentBookingFlow.update({
+      where: { tenantId_id: { tenantId: tenant, id: flow.id } },
+      data: { expiresAt: new Date(Date.now() - 1) },
+    });
+    releaseResource();
+    await blocker;
+    await expect(process).rejects.toThrow(
+      "Booking confirmation expired or is no longer authorized",
+    );
+    expect(
+      await database.appointment.count({ where: { tenantId: tenant, bookingFlowId: flow.id } }),
+    ).toBe(0);
+
+    const expired = await processPersistedBookingTurn(
+      context(),
+      database as never,
+      inbound.id,
+      async () => ({ kind: "LEGACY" as const }),
+    );
+    expect(expired).toMatchObject({ route: "BOOKING", handled: true, legacyShouldRun: false });
+    expect(
+      (await database.appointmentBookingFlow.findUniqueOrThrow({ where: { id: flow.id } })).phase,
+    ).toBe("EXPIRED");
+    expect(
+      await database.appointment.count({ where: { tenantId: tenant, bookingFlowId: flow.id } }),
+    ).toBe(0);
   });
 
   it("uses peak overlap with mixed durations and enforces capacity decrease", async () => {

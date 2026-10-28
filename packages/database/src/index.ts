@@ -89,6 +89,14 @@ export {
   listAvailabilityRules,
   updateAvailabilityRule,
 } from "./appointment-availability-manager";
+export { authorizeAppointmentBookingDispatch } from "./appointment-booking-dispatch-guard";
+export {
+  type AppointmentBookingPolicy,
+  type AppointmentBookingRuleDefinition,
+  AppointmentBookingValidationError,
+  hashAppointmentBookingRuleDefinition,
+  normalizeAppointmentBookingPolicy,
+} from "./appointment-booking-policy";
 export {
   type AppointmentAvailabilityExceptionInput,
   type AppointmentAvailabilityExceptionListFilters,
@@ -564,6 +572,7 @@ export {
   RULE_TRIGGER_TYPES,
   type RuleAction,
   type RuleActionType,
+  RuleAppointmentBookingManagementRequiredError,
   type RuleCatalogManager,
   type RuleCatalogManagerDatabase,
   type RuleCatalogTransaction,

@@ -8,6 +8,21 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Added
 
+- E14-S10 deterministic appointment conversations behind the exclusive
+  `start_appointment_booking` rule action. PostgreSQL owns canonical inbound
+  routing receipts, versioned offered menus and 15-minute flows; create, cancel
+  and rebook require explicit proposal-bound confirmation and reuse central
+  transaction-bound appointment services. Customer identity comes from the
+  persisted conversation, with system audit attribution and no fabricated user.
+  Atomic appointment/audit/outbox/reply writes, immutable duplicate receipts,
+  live module/mode/scope checks, retained rule-deletion provenance and a final
+  outbound booking guard protect the new path. Explicit reply purpose/phase/
+  version binding suppresses superseded prompts while retaining terminal
+  acknowledgments. Additive migrations34–36 retain
+  applied SQL checksums. ADR-0071 describes the protocol and its legacy-action
+  recovery boundary; final verification/publication is tracked in STATUS and
+  avance_orquestador. Existing provider transport remains unchanged.
+
 - E14-S09 operational agenda UI: day/week/list, timezone-aware overlap and DST
   offsets, real availability/booking/cancel/rebook/reminder history, and complete
   service/resource/rule/exception configuration. Permissions/module gating,

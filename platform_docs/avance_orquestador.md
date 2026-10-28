@@ -2,7 +2,7 @@
 
 **Formato:** 1 — conservar estas secciones y actualizar sus tablas; no sustituir
 el historial por un resumen sin evidencia. Fechas de coordinación: America/Mexico_City.
-**Actualización:** 2026-10-27. **Épica activa única:** E14 — Agenda.
+**Actualización:** 2026-10-28. **Épica activa única:** E14 — Agenda.
 **Responsable activo:** Codex, rama `codex/e14-agenda-completion`.
 **Base verificada:** `fb8639db15ec262fcc13432f9aee4536deb8367e`, integrada en
 `main` y `origin/main` al iniciar. Sin cambios locales iniciales.
@@ -51,7 +51,7 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
 | Core, tenancy, auth/RBAC, entitlements, dashboard | Implementación presente, historial en STATUS. No equivale a recertificación completa de producción en esta sesión. |
 | Messaging/inbox/rules/canales | Contratos, normalización, persistencia/colas/UI presentes; transporte real Baileys pendiente P0. |
 | IA/campañas/reportes/scheduler | Implementaciones presentes con IDs históricos distintos al backlog. E13-S05 conserva estado normativo pendiente de cierre. |
-| Agenda E14 | S01–S03 integradas; S04–S08 completas/publicadas en rama; S09/S10 pendientes abajo. |
+| Agenda E14 | S01–S03 integradas; S04–S09 publicadas en rama; S10 completa en código, publicación pendiente abajo. |
 | Procesos/timeline/Action Requests | Pendientes según backlog y equivalencias históricas; no confundir E10/E11 implementadas de IA/campañas con Process/Timeline originales. |
 | Catálogo/cotizaciones/documentos/portal | Pendientes; presencia de una ruta o package vacío no acredita implementación. |
 | Backups/restore y hardening precliente | No certificados; restore drill y transporte real bloquean declaración de MVP vendible. |
@@ -70,7 +70,7 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
 | E14-S07 | Codex/e14_s07_luna (gpt-6-luna); review_s06 (gpt-6-sol) auditor; coordinador docs/gates. Reserva liberada, base a90a6c5 | PASS / COMPLETE | `3fe4927e77af0113ad418c969814c0a096cd7f4f`; push SHA idéntico verificado | ADR-0069; manager21/API11; parent DB afectada35/API11/root478; static/build PASS; revisión aprobada |
 | E14-S08 | Codex/e14_s08_luna y s08_scheduler_luna (gpt-6-luna), archivos exclusivos; review_s06 (gpt-6-sol) auditor; coordinador docs/gates. Reserva liberada, base4c67c3d | PASS / COMPLETE | `ccef6d2ba55fae26ae294aaac73fa4055d729a4f`; push SHA idéntico verificado | ADR-0070; root485, full DB352/API225, workers1+2, aislamiento46; build/types/Biome485 PASS; revisiones aprobadas |
 | E14-S09 | Codex/e14_s09_data_luna y e14_s09_ui_luna (gpt-6-luna); e14_s09_audit (gpt-6-sol); coordinador runtime/docs/gates. Reserva liberada, base4562cc9 | PASS / COMPLETE | `ad56a3c5a9309627e23706017317ea1191c5427f`; push SHA idéntico verificado | root516/56files; web build/types; Biome496; browser real lifecycle/readonly/module/carryover/config/mobile PASS; sin backend/schema/deps |
-| E14-S10 | Sin reserva | PENDING | — | flujo WhatsApp por reglas, servicio central |
+| E14-S10 | Core/integración/seguridad gpt-6-luna; auditoría final e14_s10_final_audit gpt-6-sol; coordinador docs/gates/Git. Basebc29a6f; fuente congelada, reserva hasta publicación | PASS / COMPLETE en código | Pendiente commit/push | ADR-0071; root528/58files, full DB379/API227, workers1+3, aislamiento9+37; build/types/Biome502 y migraciones34–36 PASS; rereview aprobado |
 
 ## 5. Verificaciones y auditorías de esta iteración
 
@@ -108,6 +108,12 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
 | S08 scheduler genérico | API RED antes de guards; GREEN API14/14 +viewmodel21/21; revisión independiente | PASS del slice;0 findings. Gates completos posteriores registrados debajo |
 | S08 gates completos finales | full build/types/root/Biome; full DB/API +ambos workers PG +aislamiento en schema33 temporal | PASS485unit/52files, DB352/53files, API225/27files, worker-jobs1, outbound2, aislamiento9+37;0 skipped; Biome485files; diff limpio |
 | S08 migraciones aplicadas | SHA256 de SQL32/33 contra _prisma_migrations.checksum local | MATCH ambos; no SQL aplicado reescrito; no pristine-chain replay histórico ni deploy producción |
+| S09 cierre final | build/types/root/Biome y browser autenticado en DB aislada | PASS516/56files, Biome496; UI lifecycle/config/retry/readonly/module/carryover/mobile; ver historia/STATUS |
+| S10 migraciones finales | Prisma validate/generate7.9.1; clean schema + upgrade ordenado desde S09; apply local; checksums | PASS34–36 sin drift; los3 SQL aplicados coinciden; no replay pristine histórico |
+| S10 auditorías | revisiones independientes y correcciones Luna; inspección coordinador | Rereview final aprobado, cero bloqueadores concretos abiertos; recibos/routing/autoridad/lineage/guard/locks corregidos |
+| S10 seguridad focalizada | archivo appointment-booking-security.integration.ts, schema36 | PASS17/17; rollback inyectado +retry único, contactos/tenants/modos/módulos/policy/concurrencia |
+| S10 estáticas/final unit | builds workspace +reintentos acotados; root/web/DB types; Vitestroot; Biome; diff | PASS528/528 en58files, Biome502; builds web/DB/API/ambosworkers y tipos PASS |
+| S10 full PostgreSQL final | configs de integración database/API/jobs/outbound y tenant-isolation, DB schema36 desechable | PASS379/379 en54files,227/227 en27, jobs1/1, outbound3/3, aislamiento9/9+37/37; cero skipped |
 
 ## 6. Bloqueos, riesgos y siguiente prioridad
 
@@ -218,3 +224,51 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
 - 2026-10-27: S09 publicada enad56a3c5a9309627e23706017317ea1191c5427f;
   SHA local/remoto idéntico verificado. main/origin main siguenfb8639d y no
   contienen la historia. Este checkpoint documental precede la reserva S10.
+
+- 2026-10-27: checkpointbc29a6f72cfa0e64e360f93cac898b7c68553707 publicado,
+  SHA remoto idéntico y árbol limpio verificados antes de S10. Sol audita límites
+  de autoridad/actor/transacción y Luna descubre integración/fixtures; aún sin
+  cambios de implementación. E14 sigue como única épica activa.
+
+- 2026-10-27: diseño S10 auditado y ADR-0071 aceptado. Se aprobaron las
+  reservas exclusivas core/integración antes de implementar; ambos desarrollan
+  con Luna. Los nuevos mensajes persisten marcador UNDECIDED atómico; duplicados
+  antiguos sin marcador nunca inician reservas retroactivas. Prioridad incluye
+  creación de conversación; booking es acción exclusiva/primer match. Se fijaron
+  actor de sistema sin usuario ficticio, borrado de regla con historial retenido,
+  locks conversación+fila→regla→ledger/flujo→agenda y confirmación con versión.
+  No se declara resuelto el hueco histórico de entrega de acciones legacy.
+
+- 2026-10-28: continuación S10; migraciones34/35 verificadas contra esquema
+  limpio y upgrade ordenado desde S09, sin drift. Aplicación local aditiva y
+  SHA256 contra _prisma_migrations MATCH en ambas; SQL aplicado inmutable.
+  Auditoría inicial encontró cinco P1 y cuatro P2: recibos CHECK/duplicados,
+  recuperación UNDECIDED legacy, scopes, egress, salida y menús/policies.
+  Correcciones de propietarios pendientes de PG y rereview final. Build
+  secuencial messaging/database/worker PASS; root527/527 en58 archivos PASS.
+  Gates parciales no cierran la historia. DBs schema35 propias para pruebas;
+  documentación normativa de runtime/seguridad/UX/tests reservada al Luna de
+  integración durante esta fase. Coordinador conserva STATUS/CHANGELOG/backlog/
+  handoff/manifest/Git. No se abre otra épica.
+
+- 2026-10-28: rereview añadió paridad de scopes/contexto legacy, autorización
+  de edición de reglas y distinción entre prompt obsoleto/acuse final. Se amplió
+  el contrato con recibo tipado de propósito/fase/versión de respuesta y límites
+  de lifecycle a servicios/recursos configurados. Migración36 aditiva validada
+  con esquema limpio y upgrade33→34→35→36, aplicada localmente; los tres
+  checksums SQL coinciden con Prisma. DBs schema35 retiradas tras cero conexiones
+  y reemplazadas por clones schema36. Core parcial27/27 y worker3/3 pasaron en
+  checkpoint35; NO sustituyen los gates posteriores de36 ni cierran hallazgos
+  nuevos. Security agrega rollback real y rechazo con token válido de otro
+  contacto; ejecución PostgreSQL final pendiente.
+
+- 2026-10-28: S10 fuente completa, rereview independiente aprobado y todos
+  los gates finales PASS según tabla. Builds iniciales detectaron nulabilidad
+  y un import de prueba fuera de rootDir; corregidos,66 artefactos compilados
+  no versionados verificados y retirados antes de probar. Primer fullDB377/379
+  falló por una regla catch-all de fixture activa en casos posteriores y cleanup
+  de availability; corrección8/8 focal y nuevo full379/379 PASS. No se ocultaron
+  esos checkpoints fallidos ni se contaron como gate aprobado. DBs preparadas
+  retiradas tras cero conexiones; runner retiró su DB. Workers de desarrollo
+  siguen parados y API3001/web3005 usan imágenes anteriores; no son prueba de
+  runtime actualizado. Commit/push se registrarán tras comprobar SHA remoto.

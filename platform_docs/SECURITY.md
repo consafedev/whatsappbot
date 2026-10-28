@@ -590,3 +590,51 @@ Revisión obligatoria al agregar:
 - on-prem remote management;
 - external object storage;
 - new webhooks/connectors.
+
+# 32. E14-S10 rules-driven appointment booking
+
+Booking authority is separate from rule-management authority. Creating,
+activating or changing a `start_appointment_booking` action requires
+`rules.manage`, `appointments.manage`, `module.automation.basic` and
+`module.appointments`; a reminder offset additionally requires
+`module.scheduling`. Pure deactivation or deletion may reduce authority with
+`rules.manage` alone. The server validates every configured service and
+resource against the same tenant, requires active targets and an active
+compatible service/resource pair, and revalidates these relationships during
+the conversation. A scoped booking rule matches only when the trusted
+conversation's current assigned Organization Unit exactly equals the configured
+unit; this booking check does not change legacy rule matching behavior.
+
+Only a trusted, persisted customer Message can start or continue a flow. The
+inbound event body, an HTTP `contactId`, or a rule test context cannot supply a
+customer identity or automation actor. On a new conversation, applicable
+`ON_CONVERSATION_CREATED` rules take precedence. A booking action is exclusive
+and eligible only as the first applicable `ON_MESSAGE_RECEIVED` rule in `AUTO`;
+an earlier matching rule, `ASSISTED`, `HUMAN`, `MONITOR`, takeover, pause or
+missing entitlement cannot authorize automatic booking. The dispatcher stores
+the routing verdict before generic actions. Duplicate turns resume their stored
+route/receipt and never recompute current rules to create a second booking.
+
+Customer choices and confirmation are durable, version-bound state. The flow
+expires after 15 minutes; `SALIR` closes it and consumes that input. Invalid,
+expired, stale or replayed confirmation tokens do not mutate appointments.
+Mode, takeover, pause, scope, tenant, contact/channel and module authority are
+rechecked at route selection, confirmation and final outbound dispatch. Create,
+cancel/rebook, audit/outbox and canonical outbound persistence are transactional;
+provider IO waits until commit. Queue state is not delivery evidence. S10
+verification uses the configured mock-provider path and does not establish real
+handset delivery. See ADR-0071 and the appointment invariants in SYSTEM_DESIGN.
+
+Mode writers serialize on the conversation row, and confirmation rechecks the
+conversation and live flow after business locks before mutation. Each queued
+booking outbound is bound to its purpose and exact flow phase/version. The
+worker rechecks that binding, the live rule, tenant/modules, current contact and
+channel, and AUTO/takeover/pause authority immediately before provider I/O.
+Superseded prompts are suppressed. Closed flows permit only a verified terminal
+confirmation or customer-exit acknowledgment; already-authorized provider I/O
+cannot be retracted. CANCEL/REBOOK remain limited to the same contact's
+appointments whose service ID and resource ID are both in the rule's configured
+target allowlists. The menu filter and final post-lock mutation check both
+enforce those allowlists. Their reminder lifecycle follows the central
+appointment invariants. Older queued booking replies without a
+purpose/phase/version binding fail closed.

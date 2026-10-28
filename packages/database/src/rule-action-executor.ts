@@ -16,6 +16,7 @@ export type ConversationAutomationMode = (typeof CONVERSATION_AUTOMATION_MODES)[
 
 export const RULE_ACTION_TYPES = [
   "SEND_MESSAGE",
+  "START_APPOINTMENT_BOOKING",
   "ASSIGN_USER",
   "ASSIGN_ORGANIZATION_UNIT",
   "CHANGE_CONVERSATION_STATUS",
@@ -343,6 +344,12 @@ export async function executeRuleActions(
 
           actionsApplied.push("SEND_MESSAGE");
           break;
+        }
+
+        case "START_APPOINTMENT_BOOKING": {
+          throw new RuleActionExecutionError(
+            "Appointment booking requires the persisted inbound booking router",
+          );
         }
 
         case "ASSIGN_USER": {

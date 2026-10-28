@@ -1026,6 +1026,38 @@ Preview readable sentence.
 
 Validation errors before enable.
 
+E14-S10 booking configuration is currently exposed through the existing Rules
+API; there is no production rule-editor/action-picker UI. A valid booking action
+is the sole action in a first-match-stop `ON_MESSAGE_RECEIVED` rule, with
+required bounded service/resource IDs. Reminder offsets are optional and
+require Scheduling in addition to Appointments. Configuring this action through
+the Rules API requires `appointments.manage` as well as `rules.manage`; users
+may still deactivate/delete a booking rule with rule-management permission to
+reduce automation authority.
+
+### E14-S10 customer conversation
+
+When the matching rule is first applicable and the conversation is in `AUTO`,
+a create flow offers numbered services, compatible resources and available
+appointment choices. A cancellation or rebooking flow offers only the same
+customer's appointments whose service and resource are both configured in the
+booking rule. The system checks that target policy again before mutation. A
+number selects only the persisted
+choice that was shown in the current flow. The system summarizes the proposed
+create, cancel or rebook operation and requires an explicit `CONFIRM-…` token bound to
+that proposal and flow version before changing an appointment. The flow expires
+after 15 minutes; `SALIR` closes it while consuming the current message. An
+expired or stale prompt must not mutate an appointment. Active flows consume
+their own turns; HUMAN, MONITOR, takeover, pause and ASSISTED do not start
+automatic booking. Replies use the existing provider path; queued status is
+not displayed as delivered, and S10 does not claim a real handset send.
+Queued prompts are bound to the flow phase/version and are suppressed if the
+conversation advances or its booking authority is revoked before dispatch.
+Only a verified final confirmation or customer-exit acknowledgment may be sent
+for a closed flow. Cancellation ends pending reminders for the old appointment;
+rebooking uses the existing lifecycle rules and carries reminder policy to the
+replacement.
+
 ---
 
 # 39. AI Settings

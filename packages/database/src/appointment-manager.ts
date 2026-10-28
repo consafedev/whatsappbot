@@ -14,7 +14,21 @@ import { createTenantDataAccess, type TenantTransactionDatabase } from "./tenant
 import { assertTenantModuleEntitled } from "./tenant-entitlements";
 import { assertTenantOperational } from "./tenant-operational";
 
-export type AppointmentMutationMetadata = Readonly<{ actorUserId: string; requestId: string }>;
+export type AppointmentUserMutationMetadata = Readonly<{
+  actorUserId: string;
+  requestId: string;
+}>;
+export type AppointmentAutomationMutationMetadata = Readonly<{
+  kind: "whatsapp_rule";
+  ruleId: string;
+  bookingFlowId: string;
+  requestId: string;
+}>;
+export type AppointmentMutationMetadata = AppointmentUserMutationMetadata;
+type AppointmentTransactionMutationMetadata =
+  | AppointmentUserMutationMetadata
+  | AppointmentAutomationMutationMetadata;
+export type AppointmentMutationGuard = (transaction: Prisma.TransactionClient) => Promise<void>;
 export type CreateAppointmentInput = Readonly<{
   serviceId: string;
   resourceId: string;
@@ -53,6 +67,8 @@ export type AppointmentManagerDatabase = TenantTransactionDatabase &
     | "appointmentAvailabilityRule"
     | "appointmentAvailabilityException"
     | "appointmentReminder"
+    | "appointmentBookingFlow"
+    | "appointmentBookingTurn"
     | "scheduledTask"
     | "conversation"
     | "channelAccount"
@@ -90,7 +106,7 @@ function idempotencyKey(value: string): string {
   return value;
 }
 
-function normalize(input: CreateAppointmentInput): {
+export function normalizeCreateAppointmentInput(input: CreateAppointmentInput): {
   startsAt: Date;
   notes: string | null;
   idempotencyKey: string;
@@ -129,8 +145,8 @@ function samePolicy(
 function sameCommand(
   existing: Appointment,
   input: CreateAppointmentInput,
-  normalized: ReturnType<typeof normalize>,
-  actor: string,
+  normalized: ReturnType<typeof normalizeCreateAppointmentInput>,
+  actor: AppointmentTransactionMutationMetadata,
   expectedParentId: string | null = null,
 ): boolean {
   return (
@@ -144,9 +160,81 @@ function sameCommand(
       appointmentReminderPolicyFromJson(existing.reminderPolicy),
       normalized.reminderPolicy,
     ) &&
-    existing.createdByUserId === actor.toLowerCase() &&
-    existing.source === "dashboard"
+    existing.createdByUserId ===
+      ("actorUserId" in actor ? actor.actorUserId.toLowerCase() : null) &&
+    existing.bookingFlowId === ("kind" in actor ? actor.bookingFlowId.toLowerCase() : null) &&
+    existing.source === ("kind" in actor ? "whatsapp_rule" : "dashboard")
   );
+}
+
+function isAutomationActor(
+  metadata: AppointmentTransactionMutationMetadata,
+): metadata is AppointmentAutomationMutationMetadata {
+  return "kind" in metadata && metadata.kind === "whatsapp_rule";
+}
+
+async function assertMutationActor(
+  tenant: TenantContext,
+  transaction: Prisma.TransactionClient,
+  metadata: AppointmentTransactionMutationMetadata,
+  expectedIntent: "CREATE" | "CANCEL" | "REBOOK",
+  appointmentId: string | null = null,
+  expectedContactId?: string,
+): Promise<void> {
+  if (!isAutomationActor(metadata)) {
+    const actor = await transaction.user.findFirst({
+      where: { id: metadata.actorUserId, tenantId: tenant.tenantId, status: "active" },
+      select: { id: true },
+    });
+    if (actor === null)
+      throw new AppointmentValidationError("actorUserId must be an active tenant user");
+    return;
+  }
+
+  uuid(metadata.ruleId, "ruleId");
+  uuid(metadata.bookingFlowId, "bookingFlowId");
+  const flow = await transaction.appointmentBookingFlow.findFirst({
+    select: {
+      contactId: true,
+      intent: true,
+      liveRuleId: true,
+      phase: true,
+      selectedAppointmentId: true,
+    },
+    where: {
+      id: metadata.bookingFlowId.toLowerCase(),
+      tenantId: tenant.tenantId,
+      closedAt: null,
+    },
+  });
+  if (
+    flow === null ||
+    flow.liveRuleId !== metadata.ruleId.toLowerCase() ||
+    flow.intent !== expectedIntent ||
+    flow.phase !==
+      (expectedIntent === "CREATE"
+        ? "CONFIRM_BOOKING"
+        : expectedIntent === "CANCEL"
+          ? "CONFIRM_CANCELLATION"
+          : "CONFIRM_REBOOKING") ||
+    (appointmentId !== null && flow.selectedAppointmentId !== appointmentId.toLowerCase())
+  ) {
+    throw new AppointmentValidationError("Booking flow is not authorized for this mutation");
+  }
+  if (expectedContactId !== undefined && flow.contactId !== expectedContactId.toLowerCase())
+    throw new AppointmentValidationError("Booking flow does not own this contact");
+  if (appointmentId !== null) {
+    const appointment = await transaction.appointment.findFirst({
+      where: { id: appointmentId.toLowerCase(), tenantId: tenant.tenantId },
+      select: { contactId: true },
+    });
+    if (appointment === null || appointment.contactId !== flow.contactId)
+      throw new AppointmentValidationError("Booking flow does not own this appointment");
+  }
+}
+
+function requestId(metadata: AppointmentTransactionMutationMetadata): string {
+  return metadata.requestId;
 }
 
 // Called only inside the caller's transaction. S07 may reuse this after its own row lock.
@@ -154,18 +242,21 @@ export async function createAppointmentInTransaction(
   tenant: TenantContext,
   transaction: Prisma.TransactionClient,
   input: CreateAppointmentInput,
-  normalized: ReturnType<typeof normalize>,
-  metadata: AppointmentMutationMetadata,
+  normalized: ReturnType<typeof normalizeCreateAppointmentInput>,
+  metadata: AppointmentTransactionMutationMetadata,
   expectedParentId: string | null = null,
+  beforeMutation?: AppointmentMutationGuard,
 ): Promise<Appointment> {
   await assertTenantOperational(tenant, transaction);
   await assertTenantModuleEntitled(tenant, "module.appointments", transaction);
-  const actor = await transaction.user.findFirst({
-    where: { id: metadata.actorUserId, tenantId: tenant.tenantId, status: "active" },
-    select: { id: true },
-  });
-  if (actor === null)
-    throw new AppointmentValidationError("actorUserId must be an active tenant user");
+  await assertMutationActor(
+    tenant,
+    transaction,
+    metadata,
+    expectedParentId === null ? "CREATE" : "REBOOK",
+    expectedParentId,
+    input.contactId,
+  );
   await transaction.$queryRaw`SELECT 1 AS locked FROM pg_advisory_xact_lock(hashtextextended(${`${tenant.tenantId.toLowerCase()}:${normalized.idempotencyKey}`}, 0))`;
   const existing = await transaction.appointment.findUnique({
     where: {
@@ -176,7 +267,7 @@ export async function createAppointmentInTransaction(
     },
   });
   if (existing !== null) {
-    if (!sameCommand(existing, input, normalized, metadata.actorUserId, expectedParentId))
+    if (!sameCommand(existing, input, normalized, metadata, expectedParentId))
       throw new AppointmentConflictError(
         "Idempotency key belongs to a different appointment command",
       );
@@ -240,6 +331,7 @@ export async function createAppointmentInTransaction(
   );
   if (slot === undefined)
     throw new AppointmentConflictError("Requested appointment slot is unavailable");
+  if (beforeMutation) await beforeMutation(transaction);
   const appointment = await transaction.appointment.create({
     data: {
       tenantId: tenant.tenantId,
@@ -247,7 +339,8 @@ export async function createAppointmentInTransaction(
       contactId: input.contactId,
       serviceId: input.serviceId,
       resourceId: input.resourceId,
-      createdByUserId: metadata.actorUserId,
+      createdByUserId: "actorUserId" in metadata ? metadata.actorUserId : null,
+      bookingFlowId: isAutomationActor(metadata) ? metadata.bookingFlowId.toLowerCase() : null,
       idempotencyKey: normalized.idempotencyKey,
       rescheduledFromId: expectedParentId,
       status: "CONFIRMED",
@@ -262,7 +355,7 @@ export async function createAppointmentInTransaction(
       bufferBeforeMinutes: service.bufferBeforeMinutes,
       bufferAfterMinutes: service.bufferAfterMinutes,
       timezoneSnapshot: availability.timezone,
-      source: "dashboard",
+      source: isAutomationActor(metadata) ? "whatsapp_rule" : "dashboard",
       notes: normalized.notes,
       reminderPolicy:
         normalized.reminderPolicy === null
@@ -296,12 +389,12 @@ export async function createAppointmentInTransaction(
   };
   await access.audit.append({
     action: "appointment.created",
-    actorId: metadata.actorUserId,
-    actorType: "tenant_user",
+    actorId: "actorUserId" in metadata ? metadata.actorUserId : null,
+    actorType: isAutomationActor(metadata) ? "system" : "tenant_user",
     afterSummary: summary,
     entityId: appointment.id,
     entityType: "Appointment",
-    requestId: metadata.requestId,
+    requestId: requestId(metadata),
   });
   await access.outbox.append({
     aggregateId: appointment.id,
@@ -319,10 +412,8 @@ export async function createAppointment(
   metadata: AppointmentMutationMetadata,
 ): Promise<Appointment> {
   const tenant = createTenantContext(context.tenantId);
-  uuid(metadata.actorUserId, "actorUserId");
-  if (typeof metadata.requestId !== "string" || metadata.requestId.trim().length === 0)
-    throw new AppointmentValidationError("requestId is required");
-  const normalized = normalize(input);
+  validateMutationMetadata(metadata);
+  const normalized = normalizeCreateAppointmentInput(input);
   return database.$transaction((transaction) =>
     createAppointmentInTransaction(tenant, transaction, input, normalized, metadata),
   );
@@ -331,20 +422,20 @@ export async function createAppointment(
 async function assertAppointmentLifecycleAuthority(
   tenant: TenantContext,
   transaction: Prisma.TransactionClient,
-  metadata: AppointmentMutationMetadata,
+  metadata: AppointmentTransactionMutationMetadata,
+  expectedIntent: "CANCEL" | "REBOOK",
+  appointmentId: string,
 ): Promise<void> {
   await assertTenantOperational(tenant, transaction);
   await assertTenantModuleEntitled(tenant, "module.appointments", transaction);
-  const actor = await transaction.user.findFirst({
-    where: { id: metadata.actorUserId, tenantId: tenant.tenantId, status: "active" },
-    select: { id: true },
-  });
-  if (actor === null)
-    throw new AppointmentValidationError("actorUserId must be an active tenant user");
+  await assertMutationActor(tenant, transaction, metadata, expectedIntent, appointmentId);
 }
 
-function validateMutationMetadata(metadata: AppointmentMutationMetadata): void {
-  uuid(metadata.actorUserId, "actorUserId");
+function validateMutationMetadata(metadata: AppointmentTransactionMutationMetadata): void {
+  if (isAutomationActor(metadata)) {
+    uuid(metadata.ruleId, "ruleId");
+    uuid(metadata.bookingFlowId, "bookingFlowId");
+  } else uuid(metadata.actorUserId, "actorUserId");
   if (typeof metadata.requestId !== "string" || metadata.requestId.trim().length === 0)
     throw new AppointmentValidationError("requestId is required");
 }
@@ -378,53 +469,68 @@ export async function cancelAppointment(
   database: AppointmentManagerDatabase,
   id: string,
   metadata: AppointmentMutationMetadata,
+  beforeMutation?: AppointmentMutationGuard,
 ): Promise<Appointment> {
   const tenant = createTenantContext(context.tenantId);
   uuid(id, "id");
   validateMutationMetadata(metadata);
-  return database.$transaction(async (transaction) => {
-    await assertAppointmentLifecycleAuthority(tenant, transaction, metadata);
-    await lockAppointmentRow(tenant, transaction, id);
-    const current = await transaction.appointment.findFirst({
-      where: { tenantId: tenant.tenantId, id },
-    });
-    if (current === null) throw new AppointmentNotFoundError("Appointment was not found");
-    if (current.resourceId !== null)
-      await lockAppointmentResource(tenant, transaction, current.resourceId);
-    if (current.status === "CANCELLED") return current;
-    if (current.status !== "REQUESTED" && current.status !== "CONFIRMED")
-      throw new AppointmentConflictError("Appointment cannot be cancelled from its current state");
-    await cancelAppointmentRemindersInTransaction(tenant, transaction, current.id);
-    const cancelled = await transaction.appointment.update({
-      where: { tenantId_id: { tenantId: tenant.tenantId, id: current.id } },
-      data: { status: "CANCELLED" },
-    });
-    const summary = {
-      appointmentId: current.id,
-      previousStatus: current.status,
-      status: cancelled.status,
-      startsAt: current.startsAt.toISOString(),
-      endsAt: current.endsAt.toISOString(),
-    };
-    const access = createTenantDataAccess(tenant, transaction);
-    await access.audit.append({
-      action: "appointment.cancelled",
-      actorId: metadata.actorUserId,
-      actorType: "tenant_user",
-      afterSummary: summary,
-      beforeSummary: { appointmentId: current.id, status: current.status },
-      entityId: current.id,
-      entityType: "Appointment",
-      requestId: metadata.requestId,
-    });
-    await access.outbox.append({
-      aggregateId: current.id,
-      aggregateType: "Appointment",
-      eventType: "appointment.cancelled",
-      payload: { tenantId: tenant.tenantId, ...summary },
-    });
-    return cancelled;
+  return database.$transaction((transaction) =>
+    cancelAppointmentInTransaction(tenant, transaction, id, metadata, beforeMutation),
+  );
+}
+
+export async function cancelAppointmentInTransaction(
+  context: TenantContext,
+  transaction: Prisma.TransactionClient,
+  id: string,
+  metadata: AppointmentTransactionMutationMetadata,
+  beforeMutation?: AppointmentMutationGuard,
+): Promise<Appointment> {
+  const tenant = createTenantContext(context.tenantId);
+  uuid(id, "id");
+  validateMutationMetadata(metadata);
+  await assertAppointmentLifecycleAuthority(tenant, transaction, metadata, "CANCEL", id);
+  await lockAppointmentRow(tenant, transaction, id);
+  const current = await transaction.appointment.findFirst({
+    where: { tenantId: tenant.tenantId, id },
   });
+  if (current === null) throw new AppointmentNotFoundError("Appointment was not found");
+  if (current.resourceId !== null)
+    await lockAppointmentResource(tenant, transaction, current.resourceId);
+  if (current.status === "CANCELLED") return current;
+  if (current.status !== "REQUESTED" && current.status !== "CONFIRMED")
+    throw new AppointmentConflictError("Appointment cannot be cancelled from its current state");
+  await cancelAppointmentRemindersInTransaction(tenant, transaction, current.id);
+  if (beforeMutation) await beforeMutation(transaction);
+  const cancelled = await transaction.appointment.update({
+    where: { tenantId_id: { tenantId: tenant.tenantId, id: current.id } },
+    data: { status: "CANCELLED" },
+  });
+  const summary = {
+    appointmentId: current.id,
+    previousStatus: current.status,
+    status: cancelled.status,
+    startsAt: current.startsAt.toISOString(),
+    endsAt: current.endsAt.toISOString(),
+  };
+  const access = createTenantDataAccess(tenant, transaction);
+  await access.audit.append({
+    action: "appointment.cancelled",
+    actorId: "actorUserId" in metadata ? metadata.actorUserId : null,
+    actorType: isAutomationActor(metadata) ? "system" : "tenant_user",
+    afterSummary: summary,
+    beforeSummary: { appointmentId: current.id, status: current.status },
+    entityId: current.id,
+    entityType: "Appointment",
+    requestId: requestId(metadata),
+  });
+  await access.outbox.append({
+    aggregateId: current.id,
+    aggregateType: "Appointment",
+    eventType: "appointment.cancelled",
+    payload: { tenantId: tenant.tenantId, ...summary },
+  });
+  return cancelled;
 }
 
 export async function rebookAppointment(
@@ -433,6 +539,23 @@ export async function rebookAppointment(
   id: string,
   input: RebookAppointmentInput,
   metadata: AppointmentMutationMetadata,
+  beforeMutation?: AppointmentMutationGuard,
+): Promise<Appointment> {
+  const tenant = createTenantContext(context.tenantId);
+  uuid(id, "id");
+  validateMutationMetadata(metadata);
+  return database.$transaction((transaction) =>
+    rebookAppointmentInTransaction(tenant, transaction, id, input, metadata, beforeMutation),
+  );
+}
+
+export async function rebookAppointmentInTransaction(
+  context: TenantContext,
+  transaction: Prisma.TransactionClient,
+  id: string,
+  input: RebookAppointmentInput,
+  metadata: AppointmentTransactionMutationMetadata,
+  beforeMutation?: AppointmentMutationGuard,
 ): Promise<Appointment> {
   const tenant = createTenantContext(context.tenantId);
   uuid(id, "id");
@@ -443,91 +566,90 @@ export async function rebookAppointment(
   const key = idempotencyKey(input.idempotencyKey).trim();
   if (input.resourceId !== undefined) uuid(input.resourceId, "resourceId");
 
-  return database.$transaction(async (transaction) => {
-    await assertAppointmentLifecycleAuthority(tenant, transaction, metadata);
-    await transaction.$queryRaw`SELECT 1 AS locked FROM pg_advisory_xact_lock(hashtextextended(${`${tenant.tenantId.toLowerCase()}:${key}`}, 0))`;
-    await lockAppointmentRow(tenant, transaction, id);
-    const old = await transaction.appointment.findFirst({
-      where: { tenantId: tenant.tenantId, id },
-    });
-    if (old === null) throw new AppointmentNotFoundError("Appointment was not found");
-    const targetResourceId = input.resourceId?.toLowerCase() ?? old.resourceId?.toLowerCase();
-    if (targetResourceId === undefined || targetResourceId === null)
-      throw new AppointmentNotFoundError("Resource was not found");
-    const command: CreateAppointmentInput = {
-      serviceId: old.serviceId.toLowerCase(),
-      resourceId: targetResourceId,
-      contactId: old.contactId.toLowerCase(),
-      startsAt: startsAt.toISOString(),
-      idempotencyKey: key,
-      notes: old.notes,
-      reminderPolicy: appointmentReminderPolicyFromJson(old.reminderPolicy),
-    };
-    const normalized = normalize(command);
-    const existing = await transaction.appointment.findUnique({
-      where: { tenantId_idempotencyKey: { tenantId: tenant.tenantId, idempotencyKey: key } },
-    });
-    if (existing !== null) {
-      if (!sameCommand(existing, command, normalized, metadata.actorUserId, old.id))
-        throw new AppointmentConflictError(
-          "Idempotency key belongs to a different appointment command",
-        );
-      return existing;
-    }
-    if (old.status !== "REQUESTED" && old.status !== "CONFIRMED")
-      throw new AppointmentConflictError("Appointment cannot be rebooked from its current state");
-
-    const resourceIds = [
-      ...new Set(
-        [old.resourceId, targetResourceId]
-          .filter((resourceId): resourceId is string => resourceId !== null)
-          .map((resourceId) => resourceId.toLowerCase()),
-      ),
-    ].sort();
-    for (const resourceId of resourceIds)
-      await lockAppointmentResource(tenant, transaction, resourceId);
-
-    await cancelAppointmentRemindersInTransaction(tenant, transaction, old.id);
-    const rescheduled = await transaction.appointment.update({
-      where: { tenantId_id: { tenantId: tenant.tenantId, id: old.id } },
-      data: { status: "RESCHEDULED" },
-    });
-    const replacement = await createAppointmentInTransaction(
-      tenant,
-      transaction,
-      command,
-      normalized,
-      metadata,
-      old.id,
-    );
-    const summary = {
-      appointmentId: old.id,
-      replacementAppointmentId: replacement.id,
-      previousStatus: old.status,
-      status: rescheduled.status,
-      startsAt: old.startsAt.toISOString(),
-      replacementStartsAt: replacement.startsAt.toISOString(),
-      resourceId: replacement.resourceId,
-    };
-    const access = createTenantDataAccess(tenant, transaction);
-    await access.audit.append({
-      action: "appointment.rescheduled",
-      actorId: metadata.actorUserId,
-      actorType: "tenant_user",
-      afterSummary: summary,
-      beforeSummary: { appointmentId: old.id, status: old.status },
-      entityId: old.id,
-      entityType: "Appointment",
-      requestId: metadata.requestId,
-    });
-    await access.outbox.append({
-      aggregateId: old.id,
-      aggregateType: "Appointment",
-      eventType: "appointment.rescheduled",
-      payload: { tenantId: tenant.tenantId, ...summary },
-    });
-    return replacement;
+  await assertAppointmentLifecycleAuthority(tenant, transaction, metadata, "REBOOK", id);
+  await transaction.$queryRaw`SELECT 1 AS locked FROM pg_advisory_xact_lock(hashtextextended(${`${tenant.tenantId.toLowerCase()}:${key}`}, 0))`;
+  await lockAppointmentRow(tenant, transaction, id);
+  const old = await transaction.appointment.findFirst({
+    where: { tenantId: tenant.tenantId, id },
   });
+  if (old === null) throw new AppointmentNotFoundError("Appointment was not found");
+  const targetResourceId = input.resourceId?.toLowerCase() ?? old.resourceId?.toLowerCase();
+  if (targetResourceId === undefined || targetResourceId === null)
+    throw new AppointmentNotFoundError("Resource was not found");
+  const command: CreateAppointmentInput = {
+    serviceId: old.serviceId.toLowerCase(),
+    resourceId: targetResourceId,
+    contactId: old.contactId.toLowerCase(),
+    startsAt: startsAt.toISOString(),
+    idempotencyKey: key,
+    notes: old.notes,
+    reminderPolicy: appointmentReminderPolicyFromJson(old.reminderPolicy),
+  };
+  const normalized = normalizeCreateAppointmentInput(command);
+  const existing = await transaction.appointment.findUnique({
+    where: { tenantId_idempotencyKey: { tenantId: tenant.tenantId, idempotencyKey: key } },
+  });
+  if (existing !== null) {
+    if (!sameCommand(existing, command, normalized, metadata, old.id))
+      throw new AppointmentConflictError(
+        "Idempotency key belongs to a different appointment command",
+      );
+    return existing;
+  }
+  if (old.status !== "REQUESTED" && old.status !== "CONFIRMED")
+    throw new AppointmentConflictError("Appointment cannot be rebooked from its current state");
+
+  const resourceIds = [
+    ...new Set(
+      [old.resourceId, targetResourceId]
+        .filter((resourceId): resourceId is string => resourceId !== null)
+        .map((resourceId) => resourceId.toLowerCase()),
+    ),
+  ].sort();
+  for (const resourceId of resourceIds)
+    await lockAppointmentResource(tenant, transaction, resourceId);
+
+  await cancelAppointmentRemindersInTransaction(tenant, transaction, old.id);
+  const rescheduled = await transaction.appointment.update({
+    where: { tenantId_id: { tenantId: tenant.tenantId, id: old.id } },
+    data: { status: "RESCHEDULED" },
+  });
+  const replacement = await createAppointmentInTransaction(
+    tenant,
+    transaction,
+    command,
+    normalized,
+    metadata,
+    old.id,
+    beforeMutation,
+  );
+  const summary = {
+    appointmentId: old.id,
+    replacementAppointmentId: replacement.id,
+    previousStatus: old.status,
+    status: rescheduled.status,
+    startsAt: old.startsAt.toISOString(),
+    replacementStartsAt: replacement.startsAt.toISOString(),
+    resourceId: replacement.resourceId,
+  };
+  const access = createTenantDataAccess(tenant, transaction);
+  await access.audit.append({
+    action: "appointment.rescheduled",
+    actorId: "actorUserId" in metadata ? metadata.actorUserId : null,
+    actorType: isAutomationActor(metadata) ? "system" : "tenant_user",
+    afterSummary: summary,
+    beforeSummary: { appointmentId: old.id, status: old.status },
+    entityId: old.id,
+    entityType: "Appointment",
+    requestId: requestId(metadata),
+  });
+  await access.outbox.append({
+    aggregateId: old.id,
+    aggregateType: "Appointment",
+    eventType: "appointment.rescheduled",
+    payload: { tenantId: tenant.tenantId, ...summary },
+  });
+  return replacement;
 }
 
 export async function getAppointmentById(

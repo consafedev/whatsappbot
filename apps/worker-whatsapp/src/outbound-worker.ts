@@ -1,6 +1,7 @@
 import {
   assertTenantModuleEntitled,
   assertTenantOperational,
+  authorizeAppointmentBookingDispatch,
   authorizeAppointmentReminderDispatch,
   createTenantContext,
   type OutboundMessageManager,
@@ -142,7 +143,10 @@ export class OutboundWorker {
           select: { active: true, providerType: true, status: true },
           where: { id: channelAccountId, tenantId },
         }),
-      authorizeDispatch: async (message) => authorizeAppointmentReminderDispatch(database, message),
+      authorizeDispatch: async (message) => {
+        await authorizeAppointmentReminderDispatch(database, message);
+        await authorizeAppointmentBookingDispatch(database, message);
+      },
       ...(options.providerFactory === undefined
         ? {}
         : { providerFactory: options.providerFactory }),

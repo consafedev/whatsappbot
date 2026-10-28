@@ -15,6 +15,7 @@ import {
   RuleValidationError,
 } from "./rule-catalog-manager";
 import { createTenantContext } from "./tenant-context";
+import { TenantModuleEntitlementRequiredError } from "./tenant-entitlements";
 
 const prefix = "e08-s01-rules-db";
 const metadata = { actorUserId: "e08-s01-actor", requestId: `${prefix}-request` };
@@ -22,11 +23,14 @@ let prisma: PrismaClient;
 let manager: RuleCatalogManager;
 let tenantAId = "";
 let tenantBId = "";
+let ownerAId = "";
 let rootAId = "";
 let rootBId = "";
 let channelAId = "";
 let channelBId = "";
 let createdRuleAId = "";
+let serviceAId = "";
+let resourceAId = "";
 
 async function cleanup(): Promise<void> {
   const tenants = await prisma.tenant.findMany({
@@ -34,7 +38,11 @@ async function cleanup(): Promise<void> {
     where: { slug: { startsWith: prefix } },
   });
   const ids = tenants.map(({ id }) => id);
+  await prisma.appointmentBookingTurn.deleteMany({ where: { tenantId: { in: ids } } });
+  await prisma.appointmentBookingFlow.deleteMany({ where: { tenantId: { in: ids } } });
   await prisma.rule.deleteMany({ where: { tenantId: { in: ids } } });
+  await prisma.appointmentResource.deleteMany({ where: { tenantId: { in: ids } } });
+  await prisma.appointmentService.deleteMany({ where: { tenantId: { in: ids } } });
   await prisma.message.deleteMany({ where: { tenantId: { in: ids } } });
   await prisma.conversation.deleteMany({ where: { tenantId: { in: ids } } });
   await prisma.contact.deleteMany({ where: { tenantId: { in: ids } } });
@@ -54,7 +62,14 @@ async function cleanup(): Promise<void> {
   await prisma.tenant.deleteMany({ where: { id: { in: ids } } });
 }
 
-async function provision(marker: string): Promise<{ id: string; rootId: string }> {
+async function provision(
+  marker: string,
+  enabledModules: readonly (
+    | "module.messaging.basic"
+    | "module.automation.basic"
+    | "module.appointments"
+  )[] = ["module.messaging.basic", "module.automation.basic"],
+): Promise<{ id: string; ownerId: string; rootId: string }> {
   const result = await createPlatformTenantProvisioningRepository(prisma).provision({
     actorPlatformAdminId: "019c0000-0000-7000-8000-000000000001",
     defaultCurrency: "MXN",
@@ -62,7 +77,7 @@ async function provision(marker: string): Promise<{ id: string; rootId: string }
     defaultTimezone: "America/Mexico_City",
     deploymentId: null,
     displayName: `Rules Tenant ${marker}`,
-    enabledModules: ["module.messaging.basic", "module.automation.basic"],
+    enabledModules,
     legalName: `Rules Tenant ${marker} SA`,
     limits: {
       channelAccounts: 5,
@@ -81,7 +96,7 @@ async function provision(marker: string): Promise<{ id: string; rootId: string }
     requestId: `${prefix}-${marker}`,
     slug: `${prefix}-${marker}`,
   });
-  return { id: result.tenant.id, rootId: result.organizationRoot.id };
+  return { id: result.tenant.id, ownerId: result.owner.id, rootId: result.organizationRoot.id };
 }
 
 describe.sequential("Rule catalog manager", () => {
@@ -90,9 +105,13 @@ describe.sequential("Rule catalog manager", () => {
     await prisma.$connect();
     await cleanup();
     await syncPermissionCatalog(prisma);
-    const [tenantA, tenantB] = await Promise.all([provision("a"), provision("b")]);
+    const [tenantA, tenantB] = await Promise.all([
+      provision("a", ["module.messaging.basic", "module.automation.basic", "module.appointments"]),
+      provision("b"),
+    ]);
     tenantAId = tenantA.id;
     tenantBId = tenantB.id;
+    ownerAId = tenantA.ownerId;
     rootAId = tenantA.rootId;
     rootBId = tenantB.rootId;
 
@@ -118,6 +137,26 @@ describe.sequential("Rule catalog manager", () => {
       },
     });
     channelBId = channelB.id;
+
+    const [serviceA, resourceA] = await Promise.all([
+      prisma.appointmentService.create({
+        data: {
+          durationMinutes: 30,
+          name: "Booking target service",
+          organizationUnitId: rootAId,
+          tenantId: tenantAId,
+        },
+      }),
+      prisma.appointmentResource.create({
+        data: {
+          name: "Booking target resource",
+          organizationUnitId: rootAId,
+          tenantId: tenantAId,
+        },
+      }),
+    ]);
+    serviceAId = serviceA.id;
+    resourceAId = resourceA.id;
 
     manager = createRuleCatalogManager(prisma);
   });
@@ -395,11 +434,132 @@ describe.sequential("Rule catalog manager", () => {
     ).rejects.toThrow(RuleNotFoundError);
   });
 
+  it("requires scheduling for reminder policies and rejects incompatible booking target pairs", async () => {
+    const bookingAction = {
+      actionType: "start_appointment_booking",
+      parameters: { resourceIds: [resourceAId], serviceIds: [serviceAId] },
+    };
+    const baseRule = await manager.createRule(
+      createTenantContext(tenantAId),
+      ownerAId,
+      {
+        actions: [bookingAction],
+        conditions: [],
+        name: "Booking without reminders",
+        triggerType: "ON_MESSAGE_RECEIVED",
+      },
+      metadata,
+    );
+    const reminderAction = {
+      actionType: "start_appointment_booking",
+      parameters: {
+        resourceIds: [resourceAId],
+        serviceIds: [serviceAId],
+        reminderOffsetsMinutes: [60],
+      },
+    };
+    await expect(
+      manager.createRule(
+        createTenantContext(tenantAId),
+        ownerAId,
+        {
+          actions: [reminderAction],
+          conditions: [],
+          name: "Booking requiring scheduling",
+          triggerType: "ON_MESSAGE_RECEIVED",
+        },
+        metadata,
+      ),
+    ).rejects.toBeInstanceOf(TenantModuleEntitlementRequiredError);
+    await expect(
+      manager.updateRule(
+        createTenantContext(tenantAId),
+        baseRule.id,
+        ownerAId,
+        { actions: [reminderAction] },
+        metadata,
+      ),
+    ).rejects.toBeInstanceOf(TenantModuleEntitlementRequiredError);
+
+    const otherUnit = await prisma.organizationUnit.create({
+      data: {
+        name: "Other Booking Branch",
+        parentId: rootAId,
+        tenantId: tenantAId,
+        type: "branch",
+      },
+    });
+    const otherResource = await prisma.appointmentResource.create({
+      data: {
+        name: "Other branch resource",
+        organizationUnitId: otherUnit.id,
+        tenantId: tenantAId,
+      },
+    });
+    await expect(
+      manager.createRule(
+        createTenantContext(tenantAId),
+        ownerAId,
+        {
+          actions: [
+            {
+              actionType: "start_appointment_booking",
+              parameters: { resourceIds: [otherResource.id], serviceIds: [serviceAId] },
+            },
+          ],
+          conditions: [],
+          name: "Incompatible booking targets",
+          triggerType: "ON_MESSAGE_RECEIVED",
+        },
+        metadata,
+      ),
+    ).rejects.toThrow("no compatible active pair");
+  });
+
   it("deletes a rule and produces audit and outbox events", async () => {
+    const contact = await prisma.contact.create({
+      data: {
+        name: "Rule deletion booking contact",
+        phoneNumber: "+525588881234",
+        tenantId: tenantAId,
+      },
+    });
+    const conversation = await prisma.conversation.create({
+      data: {
+        channelAccountId: channelAId,
+        contactId: contact.id,
+        status: "open",
+        tenantId: tenantAId,
+      },
+    });
+    const flow = await prisma.appointmentBookingFlow.create({
+      data: {
+        channelAccountId: channelAId,
+        contactId: contact.id,
+        conversationId: conversation.id,
+        expiresAt: new Date(Date.now() + 60_000),
+        intent: "CREATE",
+        liveRuleId: createdRuleAId,
+        originatingRuleId: createdRuleAId,
+        phase: "SELECT_SERVICE",
+        policyHash: "a".repeat(64),
+        policySnapshot: { resourceIds: [], serviceIds: [] },
+        tenantId: tenantAId,
+      },
+    });
+
     await manager.deleteRule(createTenantContext(tenantAId), createdRuleAId, "user-1", metadata);
 
     const deletedRule = await manager.getRuleById(createTenantContext(tenantAId), createdRuleAId);
     expect(deletedRule).toBeNull();
+    await expect(
+      prisma.appointmentBookingFlow.findUniqueOrThrow({ where: { id: flow.id } }),
+    ).resolves.toMatchObject({
+      liveRuleId: null,
+      originatingRuleId: createdRuleAId,
+      phase: "CANCELLED",
+      terminalReason: "rule_deleted",
+    });
 
     const audit = await prisma.auditLog.findFirstOrThrow({
       where: { action: "rule.deleted", entityId: createdRuleAId, tenantId: tenantAId },
@@ -409,6 +569,8 @@ describe.sequential("Rule catalog manager", () => {
 
   it("rolls back the rule creation and audit when the outbox append fails", async () => {
     const failingDatabase = {
+      appointmentResource: prisma.appointmentResource,
+      appointmentService: prisma.appointmentService,
       channelAccount: prisma.channelAccount,
       organizationUnit: prisma.organizationUnit,
       rule: prisma.rule,

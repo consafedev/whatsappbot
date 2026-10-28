@@ -983,6 +983,52 @@ be retracted. Internal APPOINTMENT_REMINDER tasks are domain managed, protected
 from generic scheduler HTTP mutations. Actual S08 validation/publication remains
 tracked in STATUS; this architectural contract is not a delivery claim.
 
+E14-S10 adds a deterministic rules-driven conversation over this same appointment
+domain. A new canonical customer Message and its UNDECIDED routing placeholder
+commit together; the dispatcher fixes BOOKING or LEGACY before generic actions
+or AI run. ON_CONVERSATION_CREATED rules take precedence on a new conversation,
+then ON_MESSAGE_RECEIVED rules follow stable priority, creation-time and ID
+ordering. A booking action is the only action in a first_match_stop
+ON_MESSAGE_RECEIVED rule and cannot bypass an earlier matching rule. A
+pre-cutover duplicate with no ledger remains legacy-only. If a crash leaves a
+new message UNDECIDED, its first LEGACY verdict can recover the generic action
+once from the stored new-conversation flag; a committed LEGACY verdict does not
+replay.
+
+Booking, cancellation and rebooking use persisted tenant-scoped flows and turn
+receipts, explicit numbered choices and a version-bound `CONFIRM-…` token. Flows
+expire after 15 minutes and `SALIR` consumes the current turn while closing the
+flow. The current offered menu is persisted so a number resolves to the item
+shown to that customer. Final target, availability, rule, tenant, contact,
+channel, Organization Unit and automation authority are revalidated before
+mutation. Rule configuration requires rules.manage and appointments.manage
+with the applicable module entitlements; reminder offsets also require
+module.scheduling. A booking rule's configured Organization Unit must match the
+conversation's assigned unit exactly. Create/cancel/rebook and canonical outbound
+persistence share one transaction; provider IO occurs only after commit. QUEUED represents
+durable dispatch intent, not provider delivery. ADR-0071 defines the accepted
+contract. The current release uses the configured mock provider in tests and
+does not claim real handset delivery.
+
+Conversation mode writers serialize on the conversation row. Each turn rereads
+mode, takeover and pause after taking that lock; the final appointment guard
+rechecks flow and proposal eligibility after appointment/resource/service
+locks and samples time there. Every queued booking prompt or acknowledgment
+stores its purpose and exact flow phase/version. The outbound worker rechecks
+tenant, module, contact/channel, AUTO/takeover/pause, live rule and flow version
+immediately before provider I/O. Superseded prompts fail closed; only a valid
+terminal confirmation or customer-exit acknowledgment may be sent after flow
+closure. Cancellation suppresses pending reminders for the old appointment;
+rebooking uses the existing lifecycle policy and replacement inherits reminder
+policy. Schema migration 36 adds the outbound binding without editing applied
+migrations 34/35; older unbound booking replies fail closed. Already-authorized
+provider I/O cannot be retracted.
+
+CANCEL and REBOOK only offer the same contact's appointments when both the
+appointment's service ID and resource ID are in the rule's configured target
+allowlists. The selected appointment is checked against those allowlists again
+after business locks and immediately before mutation.
+
 ---
 
 # 21. Quote Engine

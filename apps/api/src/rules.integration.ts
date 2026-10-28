@@ -17,16 +17,24 @@ let baseUrl = "";
 let tenantAId = "";
 let tenantBId = "";
 let tenantNoEntitlementId = "";
+let tenantNoAppointmentsId = "";
 let ownerAId = "";
 let ownerBId = "";
 let ownerNoEntitlementId = "";
+let ownerNoAppointmentsId = "";
 let viewerAId = "";
+let rulesManagerAId = "";
 let ownerACookie = "";
 let ownerBCookie = "";
 let ownerNoEntitlementCookie = "";
+let ownerNoAppointmentsCookie = "";
 let viewerACookie = "";
+let rulesManagerACookie = "";
 let ruleAId = "";
+let bookingRuleAId = "";
 let channelAId = "";
+let serviceAId = "";
+let resourceAId = "";
 
 function binary(value: Buffer): Uint8Array<ArrayBuffer> {
   return new Uint8Array(value);
@@ -53,6 +61,8 @@ async function cleanup(): Promise<void> {
   const ids = tenants.map(({ id }) => id);
   if (ids.length === 0) return;
   await prisma.rule.deleteMany({ where: { tenantId: { in: ids } } });
+  await prisma.appointmentService.deleteMany({ where: { tenantId: { in: ids } } });
+  await prisma.appointmentResource.deleteMany({ where: { tenantId: { in: ids } } });
   await prisma.channelAccount.deleteMany({ where: { tenantId: { in: ids } } });
   await prisma.userSession.deleteMany({ where: { tenantId: { in: ids } } });
   await prisma.userPasswordResetToken.deleteMany({ where: { tenantId: { in: ids } } });
@@ -124,6 +134,37 @@ function jsonRequest(
   return request(path, cookie, { body: JSON.stringify(body), method });
 }
 
+async function waitForDatabaseLockWait(): Promise<void> {
+  const deadline = Date.now() + 5_000;
+  while (Date.now() < deadline) {
+    const rows = await prisma.$queryRaw<Array<{ waiting: number }>>`
+      SELECT COUNT(*)::int AS waiting
+      FROM pg_stat_activity
+      WHERE datname = current_database()
+        AND wait_event_type = 'Lock'
+        AND pid <> pg_backend_pid()`;
+    if ((rows[0]?.waiting ?? 0) > 0) return;
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  }
+  throw new Error("Rules API manager did not wait on the locked rule row");
+}
+
+function bookingRuleInput(name = "WhatsApp appointment booking"): Record<string, unknown> {
+  return {
+    actions: [
+      {
+        actionType: "start_appointment_booking",
+        parameters: { resourceIds: [resourceAId], serviceIds: [serviceAId] },
+      },
+    ],
+    conditions: [],
+    executionMode: "first_match_stop",
+    name,
+    status: "active",
+    triggerType: "ON_MESSAGE_RECEIVED",
+  };
+}
+
 describe.sequential("E08-S01 rules REST API", () => {
   beforeAll(async () => {
     prisma = createPlatformDatabaseClient({ databaseUrl: process.env.DATABASE_URL ?? "" });
@@ -131,19 +172,22 @@ describe.sequential("E08-S01 rules REST API", () => {
     await cleanup();
     await syncPermissionCatalog(prisma);
 
-    const [a, b, noEntitlement] = await Promise.all([
-      provision("a"),
+    const [a, b, noEntitlement, noAppt] = await Promise.all([
+      provision("a", ["module.messaging.basic", "module.automation.basic", "module.appointments"]),
       provision("b"),
       provision("no-ent", ["module.messaging.basic"]), // missing module.automation.basic
+      provision("no-appt", ["module.messaging.basic", "module.automation.basic"]),
     ]);
 
     tenantAId = a.tenantId;
     tenantBId = b.tenantId;
     tenantNoEntitlementId = noEntitlement.tenantId;
+    tenantNoAppointmentsId = noAppt.tenantId;
 
     ownerAId = a.ownerId;
     ownerBId = b.ownerId;
     ownerNoEntitlementId = noEntitlement.ownerId;
+    ownerNoAppointmentsId = noAppt.ownerId;
 
     // Create a Viewer user for Tenant A (only has rules.read or no rules.manage)
     const viewerUser = await prisma.user.create({
@@ -183,6 +227,38 @@ describe.sequential("E08-S01 rules REST API", () => {
       },
     });
 
+    const rulesManager = await prisma.user.create({
+      data: {
+        displayName: "Rules Manager without Appointments",
+        email: `${prefix}-rules-manager-a@example.invalid`,
+        locale: "es-MX",
+        passwordHash: "$argon2id$test-hash-not-reversible",
+        tenantId: tenantAId,
+        timezone: "America/Mexico_City",
+      },
+    });
+    rulesManagerAId = rulesManager.id;
+    const rulesManagerRole = await prisma.role.create({
+      data: {
+        key: "appointment-configurator",
+        name: "Appointment Configurator",
+        tenantId: tenantAId,
+      },
+    });
+    await prisma.userRole.create({
+      data: { roleId: rulesManagerRole.id, tenantId: tenantAId, userId: rulesManagerAId },
+    });
+    const [rulesManagePermission, rulesManagerReadPermission] = await Promise.all([
+      prisma.permission.findFirstOrThrow({ where: { key: "rules.manage" } }),
+      prisma.permission.findFirstOrThrow({ where: { key: "rules.read" } }),
+    ]);
+    await prisma.rolePermission.createMany({
+      data: [rulesManagePermission, rulesManagerReadPermission].map((permission) => ({
+        permissionId: permission.id,
+        roleId: rulesManagerRole.id,
+      })),
+    });
+
     // Create a ChannelAccount in Tenant A
     const channelA = await prisma.channelAccount.create({
       data: {
@@ -195,10 +271,32 @@ describe.sequential("E08-S01 rules REST API", () => {
     });
     channelAId = channelA.id;
 
+    const [serviceA, resourceA] = await Promise.all([
+      prisma.appointmentService.create({
+        data: {
+          durationMinutes: 30,
+          name: "Rules API service",
+          organizationUnitId: a.rootId,
+          tenantId: tenantAId,
+        },
+      }),
+      prisma.appointmentResource.create({
+        data: {
+          name: "Rules API resource",
+          organizationUnitId: a.rootId,
+          tenantId: tenantAId,
+        },
+      }),
+    ]);
+    serviceAId = serviceA.id;
+    resourceAId = resourceA.id;
+
     ownerACookie = await session(tenantAId, ownerAId);
     ownerBCookie = await session(tenantBId, ownerBId);
     ownerNoEntitlementCookie = await session(tenantNoEntitlementId, ownerNoEntitlementId);
+    ownerNoAppointmentsCookie = await session(tenantNoAppointmentsId, ownerNoAppointmentsId);
     viewerACookie = await session(tenantAId, viewerAId);
+    rulesManagerACookie = await session(tenantAId, rulesManagerAId);
 
     app = await createApiApplication(loadNonSecretConfig({ NODE_ENV: "test" }));
     await app.listen(0, "127.0.0.1");
@@ -382,6 +480,167 @@ describe.sequential("E08-S01 rules REST API", () => {
       triggerType: "ON_MESSAGE_RECEIVED",
     });
     expect(unexpectedField.status).toBe(400);
+  });
+
+  it("requires booking entitlements for configuration while allowing reduction", async () => {
+    const created = await jsonRequest("/api/v1/rules", ownerACookie, "POST", bookingRuleInput());
+    expect(created.status, JSON.stringify(await created.clone().json())).toBe(201);
+    const createdBody = (await created.json()) as {
+      id: string;
+      actions: Array<{ actionType: string; parameters: Record<string, unknown> }>;
+    };
+    bookingRuleAId = createdBody.id;
+    expect(createdBody.actions[0]).toMatchObject({ actionType: "start_appointment_booking" });
+
+    const reminderPolicy = await jsonRequest("/api/v1/rules", ownerACookie, "POST", {
+      ...bookingRuleInput("Denied missing scheduling"),
+      actions: [
+        {
+          actionType: "start_appointment_booking",
+          parameters: {
+            resourceIds: [resourceAId],
+            serviceIds: [serviceAId],
+            reminderOffsetsMinutes: [60],
+          },
+        },
+      ],
+    });
+    expect(reminderPolicy.status).toBe(403);
+
+    const reminderPolicyUpdate = await jsonRequest(
+      `/api/v1/rules/${bookingRuleAId}`,
+      ownerACookie,
+      "PUT",
+      {
+        actions: [
+          {
+            actionType: "start_appointment_booking",
+            parameters: {
+              resourceIds: [resourceAId],
+              serviceIds: [serviceAId],
+              reminderOffsetsMinutes: [60],
+            },
+          },
+        ],
+      },
+    );
+    expect(reminderPolicyUpdate.status).toBe(403);
+
+    const rulesManagerCreate = await jsonRequest(
+      "/api/v1/rules",
+      rulesManagerACookie,
+      "POST",
+      bookingRuleInput("Denied appointment configuration"),
+    );
+    expect(rulesManagerCreate.status).toBe(403);
+
+    const rulesManagerDowngrade = await jsonRequest(
+      `/api/v1/rules/${bookingRuleAId}`,
+      rulesManagerACookie,
+      "PUT",
+      { actions: [{ actionType: "send_message", parameters: { text: "Downgrade" } }] },
+    );
+    expect(rulesManagerDowngrade.status).toBe(403);
+    expect(
+      await prisma.rule.findFirstOrThrow({
+        select: { actions: true },
+        where: { id: bookingRuleAId, tenantId: tenantAId },
+      }),
+    ).toMatchObject({
+      actions: [expect.objectContaining({ actionType: "start_appointment_booking" })],
+    });
+
+    const noAppointmentsModule = await jsonRequest(
+      "/api/v1/rules",
+      ownerNoAppointmentsCookie,
+      "POST",
+      bookingRuleInput("Denied missing module"),
+    );
+    expect(noAppointmentsModule.status).toBe(403);
+
+    const rulesManagerEdit = await jsonRequest(
+      `/api/v1/rules/${bookingRuleAId}`,
+      rulesManagerACookie,
+      "PUT",
+      { priority: 10 },
+    );
+    expect(rulesManagerEdit.status).toBe(403);
+
+    const rulesManagerDeactivate = await jsonRequest(
+      `/api/v1/rules/${bookingRuleAId}`,
+      rulesManagerACookie,
+      "PUT",
+      { status: "inactive" },
+    );
+    expect(rulesManagerDeactivate.status).toBe(200);
+
+    const rulesManagerDelete = await request(
+      `/api/v1/rules/${bookingRuleAId}`,
+      rulesManagerACookie,
+      {
+        method: "DELETE",
+      },
+    );
+    expect(rulesManagerDelete.status).toBe(200);
+  });
+
+  it("rechecks current booking authority after waiting for a concurrent rule update", async () => {
+    const created = await jsonRequest("/api/v1/rules", ownerACookie, "POST", {
+      actions: [{ actionType: "send_message", parameters: { text: "Legacy action" } }],
+      conditions: [],
+      name: "Concurrent rule authorization",
+      triggerType: "ON_MESSAGE_RECEIVED",
+    });
+    expect(created.status).toBe(201);
+    const { id } = (await created.json()) as { id: string };
+
+    let signalRowLocked: () => void = () => undefined;
+    const rowLocked = new Promise<void>((resolve) => {
+      signalRowLocked = resolve;
+    });
+    let releaseBlocker: () => void = () => undefined;
+    const blockerRelease = new Promise<void>((resolve) => {
+      releaseBlocker = resolve;
+    });
+    const blocker = prisma.$transaction(async (transaction) => {
+      await transaction.$queryRaw<Array<{ id: string }>>`
+        SELECT id FROM "rule"
+        WHERE tenant_id = ${tenantAId}::uuid AND id = ${id}::uuid
+        FOR UPDATE`;
+      signalRowLocked();
+      await blockerRelease;
+      await transaction.rule.update({
+        data: {
+          actions: [
+            {
+              actionType: "start_appointment_booking",
+              parameters: { resourceIds: [resourceAId], serviceIds: [serviceAId] },
+            },
+          ] as never,
+        },
+        where: { tenantId_id: { id, tenantId: tenantAId } },
+      });
+    });
+
+    await rowLocked;
+    const updateRequest = jsonRequest(`/api/v1/rules/${id}`, rulesManagerACookie, "PUT", {
+      name: "Unauthorized after booking transition",
+    });
+    try {
+      await waitForDatabaseLockWait();
+    } finally {
+      releaseBlocker();
+    }
+    await blocker;
+    const response = await updateRequest;
+
+    expect(response.status).toBe(403);
+    await expect(
+      prisma.rule.findFirstOrThrow({
+        select: { actions: true, name: true },
+        where: { id, tenantId: tenantAId },
+      }),
+    ).resolves.toMatchObject({ name: "Concurrent rule authorization" });
   });
 
   it("DELETE /api/v1/rules/:ruleId deletes rule and returns 200 OK, with 404 on subsequent get", async () => {

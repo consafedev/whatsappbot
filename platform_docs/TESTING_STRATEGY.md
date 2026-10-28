@@ -514,3 +514,71 @@ Verified critical cases:
 6. Desktop1440/tablet768/mobile390, mobile configuration/form, reduced motion,
    no body overflow and visual screenshots. Distinguish successful UI operations
    from harness locator/setup failures and do not claim a real handset send.
+
+## E14-S10 rules-driven appointment booking
+
+Run the migration from the published S09 schema through migration 36 into a
+disposable PostgreSQL database. Validate the generated client and execute
+DB/API/worker checks only against an explicitly owned prepared database. Do not print or copy the root
+environment file. A skipped integration test, missing database URL, stale
+client, or wrong database target is setup failure, not a passing result.
+Keep already-applied migrations 34/35 unchanged and verify the 36-step upgrade.
+
+Required cases:
+
+1. Validate bounded rule action shape, one-action/trigger/execution-mode
+   restrictions, tenant-owned active services/resources, at least one
+   compatible active service/resource pair, Organization Unit scope, and
+   Appointments plus optional Scheduling entitlement for reminder offsets.
+   Exercise API permission combinations: appointment configuration requires
+   both `rules.manage` and `appointments.manage`; deactivation/deletion may
+   reduce authority with `rules.manage` alone.
+2. Send normalized customer inbound through the persisted UNDECIDED placeholder,
+   first-applicable rule routing and the numbered offer. Confirm create,
+   cancellation and rebooking with the current flow-version token and verify
+   appointment state, immutable lineage, audit/outbox and reminder state;
+   cancellation suppresses old pending reminders and rebooking applies the
+   central replacement reminder policy. CANCEL/REBOOK menus must exclude the
+   same contact's appointments unless both service and resource IDs are in the
+   rule target allowlists; final mutation must recheck the same condition.
+3. Verify duplicate delivery and restart recovery: stored BOOKING receipts do
+   not repeat mutations/outbound effects; an UNDECIDED→LEGACY recovery executes
+   legacy actions once using the stored new-conversation flag; a committed
+   LEGACY turn and a pre-cutover Message without a ledger do not replay or book.
+   Include equal-priority/equal-createdAt rule ordering, creation-rule
+   precedence, earlier `evaluate_all` legacy rules and duplicate inbound versus
+   outbound echo handling.
+4. Verify menu choices remain bound to the persisted offer after availability
+   changes; stale/invalid numbers and confirmation tokens, expired flows,
+   repeated confirmation, `SALIR`, contact/scope denial, AUTO/mode/takeover/
+   pause changes and entitlement revocation fail closed without a duplicate
+   appointment. Check that each queued prompt/ack stores its outbound purpose
+   and exact flow phase/version; superseded prompts are suppressed at the final
+   worker guard, and only valid terminal confirmation/customer-exit
+   acknowledgments can outlive flow closure. Older queued booking replies
+   without that binding fail closed.
+5. Assert transaction rollback leaves no partial appointment, reminder,
+   audit/outbox or outbound effects. Confirm provider IO occurs after commit.
+   A mock-provider queue/dispatch test is not proof of delivery to a real
+   handset.
+
+Record fresh per-run test counts and gate outcomes only after executing the
+final commands against the recreated schema and built packages. Pending counts
+must remain unreported; do not carry forward S09/S08 counts as S10 evidence.
+
+Final parent evidence2026-10-28: root Vitest528/528 in58 files; full DB379/379
+in54; full API227/227 in27; worker-jobs1/1; outbound-worker3/3; dedicated
+isolation9/9 database +37/37 API; zero skipped. The large outbound booking case
+includes live mock sends of each prompt, terminal/exit ACKs and suppressed stale/
+expired offers after an observed Rule lock wait. Scoped security17/17 also
+passed, including real fault rollback/retry. Workspace builds passed after
+scoped type/import corrections; root/web/DB types, Biome502 and diff passed.
+Migration34–36 clean-schema +ordered S09 upgrade, local deploy and all applied
+checksums passed; this is not pristine replay of the known historical BOM chain.
+
+Full integration execution uses the existing package configs:
+`node <absolute-repo-path>/node_modules/vitest/vitest.mjs run --config vitest.integration.config.mts --maxWorkers=2 --hookTimeout=60000`
+from each relevant package (replace the explicit path placeholder), and the existing
+`vitest.outbound-worker.config.mts` / `vitest.tenant-isolation.config.mts` for
+worker/isolation. The disposable schema-only dump retains raw SQL CHECKs/partial
+indexes. Prepared and full-run owned databases were removed after verification.

@@ -1,4 +1,14 @@
 import { type AiTurnResult, processInboundAiTurn } from "./ai-agent-dispatcher";
+import {
+  type AppointmentBookingDatabase,
+  type AppointmentBookingRouteDecision,
+  type AppointmentBookingRouteSelector,
+  processPersistedBookingTurn,
+} from "./appointment-booking-manager";
+import {
+  hashAppointmentBookingRuleDefinition,
+  normalizeAppointmentBookingPolicy,
+} from "./appointment-booking-policy";
 import type { ConversationManagerDatabase } from "./conversation-manager";
 import {
   createDeliveryStatusManager,
@@ -26,6 +36,8 @@ import {
   type OutboundEchoReconcileResult,
 } from "./outbound-echo-manager";
 import type { RuleExecutionContext } from "./rule-action-executor";
+import type { RuleItem } from "./rule-catalog-manager";
+import { evaluateRuleConditions, isRuleInCooldown } from "./rule-condition-evaluator";
 import {
   dispatchRuleTriggers,
   type RuleTriggerDispatcherDatabase,
@@ -35,6 +47,7 @@ import { createTenantContext, type TenantContext } from "./tenant-context";
 import { TenantModuleEntitlementRequiredError } from "./tenant-entitlements";
 
 export type InboundEventDispatcherDatabase = ConversationManagerDatabase &
+  AppointmentBookingDatabase &
   Pick<
     PrismaClient,
     | "message"
@@ -59,6 +72,201 @@ export type InboundEventDispatchResult = Readonly<
   | { kind: "external_human"; result: ExternalHumanMessageResult }
   | { kind: "delivery_status"; result: DeliveryStatusReconcileResult }
 >;
+
+type InboundBookingSelectionContext = RuleExecutionContext & {
+  conversation?:
+    | (RuleExecutionContext["conversation"] & {
+        automationPausedReason?: string | null;
+        humanTakeoverUntil?: Date | null;
+      })
+    | undefined;
+};
+
+function isAppointmentBookingAction(action: unknown): action is {
+  actionType: string;
+  parameters?: Record<string, unknown>;
+} {
+  return (
+    typeof action === "object" &&
+    action !== null &&
+    "actionType" in action &&
+    typeof action.actionType === "string" &&
+    action.actionType.trim().toLowerCase() === "start_appointment_booking"
+  );
+}
+
+export function selectAppointmentBookingRouteFromRules(
+  rules: readonly RuleItem[],
+  context: InboundBookingSelectionContext,
+  createdNewConversation: boolean,
+): AppointmentBookingRouteDecision {
+  const now = context.now ?? new Date();
+  const orderedTriggers = createdNewConversation
+    ? (["ON_CONVERSATION_CREATED", "ON_MESSAGE_RECEIVED"] as const)
+    : (["ON_MESSAGE_RECEIVED"] as const);
+  const takeoverActive =
+    context.conversation?.humanTakeoverUntil !== undefined &&
+    context.conversation.humanTakeoverUntil !== null &&
+    context.conversation.humanTakeoverUntil > now;
+  const bookingAllowed =
+    context.conversation?.automationMode === "AUTO" &&
+    !takeoverActive &&
+    !context.conversation?.automationPausedReason;
+
+  for (const triggerType of orderedTriggers) {
+    for (const rule of rules) {
+      if (rule.triggerType !== triggerType || rule.status !== "active") continue;
+      if (rule.channelAccountId && rule.channelAccountId !== context.channelAccountId) continue;
+      const assignedUnitId = context.conversation?.assignedUnitId;
+      const actions = rule.actions;
+      const bookingAction = actions.find(isAppointmentBookingAction);
+      if (bookingAction && rule.organizationUnitId && rule.organizationUnitId !== assignedUnitId) {
+        continue;
+      }
+      if (
+        !bookingAction &&
+        rule.organizationUnitId &&
+        assignedUnitId &&
+        rule.organizationUnitId !== assignedUnitId
+      ) {
+        continue;
+      }
+      const lastExecutedAt =
+        rule.updatedAt.getTime() > rule.createdAt.getTime() ? rule.updatedAt : null;
+      if (isRuleInCooldown(lastExecutedAt, rule.cooldownSeconds, now)) continue;
+      if (
+        !evaluateRuleConditions(
+          rule.conditions as Parameters<typeof evaluateRuleConditions>[0],
+          context,
+        )
+      ) {
+        continue;
+      }
+
+      if (bookingAction) {
+        if (
+          triggerType === "ON_MESSAGE_RECEIVED" &&
+          bookingAllowed &&
+          actions.length === 1 &&
+          rule.executionMode === "first_match_stop"
+        ) {
+          const policy = normalizeAppointmentBookingPolicy(bookingAction.parameters);
+          return {
+            kind: "BOOKING",
+            policy,
+            policyHash: hashAppointmentBookingRuleDefinition(rule),
+            ruleId: rule.id,
+            trigger: "ON_MESSAGE_RECEIVED",
+          };
+        }
+        return { kind: "LEGACY" };
+      }
+      return { kind: "LEGACY" };
+    }
+  }
+  return { kind: "LEGACY" };
+}
+
+function createPersistedBookingRouteSelector(
+  tenant: TenantContext,
+): AppointmentBookingRouteSelector {
+  return async (transaction, message) => {
+    const triggerTypes = message.createdNewConversation
+      ? ["ON_CONVERSATION_CREATED", "ON_MESSAGE_RECEIVED"]
+      : ["ON_MESSAGE_RECEIVED"];
+    const [conversation, contact, channel, rules] = await Promise.all([
+      transaction.conversation.findFirst({
+        where: { id: message.conversationId, tenantId: tenant.tenantId },
+      }),
+      transaction.contact.findFirst({
+        where: { id: message.contactId, tenantId: tenant.tenantId },
+      }),
+      transaction.channelAccount.findFirst({
+        where: { id: message.channelAccountId, tenantId: tenant.tenantId },
+      }),
+      transaction.rule.findMany({
+        orderBy: [{ priority: "asc" }, { createdAt: "desc" }, { id: "desc" }],
+        where: { status: "active", tenantId: tenant.tenantId, triggerType: { in: triggerTypes } },
+      }),
+    ]);
+    if (!conversation || !contact || !channel) return { kind: "LEGACY" };
+    const persistedMessage = await transaction.message.findFirst({
+      select: { direction: true, messageType: true, origin: true, textBody: true },
+      where: {
+        channelAccountId: message.channelAccountId,
+        contactId: message.contactId,
+        conversationId: message.conversationId,
+        id: message.id,
+        tenantId: tenant.tenantId,
+      },
+    });
+    if (!persistedMessage) return { kind: "LEGACY" };
+    const conversationMetadata = record(conversation.metadata);
+
+    const context: InboundBookingSelectionContext = {
+      channel: {
+        channelAccountId: message.channelAccountId,
+        providerType: channel.providerType,
+      },
+      channelAccountId: message.channelAccountId,
+      contact: {
+        customAttributes:
+          contact.customAttributes !== null &&
+          typeof contact.customAttributes === "object" &&
+          !Array.isArray(contact.customAttributes)
+            ? (contact.customAttributes as Record<string, unknown>)
+            : {},
+        ...(contact.name === null ? {} : { name: contact.name }),
+        phoneNumber: contact.phoneNumber,
+        tags: contact.tags,
+      },
+      contactId: message.contactId,
+      conversation: {
+        assignedUnitId: conversation.assignedUnitId,
+        assignedUserId: conversation.assignedUserId,
+        automationMode: conversation.automationMode,
+        automationPausedReason: stringValue(conversationMetadata.automationPausedReason),
+        humanTakeoverUntil: conversation.humanTakeoverUntil,
+        status: conversation.status,
+        unreadCount: 1,
+      },
+      conversationId: message.conversationId,
+      message: {
+        direction: persistedMessage.direction,
+        mediaType: persistedMessage.messageType === "text" ? null : persistedMessage.messageType,
+        origin: persistedMessage.origin,
+        textBody: persistedMessage.textBody,
+      },
+      now: new Date(),
+    };
+    const ruleItems = rules as unknown as RuleItem[];
+    const decision = selectAppointmentBookingRouteFromRules(
+      ruleItems,
+      context,
+      message.createdNewConversation,
+    );
+    if (decision.kind !== "BOOKING") return decision;
+
+    const lockedRows = await transaction.$queryRaw<Array<{ id: string }>>`
+      SELECT id FROM "rule" WHERE tenant_id = ${tenant.tenantId}::uuid AND id = ${decision.ruleId}::uuid FOR SHARE`;
+    if (lockedRows.length !== 1) return { kind: "LEGACY" };
+    const lockedRule = await transaction.rule.findFirst({
+      where: { id: decision.ruleId, tenantId: tenant.tenantId },
+    });
+    if (!lockedRule) return { kind: "LEGACY" };
+    const refreshedRules = ruleItems.map((rule) =>
+      rule.id === lockedRule.id ? (lockedRule as unknown as RuleItem) : rule,
+    );
+    const refreshed = selectAppointmentBookingRouteFromRules(
+      refreshedRules,
+      context,
+      message.createdNewConversation,
+    );
+    return refreshed.kind === "BOOKING" && refreshed.ruleId === decision.ruleId
+      ? refreshed
+      : { kind: "LEGACY" };
+  };
+}
 
 export class InboundEventDispatchEventNotFoundError extends Error {
   override readonly name = "InboundEventDispatchEventNotFoundError";
@@ -233,9 +441,31 @@ export function createInboundEventDispatcher(
     if (event.eventType === "MESSAGE_RECEIVED") {
       if (!fromMe(event)) {
         const persistResult = await inboundMessages.persistInboundMessage(tenant, input);
+        const bookingTurn = await processPersistedBookingTurn(
+          tenant,
+          database as unknown as AppointmentBookingDatabase,
+          persistResult.message.id,
+          createPersistedBookingRouteSelector(tenant),
+        );
+        if (bookingTurn.route === "BOOKING" || !bookingTurn.legacyShouldRun) {
+          return { kind: "inbound", result: persistResult };
+        }
+        const legacyCreatedNewConversation = persistResult.duplicate
+          ? ((
+              await database.appointmentBookingTurn.findUnique({
+                select: { createdNewConversation: true },
+                where: {
+                  tenantId_inboundMessageId: {
+                    inboundMessageId: persistResult.message.id,
+                    tenantId: tenant.tenantId,
+                  },
+                },
+              })
+            )?.createdNewConversation ?? false)
+          : (persistResult.isNewConversation ?? false);
         const ruleDispatchResults: RuleTriggerDispatchResult[] = [];
 
-        if (!persistResult.duplicate) {
+        if (bookingTurn.legacyShouldRun) {
           const [conversation, contact, channel] = await Promise.all([
             database.conversation.findFirst({
               where: { id: persistResult.conversationId, tenantId: tenant.tenantId },
@@ -296,7 +526,7 @@ export function createInboundEventDispatcher(
           };
 
           try {
-            if (persistResult.isNewConversation) {
+            if (legacyCreatedNewConversation) {
               const resCreated = await dispatchRuleTriggers(
                 tenant,
                 "ON_CONVERSATION_CREATED",

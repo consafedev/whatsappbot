@@ -2692,11 +2692,37 @@ reviews approved after fixes. Featureccef6d2 pushed/verified; checkpoint precede
 
 ## E14-S09 Appointment UI [L]
 
-Calendar view puede iniciar simple.
+PASS / COMPLETE on feature branch (2026-10-27). Day/week/list, tenant-aware
+configuration and lifecycle forms use existing guarded APIs. Authenticated
+browser, responsive, retry/idempotency and permission/module checks are recorded
+in STATUS and avance_orquestador. Feature ad56a3c5 pushed/verified; no main merge
+or real-handset proof is implied.
 
 ## E14-S10 WhatsApp booking flow [L]
 
-Rules-driven, AI optional.
+PASS / COMPLETE in source (2026-10-28); publication is tracked in
+avance_orquestador. Rules-driven, AI optional. ADR-0071 defines deterministic
+customer flow through the central booking/lifecycle services with explicit
+proposal-bound confirmation. Final root528, DB379, API227, workers1+3 and
+isolation9+37 passed with zero skips; static/build gates and migration checks
+passed. This does not merge the feature branch or establish real handset delivery.
+
+`AppointmentBookingFlow` is tenant-owned and relates conversation, contact,
+channel, live rule, selected service/resource and appointment through typed
+tenant-aware FKs. It retains immutable originating-rule identity, normalized
+policy/hash, intent/phase/version, exact proposed time, confirmation-token hash,
+expiry and closure. A partial unique index permits one live flow per
+conversation. Bounded JSON menu offers retain presentation IDs/instants; they
+do not replace the central relationships or live validation.
+
+`AppointmentBookingTurn` is unique per tenant/canonical inbound Message and
+stores UNDECIDED/LEGACY/BOOKING routing, the actual new-conversation flag and
+immutable effect references. Its optional outbound purpose/phase/version
+distinguishes a live prompt from a terminal acknowledgment. Appointment retains
+the booking-flow provenance. Rule deletion detaches live FKs without deleting
+history; Message retention cascades its turn, while flows/appointments retain
+their existing restrictive references. Additive migrations34–36 implement this
+contract; see ADR-0071 for lock order, recovery and rollback boundaries.
 
 ---
 

@@ -1,16 +1,74 @@
 # STATUS.md — Estado operativo actual del proyecto
 
-**Actualizado:** 2026-10-27
+**Actualizado:** 2026-10-28
 **Versión de producto:** `0.0.0`  
-**Latest validated story:** E14-S09 — PASS / COMPLETE; publication tracked in avance_orquestador.md.
-**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; Epic 11 — Campaign Engine & Audience Broadcasts — PASS / COMPLETE; **Epic 12 — Reporting, Analytics & Operational Observability — PASS / COMPLETE (E12-S01, E12-S02, E12-S03, E12-S04, E12-S05 PASS); E13-S01 — PASS / COMPLETE; E13-S02 — PASS / COMPLETE; E13-S03 — PASS / COMPLETE; E13-S04 — PASS / COMPLETE; E14-S01 — PASS / COMPLETE; E14-S02 — PASS / COMPLETE; E14-S03 — PASS / COMPLETE; E14-S04 — PASS / COMPLETE; E14-S05 — PASS / COMPLETE; E14-S06 — PASS / COMPLETE; E14-S07 — PASS / COMPLETE; E14-S08 — PASS / COMPLETE; E14-S09 — PASS / COMPLETE**.
+**Latest validated story:** E14-S10 — PASS / COMPLETE; publication tracked in avance_orquestador.md.
+**Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; Epic 11 — Campaign Engine & Audience Broadcasts — PASS / COMPLETE; **Epic 12 — Reporting, Analytics & Operational Observability — PASS / COMPLETE (E12-S01, E12-S02, E12-S03, E12-S04, E12-S05 PASS); E13-S01 — PASS / COMPLETE; E13-S02 — PASS / COMPLETE; E13-S03 — PASS / COMPLETE; E13-S04 — PASS / COMPLETE; E14-S01 — PASS / COMPLETE; E14-S02 — PASS / COMPLETE; E14-S03 — PASS / COMPLETE; E14-S04 — PASS / COMPLETE; E14-S05 — PASS / COMPLETE; E14-S06 — PASS / COMPLETE; E14-S07 — PASS / COMPLETE; E14-S08 — PASS / COMPLETE; E14-S09 — PASS / COMPLETE; E14-S10 — PASS / COMPLETE**.
 
 ## Current milestone
 
-Epic 14 — Agenda & Appointment Booking (E14-S01 through E14-S09 complete;
-S09 push verified; S10 is next and has not started).
+Epic 14 — Agenda & Appointment Booking: E14-S01 through E14-S10 complete.
+S01–S03 are in main; S04–S10 are delivered on codex/e14-agenda-completion.
+This is not a main merge or a production/real-handset certification.
+Next priority is the outstanding commercial P0 real Baileys transport and
+backup/restore gates; no next epic is opened by this closure. E15 is the next
+numeric epic, not the automatic commercial priority.
 Epic 13 — Task Scheduling & Distributed Orchestration remains tracked below.
 Shared coordination and reservations: `platform_docs/avance_orquestador.md`.
+
+### E14-S10 — Rules-driven WhatsApp booking (PASS / COMPLETE)
+
+From published checkpoint bc29a6f, Luna core/integration/security slices deliver
+the exclusive start_appointment_booking rule action, canonical inbound routing
+ledger and durable customer flows. Numbered menus retain exact offered IDs/
+instants and phase/version. Create, cancel and rebook require a current explicit
+CONFIRM token; SALIR exits. Lifecycle is limited to the same contact and both
+configured service/resource allowlists. Central transaction-bound commands
+retain availability, capacity, snapshots, reminder lifecycle, audit and outbox.
+Appointment/flow/receipt/canonical reply writes are atomic. No fake user actor,
+free-form AI mutation or provider-specific domain contract is introduced.
+
+Independent Sol rereview approved after fixes to constraint-valid immutable
+receipts, legacy matching/context and pre-verdict recovery, strict scopes,
+canonical message/contact/channel lineage, current+next rule authority under
+Rule FOR UPDATE, compatible target pairs and scheduling entitlement. The worker
+binds replies to explicit PROMPT/ACK purpose plus exact flow phase/version and
+rechecks expiry/authority after blocking Rule locks. Superseded prompts cannot
+use a completed acknowledgment exception. Current AUTO, modules, contact/channel,
+takeover/pause and terminal acknowledgment lineage remain enforced.
+
+Final parent gates2026-10-28: root528/528 in58 files; full DB379/379 in54 files;
+full API227/227 in27 files; worker-jobs1/1; outbound-worker3/3; dedicated isolation
+DB9/9 and API37/37. Zero skipped. Worker cases include actual mock sends for
+service/resource/slot prompts, final/exit ACKs, suppressed stale prompts and
+expiry after an observed PostgreSQL Rule lock wait. Security17/17 additionally
+passed independently, including valid-token forged-contact denial, concurrent
+confirmations, policy/mode/module changes and tenant-filtered outbox fault:
+rollback retains UNDECIDED/no partial effects; retry commits once.
+
+All workspace builds passed across the initial build and scoped retries; web
+production build, explicit root/web/database typechecks, global Biome502 files
+and diff check passed. Initial build caught nullable target checks and a worker
+test importing source outside its rootDir; both fixed, with66 verified untracked
+compiler artifacts removed before tests. First full DB run was377/379 with a
+new catch-all rule fixture leaking between cases plus availability cleanup FK
+ordering. Fixture isolation/cleanup were fixed, scoped8/8 and final full suite
+above passed. These failed checkpoints are not reported as passing gates.
+
+Prisma validate/generate7.9.1 passed. Additive migrations34–36 passed clean-schema
+and ordered S09-baseline upgrade comparisons without drift, were applied locally
+and all three SQL checksums match _prisma_migrations. Applied SQL is unchanged.
+The historical pristine-chain BOM limitation remains separate. Prepared and
+full-run disposable schema-only databases were removed after use/zero connections.
+No new dependency or production deployment was introduced. Existing Docker
+API3001/web3005 images are older; workers remain stopped, PostgreSQL/Redis healthy.
+This source release does not certify those images as current.
+
+Rules configuration uses the existing API; a production rule-editor GUI and real
+Baileys transport are not supplied here. Mock dispatch is not handset delivery.
+The documented legacy crash gap after a LEGACY verdict and before its generic
+action remains outside S10. Publication is recorded in avance_orquestador after
+the remote SHA is verified; E14 source gates are complete, push pending here.
 
 ### E14-S09 — Appointment UI (PASS / COMPLETE)
 
@@ -60,7 +118,7 @@ the temporary database was dropped after verifying zero connections, and its
 credentials/session/pointer removed. No production deployment or handset send
 is claimed. Source audit has no open P1/P2. Feature commit ad56a3c5a9309627e23706017317ea1191c5427f pushed with identical remote SHA verified on
 origin/codex/e14-agenda-completion. It is not in main. Documentation checkpoints
-may advance HEAD; S10 has not started.
+may advance HEAD; S10 is tracked separately above.
 
 ### E14-S08 — Persistent reminders (PASS / COMPLETE)
 
@@ -78,7 +136,7 @@ missing-policy/reminder/idempotency-validation cases after successful fixtures
 (4 failed/1 passed); final verification supersedes that initial RED. Source
 audit approved; feature and documentation checkpoint pushed. No real-handset capability is inferred.
 Automatic reminder authorization requires AUTO: ASSISTED needs approval per
-PRD§19; HUMAN/MONITOR and takeover pauses suppress. S09 is complete; S10 is not started.
+PRD§19; HUMAN/MONITOR and takeover pauses suppress. S09 is complete; S10 is tracked separately above.
 
 The independent scheduler slice is frozen: real API RED before the guard,
 then14/14 API and21/21 existing view-model tests, scoped Biome/diff PASS;
@@ -102,7 +160,7 @@ migration-chain BOM limitation remains separate and unchanged. No production
 deployment or authenticated browser QA is claimed for this backend story.
 Feature commit `ccef6d2ba55fae26ae294aaac73fa4055d729a4f` pushed with identical
 remote SHA verified on origin/codex/e14-agenda-completion. It is not in main.
-Documentation checkpoints may advance HEAD. S09 is complete; S10 is not started.
+Documentation checkpoints may advance HEAD. S09 is complete; S10 is tracked separately above.
 
 ### E14-S07 — Cancellation and rebooking (PASS / COMPLETE)
 

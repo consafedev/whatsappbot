@@ -61,10 +61,16 @@ stays in PostgreSQL. Caller-selected IDs never supply tenant authority.
   needed to operate agenda; existing permission/module shell, real API data,
   loading/empty/error/permission/degraded states, keyboard and responsive layout.
 - S10: rules-driven WhatsApp booking through the same application services.
-  Contact/channel from trusted conversation; mode HUMAN/MONITOR suppresses
-  automation. Deterministic selection and explicit confirmation before booking;
-  cancellation/rebooking only for that contact. Persistent flow context and
-  deduplicated events. No free-form AI commands. Test normalized inbound to
+  Contact/channel from trusted canonical message/conversation lineage; only
+  AUTO grants automatic authority. Deterministic selection and explicit
+  confirmation before create/cancel/rebook; lifecycle is limited to that
+  contact and configured service/resource allowlists. Atomic UNDECIDED ledger,
+  immutable routing/effect receipts, versioned menu offers and transaction-bound
+  central mutations follow ADR-0071. Preserve earlier legacy rule matching and
+  canonical context when selecting the first applicable action. Bind queued
+  replies to purpose/phase/version and recheck current authority after blocking
+  locks; obsolete prompts cannot use a terminal-ack exception. Persistent flow
+  context and deduplicated events. No free-form AI commands. Test normalized inbound to
   outbound/appointment with supported mock infrastructure; real handset proof
   remains blocked by the separately missing real Baileys transport.
 

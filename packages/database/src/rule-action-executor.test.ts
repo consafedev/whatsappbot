@@ -15,9 +15,10 @@ import type { RuleEvaluationContext } from "./rule-condition-evaluator";
 
 describe("RuleActionExecutor — Unit Tests", () => {
   describe("RULE_ACTION_TYPES catalog", () => {
-    it("exports all 8 canonical action types", () => {
+    it("exports the canonical action types including guarded appointment routing", () => {
       expect(RULE_ACTION_TYPES).toEqual([
         "SEND_MESSAGE",
+        "START_APPOINTMENT_BOOKING",
         "ASSIGN_USER",
         "ASSIGN_ORGANIZATION_UNIT",
         "CHANGE_CONVERSATION_STATUS",

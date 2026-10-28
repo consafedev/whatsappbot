@@ -21,6 +21,7 @@ import {
 import {
   type CreateRuleInput,
   type RuleAction,
+  RuleAppointmentBookingManagementRequiredError,
   type RuleCatalogManager,
   RuleChannelAccountNotFoundError,
   type RuleCondition,
@@ -42,6 +43,7 @@ import {
   CurrentTenantIdentity,
   type TenantAuthenticationRequest,
   TenantContextGuard,
+  TenantDataAccessFactory,
   type TenantSessionIdentity,
 } from "./tenant-context";
 import { RequireEntitlements, TenantEntitlementGuard } from "./tenant-entitlements";
@@ -113,6 +115,12 @@ function ruleIdParam(value: string): string {
     throw new BadRequestException("Invalid rule id");
   }
   return value.toLowerCase();
+}
+
+function hasAppointmentBookingAction(actions: readonly RuleAction[]): boolean {
+  return actions.some(
+    (action) => action.actionType.trim().toLowerCase() === "start_appointment_booking",
+  );
 }
 
 function integerValue(value: unknown, label: string, min: number, max: number): number {
@@ -299,6 +307,9 @@ function mapError(error: unknown): never {
   ) {
     throw new BadRequestException(error.message);
   }
+  if (error instanceof RuleAppointmentBookingManagementRequiredError) {
+    throw new ForbiddenException(error.message);
+  }
   if (error instanceof TenantNotOperationalError) {
     throw new ForbiddenException({
       code: "TENANT_NOT_OPERATIONAL",
@@ -320,7 +331,27 @@ function mapError(error: unknown): never {
 
 @Injectable()
 export class RulesService {
-  constructor(@Inject(RULE_CATALOG_MANAGER) private readonly manager: RuleCatalogManager) {}
+  constructor(
+    @Inject(RULE_CATALOG_MANAGER) private readonly manager: RuleCatalogManager,
+    @Inject(TenantDataAccessFactory) private readonly dataAccessFactory: TenantDataAccessFactory,
+  ) {}
+
+  private async assertAppointmentBookingManagement(
+    context: TenantContext,
+    userId: string,
+  ): Promise<void> {
+    const access = this.dataAccessFactory.create(context);
+    const [permissions, appointmentsEnabled] = await Promise.all([
+      access.permissions.resolveForUser(userId),
+      access.entitlements.isModuleEnabled("module.appointments"),
+    ]);
+    if (!permissions.has("appointments.manage")) {
+      throw new ForbiddenException("Appointment booking rules require appointments.manage");
+    }
+    if (!appointmentsEnabled) {
+      throw new ForbiddenException("Appointment booking rules require module.appointments");
+    }
+  }
 
   async create(
     context: TenantContext,
@@ -329,7 +360,11 @@ export class RulesService {
     body: unknown,
   ): Promise<RuleItem> {
     try {
-      return await this.manager.createRule(context, identity.userId, parseCreate(body), {
+      const input = parseCreate(body);
+      if (hasAppointmentBookingAction(input.actions)) {
+        await this.assertAppointmentBookingManagement(context, identity.userId);
+      }
+      return await this.manager.createRule(context, identity.userId, input, {
         actorUserId: identity.userId,
         requestId: requestId(request),
       });
@@ -367,16 +402,22 @@ export class RulesService {
     body: unknown,
   ): Promise<RuleItem> {
     try {
-      return await this.manager.updateRule(
-        context,
-        ruleIdParam(id),
-        identity.userId,
-        parseUpdate(body),
-        {
-          actorUserId: identity.userId,
-          requestId: requestId(request),
-        },
-      );
+      const cleanedRuleId = ruleIdParam(id);
+      const input = parseUpdate(body);
+      const current = await this.manager.getRuleById(context, cleanedRuleId);
+      const nextActions = input.actions ?? current?.actions ?? [];
+      const pureDisable = Object.keys(input).length === 1 && input.status === "inactive";
+      if (
+        !pureDisable &&
+        (hasAppointmentBookingAction(nextActions) ||
+          (current !== null && hasAppointmentBookingAction(current.actions)))
+      ) {
+        await this.assertAppointmentBookingManagement(context, identity.userId);
+      }
+      return await this.manager.updateRule(context, cleanedRuleId, identity.userId, input, {
+        actorUserId: identity.userId,
+        requestId: requestId(request),
+      });
     } catch (error) {
       return mapError(error);
     }

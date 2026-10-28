@@ -65,7 +65,7 @@ export async function dispatchRuleTriggers(
   const isHumanOrMonitor = conversationMode === "HUMAN" || conversationMode === "MONITOR";
 
   const rawRules = await database.rule.findMany({
-    orderBy: [{ priority: "asc" }, { createdAt: "desc" }],
+    orderBy: [{ priority: "asc" }, { createdAt: "desc" }, { id: "desc" }],
     where: {
       status: "active",
       tenantId,
@@ -79,6 +79,20 @@ export async function dispatchRuleTriggers(
   const results: RuleExecutionResult[] = [];
 
   for (const rule of rules) {
+    const actions = Array.isArray(rule.actions) ? rule.actions : [];
+    if (
+      actions.some(
+        (action) =>
+          typeof action === "object" &&
+          action !== null &&
+          "actionType" in action &&
+          typeof action.actionType === "string" &&
+          action.actionType.trim().toLowerCase() === "start_appointment_booking",
+      )
+    ) {
+      continue;
+    }
+
     // 1. Human / Monitor mode check: skip automatic rule unless explicitly forced
     if (isHumanOrMonitor && !rule.forceEvaluation && !rule.ignoreConversationMode) {
       continue;
