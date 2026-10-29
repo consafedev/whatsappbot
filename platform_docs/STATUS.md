@@ -2,32 +2,49 @@
 
 **Actualizado:** 2026-10-28
 **Versión de producto:** `0.0.0`  
-**Latest validated story:** E14-S10 — PASS / COMPLETE; publication tracked in avance_orquestador.md.
+**Latest validated story:** E15-S01 — PASS; feature publication pending and tracked in avance_orquestador.md.
 **Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; Epic 11 — Campaign Engine & Audience Broadcasts — PASS / COMPLETE; **Epic 12 — Reporting, Analytics & Operational Observability — PASS / COMPLETE (E12-S01, E12-S02, E12-S03, E12-S04, E12-S05 PASS); E13-S01 — PASS / COMPLETE; E13-S02 — PASS / COMPLETE; E13-S03 — PASS / COMPLETE; E13-S04 — PASS / COMPLETE; E14-S01 — PASS / COMPLETE; E14-S02 — PASS / COMPLETE; E14-S03 — PASS / COMPLETE; E14-S04 — PASS / COMPLETE; E14-S05 — PASS / COMPLETE; E14-S06 — PASS / COMPLETE; E14-S07 — PASS / COMPLETE; E14-S08 — PASS / COMPLETE; E14-S09 — PASS / COMPLETE; E14-S10 — PASS / COMPLETE**.
 
 ## Current milestone
 
 Epic 15 — Catalog + Quote, explicitly opened by the user on2026-10-28.
 Branch codex/e15-catalog-quotes starts from published281704d (E14 complete).
-ADR-0072/spec/plan accepted after independent review; S01 ready to implement,
-S02–S08 pending. No E15 feature implementation/test PASS yet.
+ADR-0072/spec/plan accepted and published4f76f22; E15-S01 Product Catalog
+passed implementation, focused tests, independent rereview and parent gates.
+Feature commit/push is pending; S02–S08 remain pending.
 One epic is active. User-directed E15 priority does not certify or remove
 the outstanding real Baileys transport and backup/restore P0 gates.
 E14-S01–S03 are in main; S04–S10 remain delivered on the E14 feature ancestry.
 Epic 13 — Task Scheduling & Distributed Orchestration remains tracked below.
 Shared coordination and reservations: `platform_docs/avance_orquestador.md`.
 
-### E15 — Catalog + Quote (IN PROGRESS: S01 ready)
+### E15 — Catalog + Quote (IN PROGRESS: S02 next)
 
 Two Luna reconnaissance slices found no existing Product/Quote implementation.
-Luna drafted spec/plan/ADR-0072; independent architecture plus scoped builder
-reviews approved after correcting six design seams. Coordinator owns shared
-documentation, verification and Git; S01 is the next exclusive implementation
-reservation. Guarded local test infrastructure passed9/9 existing service-manager
-PostgreSQL checks in an owned schema-only clone; this is not E15 feature proof. Product amounts, approval authority, immutable snapshots and send
-intent must follow the existing deterministic/domain/outbox boundaries.
-Read the shared handoff before taking a story. No E16 document renderer or
-real-provider delivery is inferred from E15 scope.
+ADR-0072/spec/plan were accepted and published. E15-S01 now delivers the
+tenant-scoped Product schema, immutable applied migration37, catalog manager,
+guarded API, and focused DB/API integration suites. No Quote model/API or
+catalog/quote UI was added; UI remains S06. Independent Sol audit's three
+findings (OU filter ownership, strict JSON custom values, archive body fields)
+were fixed and scoped rereview approved.
+
+Final gates verified by the coordinator: root unit 528/528 in58 files, focused
+DB11/11 in1 file and API3/3 in1 file with zero skipped, Prisma7.9.1 validate/
+generate, clean-schema and ordered Git-HEAD upgrade with no drift, local
+migration37 checksum match with applied SQL unchanged, root typecheck exit0,
+and Biome508 exit0. The compact customValues boundary initially produced a
+server500 against canonical SQL length validation; it was corrected to HTTP400
+and covered by the focused suite. Early stale ignored generated JS artifacts
+(12 files) were removed from the exact generated directory; one lost test
+session without a saved log was not counted as a result; the helper's initial
+schema-owner handling was corrected before clean/upgrade passed. These setup
+failures are not final passing gates.
+
+S01 feature commit/push remains pending; no feature SHA is assigned and it is
+not merged to main. S02 Quote Draft is next, after root publication. S03–S08
+remain pending. Product amounts, approval authority, immutable snapshots and
+send intent follow the existing deterministic/domain/outbox boundaries. No
+E16 document renderer, provider I/O, or real WhatsApp delivery is implied.
 
 ### E14-S10 — Rules-driven WhatsApp booking (PASS / COMPLETE)
 

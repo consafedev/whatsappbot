@@ -44,6 +44,7 @@ import {
 import { ANALYTICS_DATABASE, AnalyticsController, AnalyticsService } from "./analytics";
 import { APPOINTMENTS_DATABASE, AppointmentsController, AppointmentsService } from "./appointments";
 import { CAMPAIGNS_DATABASE, CampaignsController, CampaignsService } from "./campaigns";
+import { CATALOG_DATABASE, CatalogController, CatalogService } from "./catalog";
 import {
   CHANNEL_REALTIME_BROADCASTER,
   CHANNEL_REALTIME_OUTBOX_DATABASE,
@@ -215,6 +216,7 @@ export async function createApiApplication(
       CampaignsController,
       AnalyticsController,
       AppointmentsController,
+      CatalogController,
       ScheduledTasksController,
       ...(config.environment === "test" ? [EntitlementTestProbeController] : []),
     ],
@@ -256,6 +258,7 @@ export async function createApiApplication(
       CampaignsService,
       AnalyticsService,
       AppointmentsService,
+      CatalogService,
       ScheduledTasksService,
       SystemObservabilityService,
       OperationalAlertingService,
@@ -263,6 +266,7 @@ export async function createApiApplication(
       { provide: CAMPAIGNS_DATABASE, useFactory: getPlatformDatabaseClient },
       { provide: ANALYTICS_DATABASE, useFactory: getPlatformDatabaseClient },
       { provide: APPOINTMENTS_DATABASE, useFactory: getPlatformDatabaseClient },
+      { provide: CATALOG_DATABASE, useFactory: getPlatformDatabaseClient },
       { provide: SCHEDULED_TASKS_DATABASE, useFactory: getPlatformDatabaseClient },
       { provide: SYSTEM_OBSERVABILITY_DATABASE, useFactory: getPlatformDatabaseClient },
       {

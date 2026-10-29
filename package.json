@@ -49,6 +49,7 @@
     "test:integration:assignment-policies": "pnpm --filter @whatsapp-platform/database test:integration:assignment-policies",
     "test:security:tenant-isolation": "pnpm --filter @whatsapp-platform/database test:security:tenant-isolation && pnpm --filter @whatsapp-platform/api test:security:tenant-isolation",
     "format": "biome format --write .",
+    "test:integration:catalog-quotes": "pnpm --filter @whatsapp-platform/database test:integration:catalog-quotes && pnpm --filter @whatsapp-platform/api test:integration:catalog-quotes",
     "format:check": "biome check --formatter-enabled=true --linter-enabled=false ."
   },
   "devDependencies": {

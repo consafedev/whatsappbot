@@ -2747,11 +2747,26 @@ Vendible a dentistas, médicos, veterinarias, psicólogos, estética, talleres c
 
 Única épica activa por instrucción del usuario2026-10-28. Contrato aceptado en
 ADR-0072 y especificación/plan versionados en docs/superpowers con fecha28/10.
-S01 está lista para implementar; S02–S08 pendientes. No se infiere producto
-implementado de este diseño. CORE/CRM cubren datos; DOCUMENTS se exige en E16
-al generar/entregar. E15-S08 crea intención durable y no un PDF/quote.sent.
+E15-S01 Product Catalog pasó implementación, gates y rereview; publicación del
+feature commit pendiente. S02 es la siguiente; S03–S08 siguen pendientes. CORE/
+CRM cubren datos; DOCUMENTS se exige en E16 al generar/entregar. E15-S08 crea
+intención durable, no un PDF/quote.sent.
 
 ## E15-S01 Product catalog basic [M]
+
+**Estado 2026-10-28: PASS; publicación pendiente.** Product tenant-scoped con
+migración37 aplicada localmente y checksum coincidente; manager/API autenticados
+con módulo y permisos canónicos, auditoría/outbox transaccionales y archivo
+idempotente. Sin Quote draft ni UI de catálogo/cotización (S02/S06).
+
+Evidencia verificada por el coordinador: `pnpm test:integration:catalog-quotes`
+exit0 (DB11/11 en1 archivo, API3/3 en1 archivo, cero skipped); root `pnpm test`
+528/528 en58 archivos; Prisma7.9.1 validate/generate; clean-schema y upgrade
+ordenado desde Git HEAD sin drift; checksum de migration37 coincide tras apply
+local y el SQL aplicado no cambió; root typecheck exit0 y Biome508 exit0. Auditoría
+Sol inicial con tres findings corregidos y rereview de alcance aprobado. La
+corrección del límite compacto de `customValues` devuelve400 ante JSON que excede
+la longitud canónica SQL, no500.
 
 ## E15-S02 Quote draft [L]
 

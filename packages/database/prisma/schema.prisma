@@ -214,6 +214,7 @@ model Tenant {
   scheduledTasks      ScheduledTask[]
   scheduledTaskRuns   ScheduledTaskRun[]
   appointmentServices AppointmentService[]
+  products            Product[]
   appointmentResources AppointmentResource[]
   appointmentAvailabilityRules AppointmentAvailabilityRule[]
   appointmentAvailabilityExceptions AppointmentAvailabilityException[]
@@ -451,6 +452,7 @@ model OrganizationUnit {
   appointmentServices AppointmentService[]
   appointmentResources AppointmentResource[]
   appointments       Appointment[]
+  products           Product[]
 
   @@unique([tenantId, id], map: "organization_unit_tenant_id_id_key")
   @@index([tenantId], map: "organization_unit_tenant_id_idx")
@@ -1003,6 +1005,36 @@ model AppointmentService {
   @@index([tenantId, active], map: "appointment_service_tenant_active_idx")
   @@index([tenantId, organizationUnitId], map: "appointment_service_tenant_organization_unit_idx")
   @@map("appointment_services")
+}
+
+model Product {
+  id                 String   @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  tenantId           String   @map("tenant_id") @db.Uuid
+  organizationUnitId String?  @map("organization_unit_id") @db.Uuid
+  sku                String   @db.VarChar(64)
+  normalizedSku      String   @map("normalized_sku") @db.VarChar(64)
+  name               String   @db.VarChar(150)
+  description        String?  @db.Text
+  category           String?  @db.VarChar(120)
+  unit               String   @db.VarChar(32)
+  price              Decimal  @db.Decimal(19, 4)
+  currency           String   @db.VarChar(3)
+  taxCode            String?  @map("tax_code") @db.VarChar(64)
+  taxRate            Decimal? @map("tax_rate") @db.Decimal(9, 4)
+  active             Boolean  @default(true)
+  isExceptional      Boolean  @default(false) @map("is_exceptional")
+  customValues       Json?    @map("custom_values") @db.JsonB
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  tenant           Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "products_tenant_fkey")
+  organizationUnit OrganizationUnit? @relation(fields: [tenantId, organizationUnitId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade, map: "products_organization_unit_fkey")
+
+  @@unique([tenantId, id], map: "products_tenant_id_id_key")
+  @@unique([tenantId, normalizedSku], map: "products_tenant_normalized_sku_key")
+  @@index([tenantId, active, id], map: "products_tenant_active_id_idx")
+  @@index([tenantId, organizationUnitId, id], map: "products_tenant_unit_id_idx")
+  @@map("products")
 }
 
 enum AppointmentResourceType {

@@ -1,6 +1,6 @@
 # E15 Catalog + Quote Implementation Plan
 
-**Status:** Proposed for independent design re-review
+**Status:** Accepted design; execution tracked by story in STATUS.md and avance_orquestador.md
 
 > **For agentic workers:** REQUIRED SUB-SKILL: The parent uses superpowers:subagent-driven-development; each story worker uses superpowers:executing-plans for its assigned story only. The parent owns shared docs, independent audit gates, commits, and pushes. No worker subagents or worker commits/pushes.
 
@@ -68,11 +68,11 @@ For every story that changes schema, validate/generate Prisma, compare clean-sch
 - Inputs use decimal strings, trusted tenant context, and optional tenant-owned OU; never accept tenantId. SKU original and normalized are each 1–64 UTF-16 units, no controls (validate expansion); normalize NFKC → trim → uppercase and enforce tenant uniqueness. Name 1–150, description <=2000, category <=120, unit 1–32, taxCode <=64. Price NUMERIC(19,4) <=999999999.9999; tax rate NUMERIC(9,4) but SQL and API both constrain 0..100. customValues null/object <=16KiB UTF-8/depth8, no root arrays/primitives or prototype instructions. Audit/outbox each real mutation in one transaction. Archive is idempotent and retains the row.
 - API: GET/POST /api/v1/products, GET/PATCH /api/v1/products/:id, POST /api/v1/products/:id/archive, existing ApiResponse envelope, module.catalog and catalog.read/manage.
 
-- [ ] Step 1 — RED: Add integration cases normalizesSkuAndEnforcesTenantUniqueIndex, enforcesSkuNameDescriptionCategoryUnitTaxCodeBoundsAndNoControls, rejectsForeignOrganizationUnit, rejectsPriceOrRateSqlAndApiBoundsIncludingRateOver100, validatesCustomValuesObjectDepthUtf8AndPrototypeSafety, archiveRetainsProductAndIsIdempotent, apiRequiresCatalogModuleAndPermission, and apiHidesCrossTenantProduct. Assert Tenant A cannot observe or mutate Tenant B by ID.
-- [ ] Step 2 — Run RED: pnpm test:integration:catalog-quotes. Expected the new missing-model/manager/API cases to fail.
-- [ ] Step 3 — Implement Product schema/migration and manager functions. Persist normalizedSku; constrain customValues to object JSON ≤16 KiB UTF-8; validate OU ownership; write AuditLog/Outbox in the same transaction. Add the guarded controller.
-- [ ] Step 4 — GREEN: run database validate/generate, compare clean-schema SDL and ordered Git-HEAD baseline upgrade with actual new SQL, have parent apply locally and verify migration checksum, then run pnpm test:integration:catalog-quotes. Expected schema/client validity and all named cases pass.
-- [ ] Step 5 — Independent audit; parent updates docs/manifest and commits/pushes S01 before S02.
+- [x] Step 1 — RED: Add integration cases normalizesSkuAndEnforcesTenantUniqueIndex, enforcesSkuNameDescriptionCategoryUnitTaxCodeBoundsAndNoControls, rejectsForeignOrganizationUnit, rejectsPriceOrRateSqlAndApiBoundsIncludingRateOver100, validatesCustomValuesObjectDepthUtf8AndPrototypeSafety, archiveRetainsProductAndIsIdempotent, apiRequiresCatalogModuleAndPermission, and apiHidesCrossTenantProduct. Assert Tenant A cannot observe or mutate Tenant B by ID.
+- [x] Step 2 — Run RED: `node .superpowers/sdd/2026-10-28-e15-catalog-quotes/e15-local.cjs run api --prepared s01_red src/catalog.integration.ts`. Authenticated source-App POST `/api/v1/products` with valid catalog entitlement/manage permission expected201 and returned404 before route wiring; an earlier wrong-root test path was setup failure and was not counted.
+- [x] Step 3 — Implement Product schema/migration and manager functions. Persist normalizedSku; constrain customValues to object JSON ≤16 KiB UTF-8; validate OU ownership; write AuditLog/Outbox in the same transaction. Add the guarded controller.
+- [x] Step 4 — GREEN: DB/API focused script exit0: DB11/11 in1 file, API3/3 in1 file, zero skipped; Prisma7.9.1 validate/generate; clean-schema SDL and ordered Git-HEAD upgrade had no drift; parent applied migration37 locally and its Prisma checksum matched, with SQL unchanged. Root unit528/528 in58 files, root typecheck exit0 and Biome508 exit0 also passed. The initial compact customValues check returned500 against canonical SQL length validation; fixed to400 and covered by final focused tests. Twelve stale ignored generated JS artifacts were removed only from the generated directory; one lost test session without a saved log was not counted; initial helper ownership errors were fixed before migration gates passed.
+- [ ] Step 5 — Independent audit approved; shared docs prepared. Root feature commit/push remains pending; do not open S02 until root confirms publication.
 
 ### Task 2: E15-S02 — Quote Drafts
 

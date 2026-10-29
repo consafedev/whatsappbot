@@ -238,6 +238,24 @@ export {
   startCampaign,
 } from "./campaign-manager";
 export {
+  archiveCatalogProduct,
+  CATALOG_PRODUCT_LIMITS,
+  type CatalogMutationMetadata,
+  CatalogProductConflictError,
+  type CatalogProductInput,
+  type CatalogProductListFilters,
+  type CatalogProductListPage,
+  type CatalogProductManagerDatabase,
+  CatalogProductNotFoundError,
+  type CatalogProductPatch,
+  CatalogProductValidationError,
+  type CatalogProductView,
+  createCatalogProduct,
+  getCatalogProductById,
+  listCatalogProducts,
+  updateCatalogProduct,
+} from "./catalog-manager";
+export {
   CHANNEL_ACCOUNT_STATUSES,
   type ChannelAccountCreateInput,
   type ChannelAccountItem,

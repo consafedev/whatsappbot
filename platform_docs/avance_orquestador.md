@@ -52,7 +52,7 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
 | Messaging/inbox/rules/canales | Contratos, normalización, persistencia/colas/UI presentes; transporte real Baileys pendiente P0. |
 | IA/campañas/reportes/scheduler | Implementaciones presentes con IDs históricos distintos al backlog. E13-S05 conserva estado normativo pendiente de cierre. |
 | Agenda E14 | S01–S10 completas; S01–S03 integradas en main y S04–S10 publicadas en rama. |
-| Catálogo/cotizaciones E15 | Abierta explícitamente por el usuario28/10; S01–S08 en reconocimiento/diseño, sin implementación declarada. |
+| Catálogo/cotizaciones E15 | S01 Product Catalog PASS con audit y gates; commit/push pendiente. Sin Quote drafts ni UI. S02 Quote Draft es lo siguiente; S03–S08 pendientes. |
 | Procesos/timeline/Action Requests | Pendientes según backlog y equivalencias históricas; no confundir E10/E11 implementadas de IA/campañas con Process/Timeline originales. |
 | Documentos/portal | Pendientes; presencia de una ruta o package vacío no acredita implementación. |
 | Backups/restore y hardening precliente | No certificados; restore drill y transporte real bloquean declaración de MVP vendible. |
@@ -72,7 +72,7 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
 | E14-S08 | Codex/e14_s08_luna y s08_scheduler_luna (gpt-6-luna), archivos exclusivos; review_s06 (gpt-6-sol) auditor; coordinador docs/gates. Reserva liberada, base4c67c3d | PASS / COMPLETE | `ccef6d2ba55fae26ae294aaac73fa4055d729a4f`; push SHA idéntico verificado | ADR-0070; root485, full DB352/API225, workers1+2, aislamiento46; build/types/Biome485 PASS; revisiones aprobadas |
 | E14-S09 | Codex/e14_s09_data_luna y e14_s09_ui_luna (gpt-6-luna); e14_s09_audit (gpt-6-sol); coordinador runtime/docs/gates. Reserva liberada, base4562cc9 | PASS / COMPLETE | `ad56a3c5a9309627e23706017317ea1191c5427f`; push SHA idéntico verificado | root516/56files; web build/types; Biome496; browser real lifecycle/readonly/module/carryover/config/mobile PASS; sin backend/schema/deps |
 | E14-S10 | Core/integración/seguridad gpt-6-luna; auditoría final e14_s10_final_audit gpt-6-sol; coordinador docs/gates/Git. Basebc29a6f; reservas liberadas | PASS / COMPLETE | `58fb9171a392c76471c9ee4cd95bf6e653450d0a`; push SHA idéntico verificado | ADR-0071; root528/58files, full DB379/API227, workers1+3, aislamiento9+37; build/types/Biome502 y migraciones34–36 PASS; rereview aprobado |
-| E15-S01 | Reconocimiento/diseño Luna; revisión arquitectónica Astra y rereview acotado Luna; coordinador docs/Git/gates. Base281704d; catálogo/schema/API/tests son siguiente reserva exclusiva | READY para implementación | — | ADR-0072/spec/plan aceptados; seis seams corregidos; infraestructura PG9/9 no acredita feature |
+| E15-S01 | e15_s01_luna (gpt-6-luna): Product schema/SQL, catalog-manager/API/tests, focused configs/scripts. Coordinador docs/Git/gates; reserva de implementación cerrada. Base4f76f22 | PASS; publicación pendiente | — | DB11/11 + API3/3, cero skipped; unit528/528 en58files; Prisma7.9.1, clean/ordered upgrade, migration37 checksum, typecheck y Biome508 PASS; rereview aprobado |
 | E15-S02 | Sin reserva | PENDING | — | Quote draft |
 | E15-S03 | Sin reserva | PENDING | — | Deterministic calculation |
 | E15-S04 | Sin reserva | PENDING | — | Quote policy |
@@ -123,19 +123,27 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
 | S10 seguridad focalizada | archivo appointment-booking-security.integration.ts, schema36 | PASS17/17; rollback inyectado +retry único, contactos/tenants/modos/módulos/policy/concurrencia |
 | S10 estáticas/final unit | builds workspace +reintentos acotados; root/web/DB types; Vitestroot; Biome; diff | PASS528/528 en58files, Biome502; builds web/DB/API/ambosworkers y tipos PASS |
 | S10 full PostgreSQL final | configs de integración database/API/jobs/outbound y tenant-isolation, DB schema36 desechable | PASS379/379 en54files,227/227 en27, jobs1/1, outbound3/3, aislamiento9/9+37/37; cero skipped |
+| E15-S01 focused catalog-quotes | Root `pnpm test:integration:catalog-quotes`, DB→API, clon disposable | PASS exit0; DB11/11 en1 archivo + API3/3 en1 archivo; cero skipped. El script y builds declarados del paquete completaron |
+| E15-S01 Prisma/migration37 | Prisma7.9.1 validate/generate; clean SDL; upgrade Git HEAD + migration37; local apply/checksum | PASS validate/generate; clean y ordered upgrade sin drift; migration37 local checksum MATCH; SQL aplicado sin cambios |
+| E15-S01 audit/static/final unit | Sol audit/rereview; root `pnpm test`; root typecheck; Biome508 | Rereview aprobado tras corregir 3 findings; unit528/528 en58files exit0; typecheck exit0 y Biome508 exit0 |
 
 ## 6. Bloqueos, riesgos y siguiente prioridad
 
 - E14 está cerrada: S01–S10 completas. Por instrucción explícita posterior del
   usuario, E15 es la única épica activa; main aún no contiene S04–S10 de E14.
-- Las suites actuales completas pasan. Persiste el límite histórico de BOM
+- E15-S01 está PASS, con rereview aprobado y gates finales documentados; commit/
+  push siguen pendientes del root, sin SHA asignado y sin merge a main. S02 Quote
+  Draft es la siguiente historia y permanece sin reserva hasta la publicación.
+- Las suites completas del cierre E14 pasaron; los gates actuales de S01 están
+  delimitados en la tabla anterior. Persiste el límite histórico de BOM
   al reproducir toda la cadena pristine; se verificó esquema limpio y upgrade
   relevante, sin modificar SQL compartido aplicado ni afirmar replay histórico.
 - El cierre de E14 cumple el hito solicitado; se conserva la prioridad
   comercial P0 de conectar Baileys y probar backup/restore antes de cobrar.
-- Siguiente trabajo tras E14: reconciliar identificadores y cerrar el transporte
-  real P0 del alcance original E05; luego los demás gates P0 antes de ampliar
-  P1. El usuario abrió expresamente E15 antes de esos gates; mantenerlos visibles.
+- E15 continúa por instrucción expresa del usuario. Tras commit/push de S01,
+  S02 Quote Draft es el siguiente vertical slice; no abrir S02 antes de publicar
+  S01. Transporte real Baileys y backup/restore P0 permanecen visibles y no se
+  consideran resueltos por estos gates.
 
 ## 7. Registro de decisiones y entregas
 
@@ -309,3 +317,39 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
   Helper local revisado y validado con9/9 pruebas PostgreSQL existentes en clon
   propio; falló primero un probe booleano de lectura, corregido. No hubo writes
   en ese fallo ni PASS de producto E15. S01 sigue como única historia siguiente.
+
+- 2026-10-28: contrato aceptado publicado en
+  4f76f2213799b846e0bbaf080bbda7f54e8c0569 sobre codex/e15-catalog-quotes;
+  SHA local/remoto idéntico verificado y manifest97 consistente con Git index.
+  S01 reservada a e15_s01_luna, sólo catálogo/schema/API/configs/tests indicados
+  por Task1; docs compartidos/Git quedan con coordinador. Clon propio s01_red
+  schema36 preparado para comprobar HTTP404→201 antes de agregar la ruta.
+  S02 no se abre hasta auditoría/gates/documentación/commit/push de S01.
+
+- 2026-10-28: RED funcional S01 demostrado con app fuente autenticada y módulo/
+  permiso de catálogo válidos: POST /api/v1/products esperaba201 y recibió404.
+  Una primera ruta de archivo relativa a raíz no correspondía al cwd API;
+  se corrigió en el runner y ese fallo de setup no cuenta como RED. Luna
+  implementa manager/API/schema; migración y gates de aceptación siguen pendientes.
+
+- 2026-10-28: E15-S01 Product Catalog terminó con auditoría independiente
+  aprobada y gates finales PASS. La auditoría Sol inicial identificó ownership
+  del filtro OU, coerción silenciosa en customValues y campos desconocidos en el
+  body de archive; los tres hallazgos se corrigieron y se aprobaron en rereview.
+  El caso de JSON compacto que excedía la longitud canónica SQL inicialmente
+  daba500; quedó corregido a400 y cubierto por la suite focal.
+  `pnpm test:integration:catalog-quotes` root exit0 ejecutó DB→API: DB11/11 en
+  1 archivo, API3/3 en1 archivo, cero skipped. El último root `pnpm test` pasó
+  528/528 en58 archivos (log `%TEMP%/whatsappbot-e15-s01-unit-final.log`).
+  Prisma7.9.1 validate/generate; comparación clean SDL y upgrade ordenado desde
+  Git HEAD sin drift; migration37 aplicada localmente con checksum Prisma MATCH
+  y SQL sin modificar; root typecheck exit0 y Biome508 exit0. El log focal final
+  quedó en `%TEMP%/whatsappbot-e15-s01-focused-final.log`.
+  Setup: se retiraron12 artefactos `.js` obsoletos sólo del directorio generado;
+  una sesión de prueba perdida sin log no se contó como resultado; el primer
+  helper asignaba mal propiedad a los objetos de esquema y se corrigió antes de
+  que clean/upgrade pasaran. Ninguno de esos fallos es un gate PASS.
+  La implementación es sólo catálogo: Quote Draft (S02) y UI (S06) no se
+  añadieron. Documentación compartida preparada; commit/push feature pendientes
+  del root, SHA aún `—`, no integrado en main. S02 permanece pendiente de publicar
+  S01.

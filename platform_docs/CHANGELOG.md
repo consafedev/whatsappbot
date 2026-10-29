@@ -13,6 +13,14 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
   the send-intent/E16 document boundary. Eight-story spec/plan is reviewed;
   implementation/evidence remains tracked in STATUS/avance_orquestador.
 
+- E15-S01 Product Catalog: tenant-scoped Product persistence, SKU normalization
+  and tenant uniqueness, exact decimal API projections, bounded custom JSON,
+  optional tenant-owned OU, guarded catalog CRUD/archive endpoints and atomic
+  AuditLog/Outbox mutations. Append-only migration37 is applied locally with
+  verified Prisma checksum. Focused database/API evidence and publication state
+  are recorded in STATUS and avance_orquestador. This story does not add Quote
+  drafts or catalog/quote UI.
+
 - E14-S10 deterministic appointment conversations behind the exclusive
   `start_appointment_booking` rule action. PostgreSQL owns canonical inbound
   routing receipts, versioned offered menus and 15-minute flows; create, cancel
