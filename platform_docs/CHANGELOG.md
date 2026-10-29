@@ -29,8 +29,10 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
   AuditLog/Outbox atomic; replay returns the recorded outcome separately from
   current state. Migration38 is applied locally with matching checksum and
   unchanged SQL. No calculations, policy/approval, version preview, UI, send
-  intent, document or provider delivery. Final gate and publication evidence is
-  tracked in STATUS/avance_orquestador; feature publication is pending.
+  intent, document or provider delivery. Final gate evidence is tracked in
+  STATUS/avance_orquestador. Published at
+  `9f87002519e96eac03724d93c11cac7453b7bd26` on `codex/e15-catalog-quotes`;
+  push SHA was verified, and `main` does not contain the story.
 
 - E14-S10 deterministic appointment conversations behind the exclusive
   `start_appointment_booking` rule action. PostgreSQL owns canonical inbound

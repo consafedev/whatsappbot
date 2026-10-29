@@ -52,7 +52,7 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
 | Messaging/inbox/rules/canales | Contratos, normalización, persistencia/colas/UI presentes; transporte real Baileys pendiente P0. |
 | IA/campañas/reportes/scheduler | Implementaciones presentes con IDs históricos distintos al backlog. E13-S05 conserva estado normativo pendiente de cierre. |
 | Agenda E14 | S01–S10 completas; S01–S03 integradas en main y S04–S10 publicadas en rama. |
-| Catálogo/cotizaciones E15 | S01 PASS / COMPLETE publicado. S02 Quote Draft PASS tras rereview y gates; feature commit/push pendiente. S03 Deterministic Calculation es siguiente, sin reserva; S04–S08 pendientes. |
+| Catálogo/cotizaciones E15 | S01 y S02 PASS / COMPLETE publicados; S02 `9f87002519e96eac03724d93c11cac7453b7bd26`, push SHA idéntico verificado y no contenido en main. S03 Deterministic Calculation RESERVED / READY para `e15_s03_luna` (gpt-6-luna), a la espera del checkpoint root; S04–S08 pendientes. |
 | Procesos/timeline/Action Requests | Pendientes según backlog y equivalencias históricas; no confundir E10/E11 implementadas de IA/campañas con Process/Timeline originales. |
 | Documentos/portal | Pendientes; presencia de una ruta o package vacío no acredita implementación. |
 | Backups/restore y hardening precliente | No certificados; restore drill y transporte real bloquean declaración de MVP vendible. |
@@ -73,8 +73,8 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
 | E14-S09 | Codex/e14_s09_data_luna y e14_s09_ui_luna (gpt-6-luna); e14_s09_audit (gpt-6-sol); coordinador runtime/docs/gates. Reserva liberada, base4562cc9 | PASS / COMPLETE | `ad56a3c5a9309627e23706017317ea1191c5427f`; push SHA idéntico verificado | root516/56files; web build/types; Biome496; browser real lifecycle/readonly/module/carryover/config/mobile PASS; sin backend/schema/deps |
 | E14-S10 | Core/integración/seguridad gpt-6-luna; auditoría final e14_s10_final_audit gpt-6-sol; coordinador docs/gates/Git. Basebc29a6f; reservas liberadas | PASS / COMPLETE | `58fb9171a392c76471c9ee4cd95bf6e653450d0a`; push SHA idéntico verificado | ADR-0071; root528/58files, full DB379/API227, workers1+3, aislamiento9+37; build/types/Biome502 y migraciones34–36 PASS; rereview aprobado |
 | E15-S01 | e15_s01_luna (gpt-6-luna): Product schema/SQL, catalog-manager/API/tests, focused configs/scripts. Reserva liberada; coordinador docs/Git/gates. Base4f76f22 | PASS / COMPLETE | `003d48a2bfa03cccad3b6cb5a5574aed5e66c524`; push `origin/codex/e15-catalog-quotes` exit0 y SHA idéntico verificado | DB11/11 + API3/3, cero skipped; unit528/528 en58files; Prisma7.9.1, clean/ordered upgrade, migration37 checksum, typecheck y Biome508 PASS; rereview aprobado |
-| E15-S02 | e15_s02_luna (gpt-6-luna), base `0d434a22011ec015e762d5c8a1ad042fa5a6ea41`; Quote/Item/Receipt/Contributor schema/SQL + manager/API/configs según Task2; root conserva docs/Git | PASS; publicación pendiente | — | Rereview round3 approved; DB32/API4 focal; full DB411/API231/jobs1/outbound3/isolation9+37; root528/58; zero skipped; types, Biome513, Prisma/schema and checksums37/38 PASS |
-| E15-S03 | Sin reserva | PENDING | — | Deterministic calculation |
+| E15-S02 | e15_s02_luna (gpt-6-luna), base `0d434a22011ec015e762d5c8a1ad042fa5a6ea41`; Quote/Item/Receipt/Contributor schema/SQL + manager/API/configs según Task2; root conserva docs/Git | PASS / COMPLETE | `9f87002519e96eac03724d93c11cac7453b7bd26`; push `origin/codex/e15-catalog-quotes` exit0 y SHA idéntico verificado; `main` no lo contiene | Rereview round3 approved; DB32/API4 focal; full DB411/API231/jobs1/outbound3/isolation9+37; root528/58; zero skipped; types, Biome513, Prisma/schema and checksums37/38 PASS |
+| E15-S03 | e15_s03_luna (gpt-6-luna); Task3 calculator/tests y estrecha integración quote-manager; root conserva docs/Git. RESERVED / READY desde feature `9f87002519e96eac03724d93c11cac7453b7bd26` + checkpoint root posterior | RESERVED / READY; no iniciado | — | Esperar checkpoint root; no implementación ni PASS de tests |
 | E15-S04 | Sin reserva | PENDING | — | Quote policy |
 | E15-S05 | Sin reserva | PENDING | — | Approval workflow |
 | E15-S06 | Sin reserva | PENDING | — | Quote UI |
@@ -136,18 +136,21 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
 - E14 está cerrada: S01–S10 completas. Por instrucción explícita posterior del
   usuario, E15 es la única épica activa; main aún no contiene S04–S10 de E14.
 - E15-S01 está PASS / COMPLETE, publicado y verificado; no está integrado en
-  main. S02 Quote Draft está PASS tras auditoría y gates finales; su feature
-  commit/push sigue pendiente. S03 es la siguiente, sin reserva; S04–S08 pending.
+  main. S02 Quote Draft está PASS / COMPLETE, publicada como
+  `9f87002519e96eac03724d93c11cac7453b7bd26` con SHA remoto idéntico; `main`
+  no contiene S02. S03 está RESERVED / READY para `e15_s03_luna`; esperar el
+  checkpoint root antes de iniciar. S04–S08 siguen pendientes.
 - Las suites completas del cierre E14 pasaron; los gates actuales de S01 están
   delimitados en la tabla anterior. Persiste el límite histórico de BOM
   al reproducir toda la cadena pristine; se verificó esquema limpio y upgrade
   relevante, sin modificar SQL compartido aplicado ni afirmar replay histórico.
 - El cierre de E14 cumple el hito solicitado; se conserva la prioridad
   comercial P0 de conectar Baileys y probar backup/restore antes de cobrar.
-- E15 continúa por instrucción expresa del usuario. Publicar S02 antes de abrir
-  S03 Deterministic Calculation; S03 sigue sin reserva. Transporte real Baileys
-  y backup/restore P0 permanecen visibles y no se consideran resueltos por estos
-  gates. No se reclama full-workspace build para S02.
+- E15 continúa por instrucción expresa del usuario. S02 está publicada, pero no
+  integrada en main. S03 Deterministic Calculation está RESERVED / READY; no
+  iniciar antes del checkpoint root. Transporte real Baileys y backup/restore
+  P0 permanecen visibles y no se consideran resueltos por estos gates. No se
+  reclama full-workspace build para S02.
 
 ## 7. Registro de decisiones y entregas
 
@@ -440,3 +443,14 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
   exponen DTO/snapshots tenant-safe sin joins vivos; Product/Contact/OU/actor
   se comprueban dentro del tenant. `resourceId` es requerido y `quoteId` nullable;
   ambos reciben el Quote ID real en S02 y policy usará el Tenant ID real en S04.
+
+- 2026-10-29: S02 publicada como
+  `9f87002519e96eac03724d93c11cac7453b7bd26`; push a
+  `origin/codex/e15-catalog-quotes` salió exit0 y `ls-remote` confirmó SHA
+  idéntico. `main` permanece en `fb8639db15ec262fcc13432f9aee4536deb8367e`
+  y no contiene S02. S02 queda PASS / COMPLETE y la reserva de implementación
+  se libera. S03 queda RESERVED / READY para `e15_s03_luna` (gpt-6-luna), desde
+  el feature publicado y checkpoint posterior de root; abarca sólo calculator/
+  tests e integración estrecha de quote-manager según Task3. No ha comenzado ni
+  tiene implementación o PASS de tests. Root conserva docs compartidos y Git;
+  esperar su checkpoint antes de comenzar S03. S04–S08 siguen pendientes.

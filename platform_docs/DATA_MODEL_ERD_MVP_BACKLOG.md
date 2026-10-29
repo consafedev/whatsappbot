@@ -2750,9 +2750,12 @@ ADR-0072 y especificación/plan versionados en docs/superpowers con fecha28/10.
 E15-S01 Product Catalog está PASS / COMPLETE y publicado en
 `003d48a2bfa03cccad3b6cb5a5574aed5e66c524` sobre
 `codex/e15-catalog-quotes`; `main` aún no lo contiene. S02 Quote Draft está
-validada PASS con publicación pendiente; su feature SHA aún no está asignado.
-S03 Deterministic Calculation es siguiente, sin reserva; S04–S08 siguen
-pendientes. CORE/CRM cubren datos; DOCUMENTS se exige en E16 al generar/entregar. E15-S08 crea
+validada PASS / COMPLETE y publicada como
+`9f87002519e96eac03724d93c11cac7453b7bd26`; el push remoto coincide. `main`
+(`fb8639db15ec262fcc13432f9aee4536deb8367e`) no contiene S02. S03 Deterministic
+Calculation está RESERVED / READY para `e15_s03_luna` (gpt-6-luna) desde el
+feature publicado y checkpoint posterior de root; no ha comenzado. S04–S08
+siguen pendientes. CORE/CRM cubren datos; DOCUMENTS se exige en E16 al generar/entregar. E15-S08 crea
 intención durable, no un PDF/quote.sent.
 
 ## E15-S01 Product catalog basic [M]
@@ -2777,7 +2780,9 @@ no contiene S01.
 
 ## E15-S02 Quote draft [L]
 
-**Estado 2026-10-29: PASS; publicación pendiente, sin feature SHA.** S02 entrega
+**Estado 2026-10-29: PASS / COMPLETE; publicada en `9f87002519e96eac03724d93c11cac7453b7bd26`** en
+`codex/e15-catalog-quotes`; push y SHA remoto idéntico verificados. `main`
+(`fb8639db15ec262fcc13432f9aee4536deb8367e`) no contiene S02. S02 entrega
 Quote/QuoteItem en borrador, idempotencia, recibos, contributors, API tenant-safe
 y comandos con AuditLog/Outbox atómicos. Catalog lines toman snapshots actuales
 del Product activo; Contact/OU/actor se validan y snapshottean dentro del tenant.
@@ -2798,8 +2803,14 @@ jobs1/1, outbound3/3, aislamiento DB9/API37; cero skipped. Root unit528/58,
 typechecks root+17 workspaces, tipos focales DB/API, Biome513; Prisma7.9.1
 validate/generate, clean-schema y upgrade HEAD+SQL38 sin drift; checksums SQL37/38
 MATCH y SQL sin cambios. Builds focalizados pasaron; no se afirma build de todos
-los workspaces. El feature commit/push queda pendiente. S03 Deterministic
-Calculation es lo siguiente, aún sin reserva.
+los workspaces. Publicación de S02 verificada en
+`9f87002519e96eac03724d93c11cac7453b7bd26`; `main` no contiene el cambio.
+S03 Deterministic
+Calculation está RESERVED / READY para `e15_s03_luna` (gpt-6-luna), desde el
+feature S02 publicado y el checkpoint posterior de root. Reserva limitada al
+calculator/tests y la integración estrecha de quote-manager de Task3. No ha
+comenzado; no hay implementación ni PASS de tests de S03. Root conserva los
+documentos compartidos y Git. Esperar el checkpoint de root antes de iniciar.
 
 ## E15-S03 Deterministic calculation [L]
 
