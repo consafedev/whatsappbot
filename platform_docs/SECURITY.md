@@ -638,3 +638,22 @@ target allowlists. The menu filter and final post-lock mutation check both
 enforce those allowlists. Their reminder lifecycle follows the central
 appointment invariants. Older queued booking replies without a
 purpose/phase/version binding fail closed.
+
+# 33. Contrato E15 Catalog/Quotes — ADR-0072
+
+Los grants globales actuales siguen siendo la autoridad; OU-constrained grants
+fallan cerrados. Toda referencia y filtro es del tenant autenticado. Catalog
+requiere catalog.read/manage y module.catalog; Quotes usa las keys quotes.*.
+No se aceptan importes calculados, actor, aprobador, stock/margen o flags de
+cliente autorizado desde HTTP. Los autores comerciales se registran con FKs y
+no aprueban salvo excepción explícita de policy. Revisiones/hash vinculan
+aprobación, cálculo y versión; se revalidan tras locks y antes de efectos.
+
+Recibos se consultan sólo con autoridad actual y conservan resultado histórico
+sin reejecutarlo ni hacerlo pasar por estado actual. Intents atan versión y
+contexto same-contact/channel y no llaman al provider. Cancelar intent requiere
+autoridad actual de quotes.send/module.quotes y ownership, pero no las
+capacidades/contacto/policy/deadline que precisamente pudieron revocarse.
+Cost/stock desconocidos bloquean autonomía; una decisión humana no se registra
+como un dato de inventario. Snapshot/public-branding no copia atributos privados.
+Límites, estados y separación E15/E16 están en ADR-0072; STATUS registra gates.

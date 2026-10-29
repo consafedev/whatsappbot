@@ -2745,6 +2745,12 @@ Vendible a dentistas, médicos, veterinarias, psicólogos, estética, talleres c
 
 # 55. Epic 15 — Catalog + Quote [P1]
 
+Única épica activa por instrucción del usuario2026-10-28. Contrato aceptado en
+ADR-0072 y especificación/plan versionados en docs/superpowers con fecha28/10.
+S01 está lista para implementar; S02–S08 pendientes. No se infiere producto
+implementado de este diseño. CORE/CRM cubren datos; DOCUMENTS se exige en E16
+al generar/entregar. E15-S08 crea intención durable y no un PDF/quote.sent.
+
 ## E15-S01 Product catalog basic [M]
 
 ## E15-S02 Quote draft [L]

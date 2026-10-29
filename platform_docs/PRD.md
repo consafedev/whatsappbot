@@ -1599,6 +1599,22 @@ El motor determinista calcula y valida.
 
 ---
 
+## 27.7 Contrato E15 — ADR-0072
+
+ADR-0072 concreta este alcance: catálogo separado de servicios de agenda,
+importes decimales exactos, impuestos exclusivos configurados, redondeo HALF_UP
+por línea, política determinista y aprobación con separación de autores/decisor.
+El modelo detallado usa los nombres de backlog§17–18 y conserva proyecciones
+comerciales históricas; no acepta relaciones a entidades aún inexistentes.
+E15 termina en versión inmutable e intención durable quote.send_requested;
+PENDING_DOCUMENT no acredita PDF ni entrega y no produce quote.sent. El renderer,
+plantillas y evidencia de entrega corresponden a E16. CORE/CRM siguen siendo
+las capacidades de datos necesarias; DOCUMENTS se exige al generar/entregar.
+Los permisos canónicos son catalog.* y quotes.*. Estado real por historia en
+STATUS; este contrato aceptado no declara implementadas las ocho historias.
+
+---
+
 # 28. Document Engine
 
 ## 28.1 Objetivo
@@ -3415,7 +3431,7 @@ El Super Admin debe controlar módulos por tenant. La activación debe ser decla
 | RULES_BASIC | Automatización básica | CORE | Sí |
 | RULES_ADV | Automatización avanzada | RULES_BASIC, PROCESS | Sí |
 | APPOINTMENTS | Agenda | CORE, CRM | Sí |
-| QUOTES | Cotizaciones | CORE, CRM, DOCUMENTS | Sí |
+| QUOTES | Cotizaciones | CORE, CRM; DOCUMENTS para generar/entregar documentos (ADR-0072) | Sí |
 | DOCUMENTS | Document Engine | CORE | Sí |
 | CATALOG | Catálogo | CORE | Sí |
 | PORTAL | Customer Portal | CORE, CRM | Sí |

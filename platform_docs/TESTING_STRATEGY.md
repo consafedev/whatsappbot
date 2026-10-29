@@ -365,6 +365,20 @@ Golden cases:
 
 Nunca aprobar change que altere cálculo sin golden tests explícitos.
 
+ADR-0072 fija los goldens E15: decimal strings/BigInt, HALF_UP por línea a
+precisión persistida0/2/3/4, descuentos fijos y porcentuales antes de impuesto
+exclusivo, envío explícito sin impuesto y sumas exactas. Ejemplo:2.5×10.00,10%
+descuento,8% impuesto,precisión2 →25.00 gross,2.50 descuento,1.80 impuesto,24.30
+total de línea. Cubrir overflow, límites UTF-8/profundidad/200 líneas y totales
+mayores que MAX_SAFE_INTEGER, sin confiar en importes de UI.
+
+Por historia: A/B+ownership, módulos/permisos actuales, rollback audit/outbox,
+recibos tras cambios/cancelaciones, concurrencia/locks, autores/decisor, política
+revertida y reloj tras espera. S07 prueba display congelado tras cambios vivos;
+S08 prueba varios canales pendientes y cancelación tras revocación, sin PDF ni
+quote.sent. Cada migration nueva valida esquema limpio y upgrade relevante
+antes de apply local y PG aislado. Tests omitidos/configuración sin DB no pasan.
+
 ---
 
 # 15. Document Engine

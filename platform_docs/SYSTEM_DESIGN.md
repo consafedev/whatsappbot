@@ -1086,6 +1086,31 @@ Toda cotización enviada debe guardar snapshot/version inmutable de:
 
 ---
 
+## 21.5 Contrato E15 — ADR-0072
+
+Los ocho entregables se implementan secuencialmente con PostgreSQL como verdad.
+Money es decimal string y cálculo BigInt/racional: gross→descuento→impuesto
+exclusivo HALF_UP por línea, agregación de líneas redondeadas y shipping explícito
+sin impuesto. Precisión monetaria queda fijada en la cotización; no hay FX ni
+tasas legales implícitas. Product, Quote, contribuyentes y referencias centrales
+son tenant-owned con FKs; el JSON limitado conserva evidencia/presentación.
+
+Las mutations usan recibos idempotentes ligados a actor/comando/recurso y orden
+común key→policy→number(create)→Quote→relaciones ordenadas. Policy cambia bajo
+el mismo mutex incluso desde default ausente. Approval vincula revisión/hash y
+autores; todo cambio de autoridad recalcula inputs almacenados en la misma Tx.
+Cancelaciones de autoridad reducida no dependen de elegibilidad de envío.
+Versiones retienen inputs, importes, decisión y proyecciones públicas históricas.
+S08 agrega guardas de freeze sólo al existir la tabla de intents; cualquier
+intención pendiente bloquea cambios hasta cancelar todas.
+
+quote.send_requested es una intención PENDING_DOCUMENT, con audit/outbox
+atómicos y sin IO de provider. E15 no produce PDF, sentAt ni quote.sent. E16
+verificará DOCUMENTS y la autoridad vigente antes de generar/entregar. ADR-0072
+fija límites y matriz de estados; STATUS prueba qué historia existe realmente.
+
+---
+
 # 22. Document Renderer
 
 Render recomendado:
@@ -1324,7 +1349,7 @@ Ejemplo:
 ¿Puede aprobar quote?
 1. tenant activo
 2. module.quotes enabled
-3. quote.approve permission
+3. quotes.approve permission
 4. quote pertenece al tenant
 5. Organization Unit dentro de scope
 6. policy amount/role satisfecho

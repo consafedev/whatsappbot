@@ -8,6 +8,11 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### Added
 
+- E15 design contract accepted (ADR-0072): deterministic commercial arithmetic,
+  canonical permissions, contributor-based approval, immutable versions and
+  the send-intent/E16 document boundary. Eight-story spec/plan is reviewed;
+  implementation/evidence remains tracked in STATUS/avance_orquestador.
+
 - E14-S10 deterministic appointment conversations behind the exclusive
   `start_appointment_booking` rule action. PostgreSQL owns canonical inbound
   routing receipts, versioned offered menus and 15-minute flows; create, cancel

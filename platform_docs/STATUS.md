@@ -7,14 +7,27 @@
 
 ## Current milestone
 
-Epic 14 — Agenda & Appointment Booking: E14-S01 through E14-S10 complete.
-S01–S03 are in main; S04–S10 are delivered on codex/e14-agenda-completion.
-This is not a main merge or a production/real-handset certification.
-Next priority is the outstanding commercial P0 real Baileys transport and
-backup/restore gates; no next epic is opened by this closure. E15 is the next
-numeric epic, not the automatic commercial priority.
+Epic 15 — Catalog + Quote, explicitly opened by the user on2026-10-28.
+Branch codex/e15-catalog-quotes starts from published281704d (E14 complete).
+ADR-0072/spec/plan accepted after independent review; S01 ready to implement,
+S02–S08 pending. No E15 feature implementation/test PASS yet.
+One epic is active. User-directed E15 priority does not certify or remove
+the outstanding real Baileys transport and backup/restore P0 gates.
+E14-S01–S03 are in main; S04–S10 remain delivered on the E14 feature ancestry.
 Epic 13 — Task Scheduling & Distributed Orchestration remains tracked below.
 Shared coordination and reservations: `platform_docs/avance_orquestador.md`.
+
+### E15 — Catalog + Quote (IN PROGRESS: S01 ready)
+
+Two Luna reconnaissance slices found no existing Product/Quote implementation.
+Luna drafted spec/plan/ADR-0072; independent architecture plus scoped builder
+reviews approved after correcting six design seams. Coordinator owns shared
+documentation, verification and Git; S01 is the next exclusive implementation
+reservation. Guarded local test infrastructure passed9/9 existing service-manager
+PostgreSQL checks in an owned schema-only clone; this is not E15 feature proof. Product amounts, approval authority, immutable snapshots and send
+intent must follow the existing deterministic/domain/outbox boundaries.
+Read the shared handoff before taking a story. No E16 document renderer or
+real-provider delivery is inferred from E15 scope.
 
 ### E14-S10 — Rules-driven WhatsApp booking (PASS / COMPLETE)
 

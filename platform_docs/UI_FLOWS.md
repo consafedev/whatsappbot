@@ -94,7 +94,7 @@ entitlement enabled
 Ejemplo:
 
 - tenant sin `module.quotes`: no muestra Quotations en navegación;
-- usuario sin `quote.read`: no ve el módulo aunque tenant lo tenga;
+- usuario sin `quotes.read`: no ve el módulo aunque tenant lo tenga;
 - usuario con scope León sólo ve datos de unidades autorizadas cuando la entidad es scoped.
 
 Si el tenant intenta acceder manualmente a una URL de módulo no contratado:
@@ -949,6 +949,20 @@ Actions:
 - send.
 
 IA suggestion, if present, nunca reemplaza totals deterministas.
+
+---
+
+## 34.1 Contrato de implementación E15 (ADR-0072)
+
+S06 entrega catálogo y editor/lista/política/aprobación sobre APIs reales; S07
+agrega historia y vista congelada de versiones usando sólo sus snapshots. S08
+agrega solicitar/cancelar intención y muestra Documento pendiente; no muestra
+Enviada ni promete PDF por una solicitud encolada. Conserva clave en reintento
+del mismo comando y distingue recibo histórico de estado actual. La conversión
+a línea manual es explícita; una edición de notas no cambia precios del catálogo.
+Importes permanecen exactos también al mostrarlos, sin Number/parseFloat.
+Permisos, módulos, lectura sola, loading/empty/error, teclado y responsive son
+gates de cada interfaz. La implementación presente se consulta en STATUS.
 
 ---
 

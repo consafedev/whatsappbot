@@ -1,7 +1,7 @@
 # docs/MANIFEST.md — Baseline documental verificada
 
 **Fecha:** 2026-10-28
-**Estado:** E14-complete-S10-pushed-58fb917
+**Estado:** E15-design-accepted-S01-ready
 **Propósito:** comprobar integridad y composición del conjunto de documentos que permite continuar el proyecto sin depender de memoria conversacional.
 
 > Las rutas son relativas a la raíz del repositorio. Los hashes cambian si se edita un archivo. Después de cambios intencionales, regenerar este manifest.
@@ -12,8 +12,8 @@
 | `README.md` | 8312 | 991 | `0a81a572a0a0f37e6915b046bff8440d0f2663428c4415ab8cab1e6fbc627159` |
 | `.agents/agents.md` | 388 | 41 | `d52b02af7fdab6d2ecbf7af4dd2f311d5d244f153817498ff9e542427e9e1675` |
 | `.agents/skills/whatsapp-platform-engineering/SKILL.md` | 21738 | 3044 | `f116702eecb0b7e9aafd72713ac1b250b9eafca85693072ed4796086ccc22082` |
-| `platform_docs/CHANGELOG.md` | 126565 | 14581 | `458e9715cde2d7e55afe2e343daf8b7e00dc16e7233062f678809cc705762ceb` |
-| `platform_docs/DATA_MODEL_ERD_MVP_BACKLOG.md` | 82335 | 10953 | `2565ca47c3c93a3cc14c383e52e19164a92989f9169ede03167607b4a5788a72` |
+| `platform_docs/CHANGELOG.md` | 126870 | 14610 | `2b4c93310e685ee2b633aebafec8ac4333c3cb78531ec7a70066881aaeee0c77` |
+| `platform_docs/DATA_MODEL_ERD_MVP_BACKLOG.md` | 82733 | 11004 | `3314e23afd0da78338ecb8d228accc0ae0802467a6f05adf9c71b8c256df6cae` |
 | `platform_docs/DEMO_AND_SALES.md` | 8689 | 1253 | `28944d7c37827e10f72d6cdac811eb8bda92fbc9da96fa4947f09ef42eb5b9f4` |
 | `platform_docs/DEPLOYMENT.md` | 5766 | 811 | `665319a6f0a460d4cd509c062af9e5879416c795f2227f63287d076f1c3d7293` |
 | `platform_docs/DESIGN.md` | 16996 | 2456 | `e9de8994278a140e2e3596391102bc14727cf6c6c00658cb33183f7643b5d6b2` |
@@ -83,17 +83,17 @@
 | `platform_docs/docs/adr/0064-e14-s02-appointment-resources-scope.md` | 3913 | 494 | `1e8ddfe1532a2ee32048535d50383c5a6de246eba2c939d8bd1b05c4c777fa95` |
 | `platform_docs/docs/adr/0065-e14-s03-availability-rules-scope.md` | 5106 | 673 | `ba4e2cc74a4df686b2d0613098fbf82cd3a4293e716fe9179d7e35e9ef72dbb6` |
 | `platform_docs/docs/INDEX.md` | 12819 | 1735 | `2219e7361c3194bf7bb1db61fbc745960f7b6a71968353f080be2e916358a05b` |
-| `platform_docs/PRD.md` | 91304 | 13156 | `8d00cc1d93d5c0c6e6c98619f6e98240e331bf4d1b19c8612bc9625ba1e893e4` |
+| `platform_docs/PRD.md` | 92253 | 13279 | `59d96e39d276a0dfb10404b3af5e3ac16c89aa27e3517e2243cdf6918ab329ea` |
 | `platform_docs/README.md` | 2094 | 256 | `dbcb2161dbf8df6c6421f96bb7830a168ab1927fa270df754bd4b5439965ad83` |
 | `platform_docs/ROADMAP.md` | 7314 | 1022 | `20bdfd6731368a1047b0f1c6b2f99b73fd2ac30c90ca772d06b7e2f4abb98fc4` |
 | `platform_docs/RUNBOOK_BACKUP_RESTORE.md` | 4857 | 666 | `27e324b4cea0cd3a2514f44eeee4ce31db80a3a4701f0ba528ffb36afcebb3ff` |
 | `platform_docs/RUNBOOK_OPERATIONS.md` | 5777 | 796 | `23d4c537dd3bbcf4b8f08b39b4a948c42c10e3a458594c25ccf2b65937376252` |
-| `platform_docs/SECURITY.md` | 17788 | 2501 | `f71bddec23be333c0bf2d17dc3dd67a736b8d739af2d8c035499c39c1f228e82` |
-| `platform_docs/STATUS.md` | 197434 | 23857 | `1f0040c5b605ab942d0afb8bb7dccbaff28f4657d1d60f423fc5a45ac29c7444` |
-| `platform_docs/SYSTEM_DESIGN.md` | 50740 | 6776 | `dec453cea4951355d79bfc475c5ff885f5dcf26da3d21074846c99793671019d` |
-| `platform_docs/TESTING_STRATEGY.md` | 24917 | 3342 | `9c6b2d77804a6a8f483094c80d2b2f3c4d978c6753f8d9e9ac8d4f02bdb794a8` |
-| `platform_docs/UI_FLOWS.md` | 25878 | 3719 | `015b1481825c9755ecb7cc152eae8af588351dfd79710812863bfc29f910e5e4` |
-| `platform_docs/avance_orquestador.md` | 26813 | 3448 | `23a75f6efed345cfca26553693997b6f3426bd2c322fb6ca7d406422f048bba5` |
+| `platform_docs/SECURITY.md` | 19009 | 2660 | `1b48fbe2c0e1643350b7a88191bc746aec07f1ab5cb1cc3568c4858b03614468` |
+| `platform_docs/STATUS.md` | 198314 | 23967 | `82007590e86699861ae8adc9e68bd729df5e0285cd6080aa8224208ce6b6f987` |
+| `platform_docs/SYSTEM_DESIGN.md` | 52208 | 6964 | `612a7d61774113cd9f08c1b2c5751fa4654b1a97239c90e7a6d385e69dddc08b` |
+| `platform_docs/TESTING_STRATEGY.md` | 25866 | 3456 | `42dd2c8d0ee61a6c98c66e8399d3f0e7071fec7e0ab276a23327644fce036cb5` |
+| `platform_docs/UI_FLOWS.md` | 26653 | 3823 | `100bb2e8ab27b6433761b55b9ffeaa8c7c8c2d82622d0c148f36c467011407ad` |
+| `platform_docs/avance_orquestador.md` | 28955 | 3761 | `9229f6ec4430f22f2290c7a8209c5a799e59418803e06ed0eb60d0adbb468678` |
 | `platform_docs/docs/adr/0066-e14-s04-availability-exceptions-scope.md` | 3358 | 407 | `1d5479a0bed7ec6cb7973afe37e4c6d39d63978e0f6dab6540b6cf3b611d118c` |
 | `docs/superpowers/specs/2026-10-25-e14-agenda-design.md` | 6038 | 743 | `801e902d3ffb8cca39181b365ce4c6914cff3fe4f474009ed0257767158efadf` |
 | `docs/superpowers/plans/2026-10-25-e14-agenda.md` | 7700 | 789 | `c9dba855eddd6845d46e36d1aa653c4cd510855af62fb725d70620410cfce52c` |
@@ -102,6 +102,9 @@
 | `platform_docs/docs/adr/0069-e14-s07-appointment-cancellation-and-rebooking.md` | 3773 | 467 | `650dd315f370d5b644a034db4b004cba3b3a4665305b09c93ea6b8b36dd2d324` |
 | `platform_docs/docs/adr/0070-e14-s08-durable-appointment-reminders.md` | 7710 | 909 | `7101f84c3b5b4ef420b6b3c79be56eebd3acd8b4839440c02c733d92d6bccb09` |
 | `platform_docs/docs/adr/0071-e14-s10-rules-driven-appointment-booking.md` | 9422 | 1227 | `52285e5d5ed5afd7b80b571f35f5fd4ed26f956d1db76a6415c89ca4e288b78d` |
+| `docs/superpowers/specs/2026-10-28-e15-catalog-quotes-design.md` | 27322 | 3442 | `ba8271fac6d8301e6b45e44fef8c4301a76b1cfdbf3ae39fcbbb076a2a25d378` |
+| `docs/superpowers/plans/2026-10-28-e15-catalog-quotes.md` | 40185 | 4157 | `dd56027c262d4b1bd25176d62e547340c9ce919fac91978f1df7c1fa714a6a0b` |
+| `platform_docs/docs/adr/0072-e15-catalog-quote-contracts.md` | 21822 | 2820 | `7a7f721f764b52d9956d7d67345768bb2da2e75004b42d7a843499eef082fd0d` |
 
 ## Uso
 
