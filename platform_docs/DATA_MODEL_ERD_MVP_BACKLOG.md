@@ -2747,14 +2747,16 @@ Vendible a dentistas, médicos, veterinarias, psicólogos, estética, talleres c
 
 Única épica activa por instrucción del usuario2026-10-28. Contrato aceptado en
 ADR-0072 y especificación/plan versionados en docs/superpowers con fecha28/10.
-E15-S01 Product Catalog pasó implementación, gates y rereview; publicación del
-feature commit pendiente. S02 es la siguiente; S03–S08 siguen pendientes. CORE/
-CRM cubren datos; DOCUMENTS se exige en E16 al generar/entregar. E15-S08 crea
+E15-S01 Product Catalog está PASS / COMPLETE y publicado en
+`003d48a2bfa03cccad3b6cb5a5574aed5e66c524` sobre
+`codex/e15-catalog-quotes`; `main` aún no lo contiene. S02 está reservada/ready
+para `e15_s02_luna` (gpt-6-luna), con base en ese feature SHA; S03–S08 siguen
+pendientes. CORE/CRM cubren datos; DOCUMENTS se exige en E16 al generar/entregar. E15-S08 crea
 intención durable, no un PDF/quote.sent.
 
 ## E15-S01 Product catalog basic [M]
 
-**Estado 2026-10-28: PASS; publicación pendiente.** Product tenant-scoped con
+**Estado 2026-10-28: PASS / COMPLETE; publicado en `003d48a2bfa03cccad3b6cb5a5574aed5e66c524`.** Product tenant-scoped con
 migración37 aplicada localmente y checksum coincidente; manager/API autenticados
 con módulo y permisos canónicos, auditoría/outbox transaccionales y archivo
 idempotente. Sin Quote draft ni UI de catálogo/cotización (S02/S06).
@@ -2768,7 +2770,15 @@ Sol inicial con tres findings corregidos y rereview de alcance aprobado. La
 corrección del límite compacto de `customValues` devuelve400 ante JSON que excede
 la longitud canónica SQL, no500.
 
+Publicación verificada: push a `origin/codex/e15-catalog-quotes` salió exit0 y
+`ls-remote` confirmó SHA idéntico; `main` (`fb8639db15ec262fcc13432f9aee4536deb8367e`)
+no contiene S01.
+
 ## E15-S02 Quote draft [L]
+
+**Estado: RESERVED / READY.** Asignada a `e15_s02_luna` (gpt-6-luna) desde la
+base publicada `003d48a2bfa03cccad3b6cb5a5574aed5e66c524`. Aún no hay implementación
+ni resultados de pruebas S02; scope exclusivo según Task2 del plan.
 
 ## E15-S03 Deterministic calculation [L]
 

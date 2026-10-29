@@ -2,7 +2,7 @@
 
 **Actualizado:** 2026-10-28
 **Versión de producto:** `0.0.0`  
-**Latest validated story:** E15-S01 — PASS; feature publication pending and tracked in avance_orquestador.md.
+**Latest validated story:** E15-S01 — PASS / COMPLETE; published on `codex/e15-catalog-quotes` and tracked in avance_orquestador.md.
 **Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; Epic 11 — Campaign Engine & Audience Broadcasts — PASS / COMPLETE; **Epic 12 — Reporting, Analytics & Operational Observability — PASS / COMPLETE (E12-S01, E12-S02, E12-S03, E12-S04, E12-S05 PASS); E13-S01 — PASS / COMPLETE; E13-S02 — PASS / COMPLETE; E13-S03 — PASS / COMPLETE; E13-S04 — PASS / COMPLETE; E14-S01 — PASS / COMPLETE; E14-S02 — PASS / COMPLETE; E14-S03 — PASS / COMPLETE; E14-S04 — PASS / COMPLETE; E14-S05 — PASS / COMPLETE; E14-S06 — PASS / COMPLETE; E14-S07 — PASS / COMPLETE; E14-S08 — PASS / COMPLETE; E14-S09 — PASS / COMPLETE; E14-S10 — PASS / COMPLETE**.
 
 ## Current milestone
@@ -11,14 +11,16 @@ Epic 15 — Catalog + Quote, explicitly opened by the user on2026-10-28.
 Branch codex/e15-catalog-quotes starts from published281704d (E14 complete).
 ADR-0072/spec/plan accepted and published4f76f22; E15-S01 Product Catalog
 passed implementation, focused tests, independent rereview and parent gates.
-Feature commit/push is pending; S02–S08 remain pending.
+Feature `003d48a2bfa03cccad3b6cb5a5574aed5e66c524` is pushed to
+`origin/codex/e15-catalog-quotes`; remote SHA matches. It is not in main.
+S02 is reserved/ready for e15_s02_luna; S03–S08 remain pending.
 One epic is active. User-directed E15 priority does not certify or remove
 the outstanding real Baileys transport and backup/restore P0 gates.
 E14-S01–S03 are in main; S04–S10 remain delivered on the E14 feature ancestry.
 Epic 13 — Task Scheduling & Distributed Orchestration remains tracked below.
 Shared coordination and reservations: `platform_docs/avance_orquestador.md`.
 
-### E15 — Catalog + Quote (IN PROGRESS: S02 next)
+### E15 — Catalog + Quote (IN PROGRESS: S02 reserved/ready)
 
 Two Luna reconnaissance slices found no existing Product/Quote implementation.
 ADR-0072/spec/plan were accepted and published. E15-S01 now delivers the
@@ -40,10 +42,13 @@ session without a saved log was not counted as a result; the helper's initial
 schema-owner handling was corrected before clean/upgrade passed. These setup
 failures are not final passing gates.
 
-S01 feature commit/push remains pending; no feature SHA is assigned and it is
-not merged to main. S02 Quote Draft is next, after root publication. S03–S08
-remain pending. Product amounts, approval authority, immutable snapshots and
-send intent follow the existing deterministic/domain/outbox boundaries. No
+S01 is PASS / COMPLETE and published at `003d48a2bfa03cccad3b6cb5a5574aed5e66c524`;
+push to `origin/codex/e15-catalog-quotes` and identical remote SHA were verified.
+`main` remains at `fb8639db15ec262fcc13432f9aee4536deb8367e` and does not contain
+S01. S02 Quote Draft is reserved/ready for `e15_s02_luna` (gpt-6-luna), based on
+the published feature SHA; implementation and new S02 test PASS are not claimed.
+S03–S08 remain pending. Product amounts, approval authority, immutable snapshots
+and send intent follow the existing deterministic/domain/outbox boundaries. No
 E16 document renderer, provider I/O, or real WhatsApp delivery is implied.
 
 ### E14-S10 — Rules-driven WhatsApp booking (PASS / COMPLETE)

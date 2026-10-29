@@ -52,7 +52,7 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
 | Messaging/inbox/rules/canales | Contratos, normalización, persistencia/colas/UI presentes; transporte real Baileys pendiente P0. |
 | IA/campañas/reportes/scheduler | Implementaciones presentes con IDs históricos distintos al backlog. E13-S05 conserva estado normativo pendiente de cierre. |
 | Agenda E14 | S01–S10 completas; S01–S03 integradas en main y S04–S10 publicadas en rama. |
-| Catálogo/cotizaciones E15 | S01 Product Catalog PASS con audit y gates; commit/push pendiente. Sin Quote drafts ni UI. S02 Quote Draft es lo siguiente; S03–S08 pendientes. |
+| Catálogo/cotizaciones E15 | S01 Product Catalog PASS / COMPLETE; publicado en `003d48a2`, no integrado en main. S02 Quote Draft RESERVED / READY para `e15_s02_luna`; sin implementación/test PASS S02. S03–S08 pendientes. |
 | Procesos/timeline/Action Requests | Pendientes según backlog y equivalencias históricas; no confundir E10/E11 implementadas de IA/campañas con Process/Timeline originales. |
 | Documentos/portal | Pendientes; presencia de una ruta o package vacío no acredita implementación. |
 | Backups/restore y hardening precliente | No certificados; restore drill y transporte real bloquean declaración de MVP vendible. |
@@ -72,8 +72,8 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
 | E14-S08 | Codex/e14_s08_luna y s08_scheduler_luna (gpt-6-luna), archivos exclusivos; review_s06 (gpt-6-sol) auditor; coordinador docs/gates. Reserva liberada, base4c67c3d | PASS / COMPLETE | `ccef6d2ba55fae26ae294aaac73fa4055d729a4f`; push SHA idéntico verificado | ADR-0070; root485, full DB352/API225, workers1+2, aislamiento46; build/types/Biome485 PASS; revisiones aprobadas |
 | E14-S09 | Codex/e14_s09_data_luna y e14_s09_ui_luna (gpt-6-luna); e14_s09_audit (gpt-6-sol); coordinador runtime/docs/gates. Reserva liberada, base4562cc9 | PASS / COMPLETE | `ad56a3c5a9309627e23706017317ea1191c5427f`; push SHA idéntico verificado | root516/56files; web build/types; Biome496; browser real lifecycle/readonly/module/carryover/config/mobile PASS; sin backend/schema/deps |
 | E14-S10 | Core/integración/seguridad gpt-6-luna; auditoría final e14_s10_final_audit gpt-6-sol; coordinador docs/gates/Git. Basebc29a6f; reservas liberadas | PASS / COMPLETE | `58fb9171a392c76471c9ee4cd95bf6e653450d0a`; push SHA idéntico verificado | ADR-0071; root528/58files, full DB379/API227, workers1+3, aislamiento9+37; build/types/Biome502 y migraciones34–36 PASS; rereview aprobado |
-| E15-S01 | e15_s01_luna (gpt-6-luna): Product schema/SQL, catalog-manager/API/tests, focused configs/scripts. Coordinador docs/Git/gates; reserva de implementación cerrada. Base4f76f22 | PASS; publicación pendiente | — | DB11/11 + API3/3, cero skipped; unit528/528 en58files; Prisma7.9.1, clean/ordered upgrade, migration37 checksum, typecheck y Biome508 PASS; rereview aprobado |
-| E15-S02 | Sin reserva | PENDING | — | Quote draft |
+| E15-S01 | e15_s01_luna (gpt-6-luna): Product schema/SQL, catalog-manager/API/tests, focused configs/scripts. Reserva liberada; coordinador docs/Git/gates. Base4f76f22 | PASS / COMPLETE | `003d48a2bfa03cccad3b6cb5a5574aed5e66c524`; push `origin/codex/e15-catalog-quotes` exit0 y SHA idéntico verificado | DB11/11 + API3/3, cero skipped; unit528/528 en58files; Prisma7.9.1, clean/ordered upgrade, migration37 checksum, typecheck y Biome508 PASS; rereview aprobado |
+| E15-S02 | e15_s02_luna (gpt-6-luna), reserva futura desde base `003d48a2bfa03cccad3b6cb5a5574aed5e66c524`; sólo Quote/Item/Receipt/Contributor schema/SQL + manager/API/configs según Task2; root conserva docs/Git | RESERVED / READY; sin implementación ni test PASS | — | Base feature publicada; iniciar sólo tras checkpoint documental del root |
 | E15-S03 | Sin reserva | PENDING | — | Deterministic calculation |
 | E15-S04 | Sin reserva | PENDING | — | Quote policy |
 | E15-S05 | Sin reserva | PENDING | — | Approval workflow |
@@ -131,9 +131,9 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
 
 - E14 está cerrada: S01–S10 completas. Por instrucción explícita posterior del
   usuario, E15 es la única épica activa; main aún no contiene S04–S10 de E14.
-- E15-S01 está PASS, con rereview aprobado y gates finales documentados; commit/
-  push siguen pendientes del root, sin SHA asignado y sin merge a main. S02 Quote
-  Draft es la siguiente historia y permanece sin reserva hasta la publicación.
+- E15-S01 está PASS / COMPLETE, publicado y verificado; no está integrado en
+  main. S02 Quote Draft está RESERVED / READY para e15_s02_luna, pero aún no
+  inicia; S03–S08 permanecen pendientes.
 - Las suites completas del cierre E14 pasaron; los gates actuales de S01 están
   delimitados en la tabla anterior. Persiste el límite histórico de BOM
   al reproducir toda la cadena pristine; se verificó esquema limpio y upgrade
@@ -353,3 +353,13 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
   añadieron. Documentación compartida preparada; commit/push feature pendientes
   del root, SHA aún `—`, no integrado en main. S02 permanece pendiente de publicar
   S01.
+
+- 2026-10-28: S01 publicada en
+  `003d48a2bfa03cccad3b6cb5a5574aed5e66c524`; push a
+  `origin/codex/e15-catalog-quotes` exit0 y `ls-remote` confirmó SHA idéntico.
+  `main` sigue en `fb8639db15ec262fcc13432f9aee4536deb8367e`; merge-base confirma
+  que no contiene S01. Árbol limpio verificado. S01 queda PASS / COMPLETE.
+  S02 reservada/ready a e15_s02_luna (gpt-6-luna) desde la base feature publicada
+  `003d48a2`; alcance exclusivo Quote/Item/Receipt/Contributor schema/SQL,
+  manager/API y configs de Task2. Root mantiene documentación y Git. Aún no se
+  implementa ni se reclama ningún PASS de pruebas S02; S03–S08 siguen pendientes.

@@ -18,8 +18,10 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
   optional tenant-owned OU, guarded catalog CRUD/archive endpoints and atomic
   AuditLog/Outbox mutations. Append-only migration37 is applied locally with
   verified Prisma checksum. Focused database/API evidence and publication state
-  are recorded in STATUS and avance_orquestador. This story does not add Quote
-  drafts or catalog/quote UI.
+  are recorded in STATUS and avance_orquestador. Published at
+  `003d48a2bfa03cccad3b6cb5a5574aed5e66c524` on `codex/e15-catalog-quotes`;
+  push SHA was verified, and `main` does not contain the story. This story does
+  not add Quote drafts or catalog/quote UI.
 
 - E14-S10 deterministic appointment conversations behind the exclusive
   `start_appointment_booking` rule action. PostgreSQL owns canonical inbound
