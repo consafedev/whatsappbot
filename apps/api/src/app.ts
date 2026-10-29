@@ -112,6 +112,7 @@ import {
   PLATFORM_TENANT_QUERY,
   PlatformTenantsController,
 } from "./platform-tenants";
+import { QUOTES_DATABASE, QuotesController, QuotesService } from "./quotes";
 import { RULE_CATALOG_MANAGER, RulesController, RulesService } from "./rules";
 import {
   createDefaultScheduledTaskQueue,
@@ -217,6 +218,7 @@ export async function createApiApplication(
       AnalyticsController,
       AppointmentsController,
       CatalogController,
+      QuotesController,
       ScheduledTasksController,
       ...(config.environment === "test" ? [EntitlementTestProbeController] : []),
     ],
@@ -259,6 +261,7 @@ export async function createApiApplication(
       AnalyticsService,
       AppointmentsService,
       CatalogService,
+      QuotesService,
       ScheduledTasksService,
       SystemObservabilityService,
       OperationalAlertingService,
@@ -267,6 +270,7 @@ export async function createApiApplication(
       { provide: ANALYTICS_DATABASE, useFactory: getPlatformDatabaseClient },
       { provide: APPOINTMENTS_DATABASE, useFactory: getPlatformDatabaseClient },
       { provide: CATALOG_DATABASE, useFactory: getPlatformDatabaseClient },
+      { provide: QUOTES_DATABASE, useFactory: getPlatformDatabaseClient },
       { provide: SCHEDULED_TASKS_DATABASE, useFactory: getPlatformDatabaseClient },
       { provide: SYSTEM_OBSERVABILITY_DATABASE, useFactory: getPlatformDatabaseClient },
       {

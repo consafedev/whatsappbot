@@ -1,4 +1,5 @@
 import { Prisma, type Product } from "./generated/prisma/client";
+import { normalizeJsonObject } from "./json-object";
 import { createTenantContext, type TenantContext } from "./tenant-context";
 import { createTenantDataAccess, type TenantTransactionDatabase } from "./tenant-data-access";
 import { assertTenantOperational } from "./tenant-operational";
@@ -188,95 +189,28 @@ function normalizeCurrency(value: unknown): string {
 }
 
 function normalizeCustomValues(value: unknown): Prisma.InputJsonObject | null {
-  if (value === undefined || value === null) return null;
-  if (
-    typeof value !== "object" ||
-    Array.isArray(value) ||
-    (Object.getPrototypeOf(value) !== Object.prototype && Object.getPrototypeOf(value) !== null)
-  ) {
-    throw new CatalogProductValidationError("customValues must be a JSON object or null");
-  }
-  const seen = new WeakSet<object>();
-  const validateJsonValue = (current: unknown, depth: number): void => {
-    if (depth > CATALOG_PRODUCT_LIMITS.customValuesDepth) {
-      throw new CatalogProductValidationError("customValues exceeds depth 8");
-    }
-    if (
-      current === null ||
-      typeof current === "string" ||
-      typeof current === "boolean" ||
-      (typeof current === "number" && Number.isFinite(current))
-    ) {
-      return;
-    }
-    if (typeof current !== "object") {
-      throw new CatalogProductValidationError("customValues must contain only JSON values");
-    }
-    if (seen.has(current)) {
-      throw new CatalogProductValidationError("customValues must not contain cycles");
-    }
-    seen.add(current);
-    if (Array.isArray(current)) {
-      const keys = Reflect.ownKeys(current);
-      if (
-        keys.length !== current.length + 1 ||
-        keys.some((key) => key !== "length" && typeof key !== "string")
-      ) {
-        throw new CatalogProductValidationError("customValues arrays must be dense JSON arrays");
-      }
-      for (let index = 0; index < current.length; index += 1) {
-        if (!Object.hasOwn(current, index)) {
-          throw new CatalogProductValidationError("customValues arrays must be dense JSON arrays");
-        }
-        const descriptor = Object.getOwnPropertyDescriptor(current, String(index));
-        if (descriptor === undefined || !descriptor.enumerable || !("value" in descriptor)) {
-          throw new CatalogProductValidationError("customValues must not contain accessors");
-        }
-        validateJsonValue(descriptor.value, depth + 1);
-      }
-      seen.delete(current);
-      return;
-    }
-    const prototype = Object.getPrototypeOf(current);
-    if (prototype !== Object.prototype && prototype !== null) {
-      throw new CatalogProductValidationError("customValues must contain only plain JSON objects");
-    }
-    for (const key of Reflect.ownKeys(current)) {
-      const descriptor = Object.getOwnPropertyDescriptor(current, key);
-      if (
-        typeof key !== "string" ||
-        descriptor === undefined ||
-        !descriptor.enumerable ||
-        !("value" in descriptor)
-      ) {
-        throw new CatalogProductValidationError("customValues must not contain hidden properties");
-      }
-      if (UNSAFE_JSON_KEYS.has(key))
-        throw new CatalogProductValidationError("customValues contains an unsafe key");
-      validateJsonValue(descriptor.value, depth + 1);
-    }
-    seen.delete(current);
-  };
-  validateJsonValue(value, 1);
-  let serialized: string;
-  try {
-    serialized = JSON.stringify(value);
-  } catch {
-    throw new CatalogProductValidationError("customValues must be JSON serializable");
-  }
-  if (Buffer.byteLength(serialized, "utf8") > CATALOG_PRODUCT_LIMITS.customValuesBytes) {
-    throw new CatalogProductValidationError("customValues exceeds 16 KiB UTF-8");
-  }
-  let clone: unknown;
-  try {
-    clone = JSON.parse(serialized) as unknown;
-  } catch {
-    throw new CatalogProductValidationError("customValues must be valid JSON");
-  }
-  if (clone === null || typeof clone !== "object" || Array.isArray(clone)) {
-    throw new CatalogProductValidationError("customValues must be a JSON object or null");
-  }
-  return clone as Prisma.InputJsonObject;
+  return normalizeJsonObject(value, {
+    depthLimit: CATALOG_PRODUCT_LIMITS.customValuesDepth,
+    byteLimit: CATALOG_PRODUCT_LIMITS.customValuesBytes,
+    forbiddenKeys: UNSAFE_JSON_KEYS,
+    fail: (reason) =>
+      new CatalogProductValidationError(
+        {
+          root: "customValues must be a JSON object or null",
+          depth: "customValues exceeds depth 8",
+          value: "customValues must contain only JSON values",
+          cycle: "customValues must not contain cycles",
+          array: "customValues arrays must be dense JSON arrays",
+          accessor: "customValues must not contain accessors",
+          prototype: "customValues must contain only plain JSON objects",
+          hidden: "customValues must not contain hidden properties",
+          "unsafe-key": "customValues contains an unsafe key",
+          serializable: "customValues must be JSON serializable",
+          "invalid-json": "customValues must be valid JSON",
+          size: "customValues exceeds 16 KiB UTF-8",
+        }[reason],
+      ),
+  });
 }
 
 function toView(product: Product): CatalogProductView {

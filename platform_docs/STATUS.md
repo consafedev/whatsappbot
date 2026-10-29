@@ -1,8 +1,8 @@
 # STATUS.md — Estado operativo actual del proyecto
 
-**Actualizado:** 2026-10-28
+**Actualizado:** 2026-10-29
 **Versión de producto:** `0.0.0`  
-**Latest validated story:** E15-S01 — PASS / COMPLETE; published on `codex/e15-catalog-quotes` and tracked in avance_orquestador.md.
+**Latest validated story:** E15-S02 — PASS; feature publication pending and tracked in avance_orquestador.md.
 **Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; Epic 11 — Campaign Engine & Audience Broadcasts — PASS / COMPLETE; **Epic 12 — Reporting, Analytics & Operational Observability — PASS / COMPLETE (E12-S01, E12-S02, E12-S03, E12-S04, E12-S05 PASS); E13-S01 — PASS / COMPLETE; E13-S02 — PASS / COMPLETE; E13-S03 — PASS / COMPLETE; E13-S04 — PASS / COMPLETE; E14-S01 — PASS / COMPLETE; E14-S02 — PASS / COMPLETE; E14-S03 — PASS / COMPLETE; E14-S04 — PASS / COMPLETE; E14-S05 — PASS / COMPLETE; E14-S06 — PASS / COMPLETE; E14-S07 — PASS / COMPLETE; E14-S08 — PASS / COMPLETE; E14-S09 — PASS / COMPLETE; E14-S10 — PASS / COMPLETE**.
 
 ## Current milestone
@@ -13,14 +13,16 @@ ADR-0072/spec/plan accepted and published4f76f22; E15-S01 Product Catalog
 passed implementation, focused tests, independent rereview and parent gates.
 Feature `003d48a2bfa03cccad3b6cb5a5574aed5e66c524` is pushed to
 `origin/codex/e15-catalog-quotes`; remote SHA matches. It is not in main.
-S02 is reserved/ready for e15_s02_luna; S03–S08 remain pending.
+S02 Quote Draft passed final focused/full suites and round3 rereview; feature
+publication is pending without an assigned SHA. S03 is next, not reserved;
+S04–S08 remain pending.
 One epic is active. User-directed E15 priority does not certify or remove
 the outstanding real Baileys transport and backup/restore P0 gates.
 E14-S01–S03 are in main; S04–S10 remain delivered on the E14 feature ancestry.
 Epic 13 — Task Scheduling & Distributed Orchestration remains tracked below.
 Shared coordination and reservations: `platform_docs/avance_orquestador.md`.
 
-### E15 — Catalog + Quote (IN PROGRESS: S02 reserved/ready)
+### E15 — Catalog + Quote (IN PROGRESS: S03 next)
 
 Two Luna reconnaissance slices found no existing Product/Quote implementation.
 ADR-0072/spec/plan were accepted and published. E15-S01 now delivers the
@@ -43,13 +45,36 @@ schema-owner handling was corrected before clean/upgrade passed. These setup
 failures are not final passing gates.
 
 S01 is PASS / COMPLETE and published at `003d48a2bfa03cccad3b6cb5a5574aed5e66c524`;
-push to `origin/codex/e15-catalog-quotes` and identical remote SHA were verified.
-`main` remains at `fb8639db15ec262fcc13432f9aee4536deb8367e` and does not contain
-S01. S02 Quote Draft is reserved/ready for `e15_s02_luna` (gpt-6-luna), based on
-the published feature SHA; implementation and new S02 test PASS are not claimed.
-S03–S08 remain pending. Product amounts, approval authority, immutable snapshots
-and send intent follow the existing deterministic/domain/outbox boundaries. No
-E16 document renderer, provider I/O, or real WhatsApp delivery is implied.
+its push and identical remote SHA were verified. S02 Quote Draft passed after
+three correction rounds and the approved round3 rereview. Full final gates:
+DB411/56 files, API231/29 files, jobs1/1, outbound3/3, isolation DB9/API37,
+zero skipped, exit0. Root unit528/58 files, root plus17 workspace typechecks,
+focal DB/API types, global Biome513 and Prisma7.9.1/schema gates passed. Migration
+checksums37/38 match; clean-schema/HEAD upgrade passed and applied SQL is unchanged.
+Focal GREEN is DB32/32 and API4/4 in two files each, zero skipped. Focused package
+builds passed; no full-workspace build is claimed. Logs: `%TEMP%/whatsappbot-e15-s02-full-final.log`
+and `%TEMP%/whatsappbot-e15-s02-unit-final.log`.
+
+S02 owns Quote drafts and lines, revisioned edits, normalized idempotency receipts,
+contributor snapshots and tenant-guarded API behavior. The DTO uses explicit
+fixed/percent discount objects with decimal-string values; catalog lines copy
+server-owned Product values and manual lines require `productId:null`. PATCH
+requires an explicit metadata, replaceLines or convertToManual operation. Header
+totals remain null: no S03 calculation, policy, approval, version, UI, send intent,
+document or provider feature is included. Receipt `resourceId` is required and
+`quoteId` is nullable. S02 writes the actual Quote ID to both; S04 policy
+commands target the real Tenant ID with null `quoteId`, without a policy FK.
+
+Review fixes covered after-lock tenant/actor/module/permission/OU revalidation,
+merged PATCH size limits, empty Product description fallback, quantity/discount-
+preserving manual conversion, normalized update hashes and semantic no-ops, CRM
+selection gating, stable currency precision, minimal receipts, atomic Audit/Outbox
+rollback/retry, shared strict JSON validation and rejection of empty PATCH
+operations. The sequence of setup failures and earlier-round regressions is
+preserved in avance_orquestador.md; none is counted as a final gate. S02 feature
+commit/push remains pending with no SHA; S03 is next but unreserved until root
+publishes S02. S04–S08 remain pending. No E16 document renderer or real WhatsApp
+delivery is implied.
 
 ### E14-S10 — Rules-driven WhatsApp booking (PASS / COMPLETE)
 

@@ -23,6 +23,15 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
   push SHA was verified, and `main` does not contain the story. This story does
   not add Quote drafts or catalog/quote UI.
 
+- E15-S02 Quote Draft: tenant-scoped Quote and QuoteItem draft persistence,
+  decimal-string DTOs, server-owned Product/Contact/OU/creator snapshots,
+  revision-guarded edits, command receipts and contributors. Mutations keep
+  AuditLog/Outbox atomic; replay returns the recorded outcome separately from
+  current state. Migration38 is applied locally with matching checksum and
+  unchanged SQL. No calculations, policy/approval, version preview, UI, send
+  intent, document or provider delivery. Final gate and publication evidence is
+  tracked in STATUS/avance_orquestador; feature publication is pending.
+
 - E14-S10 deterministic appointment conversations behind the exclusive
   `start_appointment_booking` rule action. PostgreSQL owns canonical inbound
   routing receipts, versioned offered menus and 15-minute flows; create, cancel

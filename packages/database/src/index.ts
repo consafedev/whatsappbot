@@ -562,6 +562,32 @@ export {
   WorkflowReferenceNotFoundError,
 } from "./postgres-workflow-orchestrator";
 export {
+  createQuoteDraft,
+  getQuoteById,
+  listQuotes,
+  type ManualQuoteLineSnapshot,
+  QUOTE_DRAFT_LIMITS,
+  QuoteAuthorizationError,
+  QuoteCommandConflictError,
+  type QuoteCommandOutcome,
+  type QuoteDiscountInput,
+  type QuoteDraftInput,
+  type QuoteDraftLineView,
+  type QuoteDraftPatch,
+  type QuoteDraftView,
+  type QuoteLineInput,
+  type QuoteListFilters,
+  type QuoteListPage,
+  type QuoteManagerDatabase,
+  type QuoteMutationMetadata,
+  QuoteNotFoundError,
+  type QuoteRecordedOutcome,
+  QuoteRevisionConflictError,
+  QuoteValidationError,
+  quoteTenantPolicyLock,
+  updateQuoteDraft,
+} from "./quote-manager";
+export {
   TenantRbacRecordNotFoundError,
   UnknownPermissionKeyError,
 } from "./rbac-data-access";

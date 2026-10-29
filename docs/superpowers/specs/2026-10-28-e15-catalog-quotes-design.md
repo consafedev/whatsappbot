@@ -83,6 +83,12 @@ Segregation of duties records `QuoteCommercialContributor(tenantId, quoteId, use
 
 Each quote mutation requires a stable tenant-scoped idempotency key and persists immutable `QuoteCommandReceipt(tenantId, key, commandType, actorUserId, resourceId, requestHash, recordedOutcome, createdAt)`. The normalized request hash binds command, actor, target resource, and normalized request. Same-key/same-hash replay returns the original outcome without rerunning the command even after quote edits or send cancellation; mismatch conflicts. Current authentication, module, permission, and tenant/resource guards run before replay. Keys cannot be reused for a different command, actor, or resource. Recorded outcome is labeled with its revision and is not returned as current mutable Quote state; UI fetches current separately.
 
+Receipt resource identity (clarified2026-10-29): required `resourceId` is the
+Quote ID for quote commands, with matching non-null `quoteId`. Tenant policy
+commands instead target the owning Tenant ID and have null `quoteId`; no
+sentinel or FK to a future policy row is created. S02 implements only quote
+commands; S04 supplies tenant policy commands on this same receipt contract.
+
 All quote mutating commands obey this lock order: command-key advisory → tenant policy advisory (read/initialize effective policy under it) → tenant quote-number advisory (create only) → Quote row → needed Product/shared rows sorted by ID. All quote commands take the tenant policy mutex before reading policy; policy writers take it before create/update, including when creating the default. No command locks Quote before policy. Product CRUD never locks Quote. Quote creation uses indexed `MAX(numberSequence)+1` while holding the number lock; no counter service/table. Product selection/refresh locks needed Product rows only after Quote. Capture final clock after blocking locks and recheck current authority.
 
 ### Lifecycle matrix and cancellation (S02/S05/S07/S08)

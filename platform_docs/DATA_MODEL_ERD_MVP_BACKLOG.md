@@ -2749,8 +2749,9 @@ Vendible a dentistas, médicos, veterinarias, psicólogos, estética, talleres c
 ADR-0072 y especificación/plan versionados en docs/superpowers con fecha28/10.
 E15-S01 Product Catalog está PASS / COMPLETE y publicado en
 `003d48a2bfa03cccad3b6cb5a5574aed5e66c524` sobre
-`codex/e15-catalog-quotes`; `main` aún no lo contiene. S02 está reservada/ready
-para `e15_s02_luna` (gpt-6-luna), con base en ese feature SHA; S03–S08 siguen
+`codex/e15-catalog-quotes`; `main` aún no lo contiene. S02 Quote Draft está
+validada PASS con publicación pendiente; su feature SHA aún no está asignado.
+S03 Deterministic Calculation es siguiente, sin reserva; S04–S08 siguen
 pendientes. CORE/CRM cubren datos; DOCUMENTS se exige en E16 al generar/entregar. E15-S08 crea
 intención durable, no un PDF/quote.sent.
 
@@ -2776,9 +2777,29 @@ no contiene S01.
 
 ## E15-S02 Quote draft [L]
 
-**Estado: RESERVED / READY.** Asignada a `e15_s02_luna` (gpt-6-luna) desde la
-base publicada `003d48a2bfa03cccad3b6cb5a5574aed5e66c524`. Aún no hay implementación
-ni resultados de pruebas S02; scope exclusivo según Task2 del plan.
+**Estado 2026-10-29: PASS; publicación pendiente, sin feature SHA.** S02 entrega
+Quote/QuoteItem en borrador, idempotencia, recibos, contributors, API tenant-safe
+y comandos con AuditLog/Outbox atómicos. Catalog lines toman snapshots actuales
+del Product activo; Contact/OU/actor se validan y snapshottean dentro del tenant.
+Lecturas históricas no dependen de joins vivos. No hay cálculo, policy, approval,
+UI, versión inmutable ni envío.
+
+El DTO acepta líneas catalogadas o manuales con `productId:null`; descuentos son
+objetos `{kind, value}` con decimal-string `value`. PATCH exige `expectedRevision`,
+key y una operación explícita `metadata`, `replaceLines` o `convertToManual`.
+Replay compara intención normalizada y actor/comando, preserva el resultado
+registrado y expone aparte la vista actual. `resourceId` es requerido y sólo
+`quoteId` es nullable en el recibo compartido. S02 escribe el Quote ID real en
+ambos; S04 usa el Tenant ID real como recurso con `quoteId` null, sin policy FK.
+
+Review/gates: round3 rereview spec/calidad APPROVED, cero hallazgos; DB32/32 y
+API4/4 focales (2 archivos cada una), full DB411/56 archivos, API231/29 archivos,
+jobs1/1, outbound3/3, aislamiento DB9/API37; cero skipped. Root unit528/58,
+typechecks root+17 workspaces, tipos focales DB/API, Biome513; Prisma7.9.1
+validate/generate, clean-schema y upgrade HEAD+SQL38 sin drift; checksums SQL37/38
+MATCH y SQL sin cambios. Builds focalizados pasaron; no se afirma build de todos
+los workspaces. El feature commit/push queda pendiente. S03 Deterministic
+Calculation es lo siguiente, aún sin reserva.
 
 ## E15-S03 Deterministic calculation [L]
 

@@ -222,6 +222,10 @@ model Tenant {
   appointmentReminders AppointmentReminder[]
   appointmentBookingFlows AppointmentBookingFlow[]
   appointmentBookingTurns AppointmentBookingTurn[]
+  quotes               Quote[]
+  quoteCommandReceipts QuoteCommandReceipt[]
+  quoteCommercialContributors QuoteCommercialContributor[]
+  quoteItems           QuoteItem[]
 
   @@index([status], map: "tenant_status_idx")
   @@index([deploymentId], map: "tenant_deployment_id_idx")
@@ -249,6 +253,9 @@ model User {
   createdAppointments Appointment[] @relation("AppointmentCreator")
   outboundMessages    OutboundMessage[]
   assignedConversations Conversation[] @relation("ConversationAssignedUser")
+  createdQuotes Quote[] @relation("QuoteCreator")
+  quoteCommercialContributions QuoteCommercialContributor[]
+  quoteCommandReceipts QuoteCommandReceipt[]
 
   @@unique([tenantId, email], map: "tenant_user_tenant_email_key")
   @@unique([tenantId, id], map: "tenant_user_tenant_id_id_key")
@@ -453,6 +460,7 @@ model OrganizationUnit {
   appointmentResources AppointmentResource[]
   appointments       Appointment[]
   products           Product[]
+  quotes             Quote[]
 
   @@unique([tenantId, id], map: "organization_unit_tenant_id_id_key")
   @@index([tenantId], map: "organization_unit_tenant_id_idx")
@@ -583,6 +591,7 @@ model Contact {
   appointments     Appointment[]
   appointmentBookingFlows AppointmentBookingFlow[]
   appointmentBookingTurns AppointmentBookingTurn[]
+  quotes Quote[]
 
   @@unique([tenantId, id], map: "contact_tenant_id_id_key")
   @@unique([tenantId, phoneNumber], map: "contact_tenant_phone_number_key")
@@ -1029,6 +1038,7 @@ model Product {
 
   tenant           Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "products_tenant_fkey")
   organizationUnit OrganizationUnit? @relation(fields: [tenantId, organizationUnitId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade, map: "products_organization_unit_fkey")
+  quoteItems       QuoteItem[]
 
   @@unique([tenantId, id], map: "products_tenant_id_id_key")
   @@unique([tenantId, normalizedSku], map: "products_tenant_normalized_sku_key")
@@ -1347,4 +1357,124 @@ model AppointmentBookingTurn {
   @@index([tenantId, flowId], map: "appointment_booking_turns_flow_idx")
   @@index([tenantId, liveRuleId], map: "appointment_booking_turns_live_rule_idx")
   @@map("appointment_booking_turns")
+}
+
+model Quote {
+  id                         String       @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  tenantId                   String       @map("tenant_id") @db.Uuid
+  organizationUnitId         String       @map("organization_unit_id") @db.Uuid
+  contactId                  String       @map("contact_id") @db.Uuid
+  createdByUserId            String       @map("created_by_user_id") @db.Uuid
+  numberSequence             BigInt       @map("number_sequence")
+  number                     String       @db.VarChar(12)
+  status                     String       @default("draft") @db.VarChar(32)
+  revision                   Int          @default(1)
+  autonomyLevel              Int          @default(0) @map("autonomy_level")
+  currency                   String       @db.VarChar(3)
+  currencyPrecision          Int          @map("currency_precision")
+  validUntil                 DateTime?    @map("valid_until") @db.Timestamptz(3)
+  terms                      String?      @db.VarChar(8000)
+  notes                      String?      @db.VarChar(4000)
+  shippingTotal              Decimal      @default(0) @map("shipping_total") @db.Decimal(19, 4)
+  subtotal                   Decimal?     @db.Decimal(24, 4)
+  discountTotal              Decimal?     @map("discount_total") @db.Decimal(24, 4)
+  taxTotal                   Decimal?     @map("tax_total") @db.Decimal(24, 4)
+  total                      Decimal?     @db.Decimal(24, 4)
+  calculatedRevision         Int?          @map("calculated_revision")
+  calculationInputHash       String?       @map("calculation_input_hash") @db.Char(64)
+  customerNameSnapshot       String       @map("customer_name_snapshot") @db.VarChar(150)
+  customerPhoneSnapshot      String       @map("customer_phone_snapshot") @db.VarChar(64)
+  organizationUnitNameSnapshot String    @map("organization_unit_name_snapshot") @db.VarChar(150)
+  salespersonNameSnapshot    String       @map("salesperson_name_snapshot") @db.VarChar(150)
+  createdAt                  DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                  DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  tenant           Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "quotes_tenant_fkey")
+  organizationUnit OrganizationUnit           @relation(fields: [tenantId, organizationUnitId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade, map: "quotes_organization_unit_fkey")
+  contact          Contact                    @relation(fields: [tenantId, contactId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade, map: "quotes_contact_fkey")
+  createdBy        User                       @relation("QuoteCreator", fields: [tenantId, createdByUserId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade, map: "quotes_creator_fkey")
+  items            QuoteItem[]
+  receipts         QuoteCommandReceipt[]
+  contributors     QuoteCommercialContributor[]
+
+  @@unique([tenantId, id], map: "quotes_tenant_id_id_key")
+  @@unique([tenantId, numberSequence], map: "quotes_tenant_number_sequence_key")
+  @@unique([tenantId, number], map: "quotes_tenant_number_key")
+  @@index([tenantId, status, createdAt, id], map: "quotes_tenant_status_created_idx")
+  @@index([tenantId, contactId, createdAt], map: "quotes_tenant_contact_created_idx")
+  @@map("quotes")
+}
+
+model QuoteItem {
+  id             String   @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  tenantId       String   @map("tenant_id") @db.Uuid
+  quoteId        String   @map("quote_id") @db.Uuid
+  position       Int
+  productId      String?  @map("product_id") @db.Uuid
+  source         String   @db.VarChar(16)
+  sku            String?  @db.VarChar(64)
+  description    String   @db.VarChar(2000)
+  unit           String   @db.VarChar(32)
+  quantity       Decimal  @db.Decimal(9, 3)
+  unitPrice      Decimal  @map("unit_price") @db.Decimal(19, 4)
+  currency       String   @db.VarChar(3)
+  taxCode        String?  @map("tax_code") @db.VarChar(64)
+  taxRate        Decimal? @map("tax_rate") @db.Decimal(9, 4)
+  discountKind   String   @default("fixed") @map("discount_kind") @db.VarChar(16)
+  discountValue  Decimal  @default(0) @map("discount_value") @db.Decimal(19, 4)
+  grossTotal     Decimal? @map("gross_total") @db.Decimal(24, 4)
+  discountTotal  Decimal? @map("discount_total") @db.Decimal(24, 4)
+  netTotal       Decimal? @map("net_total") @db.Decimal(24, 4)
+  taxTotal       Decimal? @map("tax_total") @db.Decimal(24, 4)
+  lineTotal      Decimal? @map("line_total") @db.Decimal(24, 4)
+  isExceptional  Boolean  @default(false) @map("is_exceptional")
+  metadata       Json?    @db.JsonB
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "quote_items_tenant_fkey")
+  quote   Quote   @relation(fields: [tenantId, quoteId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade, map: "quote_items_quote_fkey")
+  product Product? @relation(fields: [tenantId, productId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade, map: "quote_items_product_fkey")
+
+  @@unique([tenantId, id], map: "quote_items_tenant_id_id_key")
+  @@unique([tenantId, quoteId, position], map: "quote_items_tenant_quote_position_key")
+  @@index([tenantId, quoteId, position], map: "quote_items_tenant_quote_position_idx")
+  @@index([tenantId, productId], map: "quote_items_tenant_product_idx")
+  @@map("quote_items")
+}
+
+model QuoteCommandReceipt {
+  id              String   @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  resourceId      String   @map("resource_id") @db.Uuid
+  quoteId         String?  @map("quote_id") @db.Uuid
+  actorUserId     String   @map("actor_user_id") @db.Uuid
+  idempotencyKey  String   @map("idempotency_key") @db.VarChar(128)
+  commandType     String   @map("command_type") @db.VarChar(32)
+  requestHash     String   @map("request_hash") @db.Char(64)
+  recordedOutcome Json     @map("recorded_outcome") @db.JsonB
+  recordedAt      DateTime @default(now()) @map("recorded_at") @db.Timestamptz(3)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "quote_command_receipts_tenant_fkey")
+  quote  Quote? @relation(fields: [tenantId, quoteId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade, map: "quote_command_receipts_quote_fkey")
+  actor  User   @relation(fields: [tenantId, actorUserId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade, map: "quote_command_receipts_actor_fkey")
+
+  @@unique([tenantId, id], map: "quote_command_receipts_tenant_id_id_key")
+  @@unique([tenantId, idempotencyKey], map: "quote_command_receipts_tenant_key_key")
+  @@index([tenantId, resourceId, recordedAt], map: "quote_command_receipts_tenant_resource_recorded_idx")
+  @@map("quote_command_receipts")
+}
+
+model QuoteCommercialContributor {
+  tenantId           String   @map("tenant_id") @db.Uuid
+  quoteId            String   @map("quote_id") @db.Uuid
+  userId             String   @map("user_id") @db.Uuid
+  firstContributedAt DateTime @default(now()) @map("first_contributed_at") @db.Timestamptz(3)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "quote_commercial_contributors_tenant_fkey")
+  quote  Quote  @relation(fields: [tenantId, quoteId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade, map: "quote_commercial_contributors_quote_fkey")
+  user   User   @relation(fields: [tenantId, userId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade, map: "quote_commercial_contributors_user_fkey")
+
+  @@id([tenantId, quoteId, userId], map: "quote_commercial_contributors_pkey")
+  @@index([tenantId, userId, firstContributedAt], map: "quote_commercial_contributors_tenant_user_idx")
+  @@map("quote_commercial_contributors")
 }
