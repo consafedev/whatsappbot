@@ -43,6 +43,19 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
   at `0ebea786708dde64fd90705f9d39a3442e96d16b` on `codex/e15-catalog-quotes`;
   push SHA was verified and `main` does not contain the story.
 
+- E15-S04 Quote Policy: tenant policy defaults/evaluation and guarded static
+  GET/PUT configuration with strict autonomy-level parsing, expected revisions,
+  idempotent receipts, shared tenant lock, AuditLog and Outbox. An absent-policy
+  GET is a no-write autonomy-0 default; when policy requires stock or margin
+  facts that lack a trusted source, the evaluator returns human review. If those
+  requirements are not configured, their absence does not independently block
+  automation. Rereview approved after the strict-parser fix. Pure12/12 and
+  focused DB45/45 + API5/5 pass; root unit552/60, root and17 workspace types,
+  Biome520, schema39 and checksum gates pass. Full R0 passed before the parser
+  fix and is retained as valid pre-fix evidence; post-fix focused tests cover the
+  correction. Feature publication is pending without SHA; details are in STATUS
+  and avance_orquestador.
+
 - E14-S10 deterministic appointment conversations behind the exclusive
   `start_appointment_booking` rule action. PostgreSQL owns canonical inbound
   routing receipts, versioned offered menus and 15-minute flows; create, cancel

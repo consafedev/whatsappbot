@@ -23,6 +23,8 @@ describe("E15-S02 quote drafts API", () => {
   let createCookie = "";
   let noPermissionCookie = "";
   let foreignCookie = "";
+  let policyWriteCookie = "";
+  let policyOnePermissionCookie = "";
 
   async function createActor(
     tenantId: string,
@@ -70,6 +72,7 @@ describe("E15-S02 quote drafts API", () => {
     const ids = tenants.map(({ id }) => id);
     await prisma.quoteCommercialContributor.deleteMany({ where: { tenantId: { in: ids } } });
     await prisma.quoteCommandReceipt.deleteMany({ where: { tenantId: { in: ids } } });
+    await prisma.quotePolicy.deleteMany({ where: { tenantId: { in: ids } } });
     await prisma.quoteItem.deleteMany({ where: { tenantId: { in: ids } } });
     await prisma.quote.deleteMany({ where: { tenantId: { in: ids } } });
     await prisma.auditLog.deleteMany({ where: { tenantId: { in: ids } } });
@@ -131,10 +134,17 @@ describe("E15-S02 quote drafts API", () => {
     const create = await createActor(tenantAId, "create", ["quotes.read", "quotes.create"]);
     const none = await createActor(tenantAId, "none", []);
     const foreign = await createActor(tenantBId, "foreign", ["quotes.read"]);
+    const policyWrite = await createActor(tenantAId, "policy-write", [
+      "tenant.settings.manage",
+      "quotes.approve",
+    ]);
+    const policyOnePermission = await createActor(tenantAId, "policy-one", ["quotes.approve"]);
     readCookie = read.cookie;
     createCookie = create.cookie;
     noPermissionCookie = none.cookie;
     foreignCookie = foreign.cookie;
+    policyWriteCookie = policyWrite.cookie;
+    policyOnePermissionCookie = policyOnePermission.cookie;
     app = await createApiApplication(loadNonSecretConfig());
     await app.listen(0);
     const address = app.getHttpServer().address();
@@ -410,5 +420,93 @@ describe("E15-S02 quote drafts API", () => {
       where: { tenantId_entitlementKey: { tenantId: tenantAId, entitlementKey: "module.quotes" } },
       data: { enabled: true },
     });
+  });
+
+  it("serves the static policy route with dual write permission and strict normalized input", async () => {
+    const url = `${baseUrl}/api/v1/quotes/policy`;
+    const readsBefore = await prisma.quotePolicy.count({ where: { tenantId: tenantAId } });
+    const absentReceiptsBefore = await prisma.quoteCommandReceipt.count({
+      where: { tenantId: tenantAId },
+    });
+    const read = await fetch(url, { headers: { cookie: readCookie } });
+    expect(read.status).toBe(200);
+    const defaultBody = (await read.json()) as {
+      success: boolean;
+      data: { autonomyLevel: number; revision: number; contentHash: string };
+    };
+    expect(defaultBody).toMatchObject({
+      success: true,
+      data: { autonomyLevel: 0, revision: 0 },
+    });
+    expect(defaultBody.data.contentHash).toMatch(/^[a-f0-9]{64}$/);
+    expect(await prisma.quotePolicy.count({ where: { tenantId: tenantAId } })).toBe(readsBefore);
+    expect(await prisma.quoteCommandReceipt.count({ where: { tenantId: tenantAId } })).toBe(
+      absentReceiptsBefore,
+    );
+    expect((await fetch(url, { headers: { cookie: noPermissionCookie } })).status).toBe(403);
+
+    const body = {
+      idempotencyKey: "api-policy-update",
+      expectedRevision: 0,
+      autonomyLevel: 2,
+      maxAutoSendAmount: "1000.0000",
+      maxAutoSendCurrency: "USD",
+      maxDiscountPercent: "25.0000",
+    };
+    const denied = await fetch(url, {
+      method: "PUT",
+      headers: { cookie: policyOnePermissionCookie, "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    expect(denied.status).toBe(403);
+    const unknown = await fetch(url, {
+      method: "PUT",
+      headers: { cookie: policyWriteCookie, "content-type": "application/json" },
+      body: JSON.stringify({ ...body, actorUserId: "untrusted" }),
+    });
+    expect(unknown.status).toBe(400);
+    const beforeInvalidAutonomy = {
+      policies: await prisma.quotePolicy.count({ where: { tenantId: tenantAId } }),
+      receipts: await prisma.quoteCommandReceipt.count({ where: { tenantId: tenantAId } }),
+      audits: await prisma.auditLog.count({ where: { tenantId: tenantAId } }),
+      outbox: await prisma.domainEventOutbox.count({ where: { tenantId: tenantAId } }),
+    };
+    for (const autonomyLevel of ["2", null, false, [], ""] as const) {
+      const invalid = await fetch(url, {
+        method: "PUT",
+        headers: { cookie: policyWriteCookie, "content-type": "application/json" },
+        body: JSON.stringify({ ...body, autonomyLevel }),
+      });
+      expect(invalid.status).toBe(400);
+      expect({
+        policies: await prisma.quotePolicy.count({ where: { tenantId: tenantAId } }),
+        receipts: await prisma.quoteCommandReceipt.count({ where: { tenantId: tenantAId } }),
+        audits: await prisma.auditLog.count({ where: { tenantId: tenantAId } }),
+        outbox: await prisma.domainEventOutbox.count({ where: { tenantId: tenantAId } }),
+      }).toEqual(beforeInvalidAutonomy);
+    }
+    const updated = await fetch(url, {
+      method: "PUT",
+      headers: { cookie: policyWriteCookie, "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    expect(updated.status).toBe(200);
+    expect(await updated.json()).toMatchObject({
+      success: true,
+      data: {
+        replayed: false,
+        recordedOutcome: { tenantId: tenantAId, policy: { autonomyLevel: 2, revision: 1 } },
+        current: {
+          autonomyLevel: 2,
+          maxAutoSendAmount: "1000",
+          maxAutoSendCurrency: "USD",
+          maxDiscountPercent: "25",
+          newCustomerRequiresApproval: true,
+          exceptionalProductRequiresApproval: true,
+          revision: 1,
+        },
+      },
+    });
+    expect((await fetch(url, { headers: { cookie: readCookie } })).status).toBe(200);
   });
 });

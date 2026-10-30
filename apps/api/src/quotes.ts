@@ -14,6 +14,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
   Req,
   UseGuards,
@@ -22,6 +23,7 @@ import {
   assertTenantModuleEntitled,
   createQuoteDraft,
   getQuoteById,
+  getQuotePolicy,
   listQuotes,
   QuoteAuthorizationError,
   QuoteCommandConflictError,
@@ -30,12 +32,15 @@ import {
   type QuoteListFilters,
   type QuoteManagerDatabase,
   QuoteNotFoundError,
+  type QuotePolicyDatabase,
+  type QuotePolicyInput,
   QuoteRevisionConflictError,
   QuoteValidationError,
   type TenantContext,
   TenantModuleEntitlementRequiredError,
   TenantNotOperationalError,
   updateQuoteDraft,
+  updateQuotePolicy,
 } from "@whatsapp-platform/database";
 import type { PermissionKey } from "@whatsapp-platform/rbac";
 import { TenantUserSessionGuard } from "./tenant-auth";
@@ -320,6 +325,89 @@ function parseListQuery(value: unknown): QuoteListFilters {
   };
 }
 
+function parsePolicyInput(value: unknown): QuotePolicyInput {
+  const body = object(value, "quote policy request");
+  exactKeys(
+    body,
+    [
+      "idempotencyKey",
+      "expectedRevision",
+      "autonomyLevel",
+      "maxAutoSendAmount",
+      "maxAutoSendCurrency",
+      "maxDiscountPercent",
+      "minMarginPercent",
+      "requireStock",
+      "newCustomerRequiresApproval",
+      "exceptionalProductRequiresApproval",
+      "allowSelfApproval",
+    ],
+    "quote policy request",
+  );
+  if (!Number.isSafeInteger(body.expectedRevision) || Number(body.expectedRevision) < 0)
+    throw new BadRequestException("expectedRevision must be a non-negative safe integer");
+  const autonomyLevel = body.autonomyLevel;
+  if (
+    typeof autonomyLevel !== "number" ||
+    !Number.isInteger(autonomyLevel) ||
+    autonomyLevel < 0 ||
+    autonomyLevel > 3
+  )
+    throw new BadRequestException("autonomyLevel must be an integer from 0 to 3");
+  const optionalDecimal = (key: string): string | null | undefined => {
+    const value = body[key];
+    if (value === undefined || value === null) return value;
+    if (typeof value !== "string")
+      throw new BadRequestException(`${key} must be a decimal string or null`);
+    return value;
+  };
+  const optionalBoolean = (key: string): boolean | undefined => {
+    const value = body[key];
+    if (value === undefined) return undefined;
+    if (typeof value !== "boolean") throw new BadRequestException(`${key} must be a boolean`);
+    return value;
+  };
+  return {
+    idempotencyKey: requiredString(body.idempotencyKey, "idempotencyKey"),
+    expectedRevision: Number(body.expectedRevision),
+    autonomyLevel: autonomyLevel as 0 | 1 | 2 | 3,
+    ...(body.maxAutoSendAmount === undefined
+      ? {}
+      : { maxAutoSendAmount: optionalDecimal("maxAutoSendAmount") as string | null }),
+    ...(body.maxAutoSendCurrency === undefined
+      ? {}
+      : {
+          maxAutoSendCurrency: optionalString(body.maxAutoSendCurrency, "maxAutoSendCurrency") as
+            | string
+            | null,
+        }),
+    ...(body.maxDiscountPercent === undefined
+      ? {}
+      : { maxDiscountPercent: optionalDecimal("maxDiscountPercent") as string | null }),
+    ...(body.minMarginPercent === undefined
+      ? {}
+      : { minMarginPercent: optionalDecimal("minMarginPercent") as string | null }),
+    ...(body.requireStock === undefined
+      ? {}
+      : { requireStock: optionalBoolean("requireStock") as boolean }),
+    ...(body.newCustomerRequiresApproval === undefined
+      ? {}
+      : {
+          newCustomerRequiresApproval: optionalBoolean("newCustomerRequiresApproval") as boolean,
+        }),
+    ...(body.exceptionalProductRequiresApproval === undefined
+      ? {}
+      : {
+          exceptionalProductRequiresApproval: optionalBoolean(
+            "exceptionalProductRequiresApproval",
+          ) as boolean,
+        }),
+    ...(body.allowSelfApproval === undefined
+      ? {}
+      : { allowSelfApproval: optionalBoolean("allowSelfApproval") as boolean }),
+  };
+}
+
 function mapQuoteError(error: unknown): never {
   if (error instanceof QuoteAuthorizationError) throw new ForbiddenException("Forbidden");
   if (error instanceof QuoteValidationError) throw new BadRequestException(error.message);
@@ -336,7 +424,34 @@ function mapQuoteError(error: unknown): never {
 
 @Injectable()
 export class QuotesService {
-  constructor(@Inject(QUOTES_DATABASE) private readonly database: QuoteManagerDatabase) {}
+  constructor(
+    @Inject(QUOTES_DATABASE)
+    private readonly database: QuoteManagerDatabase & QuotePolicyDatabase,
+  ) {}
+
+  async getPolicy(context: TenantContext) {
+    try {
+      return await getQuotePolicy(context, this.database);
+    } catch (error) {
+      return mapQuoteError(error);
+    }
+  }
+
+  async updatePolicy(
+    context: TenantContext,
+    identity: TenantSessionIdentity,
+    request: TenantAuthenticationRequest,
+    input: QuotePolicyInput,
+  ) {
+    try {
+      return await updateQuotePolicy(context, this.database, input, {
+        actorUserId: identity.userId,
+        requestId: requestId(request),
+      });
+    } catch (error) {
+      return mapQuoteError(error);
+    }
+  }
 
   async create(
     context: TenantContext,
@@ -422,6 +537,28 @@ export class QuotesController {
     return {
       success: true,
       data: await this.service.create(context, identity, request, parseCreate(body)),
+    };
+  }
+
+  @Get("policy")
+  @quoteAuthorized("quotes.read")
+  async getPolicy(
+    @CurrentTenantContext() context: TenantContext,
+  ): Promise<ApiResponse<Awaited<ReturnType<QuotesService["getPolicy"]>>>> {
+    return { success: true, data: await this.service.getPolicy(context) };
+  }
+
+  @Put("policy")
+  @quoteAuthorized("tenant.settings.manage", "quotes.approve")
+  async updatePolicy(
+    @CurrentTenantContext() context: TenantContext,
+    @CurrentTenantIdentity() identity: TenantSessionIdentity,
+    @Req() request: TenantAuthenticationRequest,
+    @Body() body: unknown,
+  ): Promise<ApiResponse<Awaited<ReturnType<QuotesService["updatePolicy"]>>>> {
+    return {
+      success: true,
+      data: await this.service.updatePolicy(context, identity, request, parsePolicyInput(body)),
     };
   }
 

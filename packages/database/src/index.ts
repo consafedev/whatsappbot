@@ -588,6 +588,27 @@ export {
   updateQuoteDraft,
 } from "./quote-manager";
 export {
+  absentQuotePolicyHash,
+  type CalculatedQuote,
+  DEFAULT_QUOTE_POLICY,
+  DEFAULT_QUOTE_POLICY_CONFIGURATION,
+  evaluateQuotePolicy,
+  type QuotePolicyConfiguration,
+  type QuotePolicyEvaluation,
+  type QuotePolicyInput,
+  type QuotePolicyReason,
+  type QuotePolicyView,
+  quotePolicyContentHash,
+  type TrustedQuotePolicyFacts,
+} from "./quote-policy";
+export {
+  getQuotePolicy,
+  type QuotePolicyCommandOutcome,
+  type QuotePolicyDatabase,
+  type QuotePolicyRecordedOutcome,
+  updateQuotePolicy,
+} from "./quote-policy-manager";
+export {
   TenantRbacRecordNotFoundError,
   UnknownPermissionKeyError,
 } from "./rbac-data-access";

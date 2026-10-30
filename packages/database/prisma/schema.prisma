@@ -224,6 +224,7 @@ model Tenant {
   appointmentBookingTurns AppointmentBookingTurn[]
   quotes               Quote[]
   quoteCommandReceipts QuoteCommandReceipt[]
+  quotePolicy          QuotePolicy?
   quoteCommercialContributors QuoteCommercialContributor[]
   quoteItems           QuoteItem[]
 
@@ -1462,6 +1463,27 @@ model QuoteCommandReceipt {
   @@unique([tenantId, idempotencyKey], map: "quote_command_receipts_tenant_key_key")
   @@index([tenantId, resourceId, recordedAt], map: "quote_command_receipts_tenant_resource_recorded_idx")
   @@map("quote_command_receipts")
+}
+
+model QuotePolicy {
+  tenantId                    String   @id @map("tenant_id") @db.Uuid
+  autonomyLevel               Int      @default(0) @map("autonomy_level") @db.SmallInt
+  maxAutoSendAmount           Decimal? @map("max_auto_send_amount") @db.Decimal(24, 4)
+  maxAutoSendCurrency         String?  @map("max_auto_send_currency") @db.Char(3)
+  maxDiscountPercent          Decimal? @map("max_discount_percent") @db.Decimal(9, 4)
+  minMarginPercent            Decimal? @map("min_margin_percent") @db.Decimal(9, 4)
+  requireStock                Boolean  @default(false) @map("require_stock")
+  newCustomerRequiresApproval Boolean  @default(true) @map("new_customer_requires_approval")
+  exceptionalProductRequiresApproval Boolean @default(true) @map("exceptional_product_requires_approval")
+  allowSelfApproval           Boolean  @default(false) @map("allow_self_approval")
+  revision                    Int      @default(1)
+  contentHash                 String   @map("content_hash") @db.Char(64)
+  createdAt                   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "quote_policy_tenant_fkey")
+
+  @@map("quote_policy")
 }
 
 model QuoteCommercialContributor {

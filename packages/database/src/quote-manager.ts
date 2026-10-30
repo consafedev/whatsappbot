@@ -6,10 +6,13 @@ import {
   QuoteCalculationValidationError,
   recalculateQuoteInTransaction,
 } from "./quote-calculation";
+import { quoteCommandLock as commandLock, quoteTenantPolicyLock } from "./quote-command-locks";
 import { createTenantContext, type TenantContext } from "./tenant-context";
 import { createTenantDataAccess, type TenantTransactionDatabase } from "./tenant-data-access";
 import { assertTenantModuleEntitled } from "./tenant-entitlements";
 import { assertTenantOperational } from "./tenant-operational";
+
+export { quoteTenantPolicyLock } from "./quote-command-locks";
 
 export const QUOTE_DRAFT_LIMITS = Object.freeze({
   commandBytes: 256 * 1024,
@@ -799,21 +802,6 @@ function commercialRepresentation(
       metadata: line.metadata,
     })),
   };
-}
-
-export async function quoteTenantPolicyLock(
-  transaction: Prisma.TransactionClient,
-  tenantId: string,
-): Promise<void> {
-  await transaction.$queryRaw`SELECT 1 AS locked FROM pg_advisory_xact_lock(hashtextextended(${`quotes:tenant-policy:${tenantId.toLowerCase()}`}, 0))`;
-}
-
-async function commandLock(
-  transaction: Prisma.TransactionClient,
-  tenantId: string,
-  key: string,
-): Promise<void> {
-  await transaction.$queryRaw`SELECT 1 AS locked FROM pg_advisory_xact_lock(hashtextextended(${`quotes:command:${tenantId.toLowerCase()}:${key}`}, 0))`;
 }
 
 async function numberLock(transaction: Prisma.TransactionClient, tenantId: string): Promise<void> {

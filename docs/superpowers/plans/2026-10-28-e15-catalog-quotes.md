@@ -122,7 +122,7 @@ For every story that changes schema, validate/generate Prisma, compare clean-sch
 
 ### Task 4: E15-S04 — Quote Policy
 
-**Reservation:** `e15_s04_luna` (gpt-6-luna), based on published S03 feature `0ebea786708dde64fd90705f9d39a3442e96d16b` plus the subsequent root checkpoint. RESERVED / READY only; do not start before root checkpoint. Root retains shared documentation, Git and migration gates.
+**Implementer:** `e15_s04_luna` (gpt-6-luna), base checkpoint `a228397` after published S03 feature `0ebea786708dde64fd90705f9d39a3442e96d16b`. S04 is PASS validated; feature commit/push is pending with no SHA. Root retains shared documentation, Git and migration gates.
 
 **Files**
 
@@ -138,11 +138,11 @@ For every story that changes schema, validate/generate Prisma, compare clean-sch
 - evaluateQuotePolicy(policy: QuotePolicyView, quote: CalculatedQuote, facts: TrustedQuotePolicyFacts): QuotePolicyEvaluation; return AUTO_APPROVE or HUMAN_REVIEW with stable reasons. TrustedQuotePolicyFacts is built only from DB reads.
 - Fields: autonomy 0–3, nullable max amount/currency pair, nullable max discount, nullable minimum margin, stock/new-customer/exceptional-product triggers, self-approval opt-in, monotonic revision and content hash. Defaults include exceptionalProductRequiresApproval=true. Read requires quotes.read; write AND tenant.settings.manage + quotes.approve; module.quotes required.
 
-- [ ] Step 1 — RED: Add defaultsToManualWithoutWriteOnReadAtRevisionZero, absentDefaultHashIsDeterministic, updateCreatesPolicyUnderSharedMutex, requiresBoundedAmountAndCurrencyForAutonomyTwoOrThree, comparesAmountInclusivelyAndCurrencyExactly, blocksAutomaticWhenStockOrProtectedMarginIsUnknown, usesTrustedHistoryAndExceptionalFacts, defaultsExceptionalItemsToHumanReview, appliesLineDiscountRatioWithIntegerComparison, noOpPolicyWriteRetainsRevisionAndHash, changeAndRevertDoesNotResurrectPriorHash, policyHashIncludesRevisionButNotActorOrTimestamp, policyWriteSerializesWithQuoteCommands, and API dual-permission tests.
-- [ ] Step 2 — Run RED: pnpm exec vitest run packages/database/src/quote-policy.test.ts and pnpm test:integration:catalog-quotes. Expected missing evaluator/manager failures.
-- [ ] Step 3 — Implement tenant-only policy and evaluator. Default autonomy 0, no automatic path, stock false, exceptional approval true, self-approval false, no ceilings. Policy GET is read-only. Writers and Quote commands share tenant advisory mutex. Hash canonical policy fields plus monotonic policy revision, excluding actor/timestamps; no-op writes retain revision/hash.
-- [ ] Step 4 — GREEN: both targeted Vitest commands, DB validate/generate, compare clean-schema SDL and ordered Git-HEAD baseline upgrade with actual SQL, parent applies locally and verifies migration checksum, then focused DB/API suite, root typecheck/lint. Expected policy concurrency and hostile-input cases pass.
-- [ ] Step 5 — Independent policy audit; parent docs/manifest and S04 commit/push before S05.
+- [x] Step 1 — Add defaultsToManualWithoutWriteOnReadAtRevisionZero, absentDefaultHashIsDeterministic, updateCreatesPolicyUnderSharedMutex, requiresBoundedAmountAndCurrencyForAutonomyTwoOrThree, comparesAmountInclusivelyAndCurrencyExactly, blocksAutomaticWhenStockOrProtectedMarginIsUnknown, usesTrustedHistoryAndExceptionalFacts, defaultsExceptionalItemsToHumanReview, appliesLineDiscountRatioWithIntegerComparison, noOpPolicyWriteRetainsRevisionAndHash, changeAndRevertDoesNotResurrectPriorHash, policyHashIncludesRevisionButNotActorOrTimestamp, policyWriteSerializesWithQuoteCommands, and API dual-permission tests.
+- [x] Step 2 — RED: the typed evaluator stub returned HUMAN_REVIEW where eligible cases expected AUTO_APPROVE. R1 API RED reproduced string autonomyLevel "2" returning200 instead of400; the fix now rejects coercible values. The direct integration attempt without DATABASE_URL was setup failure, not behavioral RED.
+- [x] Step 3 — Implement tenant-only policy/defaults, deterministic evaluator, revisioned updates and guarded static GET/PUT routes. Absent GET is a no-write autonomy0/revision0 view. Writers share the tenant advisory lock with Quote commands; default stock/new-customer/exceptional-product and self-approval settings remain conservative.
+- [x] Step 4 — Final post-fix gates: pure12/12; focused DB45/45 in3 files and API5/5 in2 files, zero skipped; root unit552/60; root and 17 workspace typechecks; focal DB/API types/builds; Biome520 without warnings; diff-check PASS. Prisma7.9.1 validate/generate, clean SDL and HEAD upgrade39 without drift, local apply and checksums37/38/39 MATCH. SQL39 SHA-256 `d0e87fcd72ed4cea44947785be965ed486af913291a01522aeaa14dbd15376e8` remains unchanged. The full R0 DB424/57, API232/29, jobs1, outbound3, isolation9+37 run preceded the parser fix and is not post-fix full-suite evidence.
+- [ ] Step 5 — Independent audit approved without findings; shared docs updated. S04 feature commit/push remains pending, no SHA. S05 remains unreserved until S04 publication.
 
 ### Task 5: E15-S05 — Approval Workflow
 

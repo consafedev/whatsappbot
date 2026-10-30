@@ -73,6 +73,13 @@ Only trusted database facts feed policy evaluation: prior tenant/contact quotes 
 
 For each line, compare effective rounded line discount against rounded line gross and `maxDiscountPercent` by exact integer cross-multiplication. Do not calculate a floating-point percentage. A positive discount on zero gross is invalid; zero/zero is 0%. Null discount ceiling makes automatic eligibility fail closed. Autonomy 0 and 1 always route to human approval. Levels 2 and 3 use the same fail-closed deterministic eligibility gates; level 3 does not bypass limits. A new customer or exceptional item requires human approval when configured. Amount comparison is inclusive (`total <= ceiling`).
 
+Policy update guard clarification2026-10-29: configuration commands include an
+idempotency key and `expectedRevision` (0 for absent default). A fresh stale
+command conflicts; a receipt replay remains stable after current authorization.
+An unchanged absent default remains revision0 with no policy row and only its
+command receipt. New-customer review defaults true. Amount ceiling storage is
+NUMERIC(24,4), matching quote aggregates; config does not require CRM/Catalog.
+
 ### Narrow approval lifecycle
 
 S05 adds a `QuoteApproval` record for each request/decision rather than expanding generic ActionRequests. It stores tenant, quote, source revision, policy revision/hash, request actor/time, request state, nullable decision actor type/id/time, decision and structured reason code/note. Automatic approval uses `actorType=system_policy`, null actor id, and an explicit reason; it never impersonates a user. Manual approval requires `quotes.approve`. Self-approval is rejected unless the current policy explicitly enables it. Rejection is authenticated and recorded. Request and decisions atomically persist quote/approval state, AuditLog and Outbox.

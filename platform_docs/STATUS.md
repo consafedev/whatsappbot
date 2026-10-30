@@ -2,7 +2,7 @@
 
 **Actualizado:** 2026-10-29
 **Versión de producto:** `0.0.0`  
-**Latest validated story:** E15-S03 — PASS / COMPLETE; published as `0ebea786708dde64fd90705f9d39a3442e96d16b` on `codex/e15-catalog-quotes`.
+**Latest validated story:** E15-S04 — PASS; final verification passed; feature publication pending, no SHA.
 **Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; Epic 11 — Campaign Engine & Audience Broadcasts — PASS / COMPLETE; **Epic 12 — Reporting, Analytics & Operational Observability — PASS / COMPLETE (E12-S01, E12-S02, E12-S03, E12-S04, E12-S05 PASS); E13-S01 — PASS / COMPLETE; E13-S02 — PASS / COMPLETE; E13-S03 — PASS / COMPLETE; E13-S04 — PASS / COMPLETE; E14-S01 — PASS / COMPLETE; E14-S02 — PASS / COMPLETE; E14-S03 — PASS / COMPLETE; E14-S04 — PASS / COMPLETE; E14-S05 — PASS / COMPLETE; E14-S06 — PASS / COMPLETE; E14-S07 — PASS / COMPLETE; E14-S08 — PASS / COMPLETE; E14-S09 — PASS / COMPLETE; E14-S10 — PASS / COMPLETE**.
 
 ## Current milestone
@@ -20,15 +20,23 @@ S03 Deterministic Calculation passed implementation gates and independent audit
 from checkpoint `dd0d501`; published at
 `0ebea786708dde64fd90705f9d39a3442e96d16b`, with identical remote SHA. Remote
 main `fb8639db15ec262fcc13432f9aee4536deb8367e` does not contain S03. S04 Quote
-Policy is RESERVED / READY for `e15_s04_luna` (gpt-6-luna) from this feature and
-subsequent root checkpoint; it has not started. S05–S08 remain pending.
+Policy is validated PASS with `e15_s04_luna` (gpt-6-luna), from checkpoint
+`a228397` after published S03. Rereview approved with zero findings after fixing
+strict JSON number validation. Focused DB45/45 (3 files) and API5/5 (2 files),
+pure12/12, root unit552/60, root and 17 workspace typechecks, focal DB/API
+types/builds, global Biome520 and diff-check passed; zero skipped. Prisma7.9.1
+validate/generate, clean-schema/HEAD upgrade39, local apply and checksums37/38/39
+MATCH; SQL39 remains immutable. Feature commit/push is pending without SHA; do
+not claim a full post-fix DB/API/jobs/outbound/isolation rerun: DB424/API232/
+jobs/outbound/isolation R0 preceded the parser fix. S05 is next, unreserved;
+S06–S08 remain pending.
 One epic is active. User-directed E15 priority does not certify or remove
 the outstanding real Baileys transport and backup/restore P0 gates.
 E14-S01–S03 are in main; S04–S10 remain delivered on the E14 feature ancestry.
 Epic 13 — Task Scheduling & Distributed Orchestration remains tracked below.
 Shared coordination and reservations: `platform_docs/avance_orquestador.md`.
 
-### E15 — Catalog + Quote (IN PROGRESS: S04 next)
+### E15 — Catalog + Quote (IN PROGRESS: S05 next after S04 publication)
 
 Two Luna reconnaissance slices found no existing Product/Quote implementation.
 ADR-0072/spec/plan were accepted and published. E15-S01 now delivers the
@@ -99,11 +107,34 @@ Biome515 passed. Prisma7.9.1 validate/generate passed; SQL37/38 checksums match,
 with no schema or migration change. Logs `%TEMP%/whatsappbot-e15-s03-full.log`,
 `%TEMP%/whatsappbot-e15-s03-unit-final.log` and
 `%TEMP%/whatsappbot-e15-s03-workspace-types-final.log`. S04 Quote Policy is
-RESERVED / READY for `e15_s04_luna` (gpt-6-luna) from published feature
-`0ebea786708dde64fd90705f9d39a3442e96d16b` and the subsequent root checkpoint.
-Scope is Task4 policy schema/evaluator/manager/API/tests; root retains docs, Git
-and migration gates. It has not started and has no implementation/test PASS.
-Wait for root checkpoint before starting. S05–S08 remain pending. No E16
+PASS validated with `e15_s04_luna` (gpt-6-luna); feature publication is pending.
+Implementation started from published checkpoint
+`a228397` after feature `0ebea786708dde64fd90705f9d39a3442e96d16b`.
+Task4 implements the tenant QuotePolicy default/evaluator/configuration and
+static GET/PUT routes only. GET absent policy returns deterministic autonomy-0,
+revision-0 without a database write; API writes require module.quotes plus
+tenant.settings.manage and quotes.approve, while reads require quotes.read. It
+does not require CRM/catalog, change Quote lifecycle, or add S05 approval work.
+Receipts use required `resourceId` with the real Tenant ID and nullable
+`quoteId:null`. When policy requires stock or margin facts with no trusted
+source, the evaluator returns HUMAN_REVIEW; if those requirements are not
+configured, their absence does not independently block automation. R1 review
+approved after fixing strict autonomy-level parsing;
+the focused post-fix suites pass DB45/45 (3 files) and API5/5 (2 files), zero
+skipped. Root unit552/60, root TypeScript, sequential17 workspace typechecks,
+focal DB/API types/builds, global Biome520 files without warnings and
+`git diff --check` pass. Logs: `%TEMP%/whatsappbot-e15-s04-unit-final.log`,
+`%TEMP%/whatsappbot-e15-s04-root-types-final.log`,
+`%TEMP%/whatsappbot-e15-s04-workspace-types-final.log`,
+`%TEMP%/whatsappbot-e15-s04-biome-final.log`. Prisma7.9.1 validate/generate,
+clean-schema/HEAD upgrade39 without drift, local apply and checksums37/38/39
+MATCH; SQL39 SHA-256 is
+`d0e87fcd72ed4cea44947785be965ed486af913291a01522aeaa14dbd15376e8` and remains
+unchanged. Full R0 DB424/API232/jobs1/outbound3/isolation9+37 exited0 before
+the two-line coercion fix and is valid pre-fix evidence; post-fix focused tests
+verify the correction. No post-fix full-suite rerun is claimed. S04 is PASS
+validated, with feature publication pending and no SHA.
+S05–S08 remain pending. No E16
 document renderer or real WhatsApp delivery is implied.
 
 ### E14-S10 — Rules-driven WhatsApp booking (PASS / COMPLETE)

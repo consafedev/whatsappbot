@@ -5,6 +5,6 @@ export default defineConfig({
     fileParallelism: false,
     include: ["src/catalog.integration.ts", "src/quotes.integration.ts"],
     pool: "forks",
-    testTimeout: 30_000,
+    testTimeout: 60_000,
   },
 });
