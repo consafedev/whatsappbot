@@ -53,8 +53,11 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
   focused DB45/45 + API5/5 pass; root unit552/60, root and17 workspace types,
   Biome520, schema39 and checksum gates pass. Full R0 passed before the parser
   fix and is retained as valid pre-fix evidence; post-fix focused tests cover the
-  correction. Feature publication is pending without SHA; details are in STATUS
-  and avance_orquestador.
+  correction. Feature `bd52fbd4df2def95942d7e69e1b4dd3039c00106` was pushed to
+  `origin/codex/e15-catalog-quotes` with matching remote SHA; remote `main`
+  `fb8639db15ec262fcc13432f9aee4536deb8367e` does not contain S04. S05 approval
+  is reserved/ready for `e15_s05_luna` after the root checkpoint; no S05
+  implementation or PASS is claimed.
 
 - E14-S10 deterministic appointment conversations behind the exclusive
   `start_appointment_booking` rule action. PostgreSQL owns canonical inbound

@@ -2756,9 +2756,12 @@ validada PASS / COMPLETE y publicada como
 Calculation está PASS / COMPLETE y publicada como
 `0ebea786708dde64fd90705f9d39a3442e96d16b`; push y SHA remoto idéntico verificados.
 `main` (`fb8639db15ec262fcc13432f9aee4536deb8367e`) no contiene S03. S04 Quote
-Policy está validada PASS, con publicación pendiente y sin SHA. S05 Quote
-Approval es lo siguiente, sin reserva hasta publicación de S04; S06–S08 siguen
-pendientes. CORE/CRM cubren datos; DOCUMENTS se exige en E16 al generar/entregar. E15-S08 crea
+Policy está PASS / COMPLETE y publicada como
+`bd52fbd4df2def95942d7e69e1b4dd3039c00106`; push y SHA remoto idéntico
+verificados. Main `fb8639db15ec262fcc13432f9aee4536deb8367e` no contiene S04.
+S05 Quote Approval está RESERVED / READY para `e15_s05_luna` desde S04 y el
+checkpoint posterior de root; aún no ha iniciado. S06–S08 siguen pendientes.
+CORE/CRM cubren datos; DOCUMENTS se exige en E16 al generar/entregar. E15-S08 crea
 intención durable, no un PDF/quote.sent.
 
 ## E15-S01 Product catalog basic [M]
@@ -2843,13 +2846,15 @@ API4/4 (two files each); full DB412/56 files, API231/29 files, jobs1/1,
 outbound3/3, isolation DB9/API37, zero skipped; root unit540/59 files;
 root+17 workspace typechecks, focal DB/API types and builds, Biome515, and
 Prisma7.9.1 validate/generate all PASS. S04 Quote Policy passed independent
-rereview and focused/root/schema gates as recorded below; feature publication
-remains pending. S05 Approval is next and unreserved until S04 publication;
+rereview and focused/root/schema gates and is published as recorded below.
+S05 Approval is reserved for `e15_s05_luna` until the root checkpoint;
 S06–S08 remain pending.
 
 ## E15-S04 Quote policy [M]
 
-**Estado 2026-10-29: PASS validada; publicación pendiente, sin feature SHA.**
+**Estado 2026-10-29: PASS / COMPLETE; publicada en `bd52fbd4df2def95942d7e69e1b4dd3039c00106`.**
+Push a `origin/codex/e15-catalog-quotes` salió exit0 y ls-remote confirmó SHA
+idéntico; main no contiene S04.
 Implementó getQuotePolicy, evaluator, manager y rutas estáticas GET/PUT. La
 lectura de política ausente devuelve default autonomy0, revision0 y hash
 determinista sin write, receipt, audit, outbox ni advisory lock. GET requiere
@@ -2873,10 +2878,15 @@ SHA-256: d0e87fcd72ed4cea44947785be965ed486af913291a01522aeaa14dbd15376e8; SQL39
 inmutable. Full R0 anterior al parser fix pasó (DB424/57 files, API232/29,
 jobs1, outbound3, isolation9+37, cero skipped) como gate válido pre-fix. El
 focused GREEN post-fix confirma la corrección; no se reejecutó la full suite
-después del fix. S05 Approval sigue pendiente y sin reserva; esperar publicación
-de S04 antes de abrirla.
+después del fix. S05 Approval sigue reservada hasta el checkpoint de root.
 
 ## E15-S05 Approval workflow [L]
+
+**Estado: RESERVED / READY para `e15_s05_luna` (gpt-6-luna).** Base: feature
+S04 `bd52fbd4df2def95942d7e69e1b4dd3039c00106` y checkpoint posterior de root.
+Task5 schema, approval/lifecycle manager, API y tests; root conserva docs/Git y
+migration gates. No ha iniciado ni tiene implementación o PASS de tests; esperar
+el checkpoint root antes de comenzar.
 
 ## E15-S06 Quote UI [L]
 

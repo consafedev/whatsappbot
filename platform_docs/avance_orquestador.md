@@ -52,7 +52,7 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
 | Messaging/inbox/rules/canales | Contratos, normalización, persistencia/colas/UI presentes; transporte real Baileys pendiente P0. |
 | IA/campañas/reportes/scheduler | Implementaciones presentes con IDs históricos distintos al backlog. E13-S05 conserva estado normativo pendiente de cierre. |
 | Agenda E14 | S01–S10 completas; S01–S03 integradas en main y S04–S10 publicadas en rama. |
-| Catálogo/cotizaciones E15 | S01–S03 PASS / COMPLETE publicados; S03 `0ebea786708dde64fd90705f9d39a3442e96d16b`, SHA remoto idéntico y fuera de main. S04 Quote Policy PASS validada; publicación pendiente, sin SHA. S05 Quote Approval siguiente, sin reserva hasta publicar S04; S06–S08 pendientes. |
+| Catálogo/cotizaciones E15 | S01–S04 PASS / COMPLETE publicados; S04 `bd52fbd4df2def95942d7e69e1b4dd3039c00106`, SHA remoto idéntico; main `fb8639db15ec262fcc13432f9aee4536deb8367e` no lo contiene. S05 Quote Approval RESERVED / READY para `e15_s05_luna`, espera checkpoint de root; sin implementación/PASS. S06–S08 pendientes. |
 | Procesos/timeline/Action Requests | Pendientes según backlog y equivalencias históricas; no confundir E10/E11 implementadas de IA/campañas con Process/Timeline originales. |
 | Documentos/portal | Pendientes; presencia de una ruta o package vacío no acredita implementación. |
 | Backups/restore y hardening precliente | No certificados; restore drill y transporte real bloquean declaración de MVP vendible. |
@@ -75,8 +75,8 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
 | E15-S01 | e15_s01_luna (gpt-6-luna): Product schema/SQL, catalog-manager/API/tests, focused configs/scripts. Reserva liberada; coordinador docs/Git/gates. Base4f76f22 | PASS / COMPLETE | `003d48a2bfa03cccad3b6cb5a5574aed5e66c524`; push `origin/codex/e15-catalog-quotes` exit0 y SHA idéntico verificado | DB11/11 + API3/3, cero skipped; unit528/528 en58files; Prisma7.9.1, clean/ordered upgrade, migration37 checksum, typecheck y Biome508 PASS; rereview aprobado |
 | E15-S02 | e15_s02_luna (gpt-6-luna), base `0d434a22011ec015e762d5c8a1ad042fa5a6ea41`; Quote/Item/Receipt/Contributor schema/SQL + manager/API/configs según Task2; root conserva docs/Git | PASS / COMPLETE | `9f87002519e96eac03724d93c11cac7453b7bd26`; push `origin/codex/e15-catalog-quotes` exit0 y SHA idéntico verificado; `main` no lo contiene | Rereview round3 approved; DB32/API4 focal; full DB411/API231/jobs1/outbound3/isolation9+37; root528/58; zero skipped; types, Biome513, Prisma/schema and checksums37/38 PASS |
 | E15-S03 | e15_s03_luna (gpt-6-luna); base `dd0d501969db207d2c25d5fbc5bf880ab3a6d90c`; calculator/tests, manager y ajuste mínimo de prueba API; root docs/Git/gates, Sol auditor | PASS / COMPLETE | `0ebea786708dde64fd90705f9d39a3442e96d16b`; push `origin/codex/e15-catalog-quotes` exit0 y SHA idéntico verificado; `main` no lo contiene | Spec/calidad aprobada, cero findings; pure RED12 assertions → GREEN12/12; focal DB33/API4; full DB412/API231/jobs1/outbound3/isolation9+37; unit540/59; root+17 workspace types, focal types/builds, Biome515, Prisma/schema/checksum PASS; zero skipped |
-| E15-S04 | e15_s04_luna (gpt-6-luna); base `a228397` posterior a feature `0ebea786708dde64fd90705f9d39a3442e96d16b`; policy schema/evaluator/manager/API/tests; root conserva docs/Git/migration gates | PASS validada; publicación pendiente | — | Rereview aprobado sin findings; pure12/12, focused DB45/3files + API5/2files; root552/60; root+17 workspace types, focal types/builds, Biome520, Prisma/schema/checksum PASS; cero skipped |
-| E15-S05 | Sin reserva | PENDING | — | Approval workflow |
+| E15-S04 | e15_s04_luna (gpt-6-luna); base `a228397` posterior a feature `0ebea786708dde64fd90705f9d39a3442e96d16b`; policy schema/evaluator/manager/API/tests; root conserva docs/Git/migration gates | PASS / COMPLETE | `bd52fbd4df2def95942d7e69e1b4dd3039c00106`; push exit0 y SHA remoto idéntico; main no lo contiene | Rereview aprobado sin findings; pure12/12, focused DB45/3files + API5/2files; root552/60; root+17 workspace types, focal types/builds, Biome520, Prisma/schema/checksum PASS; cero skipped |
+| E15-S05 | e15_s05_luna (gpt-6-luna); Task5 approval/lifecycle/schema/API/tests; base S04 + checkpoint posterior de root | RESERVED / READY; esperar checkpoint | — | Sin implementación ni PASS; S06–S08 pendientes |
 | E15-S06 | Sin reserva | PENDING | — | Quote UI |
 | E15-S07 | Sin reserva | PENDING | — | Quote version snapshot |
 | E15-S08 | Sin reserva | PENDING | — | Send quote event |
@@ -148,9 +148,10 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
   `9f87002519e96eac03724d93c11cac7453b7bd26` con SHA remoto idéntico; `main`
   no contiene S02. S03 está PASS / COMPLETE, publicado como
   `0ebea786708dde64fd90705f9d39a3442e96d16b`; push y SHA remoto idéntico
-  verificados. `main` no contiene S03. S04 Quote Policy está PASS validada,
-  con publicación pendiente y sin SHA. S05 Quote Approval es siguiente pero
-  permanece sin reserva hasta que root publique S04; S06–S08 siguen pendientes.
+  verificados. `main` no contiene S03. S04 Quote Policy está PASS / COMPLETE,
+  publicada como `bd52fbd4df2def95942d7e69e1b4dd3039c00106` con SHA remoto
+  idéntico. S05 está reservada para `e15_s05_luna` hasta el checkpoint root;
+  S06–S08 siguen pendientes.
 - Las suites completas del cierre E14 pasaron; los gates actuales de S01 están
   delimitados en la tabla anterior. Persiste el límite histórico de BOM
   al reproducir toda la cadena pristine; se verificó esquema limpio y upgrade
@@ -158,8 +159,8 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
 - El cierre de E14 cumple el hito solicitado; se conserva la prioridad
   comercial P0 de conectar Baileys y probar backup/restore antes de cobrar.
 - E15 continúa por instrucción expresa del usuario. S02 y S03 están publicadas,
-  pero no integradas en main. S04 está PASS validada y espera publicación. S05
-  no tiene reserva. Transporte real Baileys y
+  pero no integradas en main. S04 está publicada y S05 reservada hasta el
+  checkpoint root. Transporte real Baileys y
   backup/restore P0 permanecen visibles y no se consideran resueltos por estos
   gates. Para S02 y S03 no se reclama full-workspace build.
 
@@ -529,3 +530,12 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
   policy exige esos facts; de otra forma no bloquea automáticamente. Lifecycle
   de Quote sigue en S05. S05 aún no tiene reserva; root conserva docs, Git y
   migraciones.
+
+- 2026-10-29: publicación S04 verificada: feature
+  `bd52fbd4df2def95942d7e69e1b4dd3039c00106`, push exit0 y SHA de `ls-remote`
+  idéntico; árbol limpio. Remote `main` permanece en
+  `fb8639db15ec262fcc13432f9aee4536deb8367e` y merge-base confirma que no
+  contiene S04. S04 queda PASS / COMPLETE. S05 queda RESERVED / READY para
+  `e15_s05_luna` (gpt-6-luna), Task5 approval/lifecycle/schema/API/tests, desde
+  S04 y checkpoint posterior de root; esperar ese checkpoint antes de iniciar.
+  S06–S08 siguen pendientes. No se afirma implementación ni PASS de S05.

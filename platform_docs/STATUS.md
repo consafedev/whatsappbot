@@ -2,7 +2,7 @@
 
 **Actualizado:** 2026-10-29
 **Versión de producto:** `0.0.0`  
-**Latest validated story:** E15-S04 — PASS; final verification passed; feature publication pending, no SHA.
+**Latest validated story:** E15-S04 — PASS / COMPLETE; published as `bd52fbd4df2def95942d7e69e1b4dd3039c00106` on `codex/e15-catalog-quotes`.
 **Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; Epic 11 — Campaign Engine & Audience Broadcasts — PASS / COMPLETE; **Epic 12 — Reporting, Analytics & Operational Observability — PASS / COMPLETE (E12-S01, E12-S02, E12-S03, E12-S04, E12-S05 PASS); E13-S01 — PASS / COMPLETE; E13-S02 — PASS / COMPLETE; E13-S03 — PASS / COMPLETE; E13-S04 — PASS / COMPLETE; E14-S01 — PASS / COMPLETE; E14-S02 — PASS / COMPLETE; E14-S03 — PASS / COMPLETE; E14-S04 — PASS / COMPLETE; E14-S05 — PASS / COMPLETE; E14-S06 — PASS / COMPLETE; E14-S07 — PASS / COMPLETE; E14-S08 — PASS / COMPLETE; E14-S09 — PASS / COMPLETE; E14-S10 — PASS / COMPLETE**.
 
 ## Current milestone
@@ -26,17 +26,18 @@ strict JSON number validation. Focused DB45/45 (3 files) and API5/5 (2 files),
 pure12/12, root unit552/60, root and 17 workspace typechecks, focal DB/API
 types/builds, global Biome520 and diff-check passed; zero skipped. Prisma7.9.1
 validate/generate, clean-schema/HEAD upgrade39, local apply and checksums37/38/39
-MATCH; SQL39 remains immutable. Feature commit/push is pending without SHA; do
-not claim a full post-fix DB/API/jobs/outbound/isolation rerun: DB424/API232/
-jobs/outbound/isolation R0 preceded the parser fix. S05 is next, unreserved;
-S06–S08 remain pending.
+MATCH; SQL39 remains immutable. S04 feature
+`bd52fbd4df2def95942d7e69e1b4dd3039c00106` is published with matching remote
+SHA and is not in main. DB424/API232/jobs/outbound/isolation R0 preceded the
+parser fix; focused post-fix suites verify that correction. S05 is reserved
+for `e15_s05_luna`, awaiting the root checkpoint; S06–S08 remain pending.
 One epic is active. User-directed E15 priority does not certify or remove
 the outstanding real Baileys transport and backup/restore P0 gates.
 E14-S01–S03 are in main; S04–S10 remain delivered on the E14 feature ancestry.
 Epic 13 — Task Scheduling & Distributed Orchestration remains tracked below.
 Shared coordination and reservations: `platform_docs/avance_orquestador.md`.
 
-### E15 — Catalog + Quote (IN PROGRESS: S05 next after S04 publication)
+### E15 — Catalog + Quote (IN PROGRESS: S05 next)
 
 Two Luna reconnaissance slices found no existing Product/Quote implementation.
 ADR-0072/spec/plan were accepted and published. E15-S01 now delivers the
@@ -107,8 +108,9 @@ Biome515 passed. Prisma7.9.1 validate/generate passed; SQL37/38 checksums match,
 with no schema or migration change. Logs `%TEMP%/whatsappbot-e15-s03-full.log`,
 `%TEMP%/whatsappbot-e15-s03-unit-final.log` and
 `%TEMP%/whatsappbot-e15-s03-workspace-types-final.log`. S04 Quote Policy is
-PASS validated with `e15_s04_luna` (gpt-6-luna); feature publication is pending.
-Implementation started from published checkpoint
+PASS / COMPLETE with `e15_s04_luna` (gpt-6-luna), published as
+`bd52fbd4df2def95942d7e69e1b4dd3039c00106`; push exited0 and remote SHA
+matches. Implementation started from published checkpoint
 `a228397` after feature `0ebea786708dde64fd90705f9d39a3442e96d16b`.
 Task4 implements the tenant QuotePolicy default/evaluator/configuration and
 static GET/PUT routes only. GET absent policy returns deterministic autonomy-0,
@@ -132,9 +134,12 @@ MATCH; SQL39 SHA-256 is
 `d0e87fcd72ed4cea44947785be965ed486af913291a01522aeaa14dbd15376e8` and remains
 unchanged. Full R0 DB424/API232/jobs1/outbound3/isolation9+37 exited0 before
 the two-line coercion fix and is valid pre-fix evidence; post-fix focused tests
-verify the correction. No post-fix full-suite rerun is claimed. S04 is PASS
-validated, with feature publication pending and no SHA.
-S05–S08 remain pending. No E16
+verify the correction. No post-fix full-suite rerun is claimed. S04 is PASS /
+COMPLETE and published as `bd52fbd4df2def95942d7e69e1b4dd3039c00106`; push and
+remote SHA match. Remote `main` remains `fb8639db15ec262fcc13432f9aee4536deb8367e`
+and does not contain S04. S05 is RESERVED / READY for `e15_s05_luna` from S04
+and the later root checkpoint. It has no implementation or test PASS; wait for
+that checkpoint before starting. S06–S08 remain pending. No E16
 document renderer or real WhatsApp delivery is implied.
 
 ### E14-S10 — Rules-driven WhatsApp booking (PASS / COMPLETE)

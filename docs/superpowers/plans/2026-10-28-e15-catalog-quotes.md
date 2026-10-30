@@ -122,7 +122,7 @@ For every story that changes schema, validate/generate Prisma, compare clean-sch
 
 ### Task 4: E15-S04 — Quote Policy
 
-**Implementer:** `e15_s04_luna` (gpt-6-luna), base checkpoint `a228397` after published S03 feature `0ebea786708dde64fd90705f9d39a3442e96d16b`. S04 is PASS validated; feature commit/push is pending with no SHA. Root retains shared documentation, Git and migration gates.
+**Implementer:** `e15_s04_luna` (gpt-6-luna), base checkpoint `a228397` after published S03 feature `0ebea786708dde64fd90705f9d39a3442e96d16b`. S04 is PASS / COMPLETE, published as `bd52fbd4df2def95942d7e69e1b4dd3039c00106` with matching remote SHA. Root retains shared documentation, Git and migration gates.
 
 **Files**
 
@@ -142,9 +142,15 @@ For every story that changes schema, validate/generate Prisma, compare clean-sch
 - [x] Step 2 — RED: the typed evaluator stub returned HUMAN_REVIEW where eligible cases expected AUTO_APPROVE. R1 API RED reproduced string autonomyLevel "2" returning200 instead of400; the fix now rejects coercible values. The direct integration attempt without DATABASE_URL was setup failure, not behavioral RED.
 - [x] Step 3 — Implement tenant-only policy/defaults, deterministic evaluator, revisioned updates and guarded static GET/PUT routes. Absent GET is a no-write autonomy0/revision0 view. Writers share the tenant advisory lock with Quote commands; default stock/new-customer/exceptional-product and self-approval settings remain conservative.
 - [x] Step 4 — Final post-fix gates: pure12/12; focused DB45/45 in3 files and API5/5 in2 files, zero skipped; root unit552/60; root and 17 workspace typechecks; focal DB/API types/builds; Biome520 without warnings; diff-check PASS. Prisma7.9.1 validate/generate, clean SDL and HEAD upgrade39 without drift, local apply and checksums37/38/39 MATCH. SQL39 SHA-256 `d0e87fcd72ed4cea44947785be965ed486af913291a01522aeaa14dbd15376e8` remains unchanged. The full R0 DB424/57, API232/29, jobs1, outbound3, isolation9+37 run preceded the parser fix and is not post-fix full-suite evidence.
-- [ ] Step 5 — Independent audit approved without findings; shared docs updated. S04 feature commit/push remains pending, no SHA. S05 remains unreserved until S04 publication.
+- [x] Step 5 — Independent audit approved without findings; shared docs updated. S04 feature `bd52fbd4df2def95942d7e69e1b4dd3039c00106` was pushed with matching remote SHA; remote `main` does not contain it.
 
 ### Task 5: E15-S05 — Approval Workflow
+
+**Status: RESERVED / READY** for `e15_s05_luna` (gpt-6-luna), based on S04
+feature `bd52fbd4df2def95942d7e69e1b4dd3039c00106` plus the later root
+checkpoint. Scope is Task5 approval/lifecycle/schema/API/tests; root retains
+shared docs, Git and migration gates. Wait for the checkpoint before starting.
+No S05 implementation or PASS is claimed.
 
 **Files**
 
