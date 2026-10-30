@@ -146,12 +146,8 @@ For every story that changes schema, validate/generate Prisma, compare clean-sch
 
 ### Task 5: E15-S05 — Approval Workflow
 
-**Status: PASS / VALIDATED; publication pending, no feature SHA.** S05 was
-implemented and independently approved from published checkpoint
-`0be1020ab3f4b220cbc9852d4a2ade3edb6778dc` after S04 feature
-`bd52fbd4df2def95942d7e69e1b4dd3039c00106`. Scope is Task5 approval/lifecycle/
-schema/API/tests; root retains shared docs, Git and migration gates. S06 is not
-reserved until S05 is published.
+**Status: PASS / COMPLETE**, published as `4d5ed221ce668755cd29c89b9a09b8cd9604ec68` with
+matching remote SHA and outside main. Base `0be1020`; root retains docs/Git.
 
 **Files**
 
@@ -175,9 +171,13 @@ reserved until S05 is published.
 - [x] Step 2 — RED: the corrected authenticated approval-request fixture supplied `expectedRevision` and received404 where200 was expected before route wiring. An earlier malformed request omitted that required field and is excluded from RED evidence.
 - [x] Step 3 — Implement narrow QuoteApproval transaction; do not create generic ActionRequests. Acquire command → policy → Quote → sorted related rows; reread quote, policy, contributors, contact and calculation; sample clock after locks. Increment Quote.revision and call the S03 transaction-aware canonical recalculator on stored inputs, persisting canonical totals, fresh calculationInputHash and calculatedRevision at that resulting revision. Quote cancellation uses tenant/current actor/module.quotes/quotes.create/owned Quote guards only. For a valid calculated cancellation, recalculate at next revision; for an uncalculated or missing-tax draft, preserve inputs and leave all computed totals/hash/calculatedRevision null. Autonomy0/1 requires human. Levels2/3 use only exact eligible results; system actor has null ID. Persist receipt, approval, audit/outbox atomically.
 - [x] Step 4 — Final post-fix focused DB57/4 files and API5/2 files passed with zero skipped; API build, scoped Biome7 and diff-check passed. Root unit552/60, root TypeScript, sequential17-workspace typechecks and global Biome522 passed. Prisma7.9.1 validate/generate, clean SDL and canonical HEAD rehydration upgrade through SQL40 passed with zero final drift; checksums37–40 match and SQL40 SHA-256 is `2ea04f4b854da03cb2318d7b454857d1146bcaae94e4e953919c62db3c7b804e`. Full R0 DB435/58, API232/29, jobs1, outbound3, isolation9+37 passed before the source fix; no post-fix full-suite rerun is claimed. Independent rereview approved without findings. Root-owned SQL40 apply and migration gates are recorded in the shared closeout.
-- [ ] Step 5 — Independent SoD/concurrency audit approved and shared docs updated; S05 feature commit/push remains pending with no SHA. Do not reserve S06 until publication is verified.
+- [x] Step 5 — Independent audit approved, shared docs updated; feature `4d5ed221ce668755cd29c89b9a09b8cd9604ec68` committed/pushed with matching remote SHA. Main excludes S05.
 
 ### Task 6: E15-S06 — Catalog and Quote UI
+
+**RESERVED / READY:** `e15_s06_luna` (gpt-6-luna), based on published S05
+feature plus the later root checkpoint. Task6 UI only; root shared docs/Git
+and browser gates. Wait for checkpoint; no implementation or PASS yet.
 
 **Files**
 

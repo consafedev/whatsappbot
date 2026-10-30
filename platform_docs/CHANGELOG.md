@@ -59,9 +59,10 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
   publication, S05 was reserved for `e15_s05_luna`; its later implementation and
   validation are recorded below.
 
-- E15-S05 Quote Approval is PASS / VALIDATED from checkpoint
-  `0be1020ab3f4b220cbc9852d4a2ade3edb6778dc`; feature publication is pending,
-  with no S05 SHA yet. It adds approval request/decision history bound to quote
+- E15-S05 Quote Approval is PASS / COMPLETE from checkpoint
+  `0be1020ab3f4b220cbc9852d4a2ade3edb6778dc`; feature
+  `4d5ed221ce668755cd29c89b9a09b8cd9604ec68` was pushed with matching remote SHA and
+  is not in main. It adds approval request/decision history bound to quote
   and policy revisions, separation of duties, lifecycle-aware edit/cancel, and
   recalculation of stored inputs and canonical hash on authority transitions.
   Cancellation keeps `Quote.status=cancelled`: the first result is `cancelled`,
@@ -84,8 +85,8 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
   the source fix; no post-fix full-suite rerun is claimed. Independent rereview
   approved without findings. The historical AI Gateway migration's `manual`
   checksum remains an unrelated chain limitation; historical SQL and
-  `_prisma_migrations` were not modified. S06 UI remains unreserved until S05
-  publication; S07–S08 remain pending.
+  `_prisma_migrations` were not modified. S06 UI is RESERVED / READY for `e15_s06_luna` after the root
+  checkpoint, with no implementation/PASS yet; S07–S08 remain pending.
 
 - E14-S10 deterministic appointment conversations behind the exclusive
   `start_appointment_booking` rule action. PostgreSQL owns canonical inbound

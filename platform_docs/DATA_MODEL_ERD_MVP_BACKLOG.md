@@ -2759,8 +2759,9 @@ Calculation está PASS / COMPLETE y publicada como
 Policy está PASS / COMPLETE y publicada como
 `bd52fbd4df2def95942d7e69e1b4dd3039c00106`; push y SHA remoto idéntico
 verificados. Main `fb8639db15ec262fcc13432f9aee4536deb8367e` no contiene S04.
-S05 Quote Approval está PASS / VALIDATED; publicación pendiente y sin SHA. S06
-no se reserva hasta publicar S05; S07–S08 siguen pendientes.
+S05 Quote Approval está PASS / COMPLETE, publicada como
+`4d5ed221ce668755cd29c89b9a09b8cd9604ec68` con SHA remoto idéntico y fuera de main.
+S06 queda reservada para `e15_s06_luna` tras el checkpoint root; S07–S08 pendientes.
 CORE/CRM cubren datos; DOCUMENTS se exige en E16 al generar/entregar. E15-S08 crea
 intención durable, no un PDF/quote.sent.
 
@@ -2847,8 +2848,8 @@ outbound3/3, isolation DB9/API37, zero skipped; root unit540/59 files;
 root+17 workspace typechecks, focal DB/API types and builds, Biome515, and
 Prisma7.9.1 validate/generate all PASS. S04 Quote Policy passed independent
 rereview and focused/root/schema gates and is published as recorded below.
-S05 Approval is PASS / VALIDATED with publication pending and no feature SHA.
-S06–S08 remain pending; do not reserve S06 before S05 is published.
+S05 Approval is PASS / COMPLETE and published as recorded below. S06 is
+reserved after the root checkpoint; S07–S08 remain pending.
 
 ## E15-S04 Quote policy [M]
 
@@ -2878,12 +2879,13 @@ SHA-256: d0e87fcd72ed4cea44947785be965ed486af913291a01522aeaa14dbd15376e8; SQL39
 inmutable. Full R0 anterior al parser fix pasó (DB424/57 files, API232/29,
 jobs1, outbound3, isolation9+37, cero skipped) como gate válido pre-fix. El
 focused GREEN post-fix confirma la corrección; no se reejecutó la full suite
-después del fix. S05 Approval está validada y su publicación queda pendiente;
-el detalle de cierre aparece en la sección siguiente.
+después del fix. S05 Approval está publicada; el detalle y SHA verificado aparecen en la
+sección siguiente.
 
 ## E15-S05 Approval workflow [L]
 
-**Estado 2026-10-30: PASS / VALIDATED; publicación pendiente, sin feature SHA.**
+**Estado 2026-10-30: PASS / COMPLETE; publicada como `4d5ed221ce668755cd29c89b9a09b8cd9604ec68`.**
+Push y SHA remoto idéntico verificados; main no contiene S05.
 Implementada desde el checkpoint publicado
 `0be1020ab3f4b220cbc9852d4a2ade3edb6778dc` después de S04. SQL40
 `20261028210000_e15_quote_approvals` tiene SHA-256
@@ -2898,10 +2900,15 @@ cancelación con tax faltante conserva los importes sin calcular en vez de
 fabricarlos. Cancelación mantiene `Quote.status=cancelled`: primer resultado
 `cancelled`, nueva idempotency key después de cancelar devuelve y registra
 `already_cancelled`, y la key original replaya su resultado guardado. No se
-añaden estados globales de Quote. S06 UI no se reserva hasta publicar S05; S07
+añaden estados globales de Quote. S06 UI queda reservada para `e15_s06_luna` tras el checkpoint root; S07
 Quote Version y S08 QuoteSendIntent/send permanecen pendientes.
 
 ## E15-S06 Quote UI [L]
+
+**RESERVED / READY:** `e15_s06_luna` (gpt-6-luna), base S05 publicada +
+checkpoint posterior de root. Sólo Task6 UI de catálogo/cotizaciones sobre
+APIs S01–S05; root docs/Git/browser gates. Esperar checkpoint antes de iniciar;
+sin implementación ni PASS S06.
 
 ## E15-S07 Quote version snapshot [M]
 
