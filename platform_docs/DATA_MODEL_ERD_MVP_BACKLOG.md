@@ -2753,9 +2753,12 @@ E15-S01 Product Catalog está PASS / COMPLETE y publicado en
 validada PASS / COMPLETE y publicada como
 `9f87002519e96eac03724d93c11cac7453b7bd26`; el push remoto coincide. `main`
 (`fb8639db15ec262fcc13432f9aee4536deb8367e`) no contiene S02. S03 Deterministic
-Calculation está PASS validada tras auditoría y gates; feature commit/push sigue
-pendiente, sin SHA. S04 Quote Policy es siguiente, sin reserva hasta publicación
-de S03; S05–S08 siguen pendientes. CORE/CRM cubren datos; DOCUMENTS se exige en E16 al generar/entregar. E15-S08 crea
+Calculation está PASS / COMPLETE y publicada como
+`0ebea786708dde64fd90705f9d39a3442e96d16b`; push y SHA remoto idéntico verificados.
+`main` (`fb8639db15ec262fcc13432f9aee4536deb8367e`) no contiene S03. S04 Quote
+Policy está RESERVED / READY para `e15_s04_luna` (gpt-6-luna) desde el feature
+publicado y checkpoint posterior de root; aún no ha iniciado. S05–S08 siguen
+pendientes. CORE/CRM cubren datos; DOCUMENTS se exige en E16 al generar/entregar. E15-S08 crea
 intención durable, no un PDF/quote.sent.
 
 ## E15-S01 Product catalog basic [M]
@@ -2805,8 +2808,10 @@ validate/generate, clean-schema y upgrade HEAD+SQL38 sin drift; checksums SQL37/
 MATCH y SQL sin cambios. Builds focalizados pasaron; no se afirma build de todos
 los workspaces. Publicación de S02 verificada en
 `9f87002519e96eac03724d93c11cac7453b7bd26`; `main` no contiene el cambio.
-S03 Deterministic Calculation está PASS tras su auditoría independiente y los
-gates del coordinador. Feature commit/push pendiente, sin SHA. Exact BigInt/
+S03 Deterministic Calculation está PASS / COMPLETE tras su auditoría independiente
+y los gates del coordinador, publicada como
+`0ebea786708dde64fd90705f9d39a3442e96d16b`; el push remoto coincide. `main` no
+contiene S03. Exact BigInt/
 rational HALF_UP calculation redondea gross, discount y exclusive tax por línea;
 shipping is untaxed. Hash canónico, resultados de línea y totales persisten con
 revision/calculatedRevision mediante la transacción del caller. DTO totals son
@@ -2838,9 +2843,19 @@ API4/4 (two files each); full DB412/56 files, API231/29 files, jobs1/1,
 outbound3/3, isolation DB9/API37, zero skipped; root unit540/59 files;
 root+17 workspace typechecks, focal DB/API types and builds, Biome515, and
 Prisma7.9.1 validate/generate all PASS. Root retains documents and Git. S04 Quote
-Policy is next and remains unreserved until root publishes S03.
+Policy está RESERVED / READY para `e15_s04_luna` (gpt-6-luna), desde el feature
+S03 publicado y el checkpoint posterior de root. Task4 incluye schema/policy,
+evaluator, manager, API y tests; root conserva documentos, Git y migration gates.
+S04 no ha iniciado y no tiene implementación ni PASS de tests; esperar el
+checkpoint root. S05–S08 siguen pendientes.
 
 ## E15-S04 Quote policy [M]
+
+**Estado: RESERVED / READY para `e15_s04_luna` (gpt-6-luna).** Base: feature
+S03 `0ebea786708dde64fd90705f9d39a3442e96d16b` y checkpoint posterior de root.
+Task4 schema/policy/evaluator/manager/API/tests; root conserva docs/Git y los
+migration gates. No ha iniciado y no tiene implementación ni PASS de tests;
+esperar el checkpoint root.
 
 ## E15-S05 Approval workflow [L]
 

@@ -1,7 +1,7 @@
 # docs/MANIFEST.md — Baseline documental verificada
 
 **Fecha:** 2026-10-29
-**Estado:** E15-S03-validated-publication-pending
+**Estado:** E15-S03-published-S04-reserved
 **Propósito:** comprobar integridad y composición del conjunto de documentos que permite continuar el proyecto sin depender de memoria conversacional.
 
 > Las rutas son relativas a la raíz del repositorio. Los hashes cambian si se edita un archivo. Después de cambios intencionales, regenerar este manifest.
@@ -12,8 +12,8 @@
 | `README.md` | 8312 | 991 | `0a81a572a0a0f37e6915b046bff8440d0f2663428c4415ab8cab1e6fbc627159` |
 | `.agents/agents.md` | 388 | 41 | `d52b02af7fdab6d2ecbf7af4dd2f311d5d244f153817498ff9e542427e9e1675` |
 | `.agents/skills/whatsapp-platform-engineering/SKILL.md` | 21738 | 3044 | `f116702eecb0b7e9aafd72713ac1b250b9eafca85693072ed4796086ccc22082` |
-| `platform_docs/CHANGELOG.md` | 128744 | 14826 | `5ceb3cfa12edc2dd9045712cd46c3332da7b2181d8f16ecc111f3b4c6b53bfd9` |
-| `platform_docs/DATA_MODEL_ERD_MVP_BACKLOG.md` | 88186 | 11687 | `8938613585cfb84595efde07a241731d6cb98ad938e69c3e44a496ba5b9739f3` |
+| `platform_docs/CHANGELOG.md` | 128862 | 14838 | `bbc3177c50b7cb49ae1fa09f8ed72ca104d502441e53a74c7a91182e4c59ac81` |
+| `platform_docs/DATA_MODEL_ERD_MVP_BACKLOG.md` | 89088 | 11796 | `b80523b580ac53e49810bdb03e67b7612eb9bfc86e4ec282183abf40bd7c2b5f` |
 | `platform_docs/DEMO_AND_SALES.md` | 8689 | 1253 | `28944d7c37827e10f72d6cdac811eb8bda92fbc9da96fa4947f09ef42eb5b9f4` |
 | `platform_docs/DEPLOYMENT.md` | 5766 | 811 | `665319a6f0a460d4cd509c062af9e5879416c795f2227f63287d076f1c3d7293` |
 | `platform_docs/DESIGN.md` | 16996 | 2456 | `e9de8994278a140e2e3596391102bc14727cf6c6c00658cb33183f7643b5d6b2` |
@@ -89,11 +89,11 @@
 | `platform_docs/RUNBOOK_BACKUP_RESTORE.md` | 4857 | 666 | `27e324b4cea0cd3a2514f44eeee4ce31db80a3a4701f0ba528ffb36afcebb3ff` |
 | `platform_docs/RUNBOOK_OPERATIONS.md` | 5777 | 796 | `23d4c537dd3bbcf4b8f08b39b4a948c42c10e3a458594c25ccf2b65937376252` |
 | `platform_docs/SECURITY.md` | 19009 | 2660 | `1b48fbe2c0e1643350b7a88191bc746aec07f1ab5cb1cc3568c4858b03614468` |
-| `platform_docs/STATUS.md` | 203057 | 24569 | `ffd848c034f3e0bb8a26e383801cd79b4757de73cba448094f3038a4a8839b23` |
+| `platform_docs/STATUS.md` | 203717 | 24632 | `a58d2020bf7627b4196feb88d5aff6ed5ed763577806509157129194bb541663` |
 | `platform_docs/SYSTEM_DESIGN.md` | 52208 | 6964 | `612a7d61774113cd9f08c1b2c5751fa4654b1a97239c90e7a6d385e69dddc08b` |
 | `platform_docs/TESTING_STRATEGY.md` | 25866 | 3456 | `42dd2c8d0ee61a6c98c66e8399d3f0e7071fec7e0ab276a23327644fce036cb5` |
 | `platform_docs/UI_FLOWS.md` | 26653 | 3823 | `100bb2e8ab27b6433761b55b9ffeaa8c7c8c2d82622d0c148f36c467011407ad` |
-| `platform_docs/avance_orquestador.md` | 44597 | 5734 | `5e62e8030578581e94a62960821a91b23300c89a6e414d1d1b002e196736bb79` |
+| `platform_docs/avance_orquestador.md` | 45711 | 5856 | `8ca72841ef968683e4e2acb0af0f86de6cf85a83cbee36fb7b4c738a80c5ae75` |
 | `platform_docs/docs/adr/0066-e14-s04-availability-exceptions-scope.md` | 3358 | 407 | `1d5479a0bed7ec6cb7973afe37e4c6d39d63978e0f6dab6540b6cf3b611d118c` |
 | `docs/superpowers/specs/2026-10-25-e14-agenda-design.md` | 6038 | 743 | `801e902d3ffb8cca39181b365ce4c6914cff3fe4f474009ed0257767158efadf` |
 | `docs/superpowers/plans/2026-10-25-e14-agenda.md` | 7700 | 789 | `c9dba855eddd6845d46e36d1aa653c4cd510855af62fb725d70620410cfce52c` |
@@ -103,7 +103,7 @@
 | `platform_docs/docs/adr/0070-e14-s08-durable-appointment-reminders.md` | 7710 | 909 | `7101f84c3b5b4ef420b6b3c79be56eebd3acd8b4839440c02c733d92d6bccb09` |
 | `platform_docs/docs/adr/0071-e14-s10-rules-driven-appointment-booking.md` | 9422 | 1227 | `52285e5d5ed5afd7b80b571f35f5fd4ed26f956d1db76a6415c89ca4e288b78d` |
 | `docs/superpowers/specs/2026-10-28-e15-catalog-quotes-design.md` | 27704 | 3498 | `310b2a9b57259472328d39894a9d904f42558513e47ecb8feb5b70fc70e9fefd` |
-| `docs/superpowers/plans/2026-10-28-e15-catalog-quotes.md` | 41633 | 4434 | `77cfcdcf767181b2914c1e9ac6fa9f77799d310eaaffd0437a463b4ef0e10d7e` |
+| `docs/superpowers/plans/2026-10-28-e15-catalog-quotes.md` | 42195 | 4497 | `361609219da3483a1fac6bc6e402bae21741e8996d9f6ad7a31add78525191c1` |
 | `platform_docs/docs/adr/0072-e15-catalog-quote-contracts.md` | 22381 | 2900 | `71a1351065c355f8ee3a1b529ecbdd4afe3e78887b2a890aac747dc4b563dc8d` |
 
 ## Uso

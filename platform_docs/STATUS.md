@@ -2,7 +2,7 @@
 
 **Actualizado:** 2026-10-29
 **Versión de producto:** `0.0.0`  
-**Latest validated story:** E15-S03 — PASS; implementation gates and independent audit passed; feature publication is pending.
+**Latest validated story:** E15-S03 — PASS / COMPLETE; published as `0ebea786708dde64fd90705f9d39a3442e96d16b` on `codex/e15-catalog-quotes`.
 **Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; Epic 11 — Campaign Engine & Audience Broadcasts — PASS / COMPLETE; **Epic 12 — Reporting, Analytics & Operational Observability — PASS / COMPLETE (E12-S01, E12-S02, E12-S03, E12-S04, E12-S05 PASS); E13-S01 — PASS / COMPLETE; E13-S02 — PASS / COMPLETE; E13-S03 — PASS / COMPLETE; E13-S04 — PASS / COMPLETE; E14-S01 — PASS / COMPLETE; E14-S02 — PASS / COMPLETE; E14-S03 — PASS / COMPLETE; E14-S04 — PASS / COMPLETE; E14-S05 — PASS / COMPLETE; E14-S06 — PASS / COMPLETE; E14-S07 — PASS / COMPLETE; E14-S08 — PASS / COMPLETE; E14-S09 — PASS / COMPLETE; E14-S10 — PASS / COMPLETE**.
 
 ## Current milestone
@@ -17,9 +17,11 @@ S02 Quote Draft passed final focused/full suites and round3 rereview. Feature
 `9f87002519e96eac03724d93c11cac7453b7bd26` is pushed to
 `origin/codex/e15-catalog-quotes`; remote SHA matches. It is not in main.
 S03 Deterministic Calculation passed implementation gates and independent audit
-from checkpoint `dd0d501`; feature commit/push is pending with no SHA assigned.
-S04 Quote Policy is next and unreserved until root publishes S03; S05–S08 remain
-pending.
+from checkpoint `dd0d501`; published at
+`0ebea786708dde64fd90705f9d39a3442e96d16b`, with identical remote SHA. Remote
+main `fb8639db15ec262fcc13432f9aee4536deb8367e` does not contain S03. S04 Quote
+Policy is RESERVED / READY for `e15_s04_luna` (gpt-6-luna) from this feature and
+subsequent root checkpoint; it has not started. S05–S08 remain pending.
 One epic is active. User-directed E15 priority does not certify or remove
 the outstanding real Baileys transport and backup/restore P0 gates.
 E14-S01–S03 are in main; S04–S10 remain delivered on the E14 feature ancestry.
@@ -80,8 +82,11 @@ preserved in avance_orquestador.md; none is counted as a final gate. S02 is
 PASS / COMPLETE and published at `9f87002519e96eac03724d93c11cac7453b7bd26`;
 push to `origin/codex/e15-catalog-quotes` and identical remote SHA were verified.
 `main` remains at `fb8639db15ec262fcc13432f9aee4536deb8367e` and does not contain
-S02. S03 Deterministic Calculation is PASS after its approved source audit and
-parent gates; feature commit/push is pending with no SHA. Exact BigInt/rational
+S02. S03 Deterministic Calculation is PASS / COMPLETE after its approved source
+audit and parent gates, published at
+`0ebea786708dde64fd90705f9d39a3442e96d16b`; push and identical remote SHA were
+verified. `main` remains at `fb8639db15ec262fcc13432f9aee4536deb8367e` and does
+not contain S03. Exact BigInt/rational
 HALF_UP calculations round gross, discounts and exclusive tax per line; shipping
 is untaxed. Canonical SHA-256 inputs and all calculated results persist in the
 caller's transaction with revision/calculatedRevision. DTO totals are decimal
@@ -93,8 +98,12 @@ root unit540/59 files, root+17 workspace types, focal DB/API types/builds and
 Biome515 passed. Prisma7.9.1 validate/generate passed; SQL37/38 checksums match,
 with no schema or migration change. Logs `%TEMP%/whatsappbot-e15-s03-full.log`,
 `%TEMP%/whatsappbot-e15-s03-unit-final.log` and
-`%TEMP%/whatsappbot-e15-s03-workspace-types-final.log`. S04 Quote Policy is next,
-unreserved until root publishes S03. S05–S08 remain pending. No E16
+`%TEMP%/whatsappbot-e15-s03-workspace-types-final.log`. S04 Quote Policy is
+RESERVED / READY for `e15_s04_luna` (gpt-6-luna) from published feature
+`0ebea786708dde64fd90705f9d39a3442e96d16b` and the subsequent root checkpoint.
+Scope is Task4 policy schema/evaluator/manager/API/tests; root retains docs, Git
+and migration gates. It has not started and has no implementation/test PASS.
+Wait for root checkpoint before starting. S05–S08 remain pending. No E16
 document renderer or real WhatsApp delivery is implied.
 
 ### E14-S10 — Rules-driven WhatsApp booking (PASS / COMPLETE)

@@ -118,9 +118,11 @@ For every story that changes schema, validate/generate Prisma, compare clean-sch
 - [x] Step 2 — RED reached positive mathematical assertions against a typed zero-result stub: the gross golden expected25.00 and received0; all12 cases failed. This was not an import/environment/authentication failure. Initial invalid scale/ceiling/total vectors were corrected and independently recomputed.
 - [x] Step 3 — Implement exact BigInt/rational HALF_UP calculation and integrate draft create/changed update. Line gross, discount and exclusive tax round per line; shipping is untaxed. Canonical SHA-256 calculationInputHash, line/quote results, `revision` and `calculatedRevision` persist in the caller transaction; DTO outputs are decimal strings. Missing tax blocks calculation; explicit zero is valid.
 - [x] Step 4 — GREEN and final gates: pure12/12; focused DB33/33 + API4/4 (two files each); full DB412/56files, API231/29files, jobs1/1, outbound3/3, isolation DB9/API37, zero skipped. Root unit540/59files; root+17 workspace types, focal DB/API types/builds, Biome515, Prisma7.9.1 validate/generate PASS. SQL37/38 checksums MATCH; no schema/migration change. Missing tax returns400 and rollback; no-op, replay, provenance and authorization preserved.
-- [ ] Step 5 — Independent math/security audit approved with zero findings; shared docs updated. Root feature commit/push remains pending with no SHA. S04 remains unreserved until root publishes S03.
+- [x] Step 5 — Independent math/security audit approved with zero findings; shared docs updated. S03 published as `0ebea786708dde64fd90705f9d39a3442e96d16b` to `origin/codex/e15-catalog-quotes`; push exited0 and remote SHA matches. `main` (`fb8639db15ec262fcc13432f9aee4536deb8367e`) does not contain S03. S04 is RESERVED / READY for `e15_s04_luna` from this feature and the subsequent root checkpoint; it has no implementation or test PASS and must not start before that checkpoint.
 
 ### Task 4: E15-S04 — Quote Policy
+
+**Reservation:** `e15_s04_luna` (gpt-6-luna), based on published S03 feature `0ebea786708dde64fd90705f9d39a3442e96d16b` plus the subsequent root checkpoint. RESERVED / READY only; do not start before root checkpoint. Root retains shared documentation, Git and migration gates.
 
 **Files**
 

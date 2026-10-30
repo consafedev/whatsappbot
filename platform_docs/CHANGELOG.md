@@ -39,8 +39,9 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
   and transaction-bound totals/revision persistence on draft create/update.
   Quote DTO totals remain decimal strings; missing tax rejects with HTTP400 and
   rolls back. Schema and migrations37/38 are unchanged. Final verification and
-  feature publication state are tracked in STATUS and avance_orquestador; feature
-  commit/push is pending.
+  feature publication state are tracked in STATUS and avance_orquestador. Published
+  at `0ebea786708dde64fd90705f9d39a3442e96d16b` on `codex/e15-catalog-quotes`;
+  push SHA was verified and `main` does not contain the story.
 
 - E14-S10 deterministic appointment conversations behind the exclusive
   `start_appointment_booking` rule action. PostgreSQL owns canonical inbound
