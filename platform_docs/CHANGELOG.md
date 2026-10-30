@@ -34,6 +34,14 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
   `9f87002519e96eac03724d93c11cac7453b7bd26` on `codex/e15-catalog-quotes`;
   push SHA was verified, and `main` does not contain the story.
 
+- E15-S03 deterministic quote calculation: exact BigInt/rational arithmetic with
+  HALF_UP rounding per line, untaxed shipping, canonical calculation-input hash
+  and transaction-bound totals/revision persistence on draft create/update.
+  Quote DTO totals remain decimal strings; missing tax rejects with HTTP400 and
+  rolls back. Schema and migrations37/38 are unchanged. Final verification and
+  feature publication state are tracked in STATUS and avance_orquestador; feature
+  commit/push is pending.
+
 - E14-S10 deterministic appointment conversations behind the exclusive
   `start_appointment_booking` rule action. PostgreSQL owns canonical inbound
   routing receipts, versioned offered menus and 15-minute flows; create, cancel

@@ -6,6 +6,7 @@ import {
   type PrismaClient,
   syncPermissionCatalog,
 } from "./platform";
+import { recalculateQuoteInTransaction } from "./quote-calculation";
 import {
   createQuoteDraft,
   getQuoteById,
@@ -21,7 +22,7 @@ import { createTenantContext } from "./tenant-context";
 import { createTenantDataAccess } from "./tenant-data-access";
 import { TenantModuleEntitlementRequiredError } from "./tenant-entitlements";
 
-const prefix = "e15-s02-quote-manager";
+const prefix = "e15-s03-quote-manager";
 let prisma: PrismaClient;
 let tenantAId = "";
 let tenantBId = "";
@@ -169,7 +170,7 @@ function failNextOutboxWriteDatabase() {
   };
 }
 
-describe.sequential("E15-S02 quote draft manager", () => {
+describe.sequential("E15-S03 quote draft calculation", () => {
   beforeAll(async () => {
     prisma = createPlatformDatabaseClient(loadDatabaseConfig());
     await prisma.$connect();
@@ -269,7 +270,7 @@ describe.sequential("E15-S02 quote draft manager", () => {
     });
   });
 
-  it("allocates monotone tenant-local numbers and snapshots trusted active rows without calculating totals", async () => {
+  it("allocates tenant-local numbers, snapshots trusted rows, and persists exact calculation results", async () => {
     const first = await createQuoteDraft(
       createTenantContext(tenantAId),
       prisma,
@@ -294,10 +295,10 @@ describe.sequential("E15-S02 quote draft manager", () => {
       status: "draft",
       autonomyLevel: 0,
       currencyPrecision: 2,
-      subtotal: null,
-      discountTotal: null,
-      taxTotal: null,
-      total: null,
+      subtotal: "313.75",
+      discountTotal: "31.38",
+      taxTotal: "22.59",
+      total: "304.96",
       customerNameSnapshot: "Ada Customer",
       customerPhoneSnapshot: "+15550000001",
       organizationUnitNameSnapshot: "North Unit",
@@ -316,7 +317,15 @@ describe.sequential("E15-S02 quote draft manager", () => {
     expect(second.current.number).toBe("Q-000002");
     expect(otherTenant.current.number).toBe("Q-000001");
     expect(first.current.shippingTotal).toBe("0.0000");
-    expect(first.current.calculatedRevision).toBeNull();
+    expect(first.current.calculatedRevision).toBe(1);
+    expect(first.current.calculationInputHash).toMatch(/^[a-f0-9]{64}$/);
+    expect(first.current.lines[0]).toMatchObject({
+      grossTotal: "313.75",
+      discountTotal: "31.38",
+      netTotal: "282.37",
+      taxTotal: "22.59",
+      lineTotal: "304.96",
+    });
     const contributor = await prisma.quoteCommercialContributor.findUnique({
       where: {
         tenantId_quoteId_userId: {
@@ -333,14 +342,138 @@ describe.sequential("E15-S02 quote draft manager", () => {
     const quote = await prisma.quote.findFirstOrThrow({ where: { tenantId: tenantAId } });
     await expect(
       prisma.$executeRaw(
-        Prisma.sql`UPDATE "quotes" SET "calculated_revision" = 1 WHERE "tenant_id" = ${tenantAId}::uuid AND "id" = ${quote.id}::uuid`,
+        Prisma.sql`UPDATE "quotes" SET "calculated_revision" = NULL WHERE "tenant_id" = ${tenantAId}::uuid AND "id" = ${quote.id}::uuid`,
       ),
     ).rejects.toThrow();
     const unchanged = await prisma.quote.findUniqueOrThrow({
       where: { tenantId_id: { tenantId: tenantAId, id: quote.id } },
     });
-    expect(unchanged.calculatedRevision).toBeNull();
-    expect(unchanged.calculationInputHash).toBeNull();
+    expect(unchanged.calculatedRevision).toBe(1);
+    expect(unchanged.calculationInputHash).toMatch(/^[a-f0-9]{64}$/);
+  });
+
+  it("rolls back invalid calculations and keeps recalculation inside the caller transaction", async () => {
+    const context = createTenantContext(tenantAId);
+    const before = {
+      quotes: await prisma.quote.count({ where: { tenantId: tenantAId } }),
+      items: await prisma.quoteItem.count({ where: { tenantId: tenantAId } }),
+      receipts: await prisma.quoteCommandReceipt.count({ where: { tenantId: tenantAId } }),
+      contributors: await prisma.quoteCommercialContributor.count({
+        where: { tenantId: tenantAId },
+      }),
+      audits: await prisma.auditLog.count({ where: { tenantId: tenantAId } }),
+      outbox: await prisma.domainEventOutbox.count({ where: { tenantId: tenantAId } }),
+    };
+    const invalidLines = [
+      {
+        productId: null,
+        description: "Missing tax input",
+        unit: "piece",
+        quantity: "1",
+        unitPrice: "1",
+        currency: "USD",
+        taxRate: null,
+      },
+      {
+        productId: null,
+        description: "Fixed discount currency excess",
+        unit: "piece",
+        quantity: "1",
+        unitPrice: "1",
+        currency: "USD",
+        taxRate: "0",
+        discount: { kind: "fixed", value: "0.001" },
+      },
+    ] as const;
+    for (const [index, line] of invalidLines.entries()) {
+      const key = `invalid-calculation-${index}`;
+      await expect(
+        createQuoteDraft(
+          context,
+          prisma,
+          { ...input(key), lines: [line] } as QuoteDraftInput,
+          metadata(actorAId, key),
+        ),
+      ).rejects.toBeInstanceOf(QuoteValidationError);
+      expect(
+        await prisma.quoteCommandReceipt.count({
+          where: { tenantId: tenantAId, idempotencyKey: key },
+        }),
+      ).toBe(0);
+    }
+    expect({
+      quotes: await prisma.quote.count({ where: { tenantId: tenantAId } }),
+      items: await prisma.quoteItem.count({ where: { tenantId: tenantAId } }),
+      receipts: await prisma.quoteCommandReceipt.count({ where: { tenantId: tenantAId } }),
+      contributors: await prisma.quoteCommercialContributor.count({
+        where: { tenantId: tenantAId },
+      }),
+      audits: await prisma.auditLog.count({ where: { tenantId: tenantAId } }),
+      outbox: await prisma.domainEventOutbox.count({ where: { tenantId: tenantAId } }),
+    }).toEqual(before);
+
+    const created = await createQuoteDraft(
+      context,
+      prisma,
+      input("invalid-shipping-source"),
+      metadata(actorAId, "invalid-shipping-source"),
+    );
+    const originalLine = await prisma.quoteItem.findFirstOrThrow({
+      where: { tenantId: tenantAId, quoteId: created.current.id },
+    });
+    const originalAuditCount = await prisma.auditLog.count({
+      where: { tenantId: tenantAId, entityId: created.current.id },
+    });
+    const originalOutboxCount = await prisma.domainEventOutbox.count({
+      where: { tenantId: tenantAId, aggregateId: created.current.id },
+    });
+    await expect(
+      updateQuoteDraft(
+        context,
+        prisma,
+        created.current.id,
+        1,
+        { idempotencyKey: "invalid-shipping-edit", metadata: { shippingTotal: "0.001" } },
+        metadata(actorAId, "invalid-shipping-edit"),
+      ),
+    ).rejects.toBeInstanceOf(QuoteValidationError);
+    expect(
+      await prisma.quoteCommandReceipt.count({
+        where: { tenantId: tenantAId, idempotencyKey: "invalid-shipping-edit" },
+      }),
+    ).toBe(0);
+    const afterRejectedEdit = await getQuoteById(context, prisma, created.current.id);
+    expect(afterRejectedEdit).toMatchObject({
+      revision: 1,
+      calculatedRevision: 1,
+      calculationInputHash: created.current.calculationInputHash,
+      total: created.current.total,
+    });
+    expect(afterRejectedEdit.lines[0]?.id).toBe(originalLine.id);
+    expect(
+      await prisma.auditLog.count({ where: { tenantId: tenantAId, entityId: created.current.id } }),
+    ).toBe(originalAuditCount);
+    expect(
+      await prisma.domainEventOutbox.count({
+        where: { tenantId: tenantAId, aggregateId: created.current.id },
+      }),
+    ).toBe(originalOutboxCount);
+
+    const rollback = new Error("caller rollback sentinel");
+    await expect(
+      prisma.$transaction(async (transaction) => {
+        await recalculateQuoteInTransaction(transaction, tenantAId, created.current.id, 2);
+        throw rollback;
+      }),
+    ).rejects.toBe(rollback);
+    expect(
+      await prisma.quote.findUniqueOrThrow({
+        where: { tenantId_id: { tenantId: tenantAId, id: created.current.id } },
+      }),
+    ).toMatchObject({
+      calculatedRevision: 1,
+      calculationInputHash: created.current.calculationInputHash,
+    });
   });
 
   it("rejects foreign Contact, Product, OrganizationUnit, and cross-tenant historical reads", async () => {
@@ -464,6 +597,7 @@ describe.sequential("E15-S02 quote draft manager", () => {
       input("snapshot-source"),
       metadata(actorAId, "snapshot-source"),
     );
+    const originalCalculationHash = created.current.calculationInputHash;
     await prisma.product.update({
       where: { tenantId_id: { tenantId: tenantAId, id: productAId } },
       data: {
@@ -484,10 +618,18 @@ describe.sequential("E15-S02 quote draft manager", () => {
       revision: 2,
       terms: "Payment due in 30 days",
       salespersonNameSnapshot: "Trusted Salesperson",
+      calculatedRevision: 2,
+      calculationInputHash: originalCalculationHash,
+      subtotal: "313.75",
+      discountTotal: "31.38",
+      taxTotal: "22.59",
+      total: "304.96",
     });
     expect(edited.current.lines[0]).toMatchObject({
       description: "Service Part description",
       unitPrice: "125.5000",
+      grossTotal: "313.75",
+      lineTotal: "304.96",
     });
     const refreshed = await updateQuoteDraft(
       context,
@@ -664,7 +806,8 @@ describe.sequential("E15-S02 quote draft manager", () => {
       quantity: "1",
       unitPrice: "1",
       currency: "USD",
-      metadata: { block: "x".repeat(15_000) },
+      taxRate: "0",
+      metadata: { block: "x".repeat(14_500) },
     }));
     const large = await createQuoteDraft(
       context,
@@ -1219,6 +1362,7 @@ describe.sequential("E15-S02 quote draft manager", () => {
             quantity: "1",
             unitPrice: "1",
             currency: "GBP",
+            taxRate: "0",
           },
         ],
       },

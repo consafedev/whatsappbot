@@ -2753,9 +2753,9 @@ E15-S01 Product Catalog está PASS / COMPLETE y publicado en
 validada PASS / COMPLETE y publicada como
 `9f87002519e96eac03724d93c11cac7453b7bd26`; el push remoto coincide. `main`
 (`fb8639db15ec262fcc13432f9aee4536deb8367e`) no contiene S02. S03 Deterministic
-Calculation está RESERVED / READY para `e15_s03_luna` (gpt-6-luna) desde el
-feature publicado y checkpoint posterior de root; no ha comenzado. S04–S08
-siguen pendientes. CORE/CRM cubren datos; DOCUMENTS se exige en E16 al generar/entregar. E15-S08 crea
+Calculation está PASS validada tras auditoría y gates; feature commit/push sigue
+pendiente, sin SHA. S04 Quote Policy es siguiente, sin reserva hasta publicación
+de S03; S05–S08 siguen pendientes. CORE/CRM cubren datos; DOCUMENTS se exige en E16 al generar/entregar. E15-S08 crea
 intención durable, no un PDF/quote.sent.
 
 ## E15-S01 Product catalog basic [M]
@@ -2805,16 +2805,40 @@ validate/generate, clean-schema y upgrade HEAD+SQL38 sin drift; checksums SQL37/
 MATCH y SQL sin cambios. Builds focalizados pasaron; no se afirma build de todos
 los workspaces. Publicación de S02 verificada en
 `9f87002519e96eac03724d93c11cac7453b7bd26`; `main` no contiene el cambio.
-S03 Deterministic
-Calculation está RESERVED / READY para `e15_s03_luna` (gpt-6-luna), desde el
-feature S02 publicado y el checkpoint posterior de root. Reserva limitada al
-calculator/tests y la integración estrecha de quote-manager de Task3. No ha
-comenzado; no hay implementación ni PASS de tests de S03. Root conserva los
-documentos compartidos y Git. Esperar el checkpoint de root antes de iniciar.
+S03 Deterministic Calculation está PASS tras su auditoría independiente y los
+gates del coordinador. Feature commit/push pendiente, sin SHA. Exact BigInt/
+rational HALF_UP calculation redondea gross, discount y exclusive tax por línea;
+shipping is untaxed. Hash canónico, resultados de línea y totales persisten con
+revision/calculatedRevision mediante la transacción del caller. DTO totals son
+decimal strings. No-op/replay, provenance de línea y autorización permanecen
+intactos; tax faltante devuelve400 y hace rollback. Sin cambios de schema o
+migration; checksums SQL37/38 MATCH.
+
+Gates finales: pure RED12 assertions then GREEN12/12; focused DB33/33 y API4/4
+(dos archivos cada uno); full DB412/56 files, API231/29 files, jobs1/1,
+outbound3/3, isolation DB9/API37, zero skipped, exit0; root unit540/59 files;
+root+17 workspace types, focal DB/API types y builds, Biome515, Prisma7.9.1
+validate/generate PASS. Root conserva documentos y Git. S04 Quote Policy es
+siguiente, sin reserva hasta que root publique S03.
 
 ## E15-S03 Deterministic calculation [L]
 
-Redondeo, impuestos, descuentos con tests exhaustivos.
+**Estado 2026-10-29: PASS; feature publication pending, no SHA.** Pure BigInt /
+rational HALF_UP calculation uses line gross → line discount → exclusive tax;
+shipping is untaxed. Canonical SHA-256 of normalized calculation inputs and
+ordered lines persists with exact line/quote totals, `revision` and
+`calculatedRevision` inside the caller transaction. Quote DTO calculation
+outputs are decimal strings. Create/changed update calculate atomically; a
+semantic no-op and idempotent replay preserve existing behavior and snapshots.
+Missing tax returns400 and rolls back related state. No schema/migration was
+added; SQL37/38 checksums MATCH.
+
+Final gates: pure math RED12 assertions then GREEN12/12; focused DB33/33 and
+API4/4 (two files each); full DB412/56 files, API231/29 files, jobs1/1,
+outbound3/3, isolation DB9/API37, zero skipped; root unit540/59 files;
+root+17 workspace typechecks, focal DB/API types and builds, Biome515, and
+Prisma7.9.1 validate/generate all PASS. Root retains documents and Git. S04 Quote
+Policy is next and remains unreserved until root publishes S03.
 
 ## E15-S04 Quote policy [M]
 

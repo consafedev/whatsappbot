@@ -151,7 +151,7 @@ describe("E15-S02 quote drafts API", () => {
     }
   });
 
-  it("guards route, tenant, module and permission, then creates and reads an uncalculated snapshot", async () => {
+  it("guards route, tenant, module and permission, and calculates a quote from configured inputs", async () => {
     const url = `${baseUrl}/api/v1/quotes`;
     expect((await fetch(url)).status).toBe(401);
     expect((await fetch(url, { headers: { cookie: noPermissionCookie } })).status).toBe(403);
@@ -182,6 +182,32 @@ describe("E15-S02 quote drafts API", () => {
         })
       ).status,
     ).toBe(400);
+    const beforeMissingTax = {
+      quotes: await prisma.quote.count({ where: { tenantId: tenantAId } }),
+      items: await prisma.quoteItem.count({ where: { tenantId: tenantAId } }),
+      receipts: await prisma.quoteCommandReceipt.count({ where: { tenantId: tenantAId } }),
+      contributors: await prisma.quoteCommercialContributor.count({
+        where: { tenantId: tenantAId },
+      }),
+      audits: await prisma.auditLog.count({ where: { tenantId: tenantAId } }),
+      outbox: await prisma.domainEventOutbox.count({ where: { tenantId: tenantAId } }),
+    };
+    const missingTax = await fetch(url, {
+      method: "POST",
+      headers: { cookie: createCookie, "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    expect(missingTax.status).toBe(400);
+    expect({
+      quotes: await prisma.quote.count({ where: { tenantId: tenantAId } }),
+      items: await prisma.quoteItem.count({ where: { tenantId: tenantAId } }),
+      receipts: await prisma.quoteCommandReceipt.count({ where: { tenantId: tenantAId } }),
+      contributors: await prisma.quoteCommercialContributor.count({
+        where: { tenantId: tenantAId },
+      }),
+      audits: await prisma.auditLog.count({ where: { tenantId: tenantAId } }),
+      outbox: await prisma.domainEventOutbox.count({ where: { tenantId: tenantAId } }),
+    }).toEqual(beforeMissingTax);
     await prisma.tenantEntitlement.update({
       where: {
         tenantId_entitlementKey: { tenantId: tenantAId, entitlementKey: "module.crm_lite" },
@@ -261,10 +287,14 @@ describe("E15-S02 quote drafts API", () => {
       source: "catalog",
       unitPrice: "25.0000",
     });
+    const validBody = {
+      ...body,
+      lines: body.lines.map((line) => ({ ...line, taxRate: "0" })),
+    };
     const created = await fetch(url, {
       method: "POST",
       headers: { cookie: createCookie, "content-type": "application/json" },
-      body: JSON.stringify(body),
+      body: JSON.stringify(validBody),
     });
     expect(created.status).toBe(201);
     const result = (await created.json()) as {
@@ -276,8 +306,20 @@ describe("E15-S02 quote drafts API", () => {
           id: string;
           number: string;
           revision: number;
-          subtotal: string | null;
-          lines: Array<{ source: string; isExceptional: boolean }>;
+          subtotal: string;
+          discountTotal: string;
+          taxTotal: string;
+          total: string;
+          calculatedRevision: number;
+          lines: Array<{
+            source: string;
+            isExceptional: boolean;
+            grossTotal: string | null;
+            discountTotal: string | null;
+            netTotal: string | null;
+            taxTotal: string | null;
+            lineTotal: string | null;
+          }>;
         };
       };
     };
@@ -289,8 +331,22 @@ describe("E15-S02 quote drafts API", () => {
         current: {
           number: "Q-000002",
           revision: 1,
-          subtotal: null,
-          lines: [{ source: "manual", isExceptional: true }],
+          subtotal: "25.00",
+          discountTotal: "0.00",
+          taxTotal: "0.00",
+          total: "25.00",
+          calculatedRevision: 1,
+          lines: [
+            {
+              source: "manual",
+              isExceptional: true,
+              grossTotal: "25.00",
+              discountTotal: "0.00",
+              netTotal: "25.00",
+              taxTotal: "0.00",
+              lineTotal: "25.00",
+            },
+          ],
         },
       },
     });

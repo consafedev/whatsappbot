@@ -1,6 +1,11 @@
 import { createHash } from "node:crypto";
 import { Prisma, type Quote, type QuoteItem } from "./generated/prisma/client";
 import { normalizeJsonObject } from "./json-object";
+import {
+  QUOTE_CALCULATION_LIMITS,
+  QuoteCalculationValidationError,
+  recalculateQuoteInTransaction,
+} from "./quote-calculation";
 import { createTenantContext, type TenantContext } from "./tenant-context";
 import { createTenantDataAccess, type TenantTransactionDatabase } from "./tenant-data-access";
 import { assertTenantModuleEntitled } from "./tenant-entitlements";
@@ -8,16 +13,16 @@ import { assertTenantOperational } from "./tenant-operational";
 
 export const QUOTE_DRAFT_LIMITS = Object.freeze({
   commandBytes: 256 * 1024,
-  discount: "999999999999999.9999",
+  discount: QUOTE_CALCULATION_LIMITS.discount,
   idempotencyKey: 128,
-  itemCount: 200,
+  itemCount: QUOTE_CALCULATION_LIMITS.itemCount,
   lineDescription: 2000,
   lineMetadataBytes: 16 * 1024,
   lineMetadataDepth: 8,
   lineSku: 64,
   lineUnit: 32,
-  maxCurrencyPrice: "999999999.9999",
-  maxQuantity: "999999.999",
+  maxCurrencyPrice: QUOTE_CALCULATION_LIMITS.maxCurrencyAmount,
+  maxQuantity: QUOTE_CALCULATION_LIMITS.maxQuantity,
   notes: 4000,
   terms: 8000,
 });
@@ -118,6 +123,11 @@ export type QuoteDraftLineView = Readonly<{
   taxRate: string | null;
   discountKind: "fixed" | "percent";
   discountValue: string;
+  grossTotal: string | null;
+  discountTotal: string | null;
+  netTotal: string | null;
+  taxTotal: string | null;
+  lineTotal: string | null;
   isExceptional: boolean;
   metadata: Prisma.JsonValue | null;
 }>;
@@ -331,7 +341,7 @@ function hash(value: unknown): string {
   return createHash("sha256").update(canonical(value)).digest("hex");
 }
 
-function toLineView(line: QuoteItem): QuoteDraftLineView {
+function toLineView(line: QuoteItem, currencyPrecision: number): QuoteDraftLineView {
   return {
     id: line.id,
     position: line.position,
@@ -347,6 +357,11 @@ function toLineView(line: QuoteItem): QuoteDraftLineView {
     taxRate: line.taxRate?.toFixed(4) ?? null,
     discountKind: line.discountKind as "fixed" | "percent",
     discountValue: line.discountValue.toFixed(4),
+    grossTotal: line.grossTotal?.toFixed(currencyPrecision) ?? null,
+    discountTotal: line.discountTotal?.toFixed(currencyPrecision) ?? null,
+    netTotal: line.netTotal?.toFixed(currencyPrecision) ?? null,
+    taxTotal: line.taxTotal?.toFixed(currencyPrecision) ?? null,
+    lineTotal: line.lineTotal?.toFixed(currencyPrecision) ?? null,
     isExceptional: line.isExceptional,
     metadata: line.metadata,
   };
@@ -369,20 +384,35 @@ function toView(quote: Quote & { items: QuoteItem[] }): QuoteDraftView {
     terms: quote.terms,
     notes: quote.notes,
     shippingTotal: quote.shippingTotal.toFixed(4),
-    subtotal: quote.subtotal?.toFixed(4) ?? null,
-    discountTotal: quote.discountTotal?.toFixed(4) ?? null,
-    taxTotal: quote.taxTotal?.toFixed(4) ?? null,
-    total: quote.total?.toFixed(4) ?? null,
+    subtotal: quote.subtotal?.toFixed(quote.currencyPrecision) ?? null,
+    discountTotal: quote.discountTotal?.toFixed(quote.currencyPrecision) ?? null,
+    taxTotal: quote.taxTotal?.toFixed(quote.currencyPrecision) ?? null,
+    total: quote.total?.toFixed(quote.currencyPrecision) ?? null,
     calculatedRevision: quote.calculatedRevision,
     calculationInputHash: quote.calculationInputHash,
     customerNameSnapshot: quote.customerNameSnapshot,
     customerPhoneSnapshot: quote.customerPhoneSnapshot,
     organizationUnitNameSnapshot: quote.organizationUnitNameSnapshot,
     salespersonNameSnapshot: quote.salespersonNameSnapshot,
-    lines: quote.items.map(toLineView),
+    lines: quote.items.map((line) => toLineView(line, quote.currencyPrecision)),
     createdAt: quote.createdAt.toISOString(),
     updatedAt: quote.updatedAt.toISOString(),
   };
+}
+
+async function recalculateDraft(
+  transaction: Prisma.TransactionClient,
+  tenantId: string,
+  quoteId: string,
+  revision: number,
+): Promise<void> {
+  try {
+    await recalculateQuoteInTransaction(transaction, tenantId, quoteId, revision);
+  } catch (error) {
+    if (error instanceof QuoteCalculationValidationError)
+      throw new QuoteValidationError(error.message);
+    throw error;
+  }
 }
 
 function metadataValid(metadata: QuoteMutationMetadata): void {
@@ -1182,6 +1212,7 @@ export async function createQuoteDraft(
         lineCreateData(tenant.tenantId, quote.id, line as Record<string, unknown>),
       ),
     });
+    await recalculateDraft(transaction, tenant.tenantId, quote.id, quote.revision);
     await transaction.quoteCommercialContributor.create({
       data: { tenantId: tenant.tenantId, quoteId: quote.id, userId: actorUserId },
     });
@@ -1490,6 +1521,7 @@ export async function updateQuoteDraft(
         });
       }
     } else if (!metadataOnly) throw new QuoteValidationError("Unsupported quote patch");
+    await recalculateDraft(transaction, tenant.tenantId, before.id, before.revision + 1);
     await transaction.quoteCommercialContributor.upsert({
       where: {
         tenantId_quoteId_userId: {

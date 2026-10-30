@@ -52,7 +52,7 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
 | Messaging/inbox/rules/canales | Contratos, normalización, persistencia/colas/UI presentes; transporte real Baileys pendiente P0. |
 | IA/campañas/reportes/scheduler | Implementaciones presentes con IDs históricos distintos al backlog. E13-S05 conserva estado normativo pendiente de cierre. |
 | Agenda E14 | S01–S10 completas; S01–S03 integradas en main y S04–S10 publicadas en rama. |
-| Catálogo/cotizaciones E15 | S01 y S02 PASS / COMPLETE publicados; S02 `9f87002519e96eac03724d93c11cac7453b7bd26`, push SHA idéntico verificado y no contenido en main. S03 Deterministic Calculation RESERVED / READY para `e15_s03_luna` (gpt-6-luna), a la espera del checkpoint root; S04–S08 pendientes. |
+| Catálogo/cotizaciones E15 | S01 y S02 PASS / COMPLETE publicados; S02 `9f87002519e96eac03724d93c11cac7453b7bd26`, SHA remoto idéntico y fuera de main. S03 PASS validada; commit/push pendiente. S04 Quote Policy siguiente, sin reserva hasta publicar S03; S05–S08 pendientes. |
 | Procesos/timeline/Action Requests | Pendientes según backlog y equivalencias históricas; no confundir E10/E11 implementadas de IA/campañas con Process/Timeline originales. |
 | Documentos/portal | Pendientes; presencia de una ruta o package vacío no acredita implementación. |
 | Backups/restore y hardening precliente | No certificados; restore drill y transporte real bloquean declaración de MVP vendible. |
@@ -74,7 +74,7 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
 | E14-S10 | Core/integración/seguridad gpt-6-luna; auditoría final e14_s10_final_audit gpt-6-sol; coordinador docs/gates/Git. Basebc29a6f; reservas liberadas | PASS / COMPLETE | `58fb9171a392c76471c9ee4cd95bf6e653450d0a`; push SHA idéntico verificado | ADR-0071; root528/58files, full DB379/API227, workers1+3, aislamiento9+37; build/types/Biome502 y migraciones34–36 PASS; rereview aprobado |
 | E15-S01 | e15_s01_luna (gpt-6-luna): Product schema/SQL, catalog-manager/API/tests, focused configs/scripts. Reserva liberada; coordinador docs/Git/gates. Base4f76f22 | PASS / COMPLETE | `003d48a2bfa03cccad3b6cb5a5574aed5e66c524`; push `origin/codex/e15-catalog-quotes` exit0 y SHA idéntico verificado | DB11/11 + API3/3, cero skipped; unit528/528 en58files; Prisma7.9.1, clean/ordered upgrade, migration37 checksum, typecheck y Biome508 PASS; rereview aprobado |
 | E15-S02 | e15_s02_luna (gpt-6-luna), base `0d434a22011ec015e762d5c8a1ad042fa5a6ea41`; Quote/Item/Receipt/Contributor schema/SQL + manager/API/configs según Task2; root conserva docs/Git | PASS / COMPLETE | `9f87002519e96eac03724d93c11cac7453b7bd26`; push `origin/codex/e15-catalog-quotes` exit0 y SHA idéntico verificado; `main` no lo contiene | Rereview round3 approved; DB32/API4 focal; full DB411/API231/jobs1/outbound3/isolation9+37; root528/58; zero skipped; types, Biome513, Prisma/schema and checksums37/38 PASS |
-| E15-S03 | e15_s03_luna (gpt-6-luna); Task3 calculator/tests y estrecha integración quote-manager; root conserva docs/Git. RESERVED / READY desde feature `9f87002519e96eac03724d93c11cac7453b7bd26` + checkpoint root posterior | RESERVED / READY; no iniciado | — | Esperar checkpoint root; no implementación ni PASS de tests |
+| E15-S03 | e15_s03_luna (gpt-6-luna); base `dd0d501969db207d2c25d5fbc5bf880ab3a6d90c`; calculator/tests, manager y ajuste mínimo de prueba API; root docs/Git/gates, Sol auditor | PASS; publicación pendiente | — | Spec/calidad aprobada, cero findings; pure RED12 assertions → GREEN12/12; focal DB33/API4; full DB412/API231/jobs1/outbound3/isolation9+37; unit540/59; root+17 workspace types, focal types/builds, Biome515, Prisma/schema/checksum PASS; zero skipped |
 | E15-S04 | Sin reserva | PENDING | — | Quote policy |
 | E15-S05 | Sin reserva | PENDING | — | Approval workflow |
 | E15-S06 | Sin reserva | PENDING | — | Quote UI |
@@ -130,6 +130,10 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
 | E15-S02 full final | Root full DB/API/jobs/outbound/isolation runner, disposable schema38 | PASS exit0; DB411/56files, API231/29files, jobs1/1, outbound3/3, isolation DB9/API37; cero skipped. Log `%TEMP%/whatsappbot-e15-s02-full-final.log` |
 | E15-S02 root unit/types/static | Root `pnpm test`, root+17 workspace typechecks, focal DB/API typechecks, global Biome513 | PASS; unit528/58files exit0; typechecks secuenciales PASS; Biome513 PASS; log unit `%TEMP%/whatsappbot-e15-s02-unit-final.log` |
 | E15-S02 migration/schema | Prisma7.9.1 validate/generate; clean SDL; upgrade HEAD+SQL38; local checksums | PASS sin drift; checksums37/38 MATCH de nuevo, SQL aplicado sin modificaciones |
+| E15-S03 focused final | Pure calculator + focused DB/API suites | PASS; pure12/12, DB33/33 + API4/4 en dos archivos cada una |
+| E15-S03 full final | Root DB/API/jobs/outbound/isolation runner, schema38 disposable | PASS exit0; DB412/56files, API231/29files, jobs1/1, outbound3/3, isolation DB9/API37; cero skipped. Log `%TEMP%/whatsappbot-e15-s03-full.log` |
+| E15-S03 root unit/types/static | Root unit, root+17 workspace typechecks, focal DB/API types/builds, Biome515 | PASS; unit540/59files; typechecks secuenciales; Biome515 PASS. Logs `%TEMP%/whatsappbot-e15-s03-unit-final.log`, `%TEMP%/whatsappbot-e15-s03-workspace-types-final.log` |
+| E15-S03 schema/migration | Prisma7.9.1 validate/generate; SQL37/38 checksum | PASS; checksums MATCH, sin schema ni migration nueva |
 
 ## 6. Bloqueos, riesgos y siguiente prioridad
 
@@ -138,8 +142,9 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
 - E15-S01 está PASS / COMPLETE, publicado y verificado; no está integrado en
   main. S02 Quote Draft está PASS / COMPLETE, publicada como
   `9f87002519e96eac03724d93c11cac7453b7bd26` con SHA remoto idéntico; `main`
-  no contiene S02. S03 está RESERVED / READY para `e15_s03_luna`; esperar el
-  checkpoint root antes de iniciar. S04–S08 siguen pendientes.
+  no contiene S02. S03 está PASS validada tras auditoría y gates; publicación
+  pendiente, sin SHA. S04 Quote Policy es siguiente, aún sin reserva hasta
+  publicar S03. S05–S08 siguen pendientes.
 - Las suites completas del cierre E14 pasaron; los gates actuales de S01 están
   delimitados en la tabla anterior. Persiste el límite histórico de BOM
   al reproducir toda la cadena pristine; se verificó esquema limpio y upgrade
@@ -147,10 +152,10 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
 - El cierre de E14 cumple el hito solicitado; se conserva la prioridad
   comercial P0 de conectar Baileys y probar backup/restore antes de cobrar.
 - E15 continúa por instrucción expresa del usuario. S02 está publicada, pero no
-  integrada en main. S03 Deterministic Calculation está RESERVED / READY; no
-  iniciar antes del checkpoint root. Transporte real Baileys y backup/restore
-  P0 permanecen visibles y no se consideran resueltos por estos gates. No se
-  reclama full-workspace build para S02.
+  integrada en main. S03 Deterministic Calculation está PASS y espera publicación.
+  S04 sigue sin reserva hasta que root publique S03. Transporte real Baileys y
+  backup/restore P0 permanecen visibles y no se consideran resueltos por estos
+  gates. Para S02 y S03 no se reclama full-workspace build.
 
 ## 7. Registro de decisiones y entregas
 
@@ -454,3 +459,37 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
   tests e integración estrecha de quote-manager según Task3. No ha comenzado ni
   tiene implementación o PASS de tests. Root conserva docs compartidos y Git;
   esperar su checkpoint antes de comenzar S03. S04–S08 siguen pendientes.
+
+- 2026-10-29: checkpointdd0d501969db207d2c25d5fbc5bf880ab3a6d90c publicado
+  con SHA remoto idéntico y árbol limpio antes de despachar un Luna nuevo S03.
+  Brief calcula con BigInt, preserva precisión/snapshots/no-op/replay/auth de
+  S02 y exige resultados/hash/revisión transaccionales sin nueva migración.
+  Clon propio s03_green schema38 preparado. S03 en curso, sin PASS todavía.
+
+- 2026-10-29: S03 congelada para auditoría independiente. RED matemático positivo
+  alcanzó 12 aserciones fallidas (no era un RED de autenticación/ruta), luego
+  unit12/12 y focal DB33/API4 pasaron.
+  Ajustes iniciales corrigieron vectores fuera de escala, expectativa grande,
+  serialización de totales y revisión del recalculador: se escribe junto con
+  hash/totales/calculatedRevision, sin adelantarla artificialmente en el test.
+  Se autorizó sólo ajuste API test para tasa0 explícita en éxito y null-tax400
+  con rollback/retry; los guards antiguos se conservan. No nueva migración.
+  Full regresión y auditoría Sol en curso; no se publica ni abre S04 todavía.
+
+- 2026-10-29: auditoría independiente de S03 aprobada, spec/calidad sin findings;
+  gates finales PASS. El RED fue matemático y positivo (12 aserciones fallaron),
+  no un fallo de autenticación o ruta. Se corrigieron tres vectores iniciales:
+  HALF_UP con escala fuera de límite, límite del ejemplo 1/3 y total grande con
+  expectativa dos centavos baja. Primer DB tuvo cinco fallos por escala de totales,
+  persistencia de revision con calculatedRevision, fixtures manuales sin tasa0 y
+  fixture de tamaño que excedía el límite create antes de probar update; un
+  fixture posterior se ajustó para exceder sólo el límite merged update. En el
+  primer gate DB→API, DB33/33 pasó y API quedó3/4 por una expectativa S02 antigua
+  de HTTP201 con tax nulo. Se cambió el éxito a tasa0 explícita y se agregó el
+  caso separado missing-tax400 con rollback y retry válido. Los errores
+  intermedios de tipos también se corrigieron; no se cuentan como gates finales.
+  Final: pure12/12, focal DB33/33 y API4/4; full DB412/56files, API231/29files,
+  jobs1/1, outbound3/3, isolation9+37, cero skipped; root unit540/59files,
+  root+17 workspace types, focal DB/API types/builds, Biome515, Prisma7.9.1
+  validate/generate y checksums37/38 PASS. No schema/migration nueva. Commit/push
+  S03 sigue pendiente sin SHA; S04 sigue sin reserva hasta publicación.

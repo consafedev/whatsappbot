@@ -2,7 +2,7 @@
 
 **Actualizado:** 2026-10-29
 **Versión de producto:** `0.0.0`  
-**Latest validated story:** E15-S02 — PASS / COMPLETE; published on `codex/e15-catalog-quotes` and tracked in avance_orquestador.md.
+**Latest validated story:** E15-S03 — PASS; implementation gates and independent audit passed; feature publication is pending.
 **Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; Epic 11 — Campaign Engine & Audience Broadcasts — PASS / COMPLETE; **Epic 12 — Reporting, Analytics & Operational Observability — PASS / COMPLETE (E12-S01, E12-S02, E12-S03, E12-S04, E12-S05 PASS); E13-S01 — PASS / COMPLETE; E13-S02 — PASS / COMPLETE; E13-S03 — PASS / COMPLETE; E13-S04 — PASS / COMPLETE; E14-S01 — PASS / COMPLETE; E14-S02 — PASS / COMPLETE; E14-S03 — PASS / COMPLETE; E14-S04 — PASS / COMPLETE; E14-S05 — PASS / COMPLETE; E14-S06 — PASS / COMPLETE; E14-S07 — PASS / COMPLETE; E14-S08 — PASS / COMPLETE; E14-S09 — PASS / COMPLETE; E14-S10 — PASS / COMPLETE**.
 
 ## Current milestone
@@ -16,15 +16,17 @@ Feature `003d48a2bfa03cccad3b6cb5a5574aed5e66c524` is pushed to
 S02 Quote Draft passed final focused/full suites and round3 rereview. Feature
 `9f87002519e96eac03724d93c11cac7453b7bd26` is pushed to
 `origin/codex/e15-catalog-quotes`; remote SHA matches. It is not in main.
-S03 is RESERVED / READY for `e15_s03_luna` (gpt-6-luna), based on the published
-feature and subsequent root checkpoint; S04–S08 remain pending.
+S03 Deterministic Calculation passed implementation gates and independent audit
+from checkpoint `dd0d501`; feature commit/push is pending with no SHA assigned.
+S04 Quote Policy is next and unreserved until root publishes S03; S05–S08 remain
+pending.
 One epic is active. User-directed E15 priority does not certify or remove
 the outstanding real Baileys transport and backup/restore P0 gates.
 E14-S01–S03 are in main; S04–S10 remain delivered on the E14 feature ancestry.
 Epic 13 — Task Scheduling & Distributed Orchestration remains tracked below.
 Shared coordination and reservations: `platform_docs/avance_orquestador.md`.
 
-### E15 — Catalog + Quote (IN PROGRESS: S03 reserved/ready)
+### E15 — Catalog + Quote (IN PROGRESS: S04 next)
 
 Two Luna reconnaissance slices found no existing Product/Quote implementation.
 ADR-0072/spec/plan were accepted and published. E15-S01 now delivers the
@@ -61,9 +63,10 @@ S02 owns Quote drafts and lines, revisioned edits, normalized idempotency receip
 contributor snapshots and tenant-guarded API behavior. The DTO uses explicit
 fixed/percent discount objects with decimal-string values; catalog lines copy
 server-owned Product values and manual lines require `productId:null`. PATCH
-requires an explicit metadata, replaceLines or convertToManual operation. Header
-totals remain null: no S03 calculation, policy, approval, version, UI, send intent,
-document or provider feature is included. Receipt `resourceId` is required and
+requires an explicit metadata, replaceLines or convertToManual operation. S03 now
+recalculates exact quote totals on create and changed update; policy, approval,
+version, UI, send intent, document and provider features remain out of scope.
+Receipt `resourceId` is required and
 `quoteId` is nullable. S02 writes the actual Quote ID to both; S04 policy
 commands target the real Tenant ID with null `quoteId`, without a policy FK.
 
@@ -77,11 +80,21 @@ preserved in avance_orquestador.md; none is counted as a final gate. S02 is
 PASS / COMPLETE and published at `9f87002519e96eac03724d93c11cac7453b7bd26`;
 push to `origin/codex/e15-catalog-quotes` and identical remote SHA were verified.
 `main` remains at `fb8639db15ec262fcc13432f9aee4536deb8367e` and does not contain
-S02. S03 Deterministic Calculation is RESERVED / READY for `e15_s03_luna`
-(gpt-6-luna), from the S02 feature and subsequent root checkpoint. Only Task3's
-calculator/tests and narrow quote-manager integration are reserved; root retains
-shared docs and Git. S03 has not started and has no implementation/test PASS.
-Wait for the root checkpoint before starting it. S04–S08 remain pending. No E16
+S02. S03 Deterministic Calculation is PASS after its approved source audit and
+parent gates; feature commit/push is pending with no SHA. Exact BigInt/rational
+HALF_UP calculations round gross, discounts and exclusive tax per line; shipping
+is untaxed. Canonical SHA-256 inputs and all calculated results persist in the
+caller's transaction with revision/calculatedRevision. DTO totals are decimal
+strings. No-op, replay, line provenance and authorization behavior are preserved;
+missing tax returns400 and rolls back. Final gates: pure RED12 assertions then
+GREEN12/12; focused DB33/33 and API4/4 (two files each); full DB412/56 files,
+API231/29 files, jobs1/1, outbound3/3, isolation DB9/API37, zero skipped, exit0;
+root unit540/59 files, root+17 workspace types, focal DB/API types/builds and
+Biome515 passed. Prisma7.9.1 validate/generate passed; SQL37/38 checksums match,
+with no schema or migration change. Logs `%TEMP%/whatsappbot-e15-s03-full.log`,
+`%TEMP%/whatsappbot-e15-s03-unit-final.log` and
+`%TEMP%/whatsappbot-e15-s03-workspace-types-final.log`. S04 Quote Policy is next,
+unreserved until root publishes S03. S05–S08 remain pending. No E16
 document renderer or real WhatsApp delivery is implied.
 
 ### E14-S10 — Rules-driven WhatsApp booking (PASS / COMPLETE)
