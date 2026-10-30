@@ -70,6 +70,11 @@ describe("E15-S02 quote drafts API", () => {
       where: { slug: { startsWith: prefix } },
     });
     const ids = tenants.map(({ id }) => id);
+    await prisma.quote.updateMany({
+      where: { tenantId: { in: ids } },
+      data: { currentApprovalId: null },
+    });
+    await prisma.quoteApproval.deleteMany({ where: { tenantId: { in: ids } } });
     await prisma.quoteCommercialContributor.deleteMany({ where: { tenantId: { in: ids } } });
     await prisma.quoteCommandReceipt.deleteMany({ where: { tenantId: { in: ids } } });
     await prisma.quotePolicy.deleteMany({ where: { tenantId: { in: ids } } });
@@ -418,6 +423,57 @@ describe("E15-S02 quote drafts API", () => {
     expect((await fetch(url, { headers: { cookie: readCookie } })).status).toBe(403);
     await prisma.tenantEntitlement.update({
       where: { tenantId_entitlementKey: { tenantId: tenantAId, entitlementKey: "module.quotes" } },
+      data: { enabled: true },
+    });
+
+    const missingPermission = await fetch(`${url}/${result.data.current.id}/approval-request`, {
+      method: "POST",
+      headers: { cookie: policyOnePermissionCookie, "content-type": "application/json" },
+      body: JSON.stringify({ idempotencyKey: "api-approval-no-create", expectedRevision: 2 }),
+    });
+    expect(missingPermission.status).toBe(403);
+    const approvalRequest = await fetch(`${url}/${result.data.current.id}/approval-request`, {
+      method: "POST",
+      headers: { cookie: createCookie, "content-type": "application/json" },
+      body: JSON.stringify({ idempotencyKey: "api-approval-request", expectedRevision: 2 }),
+    });
+    expect(approvalRequest.status).toBe(201);
+    const requestBody = (await approvalRequest.json()) as {
+      data: { current: { revision: number; quoteStatus: string; id: string } };
+    };
+    expect(requestBody.data.current).toMatchObject({
+      revision: 3,
+      quoteStatus: "pending_approval",
+    });
+    const approvalPermissionDenied = await fetch(`${url}/${result.data.current.id}/approve`, {
+      method: "POST",
+      headers: { cookie: createCookie, "content-type": "application/json" },
+      body: JSON.stringify({
+        idempotencyKey: "api-approve-no-permission",
+        expectedRevision: 3,
+        reasonCode: "reviewed",
+      }),
+    });
+    expect(approvalPermissionDenied.status).toBe(403);
+    await prisma.tenantEntitlement.update({
+      where: {
+        tenantId_entitlementKey: { tenantId: tenantAId, entitlementKey: "module.crm_lite" },
+      },
+      data: { enabled: false },
+    });
+    const cancelled = await fetch(`${url}/${result.data.current.id}/cancel`, {
+      method: "POST",
+      headers: { cookie: createCookie, "content-type": "application/json" },
+      body: JSON.stringify({ idempotencyKey: "api-cancel-without-crm", expectedRevision: 3 }),
+    });
+    expect(cancelled.status).toBe(201);
+    expect(await cancelled.json()).toMatchObject({
+      data: { current: { status: "cancelled", revision: 4 } },
+    });
+    await prisma.tenantEntitlement.update({
+      where: {
+        tenantId_entitlementKey: { tenantId: tenantAId, entitlementKey: "module.crm_lite" },
+      },
       data: { enabled: true },
     });
   });

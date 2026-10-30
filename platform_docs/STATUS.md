@@ -1,8 +1,8 @@
 # STATUS.md — Estado operativo actual del proyecto
 
-**Actualizado:** 2026-10-29
+**Actualizado:** 2026-10-30
 **Versión de producto:** `0.0.0`  
-**Latest validated story:** E15-S04 — PASS / COMPLETE; published as `bd52fbd4df2def95942d7e69e1b4dd3039c00106` on `codex/e15-catalog-quotes`.
+**Latest validated story:** E15-S05 — PASS / VALIDATED; feature publication pending, no SHA. S04 `bd52fbd4df2def95942d7e69e1b4dd3039c00106` remains published on `codex/e15-catalog-quotes`.
 **Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; Epic 11 — Campaign Engine & Audience Broadcasts — PASS / COMPLETE; **Epic 12 — Reporting, Analytics & Operational Observability — PASS / COMPLETE (E12-S01, E12-S02, E12-S03, E12-S04, E12-S05 PASS); E13-S01 — PASS / COMPLETE; E13-S02 — PASS / COMPLETE; E13-S03 — PASS / COMPLETE; E13-S04 — PASS / COMPLETE; E14-S01 — PASS / COMPLETE; E14-S02 — PASS / COMPLETE; E14-S03 — PASS / COMPLETE; E14-S04 — PASS / COMPLETE; E14-S05 — PASS / COMPLETE; E14-S06 — PASS / COMPLETE; E14-S07 — PASS / COMPLETE; E14-S08 — PASS / COMPLETE; E14-S09 — PASS / COMPLETE; E14-S10 — PASS / COMPLETE**.
 
 ## Current milestone
@@ -29,15 +29,17 @@ validate/generate, clean-schema/HEAD upgrade39, local apply and checksums37/38/3
 MATCH; SQL39 remains immutable. S04 feature
 `bd52fbd4df2def95942d7e69e1b4dd3039c00106` is published with matching remote
 SHA and is not in main. DB424/API232/jobs/outbound/isolation R0 preceded the
-parser fix; focused post-fix suites verify that correction. S05 is reserved
-for `e15_s05_luna`, awaiting the root checkpoint; S06–S08 remain pending.
+parser fix; focused post-fix suites verify that correction. S05 Approval is
+PASS / VALIDATED with publication pending and no feature SHA; root gates and the
+independent audit passed. S06 is not reserved until S05 is published; S07–S08
+remain pending.
 One epic is active. User-directed E15 priority does not certify or remove
 the outstanding real Baileys transport and backup/restore P0 gates.
 E14-S01–S03 are in main; S04–S10 remain delivered on the E14 feature ancestry.
 Epic 13 — Task Scheduling & Distributed Orchestration remains tracked below.
 Shared coordination and reservations: `platform_docs/avance_orquestador.md`.
 
-### E15 — Catalog + Quote (IN PROGRESS: S05 next)
+### E15 — Catalog + Quote (IN PROGRESS: S05 validated; publication pending)
 
 Two Luna reconnaissance slices found no existing Product/Quote implementation.
 ADR-0072/spec/plan were accepted and published. E15-S01 now delivers the
@@ -137,9 +139,16 @@ the two-line coercion fix and is valid pre-fix evidence; post-fix focused tests
 verify the correction. No post-fix full-suite rerun is claimed. S04 is PASS /
 COMPLETE and published as `bd52fbd4df2def95942d7e69e1b4dd3039c00106`; push and
 remote SHA match. Remote `main` remains `fb8639db15ec262fcc13432f9aee4536deb8367e`
-and does not contain S04. S05 is RESERVED / READY for `e15_s05_luna` from S04
-and the later root checkpoint. It has no implementation or test PASS; wait for
-that checkpoint before starting. S06–S08 remain pending. No E16
+and does not contain S04. S05 Approval is PASS / VALIDATED from published
+checkpoint `0be1020ab3f4b220cbc9852d4a2ade3edb6778dc`; publication is pending and
+no S05 feature SHA exists. Its scope is approval/lifecycle/schema/API/tests.
+Focused post-fix DB57/4 files and API5/2 files passed with zero skipped. Root
+unit552/60, root TypeScript, 17 workspace typechecks, global Biome522 and diff-check
+passed. R0 full DB435/58, API232/29, jobs1, outbound3, isolation9+37 passed
+before the source fix; no post-fix full rerun is claimed. SQL40 checksum matches;
+the canonical HEAD rehydration upgrade had zero drift. Independent review is
+approved without findings. Do not reserve S06 until S05 is published; S07–S08
+remain pending. No E16
 document renderer or real WhatsApp delivery is implied.
 
 ### E14-S10 — Rules-driven WhatsApp booking (PASS / COMPLETE)
@@ -1773,6 +1782,16 @@ No hay bloqueos para PORTAL-HUB-ROOT-ROUTE. Existe 1 Platform Admin activo para 
 
 ## Known issues
 
+- 2026-10-30, procedencia de migraciones locales históricas: la fila aplicada
+  `20260827180000_add_ai_gateway_foundation` tiene el marcador `manual` en
+  `checksum`, no un SHA-256 verificable. Se confirmó con consulta de metadatos
+  de sólo lectura; no demuestra por sí solo que el SQL aplicado difiera del
+  commit. Tampoco permite certificar toda la historia con checksums. No se
+  modificaron SQL históricos ni `_prisma_migrations`. E15 valida por separado
+  los hashes canónicos de sus migraciones y una reconstrucción del baseline
+  con sus CHECK reales; véase TESTING_STRATEGY §14.1. Conservar esta limitación
+  junto con la reproducción histórica/BOM en la verificación operativa previa
+  al primer cliente, sin declarar validada toda la cadena pristine.
 - E06-S06/E06-S07 requieren reejecutar typecheck, suite PostgreSQL y regresiones cuando Docker Desktop vuelva a exponer `dockerDesktopLinuxEngine`; el checkout host conserva symlinks/workspace y Prisma incompletos.
 - El proveedor CI permanece deliberadamente sin seleccionar hasta que exista un remote o una decisión documental explícita.
 - El rate limiter E02-S01 es local a cada proceso; coordinación distribuida queda para una historia operativa futura si la topología escala horizontalmente.

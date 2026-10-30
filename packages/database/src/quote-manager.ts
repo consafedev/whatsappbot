@@ -142,7 +142,7 @@ export type QuoteDraftView = Readonly<{
   numberSequence: string;
   status: string;
   revision: number;
-  autonomyLevel: 0;
+  autonomyLevel: 0 | 1 | 2 | 3;
   organizationUnitId: string;
   contactId: string;
   currency: string;
@@ -169,7 +169,7 @@ export type QuoteDraftView = Readonly<{
 export type QuoteRecordedOutcome = Readonly<{
   quoteId: string;
   number: string;
-  status: "draft";
+  status: string;
   revision: number;
 }>;
 
@@ -378,7 +378,7 @@ function toView(quote: Quote & { items: QuoteItem[] }): QuoteDraftView {
     numberSequence: quote.numberSequence.toString(),
     status: quote.status,
     revision: quote.revision,
-    autonomyLevel: 0,
+    autonomyLevel: quote.autonomyLevel as 0 | 1 | 2 | 3,
     organizationUnitId: quote.organizationUnitId,
     contactId: quote.contactId,
     currency: quote.currency,
@@ -992,7 +992,12 @@ async function lockQuote(transaction: Prisma.TransactionClient, tenantId: string
 }
 
 function outcome(quote: Quote): QuoteRecordedOutcome {
-  return { quoteId: quote.id, number: quote.number, status: "draft", revision: quote.revision };
+  return {
+    quoteId: quote.id,
+    number: quote.number,
+    status: quote.status,
+    revision: quote.revision,
+  };
 }
 
 async function replayIfPresent(
@@ -1335,8 +1340,8 @@ export async function updateQuoteDraft(
     if (replay) return replay;
     if (before.revision !== expectedRevision)
       throw new QuoteRevisionConflictError("Quote revision does not match expectedRevision");
-    if (before.status !== "draft")
-      throw new QuoteValidationError("Only draft quotes are editable in S02");
+    if (!["draft", "pending_approval", "approved", "rejected"].includes(before.status))
+      throw new QuoteValidationError("Only unsent editable quotes may be changed");
     const contactSnapshot =
       nextContactId === before.contactId
         ? { name: before.customerNameSnapshot, phone: before.customerPhoneSnapshot }
@@ -1462,6 +1467,11 @@ export async function updateQuoteDraft(
     await transaction.quote.update({
       where: { tenantId_id: { tenantId: tenant.tenantId, id: before.id } },
       data: {
+        status: "draft",
+        autonomyLevel: 0,
+        approvalPolicyRevision: null,
+        approvalPolicyHash: null,
+        currentApprovalId: null,
         organizationUnitId: nextUnitId,
         contactId: nextContactId,
         currency: nextCurrency.code,
@@ -1569,6 +1579,7 @@ export async function listQuotes(
       "cancelled",
       "sent",
       "accepted",
+      "expired",
     ].includes(filters.status)
   )
     throw new QuoteValidationError("status is invalid");

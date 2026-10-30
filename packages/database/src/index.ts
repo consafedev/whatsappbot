@@ -562,6 +562,19 @@ export {
   WorkflowReferenceNotFoundError,
 } from "./postgres-workflow-orchestrator";
 export {
+  approveQuote,
+  cancelQuote,
+  type QuoteApprovalDatabase,
+  type QuoteApprovalInput,
+  type QuoteApprovalReason,
+  type QuoteApprovalView,
+  type QuoteCancellationView,
+  type QuoteDecisionInput,
+  type QuoteRejectionReason,
+  rejectQuote,
+  requestQuoteApproval,
+} from "./quote-approval-manager";
+export {
   createQuoteDraft,
   getQuoteById,
   listQuotes,

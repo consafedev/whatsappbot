@@ -51,6 +51,23 @@ default does not initialize a policy row. New-customer review defaults true;
 automatic amount ceiling uses NUMERIC(24,4) aggregate capacity. Config authority
 is module.quotes plus the specified permissions, independent of CRM/Catalog.
 
+Approval evidence clarification2026-10-29: S05 retains an explicit
+`allowSelfApprovalSnapshot` on each approval record, so later policy changes
+cannot erase that historical decision setting. Human decision codes are
+caller-provided structured ASCII identifiers matching
+`^[a-z][a-z0-9_]{0,63}$`; optional notes remain bounded to1000 characters.
+No preexisting human-reason taxonomy is assumed. S05 introduces the local
+success code `policy_eligible` only for an actual evaluator `AUTO_APPROVE`
+result; it does not change S04's negative policy-reason union or permit a null
+automatic decision reason.
+
+Cancellation outcome clarification2026-10-30: preserve lifecycle
+`current.status="cancelled"` and expose the command result separately as
+`recordedOutcome.result`: `cancelled` for the first transition and
+`already_cancelled` for a fresh-key no-op. Persist that result in the minimal
+immutable receipt, so replay retains the original result. Neither a fresh-key
+no-op nor a replay adds a business audit/outbox event or increments revision.
+
 ### Command receipt resource identity
 
 Clarification2026-10-29: `QuoteCommandReceipt.resourceId` is required and binds

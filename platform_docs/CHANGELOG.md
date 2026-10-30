@@ -55,9 +55,37 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
   fix and is retained as valid pre-fix evidence; post-fix focused tests cover the
   correction. Feature `bd52fbd4df2def95942d7e69e1b4dd3039c00106` was pushed to
   `origin/codex/e15-catalog-quotes` with matching remote SHA; remote `main`
-  `fb8639db15ec262fcc13432f9aee4536deb8367e` does not contain S04. S05 approval
-  is reserved/ready for `e15_s05_luna` after the root checkpoint; no S05
-  implementation or PASS is claimed.
+  `fb8639db15ec262fcc13432f9aee4536deb8367e` does not contain S04. At S04
+  publication, S05 was reserved for `e15_s05_luna`; its later implementation and
+  validation are recorded below.
+
+- E15-S05 Quote Approval is PASS / VALIDATED from checkpoint
+  `0be1020ab3f4b220cbc9852d4a2ade3edb6778dc`; feature publication is pending,
+  with no S05 SHA yet. It adds approval request/decision history bound to quote
+  and policy revisions, separation of duties, lifecycle-aware edit/cancel, and
+  recalculation of stored inputs and canonical hash on authority transitions.
+  Cancellation keeps `Quote.status=cancelled`: the first result is `cancelled`,
+  a new key after cancellation records/returns `already_cancelled`, and the
+  original key replays its stored result. Missing tax does not fabricate totals.
+  Human approval requests emit
+  `quote.approval.requested`; eligible system approval emits `quote.approved`.
+  `policy_eligible` is an S05-local reason used only after the existing evaluator
+  returns AUTO_APPROVE. No QuoteVersion, QuoteSendIntent, send, UI or document
+  behavior was added.
+
+  SQL40 (`20261028210000_e15_quote_approvals`) is immutable at SHA-256
+  `2ea04f4b854da03cb2318d7b454857d1146bcaae94e4e953919c62db3c7b804e`; applied
+  checksums37–40 match. Prisma7.9.1 validate/generate, clean SDL and canonical
+  HEAD rehydration upgrade to SQL40 passed with zero final schema drift. Focused
+  post-fix DB57/4 files and API5/2 files passed with zero skipped; API build,
+  scoped Biome7 and diff-check passed. Root unit552/60, root TypeScript,
+  sequential17-workspace typechecks and global Biome522 passed. The full R0 run
+  (DB435/58, API232/29, jobs1, outbound3, isolation9+37; zero skipped) preceded
+  the source fix; no post-fix full-suite rerun is claimed. Independent rereview
+  approved without findings. The historical AI Gateway migration's `manual`
+  checksum remains an unrelated chain limitation; historical SQL and
+  `_prisma_migrations` were not modified. S06 UI remains unreserved until S05
+  publication; S07–S08 remain pending.
 
 - E14-S10 deterministic appointment conversations behind the exclusive
   `start_appointment_booking` rule action. PostgreSQL owns canonical inbound

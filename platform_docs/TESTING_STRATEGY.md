@@ -379,6 +379,33 @@ S08 prueba varios canales pendientes y cancelación tras revocación, sin PDF ni
 quote.sent. Cada migration nueva valida esquema limpio y upgrade relevante
 antes de apply local y PG aislado. Tests omitidos/configuración sin DB no pasan.
 
+## 14.1 Verificación de migraciones E15
+
+La comprobación de SDL limpio con Prisma no reproduce los CHECK escritos en
+SQL. No equivale a ejecutar toda la cadena histórica desde cero. Para probar
+un upgrade E15 que modifica esos controles, reconstruir una base desechable
+vacía con el SDL del commit anterior y los SQL E15 canónicos de ese commit:
+
+1. Verificar que los SQL E15 de trabajo coincidan byte por byte con Git y que
+   sus checksums coincidan con las migraciones locales aplicadas relevantes.
+2. Crear el SDL anterior en una base temporal propia. Sustituir únicamente
+   sus tablas E15 vacías por las definiciones de los SQL E15 anteriores, en
+   orden. Rechazar tablas con filas, propietario ajeno o referencias entrantes
+   desde otros módulos; eliminar el conjunto con RESTRICT, sin afectar la base
+   de desarrollo. Confirmar que Prisma no detecte diferencias contra ese SDL.
+3. Aplicar los SQL nuevos en orden en esa base y exigir un diff sin diferencias
+   contra el SDL actual. Esto prueba los CHECK reales del área modificada, sin
+   tolerar diferencias de otros módulos ni modificar migraciones históricas.
+4. Sólo después aplicar localmente la migración nueva y comprobar su checksum;
+   ejecutar las suites PostgreSQL en otra base temporal con esos controles.
+   SQL aplicado es inmutable. Las correcciones requieren otra migración.
+
+Registrar por separado cualquier discrepancia histórica, diferencias de bytes
+entre checkout y Git, y la limitación de BOM de la cadena pristine. No cambiar
+`_prisma_migrations` ni normalizar SQL histórico para convertir un fallo en PASS.
+Este protocolo es reproducible con Git, Prisma y PostgreSQL del proyecto; los
+wrappers locales son una comodidad y no sustituyen estas comprobaciones.
+
 ---
 
 # 15. Document Engine

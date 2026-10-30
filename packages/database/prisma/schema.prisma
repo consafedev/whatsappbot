@@ -227,6 +227,7 @@ model Tenant {
   quotePolicy          QuotePolicy?
   quoteCommercialContributors QuoteCommercialContributor[]
   quoteItems           QuoteItem[]
+  quoteApprovals       QuoteApproval[]
 
   @@index([status], map: "tenant_status_idx")
   @@index([deploymentId], map: "tenant_deployment_id_idx")
@@ -257,6 +258,8 @@ model User {
   createdQuotes Quote[] @relation("QuoteCreator")
   quoteCommercialContributions QuoteCommercialContributor[]
   quoteCommandReceipts QuoteCommandReceipt[]
+  requestedQuoteApprovals QuoteApproval[] @relation("QuoteApprovalRequester")
+  decidedQuoteApprovals QuoteApproval[] @relation("QuoteApprovalDecisionActor")
 
   @@unique([tenantId, email], map: "tenant_user_tenant_email_key")
   @@unique([tenantId, id], map: "tenant_user_tenant_id_id_key")
@@ -1383,6 +1386,9 @@ model Quote {
   total                      Decimal?     @db.Decimal(24, 4)
   calculatedRevision         Int?          @map("calculated_revision")
   calculationInputHash       String?       @map("calculation_input_hash") @db.Char(64)
+  approvalPolicyRevision     Int?          @map("approval_policy_revision")
+  approvalPolicyHash         String?       @map("approval_policy_hash") @db.Char(64)
+  currentApprovalId          String?       @map("current_approval_id") @db.Uuid
   customerNameSnapshot       String       @map("customer_name_snapshot") @db.VarChar(150)
   customerPhoneSnapshot      String       @map("customer_phone_snapshot") @db.VarChar(64)
   organizationUnitNameSnapshot String    @map("organization_unit_name_snapshot") @db.VarChar(150)
@@ -1397,6 +1403,8 @@ model Quote {
   items            QuoteItem[]
   receipts         QuoteCommandReceipt[]
   contributors     QuoteCommercialContributor[]
+  approvals        QuoteApproval[] @relation("QuoteApprovalQuote")
+  currentApproval  QuoteApproval? @relation("QuoteCurrentApproval", fields: [tenantId, id, currentApprovalId], references: [tenantId, quoteId, id], onDelete: Restrict, onUpdate: Cascade, map: "quotes_current_approval_fkey")
 
   @@unique([tenantId, id], map: "quotes_tenant_id_id_key")
   @@unique([tenantId, numberSequence], map: "quotes_tenant_number_sequence_key")
@@ -1499,4 +1507,35 @@ model QuoteCommercialContributor {
   @@id([tenantId, quoteId, userId], map: "quote_commercial_contributors_pkey")
   @@index([tenantId, userId, firstContributedAt], map: "quote_commercial_contributors_tenant_user_idx")
   @@map("quote_commercial_contributors")
+}
+
+model QuoteApproval {
+  id                     String    @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  tenantId               String    @map("tenant_id") @db.Uuid
+  quoteId                String    @map("quote_id") @db.Uuid
+  sourceRevision         Int       @map("source_revision")
+  resultingRevision      Int       @map("resulting_revision")
+  policyRevision         Int       @map("policy_revision")
+  policyHash             String    @map("policy_hash") @db.Char(64)
+  allowSelfApprovalSnapshot Boolean @map("allow_self_approval_snapshot")
+  requestActorUserId     String    @map("request_actor_user_id") @db.Uuid
+  decisionActorUserId    String?   @map("decision_actor_user_id") @db.Uuid
+  decisionActorType      String?   @map("decision_actor_type") @db.VarChar(32)
+  status                 String    @db.VarChar(16)
+  requestReasonCodes     Json      @map("request_reason_codes") @db.JsonB
+  decisionReasonCode     String?   @map("decision_reason_code") @db.VarChar(64)
+  decisionNote           String?   @map("decision_note") @db.VarChar(1000)
+  requestedAt            DateTime  @default(now()) @map("requested_at") @db.Timestamptz(3)
+  decidedAt              DateTime? @map("decided_at") @db.Timestamptz(3)
+
+  tenant        Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "quote_approvals_tenant_fkey")
+  quote         Quote  @relation("QuoteApprovalQuote", fields: [tenantId, quoteId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade, map: "quote_approvals_quote_fkey")
+  requestActor  User   @relation("QuoteApprovalRequester", fields: [tenantId, requestActorUserId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade, map: "quote_approvals_request_actor_fkey")
+  decisionActor User?  @relation("QuoteApprovalDecisionActor", fields: [tenantId, decisionActorUserId], references: [tenantId, id], onDelete: Restrict, onUpdate: Cascade, map: "quote_approvals_decision_actor_fkey")
+  currentForQuote Quote[] @relation("QuoteCurrentApproval")
+
+  @@unique([tenantId, id], map: "quote_approvals_tenant_id_id_key")
+  @@unique([tenantId, quoteId, id], map: "quote_approvals_tenant_quote_id_key")
+  @@index([tenantId, quoteId, requestedAt, id], map: "quote_approvals_tenant_quote_requested_idx")
+  @@map("quote_approvals")
 }

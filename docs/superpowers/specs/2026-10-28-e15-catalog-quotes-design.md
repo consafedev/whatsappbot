@@ -84,6 +84,18 @@ NUMERIC(24,4), matching quote aggregates; config does not require CRM/Catalog.
 
 S05 adds a `QuoteApproval` record for each request/decision rather than expanding generic ActionRequests. It stores tenant, quote, source revision, policy revision/hash, request actor/time, request state, nullable decision actor type/id/time, decision and structured reason code/note. Automatic approval uses `actorType=system_policy`, null actor id, and an explicit reason; it never impersonates a user. Manual approval requires `quotes.approve`. Self-approval is rejected unless the current policy explicitly enables it. Rejection is authenticated and recorded. Request and decisions atomically persist quote/approval state, AuditLog and Outbox.
 
+S05 evidence clarification2026-10-29: retain `allowSelfApprovalSnapshot` on the
+approval record. Human reason codes are structured ASCII identifiers matching
+`^[a-z][a-z0-9_]{0,63}$`, with optional notes at most1000 characters; no fixed
+human-reason taxonomy is invented. The new workflow-local success code
+`policy_eligible` is emitted only after the existing evaluator returns
+`AUTO_APPROVE`. No change to S04's negative reason-code union is required.
+
+Cancellation receipt clarification2026-10-30: `recordedOutcome.result` is
+`cancelled` for the first cancellation and `already_cancelled` for a fresh-key
+no-op. The receipt stores that exact result and replay preserves it, while
+the separate current Quote projection keeps lifecycle status `cancelled`.
+
 `validUntil=null` means no automatic deadline. Non-null values are strict instants with offsets; after locks, sample current time and reject approval/version/send when `now >= validUntil`. No business timer or expiry transition is introduced. UI may derive an expired display/filter without changing recorded state; an editable unsent quote can receive a new validity and approval invalidation. A pending send intent must be cancelled before editing.
 
 Segregation of duties records `QuoteCommercialContributor(tenantId, quoteId, userId, firstContributedAt)` for the creator and every authenticated actor who changes customer-facing/commercial draft content. E15 has no metadata-only quote edit endpoint; every accepted quote edit counts as a contribution. Default approver cannot be a recorded contributor. `allowSelfApproval=true` is the explicit tenant policy override and is included in policy and decision evidence.

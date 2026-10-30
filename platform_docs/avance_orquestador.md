@@ -2,7 +2,7 @@
 
 **Formato:** 1 — conservar estas secciones y actualizar sus tablas; no sustituir
 el historial por un resumen sin evidencia. Fechas de coordinación: America/Mexico_City.
-**Actualización:** 2026-10-29. **Épica activa única:** E15 — Catalog + Quote.
+**Actualización:** 2026-10-30. **Épica activa única:** E15 — Catalog + Quote.
 **Responsable activo:** Codex, rama `codex/e15-catalog-quotes`, base281704d42c5b0e2793afb6dba79b59f5da85e612.
 **Base verificada:** `fb8639db15ec262fcc13432f9aee4536deb8367e`, integrada en
 `main` y `origin/main` al iniciar. Sin cambios locales iniciales.
@@ -52,7 +52,7 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
 | Messaging/inbox/rules/canales | Contratos, normalización, persistencia/colas/UI presentes; transporte real Baileys pendiente P0. |
 | IA/campañas/reportes/scheduler | Implementaciones presentes con IDs históricos distintos al backlog. E13-S05 conserva estado normativo pendiente de cierre. |
 | Agenda E14 | S01–S10 completas; S01–S03 integradas en main y S04–S10 publicadas en rama. |
-| Catálogo/cotizaciones E15 | S01–S04 PASS / COMPLETE publicados; S04 `bd52fbd4df2def95942d7e69e1b4dd3039c00106`, SHA remoto idéntico; main `fb8639db15ec262fcc13432f9aee4536deb8367e` no lo contiene. S05 Quote Approval RESERVED / READY para `e15_s05_luna`, espera checkpoint de root; sin implementación/PASS. S06–S08 pendientes. |
+| Catálogo/cotizaciones E15 | S01–S04 PASS / COMPLETE publicados; S05 PASS / VALIDATED, publicación pendiente y sin SHA, desde checkpoint `0be1020ab3f4b220cbc9852d4a2ade3edb6778dc`. S06 no se reserva hasta publicar S05; S07–S08 pendientes. |
 | Procesos/timeline/Action Requests | Pendientes según backlog y equivalencias históricas; no confundir E10/E11 implementadas de IA/campañas con Process/Timeline originales. |
 | Documentos/portal | Pendientes; presencia de una ruta o package vacío no acredita implementación. |
 | Backups/restore y hardening precliente | No certificados; restore drill y transporte real bloquean declaración de MVP vendible. |
@@ -76,7 +76,7 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
 | E15-S02 | e15_s02_luna (gpt-6-luna), base `0d434a22011ec015e762d5c8a1ad042fa5a6ea41`; Quote/Item/Receipt/Contributor schema/SQL + manager/API/configs según Task2; root conserva docs/Git | PASS / COMPLETE | `9f87002519e96eac03724d93c11cac7453b7bd26`; push `origin/codex/e15-catalog-quotes` exit0 y SHA idéntico verificado; `main` no lo contiene | Rereview round3 approved; DB32/API4 focal; full DB411/API231/jobs1/outbound3/isolation9+37; root528/58; zero skipped; types, Biome513, Prisma/schema and checksums37/38 PASS |
 | E15-S03 | e15_s03_luna (gpt-6-luna); base `dd0d501969db207d2c25d5fbc5bf880ab3a6d90c`; calculator/tests, manager y ajuste mínimo de prueba API; root docs/Git/gates, Sol auditor | PASS / COMPLETE | `0ebea786708dde64fd90705f9d39a3442e96d16b`; push `origin/codex/e15-catalog-quotes` exit0 y SHA idéntico verificado; `main` no lo contiene | Spec/calidad aprobada, cero findings; pure RED12 assertions → GREEN12/12; focal DB33/API4; full DB412/API231/jobs1/outbound3/isolation9+37; unit540/59; root+17 workspace types, focal types/builds, Biome515, Prisma/schema/checksum PASS; zero skipped |
 | E15-S04 | e15_s04_luna (gpt-6-luna); base `a228397` posterior a feature `0ebea786708dde64fd90705f9d39a3442e96d16b`; policy schema/evaluator/manager/API/tests; root conserva docs/Git/migration gates | PASS / COMPLETE | `bd52fbd4df2def95942d7e69e1b4dd3039c00106`; push exit0 y SHA remoto idéntico; main no lo contiene | Rereview aprobado sin findings; pure12/12, focused DB45/3files + API5/2files; root552/60; root+17 workspace types, focal types/builds, Biome520, Prisma/schema/checksum PASS; cero skipped |
-| E15-S05 | e15_s05_luna (gpt-6-luna); Task5 approval/lifecycle/schema/API/tests; base S04 + checkpoint posterior de root | RESERVED / READY; esperar checkpoint | — | Sin implementación ni PASS; S06–S08 pendientes |
+| E15-S05 | e15_s05_luna (gpt-6-luna); Task5 approval/lifecycle/schema/API/tests; base publicado `0be1020ab3f4b220cbc9852d4a2ade3edb6778dc`; reserva liberada, root docs/Git/migraciones | PASS / VALIDATED; publicación pendiente | —; sin SHA | Auditoría aprobada sin findings; focal post-fix DB57/4files + API5/2files, cero skipped; root552/60, TSC, 17 workspace typechecks, Biome522, diff-check; schema40 hash/checksums37–40 PASS. Full R0 DB435/58 + API232/29 + jobs1 + outbound3 + isolation9+37 fue pre-fix; sin full post-fix rerun |
 | E15-S06 | Sin reserva | PENDING | — | Quote UI |
 | E15-S07 | Sin reserva | PENDING | — | Quote version snapshot |
 | E15-S08 | Sin reserva | PENDING | — | Send quote event |
@@ -150,8 +150,9 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
   `0ebea786708dde64fd90705f9d39a3442e96d16b`; push y SHA remoto idéntico
   verificados. `main` no contiene S03. S04 Quote Policy está PASS / COMPLETE,
   publicada como `bd52fbd4df2def95942d7e69e1b4dd3039c00106` con SHA remoto
-  idéntico. S05 está reservada para `e15_s05_luna` hasta el checkpoint root;
-  S06–S08 siguen pendientes.
+  idéntico. S05 está PASS / VALIDATED, con publicación pendiente y sin SHA,
+  desde el checkpoint `0be1020ab3f4b220cbc9852d4a2ade3edb6778dc`. S06 no se reserva
+  hasta publicar S05; S07–S08 siguen pendientes.
 - Las suites completas del cierre E14 pasaron; los gates actuales de S01 están
   delimitados en la tabla anterior. Persiste el límite histórico de BOM
   al reproducir toda la cadena pristine; se verificó esquema limpio y upgrade
@@ -159,8 +160,9 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
 - El cierre de E14 cumple el hito solicitado; se conserva la prioridad
   comercial P0 de conectar Baileys y probar backup/restore antes de cobrar.
 - E15 continúa por instrucción expresa del usuario. S02 y S03 están publicadas,
-  pero no integradas en main. S04 está publicada y S05 reservada hasta el
-  checkpoint root. Transporte real Baileys y
+  pero no integradas en main. S04 está publicada y S05 está validada, pendiente
+  de publicación, desde el checkpoint `0be1020`. S06 no se reserva hasta esa
+  publicación. Transporte real Baileys y
   backup/restore P0 permanecen visibles y no se consideran resueltos por estos
   gates. Para S02 y S03 no se reclama full-workspace build.
 
@@ -539,3 +541,11 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
   `e15_s05_luna` (gpt-6-luna), Task5 approval/lifecycle/schema/API/tests, desde
   S04 y checkpoint posterior de root; esperar ese checkpoint antes de iniciar.
   S06–S08 siguen pendientes. No se afirma implementación ni PASS de S05.
+
+- 2026-10-29: checkpoint de publicación S04/reserva S05 `0be1020ab3f4b220cbc9852d4a2ade3edb6778dc` publicado con SHA remoto idéntico y árbol limpio. Comienza únicamente S05 con `e15_s05_luna` (GPT-6 Luna), Task5 approval/lifecycle/schema/API/tests. Root mantiene documentación/Git/migraciones y auditoría independiente; prepared `s05_red` esquema39 para RED auténtico. Sin PASS S05; S06–S08 cerradas.
+
+- 2026-10-30: S05 schema40 validado/generado con Prisma7.9.1, SDL limpio PASS. El primer upgrade con SDL anterior falló porque Prisma no genera CHECK SQL; una propuesta con clone runtime encontró mappings FK históricos y el preflight general encontró checksum histórico no verificable. Diagnóstico readonly confirmó marcador literal `manual` en la migración AI20260827; no se modificó SQL histórico ni `_prisma_migrations` y no se infiere alteración del SQL. El gate definitivo reconstruyó HEAD SDL en DB temporal vacía, sustituyó sólo tablas E15 vacías/propias sin incoming FK externos, reejecutó SQL37–39 canónicos HEAD con bytes y checksums aplicados coincidentes, exigió diff0 contra HEAD, aplicó SQL40 y exigió diff0 contra schema actual: PASS exit0. Protocolo en TESTING_STRATEGY §14.1. SQL40 aplicado localmente con HEAD0be1020 guardado; checksum `2ea04f4b854da03cb2318d7b454857d1146bcaae94e4e953919c62db3c7b804e` MATCH y ahora inmutable. Redclone39 retirado, s05_green40 preparado. GREEN final DB56/4files/API5/2files, cero skipped, exit0; API build, scoped Biome/diff PASS. Fallos intermedios de fixtures/imports/expectativas201 fueron corregidos antes de freeze, sin relajar política. Auditoría independiente Sol y regresión completa root en curso, sin PASS final S05 ni publicación todavía. S06–S08 pendientes.
+
+- 2026-10-30: S05 full R0 exit0: DB435/58 archivos, API232/29, jobs1, outbound3, aislamiento9+37, cero skipped (`%TEMP%/whatsappbot-e15-s05-full.log`). Auditoría independiente `s05-audit.md` no aprobó dos P2: evento humano debe ser `quote.approval.requested` y cancelación con key nueva sobre cancelada debe guardar/devolver `already_cancelled`. GlobalBiome detectó además orden de exports en database/index.ts. Luna original corrige ronda1 con RED/regresiones/GREEN, preservando SQL40 inmutable. Se añade prueba directa de SoD para editor material distinto del creador, dentro de la aceptación original. En este punto todavía no había publicación/PASS final S05; S06–S08 pendientes.
+
+- 2026-10-30: cierre de S05 PASS / VALIDATED, publicación pendiente y sin SHA. Rereview `s05-rereview-round1.md` aprobado sin findings tras resolver los dos P2 y añadir regresión SoD del editor material. Final focal post-fix DB57/4files + API5/2files, cero skipped (`s05-r1-green-catalog-quotes.log`); unit552/60, root TypeScript, 17 workspace typechecks secuenciales, Biome522 sin warnings, diff-check, API build y Biome focal7 PASS. Full R0 anterior al fix pasó DB435/58, API232/29, jobs1, outbound3, isolation9+37, cero skipped; no se afirma full post-fix. Prisma7.9.1 validate/generate, clean SDL y canonical HEAD rehydration upgrade SQL40 con diff final cero; SQL37–40 checksums MATCH. SQL40 `20261028210000_e15_quote_approvals` SHA-256 `2ea04f4b854da03cb2318d7b454857d1146bcaae94e4e953919c62db3c7b804e`, inmutable. El checksum histórico literal `manual` de `20260827180000_add_ai_gateway_foundation` sigue como limitación separada; no se modificaron SQL históricos ni `_prisma_migrations` ni se afirma drift real. No se reserva S06 hasta publicar S05; S07–S08 siguen pendientes.

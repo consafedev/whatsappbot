@@ -20,13 +20,18 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import {
+  approveQuote,
   assertTenantModuleEntitled,
+  cancelQuote,
   createQuoteDraft,
   getQuoteById,
   getQuotePolicy,
   listQuotes,
+  type QuoteApprovalDatabase,
+  type QuoteApprovalInput,
   QuoteAuthorizationError,
   QuoteCommandConflictError,
+  type QuoteDecisionInput,
   type QuoteDraftInput,
   type QuoteDraftPatch,
   type QuoteListFilters,
@@ -36,6 +41,8 @@ import {
   type QuotePolicyInput,
   QuoteRevisionConflictError,
   QuoteValidationError,
+  rejectQuote,
+  requestQuoteApproval,
   type TenantContext,
   TenantModuleEntitlementRequiredError,
   TenantNotOperationalError,
@@ -408,6 +415,38 @@ function parsePolicyInput(value: unknown): QuotePolicyInput {
   };
 }
 
+function parseLifecycleInput(
+  value: unknown,
+  decision = false,
+): Readonly<{
+  expectedRevision: number;
+  input: QuoteApprovalInput | QuoteDecisionInput;
+}> {
+  const body = object(value, "quote lifecycle request");
+  exactKeys(
+    body,
+    decision
+      ? ["idempotencyKey", "expectedRevision", "reasonCode", "note"]
+      : ["idempotencyKey", "expectedRevision"],
+    "quote lifecycle request",
+  );
+  if (!Number.isSafeInteger(body.expectedRevision) || Number(body.expectedRevision) < 1)
+    throw new BadRequestException("expectedRevision must be a positive safe integer");
+  const idempotencyKey = requiredString(body.idempotencyKey, "idempotencyKey");
+  if (!decision)
+    return { expectedRevision: Number(body.expectedRevision), input: { idempotencyKey } };
+  const reasonCode = requiredString(body.reasonCode, "reasonCode");
+  if (!/^[a-z][a-z0-9_]{0,63}$/.test(reasonCode))
+    throw new BadRequestException("reasonCode must be a lowercase reason code up to 64 characters");
+  const note = optionalString(body.note, "note");
+  if (note !== undefined && note !== null && note.length > 1000)
+    throw new BadRequestException("note must not exceed 1000 characters");
+  return {
+    expectedRevision: Number(body.expectedRevision),
+    input: { idempotencyKey, reasonCode, ...(note === undefined ? {} : { note }) },
+  };
+}
+
 function mapQuoteError(error: unknown): never {
   if (error instanceof QuoteAuthorizationError) throw new ForbiddenException("Forbidden");
   if (error instanceof QuoteValidationError) throw new BadRequestException(error.message);
@@ -426,7 +465,7 @@ function mapQuoteError(error: unknown): never {
 export class QuotesService {
   constructor(
     @Inject(QUOTES_DATABASE)
-    private readonly database: QuoteManagerDatabase & QuotePolicyDatabase,
+    private readonly database: QuoteManagerDatabase & QuotePolicyDatabase & QuoteApprovalDatabase,
   ) {}
 
   async getPolicy(context: TenantContext) {
@@ -502,6 +541,78 @@ export class QuotesService {
       if (patch.replaceLines?.some((line) => line.productId !== null))
         await assertTenantModuleEntitled(context, "module.catalog", this.database);
       return await updateQuoteDraft(context, this.database, id, expectedRevision, patch, {
+        actorUserId: identity.userId,
+        requestId: requestId(request),
+      });
+    } catch (error) {
+      return mapQuoteError(error);
+    }
+  }
+
+  async requestApproval(
+    context: TenantContext,
+    identity: TenantSessionIdentity,
+    request: TenantAuthenticationRequest,
+    id: string,
+    expectedRevision: number,
+    input: QuoteApprovalInput,
+  ) {
+    try {
+      return await requestQuoteApproval(context, this.database, id, expectedRevision, input, {
+        actorUserId: identity.userId,
+        requestId: requestId(request),
+      });
+    } catch (error) {
+      return mapQuoteError(error);
+    }
+  }
+
+  async approve(
+    context: TenantContext,
+    identity: TenantSessionIdentity,
+    request: TenantAuthenticationRequest,
+    id: string,
+    expectedRevision: number,
+    input: QuoteDecisionInput,
+  ) {
+    try {
+      return await approveQuote(context, this.database, id, expectedRevision, input, {
+        actorUserId: identity.userId,
+        requestId: requestId(request),
+      });
+    } catch (error) {
+      return mapQuoteError(error);
+    }
+  }
+
+  async reject(
+    context: TenantContext,
+    identity: TenantSessionIdentity,
+    request: TenantAuthenticationRequest,
+    id: string,
+    expectedRevision: number,
+    input: QuoteDecisionInput,
+  ) {
+    try {
+      return await rejectQuote(context, this.database, id, expectedRevision, input, {
+        actorUserId: identity.userId,
+        requestId: requestId(request),
+      });
+    } catch (error) {
+      return mapQuoteError(error);
+    }
+  }
+
+  async cancel(
+    context: TenantContext,
+    identity: TenantSessionIdentity,
+    request: TenantAuthenticationRequest,
+    id: string,
+    expectedRevision: number,
+    input: QuoteApprovalInput,
+  ) {
+    try {
+      return await cancelQuote(context, this.database, id, expectedRevision, input, {
         actorUserId: identity.userId,
         requestId: requestId(request),
       });
@@ -592,6 +703,102 @@ export class QuotesController {
         id.toLowerCase(),
         parsed.expectedRevision,
         parsed.patch,
+      ),
+    };
+  }
+
+  @Post(":id/approval-request")
+  @quoteAuthorized("quotes.create")
+  async requestApproval(
+    @CurrentTenantContext() context: TenantContext,
+    @CurrentTenantIdentity() identity: TenantSessionIdentity,
+    @Req() request: TenantAuthenticationRequest,
+    @Param("id") id: string,
+    @Body() body: unknown,
+  ): Promise<ApiResponse<Awaited<ReturnType<QuotesService["requestApproval"]>>>> {
+    if (!UUID_V7.test(id)) throw new NotFoundException("Quote was not found");
+    const parsed = parseLifecycleInput(body);
+    return {
+      success: true,
+      data: await this.service.requestApproval(
+        context,
+        identity,
+        request,
+        id.toLowerCase(),
+        parsed.expectedRevision,
+        parsed.input as QuoteApprovalInput,
+      ),
+    };
+  }
+
+  @Post(":id/approve")
+  @quoteAuthorized("quotes.approve")
+  async approve(
+    @CurrentTenantContext() context: TenantContext,
+    @CurrentTenantIdentity() identity: TenantSessionIdentity,
+    @Req() request: TenantAuthenticationRequest,
+    @Param("id") id: string,
+    @Body() body: unknown,
+  ): Promise<ApiResponse<Awaited<ReturnType<QuotesService["approve"]>>>> {
+    if (!UUID_V7.test(id)) throw new NotFoundException("Quote was not found");
+    const parsed = parseLifecycleInput(body, true);
+    return {
+      success: true,
+      data: await this.service.approve(
+        context,
+        identity,
+        request,
+        id.toLowerCase(),
+        parsed.expectedRevision,
+        parsed.input as QuoteDecisionInput,
+      ),
+    };
+  }
+
+  @Post(":id/reject")
+  @quoteAuthorized("quotes.approve")
+  async reject(
+    @CurrentTenantContext() context: TenantContext,
+    @CurrentTenantIdentity() identity: TenantSessionIdentity,
+    @Req() request: TenantAuthenticationRequest,
+    @Param("id") id: string,
+    @Body() body: unknown,
+  ): Promise<ApiResponse<Awaited<ReturnType<QuotesService["reject"]>>>> {
+    if (!UUID_V7.test(id)) throw new NotFoundException("Quote was not found");
+    const parsed = parseLifecycleInput(body, true);
+    return {
+      success: true,
+      data: await this.service.reject(
+        context,
+        identity,
+        request,
+        id.toLowerCase(),
+        parsed.expectedRevision,
+        parsed.input as QuoteDecisionInput,
+      ),
+    };
+  }
+
+  @Post(":id/cancel")
+  @quoteAuthorized("quotes.create")
+  async cancel(
+    @CurrentTenantContext() context: TenantContext,
+    @CurrentTenantIdentity() identity: TenantSessionIdentity,
+    @Req() request: TenantAuthenticationRequest,
+    @Param("id") id: string,
+    @Body() body: unknown,
+  ): Promise<ApiResponse<Awaited<ReturnType<QuotesService["cancel"]>>>> {
+    if (!UUID_V7.test(id)) throw new NotFoundException("Quote was not found");
+    const parsed = parseLifecycleInput(body);
+    return {
+      success: true,
+      data: await this.service.cancel(
+        context,
+        identity,
+        request,
+        id.toLowerCase(),
+        parsed.expectedRevision,
+        parsed.input as QuoteApprovalInput,
       ),
     };
   }
