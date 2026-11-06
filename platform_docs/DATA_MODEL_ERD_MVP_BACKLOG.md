@@ -2761,7 +2761,7 @@ Policy está PASS / COMPLETE y publicada como
 verificados. Main `fb8639db15ec262fcc13432f9aee4536deb8367e` no contiene S04.
 S05 Quote Approval está PASS / COMPLETE, publicada como
 `4d5ed221ce668755cd29c89b9a09b8cd9604ec68` con SHA remoto idéntico y fuera de main.
-S06 queda reservada para `e15_s06_luna` tras el checkpoint root; S07–S08 pendientes.
+S06 publicada; S07 reservada tras el próximo checkpoint root; S08 pendiente.
 CORE/CRM cubren datos; DOCUMENTS se exige en E16 al generar/entregar. E15-S08 crea
 intención durable, no un PDF/quote.sent.
 
@@ -2848,8 +2848,7 @@ outbound3/3, isolation DB9/API37, zero skipped; root unit540/59 files;
 root+17 workspace typechecks, focal DB/API types and builds, Biome515, and
 Prisma7.9.1 validate/generate all PASS. S04 Quote Policy passed independent
 rereview and focused/root/schema gates and is published as recorded below.
-S05 Approval is PASS / COMPLETE and published as recorded below. S06 is
-reserved after the root checkpoint; S07–S08 remain pending.
+S05 Approval is PASS / COMPLETE and published as recorded below. S06 is published; S07 is reserved after the next checkpoint; S08 pending.
 
 ## E15-S04 Quote policy [M]
 
@@ -2900,21 +2899,23 @@ cancelación con tax faltante conserva los importes sin calcular en vez de
 fabricarlos. Cancelación mantiene `Quote.status=cancelled`: primer resultado
 `cancelled`, nueva idempotency key después de cancelar devuelve y registra
 `already_cancelled`, y la key original replaya su resultado guardado. No se
-añaden estados globales de Quote. S06 UI queda reservada para `e15_s06_luna` tras el checkpoint root; S07
-Quote Version y S08 QuoteSendIntent/send permanecen pendientes.
+añaden estados globales de Quote. S06 UI publicada; S07 Quote Version reservada tras el próximo checkpoint root;
+S08 QuoteSendIntent/send pendiente.
 
 ## E15-S06 Quote UI [L]
 
-**PASS / VALIDATED (2026-11-05), publication pending.** Luna UI/selector
+**2026-11-05: PASS / COMPLETE; published as `c3ee3823cfd6019e047e94eacd98dddda57ad504` with matching remote SHA, outside main.** Luna UI/selector
 implementation and corrections; independent backend/UI R2 audits approved.
 Base `4a877437a0da41f6dbf3588f5f0582690e01108c`. Final focused DB60/5 files and API8/3 files, zero skipped, exit0; root post-R2 unit571/63 files; UI32/4 files, web types/build and scoped Biome22 passed. Root plus17 workspace typechecks and global Biome545 passed before the UI correction rounds; no post-R2 full workspace rerun is claimed.
 Authenticated browser: catalog CRUD/archive, quote/calculation/snapshots/deadline,
 approval/rejection/cancel/policy, least-privilege selectors, readonly/module/TenantB,
 responsive1440/768/390, keyboard/focus/reduced motion PASS. Native-dialog tooling
 incident resolved. No schema/dependency change in S06; version/send belong to
-S07/S08 and remain not started. No S06 feature SHA before publication.
+S07/S08. S07 is reserved after the next root checkpoint; S08 pending.
 
 ## E15-S07 Quote version snapshot [M]
+
+**RESERVED / READY:** `e15_s07_luna` (gpt-6-luna); base published S06 plus the next root checkpoint. Only Task7 immutable versions/history/preview; root owns shared docs/Git and migration gates. Wait for that checkpoint; no S07 code or test PASS yet.
 
 ## E15-S08 Send quote event [M]
 

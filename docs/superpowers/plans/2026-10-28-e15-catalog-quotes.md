@@ -175,7 +175,7 @@ matching remote SHA and outside main. Base `0be1020`; root retains docs/Git.
 
 ### Task 6: E15-S06 — Catalog and Quote UI
 
-**PASS / VALIDATED; publication pending.** Base `4a877437a0da41f6dbf3588f5f0582690e01108c`. Luna implementation/corrections and independent backend/UI R2 audits complete. Final focused DB60/5 files and API8/3 files, zero skipped, exit0; root post-R2 unit571/63 files; UI32/4 files, web types/build and scoped Biome22 passed. Root plus17 workspace typechecks and global Biome545 passed before the UI correction rounds; no post-R2 full workspace rerun is claimed. Root browser matrix passed commercial lifecycle, policy/roles/tenants, responsive1440/768/390, keyboard/focus and reduced motion. Native-dialog automation incident resolved; no source change. S07–S08 not started.
+**PASS / COMPLETE; published as `c3ee3823cfd6019e047e94eacd98dddda57ad504` with matching remote SHA, outside main.** Base `4a877437a0da41f6dbf3588f5f0582690e01108c`. Luna implementation/corrections and independent backend/UI R2 audits complete. Final focused DB60/5 files and API8/3 files, zero skipped, exit0; root post-R2 unit571/63 files; UI32/4 files, web types/build and scoped Biome22 passed. Root plus17 workspace typechecks and global Biome545 passed before the UI correction rounds; no post-R2 full workspace rerun is claimed. Root browser matrix passed commercial lifecycle, policy/roles/tenants, responsive1440/768/390, keyboard/focus and reduced motion. Native-dialog automation incident resolved; no source change. S07–S08 not started.
 
 **Files**
 
@@ -204,9 +204,11 @@ routes. This extends only Task6 with no schema or new permissions:
 - [x] Step 2 — Run RED: pnpm exec vitest run apps/web/app/app/catalog/catalog-view-model.test.ts apps/web/app/app/quotes/quotes-view-model.test.ts apps/web/app/app/quotes/quote-editor-model.test.ts apps/web/app/app/tenant-app-navigation.test.ts. Expected missing page/view-model behavior.
 - [x] Step 3 — Implement real pages against S01–S05 APIs, split API/model/list/editor/approval/policy responsibilities across focused files. Replace href:null; support list/create/edit/archive, catalog/manual line operations, calculations, approvals, policy. Render read-only/loading/empty/error/module states. Preserve command key across identical retry; start fresh key for a distinct intent. No version/send actions before S07/S08.
 - [x] Step 4 — GREEN: targeted Vitest, pnpm typecheck, pnpm lint, pnpm --filter @whatsapp-platform/web build. Parent verifies responsive desktop/tablet/mobile, keyboard/focus, readonly and module-disabled behavior in browser. No automated browser harness exists; record manual evidence honestly.
-- [ ] Step 5 — Independent UX/API audit; parent docs/manifest and S06 commit/push before S07.
+- [x] Step 5 — Independent backend/UI R2 audits approved; docs/manifest verified; feature `c3ee3823cfd6019e047e94eacd98dddda57ad504` committed/pushed with exact remote SHA. Main excludes S06.
 
 ### Task 7: E15-S07 — Immutable Quote Version
+
+**RESERVED / READY:** `e15_s07_luna` (gpt-6-luna); base published S06 plus the next root checkpoint. Only Task7 immutable versions/history/preview; root owns shared docs/Git and migration gates. Wait for that checkpoint; no S07 code or test PASS yet.
 
 **Files**
 

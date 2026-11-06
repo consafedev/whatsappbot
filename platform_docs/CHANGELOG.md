@@ -8,7 +8,7 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ### 2026-11-05 — E15-S06 Catalog and Quote UI
 
-- PASS / VALIDATED; publication pending from checkpoint `4a877437a0da41f6dbf3588f5f0582690e01108c`.
+- PASS / COMPLETE; published as `c3ee3823cfd6019e047e94eacd98dddda57ad504` with matching remote SHA, outside main. Base `4a877437a0da41f6dbf3588f5f0582690e01108c`.
 - Real tenant-scoped catalog and quote pages with exact decimal totals,
   draft/manual/catalog editing, approval lifecycle and policy configuration.
   Bounded commercial selectors avoid unrelated CRM/admin permissions.
@@ -19,7 +19,8 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 - Authenticated desktop/tablet/mobile, keyboard/focus, roles/modules/TenantB,
   catalog archive and quote lifecycle browser checks passed. Native confirmation
   tooling interruption resolved. No new schema/dependency, frozen version,
-  document/PDF, provider or actual send; S07–S08 remain not started.
+  document/PDF, provider or actual send; S07 reserved after the next root
+  checkpoint and S08 pending.
 
 ### Added
 
