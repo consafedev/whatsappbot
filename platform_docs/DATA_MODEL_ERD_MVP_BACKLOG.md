@@ -2905,10 +2905,14 @@ Quote Version y S08 QuoteSendIntent/send permanecen pendientes.
 
 ## E15-S06 Quote UI [L]
 
-**RESERVED / READY:** `e15_s06_luna` (gpt-6-luna), base S05 publicada +
-checkpoint posterior de root. Sólo Task6 UI de catálogo/cotizaciones sobre
-APIs S01–S05; root docs/Git/browser gates. Esperar checkpoint antes de iniciar;
-sin implementación ni PASS S06.
+**PASS / VALIDATED (2026-11-05), publication pending.** Luna UI/selector
+implementation and corrections; independent backend/UI R2 audits approved.
+Base `4a877437a0da41f6dbf3588f5f0582690e01108c`. Final focused DB60/5 files and API8/3 files, zero skipped, exit0; root post-R2 unit571/63 files; UI32/4 files, web types/build and scoped Biome22 passed. Root plus17 workspace typechecks and global Biome545 passed before the UI correction rounds; no post-R2 full workspace rerun is claimed.
+Authenticated browser: catalog CRUD/archive, quote/calculation/snapshots/deadline,
+approval/rejection/cancel/policy, least-privilege selectors, readonly/module/TenantB,
+responsive1440/768/390, keyboard/focus/reduced motion PASS. Native-dialog tooling
+incident resolved. No schema/dependency change in S06; version/send belong to
+S07/S08 and remain not started. No S06 feature SHA before publication.
 
 ## E15-S07 Quote version snapshot [M]
 

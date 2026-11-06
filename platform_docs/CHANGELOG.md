@@ -6,6 +6,21 @@ Formato inspirado en Keep a Changelog. El producto utilizará Semantic Versionin
 
 ## [Unreleased]
 
+### 2026-11-05 — E15-S06 Catalog and Quote UI
+
+- PASS / VALIDATED; publication pending from checkpoint `4a877437a0da41f6dbf3588f5f0582690e01108c`.
+- Real tenant-scoped catalog and quote pages with exact decimal totals,
+  draft/manual/catalog editing, approval lifecycle and policy configuration.
+  Bounded commercial selectors avoid unrelated CRM/admin permissions.
+- Saved catalog data refreshes only with an explicit action; metadata edits
+  preserve line snapshots and the original deadline instant. Clearing product
+  custom JSON writes null. Pending approval does not offer a duplicate request.
+- Final focused DB60/5 files and API8/3 files, zero skipped, exit0; root post-R2 unit571/63 files; UI32/4 files, web types/build and scoped Biome22 passed. Root plus17 workspace typechecks and global Biome545 passed before the UI correction rounds; no post-R2 full workspace rerun is claimed.
+- Authenticated desktop/tablet/mobile, keyboard/focus, roles/modules/TenantB,
+  catalog archive and quote lifecycle browser checks passed. Native confirmation
+  tooling interruption resolved. No new schema/dependency, frozen version,
+  document/PDF, provider or actual send; S07–S08 remain not started.
+
 ### Added
 
 - E15 design contract accepted (ADR-0072): deterministic commercial arithmetic,

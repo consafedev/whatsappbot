@@ -2,7 +2,7 @@
 
 **Formato:** 1 — conservar estas secciones y actualizar sus tablas; no sustituir
 el historial por un resumen sin evidencia. Fechas de coordinación: America/Mexico_City.
-**Actualización:** 2026-10-30. **Épica activa única:** E15 — Catalog + Quote.
+**Actualización:** 2026-11-05. **Épica activa única:** E15 — Catalog + Quote.
 **Responsable activo:** Codex, rama `codex/e15-catalog-quotes`, base281704d42c5b0e2793afb6dba79b59f5da85e612.
 **Base verificada:** `fb8639db15ec262fcc13432f9aee4536deb8367e`, integrada en
 `main` y `origin/main` al iniciar. Sin cambios locales iniciales.
@@ -52,7 +52,7 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
 | Messaging/inbox/rules/canales | Contratos, normalización, persistencia/colas/UI presentes; transporte real Baileys pendiente P0. |
 | IA/campañas/reportes/scheduler | Implementaciones presentes con IDs históricos distintos al backlog. E13-S05 conserva estado normativo pendiente de cierre. |
 | Agenda E14 | S01–S10 completas; S01–S03 integradas en main y S04–S10 publicadas en rama. |
-| Catálogo/cotizaciones E15 | S01–S05 PASS / COMPLETE publicados; S05 `4d5ed221ce668755cd29c89b9a09b8cd9604ec68`, SHA remoto idéntico y fuera de main. S06 RESERVED / READY para `e15_s06_luna` tras checkpoint root, sin implementación/PASS. S07–S08 pendientes. |
+| Catálogo/cotizaciones E15 | S01–S05 publicados; S06 PASS / VALIDATED, publicación pendiente. Backend/UI R2 approved; final DB60/API8/root571 y navegador completo PASS. S07–S08 no iniciadas. |
 | Procesos/timeline/Action Requests | Pendientes según backlog y equivalencias históricas; no confundir E10/E11 implementadas de IA/campañas con Process/Timeline originales. |
 | Documentos/portal | Pendientes; presencia de una ruta o package vacío no acredita implementación. |
 | Backups/restore y hardening precliente | No certificados; restore drill y transporte real bloquean declaración de MVP vendible. |
@@ -77,7 +77,7 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
 | E15-S03 | e15_s03_luna (gpt-6-luna); base `dd0d501969db207d2c25d5fbc5bf880ab3a6d90c`; calculator/tests, manager y ajuste mínimo de prueba API; root docs/Git/gates, Sol auditor | PASS / COMPLETE | `0ebea786708dde64fd90705f9d39a3442e96d16b`; push `origin/codex/e15-catalog-quotes` exit0 y SHA idéntico verificado; `main` no lo contiene | Spec/calidad aprobada, cero findings; pure RED12 assertions → GREEN12/12; focal DB33/API4; full DB412/API231/jobs1/outbound3/isolation9+37; unit540/59; root+17 workspace types, focal types/builds, Biome515, Prisma/schema/checksum PASS; zero skipped |
 | E15-S04 | e15_s04_luna (gpt-6-luna); base `a228397` posterior a feature `0ebea786708dde64fd90705f9d39a3442e96d16b`; policy schema/evaluator/manager/API/tests; root conserva docs/Git/migration gates | PASS / COMPLETE | `bd52fbd4df2def95942d7e69e1b4dd3039c00106`; push exit0 y SHA remoto idéntico; main no lo contiene | Rereview aprobado sin findings; pure12/12, focused DB45/3files + API5/2files; root552/60; root+17 workspace types, focal types/builds, Biome520, Prisma/schema/checksum PASS; cero skipped |
 | E15-S05 | e15_s05_luna (gpt-6-luna); base `0be1020`; reserva liberada, root docs/Git | PASS / COMPLETE | `4d5ed221ce668755cd29c89b9a09b8cd9604ec68`; push exit0, SHA remoto idéntico, main lo excluye | Rereview approved; focal DB57/API5, root552/60, root+17workspace types, Biome522; schema40/checksums37–40 PASS. FullR0 DB435/API232/jobs1/out3/isolation46 pre-fix |
-| E15-S06 | e15_s06_luna (gpt-6-luna), Task6 catálogo/cotizaciones UI; base S05 + checkpoint root posterior; root docs/Git/browser | RESERVED / READY | — | Esperar checkpoint; sin implementación/PASS |
+| E15-S06 | GPT-6 Luna UI/selectores/correcciones; Sol auditoría, root navegador/docs/Git. Base `4a877437a0da41f6dbf3588f5f0582690e01108c` | PASS / VALIDATED | Publicación pendiente, sin SHA | DB60/5files+API8/3files cero skipped exit0; root571/63; UI32/4files web types/build/Biome22; auditorías R2 approved. Browser lifecycle/policy/roles/tenants/responsive1440/768/390/keyboard/reduced motion PASS. root17types/Biome545 pre-R2; no fuente modificada tras freeze. |
 | E15-S07 | Sin reserva | PENDING | — | Quote version snapshot |
 | E15-S08 | Sin reserva | PENDING | — | Send quote event |
 
@@ -85,6 +85,13 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
 
 | Alcance | Comando/acción | Resultado |
 |---|---|---|
+| E15-S06 final focal 05/11 | `e15-local.cjs run catalog-quotes --prepared s06_lookup`, fuente R2 congelada | PASS exit0: DB60/5files, API8/3files, cero skipped; log `s06-catalog-quotes-final.log`. API3111 NoopScheduledTaskQueue y web3115 standalone real, ambos aislados. |
+| E15-S06 navegador 05/11 | Login real, fixture sintética y comparación readonly PostgreSQL | PASS: producto25→35/JSONnull; metadata-only preserva precio25/IDs/hash/fecha18:34Z; refresh88.08; conversión manual; request7/approve8/request9/reject10/cancel11; política1; readonly/TenantB; archive; responsive/foco/reduced motion. Confirmación nativa causó bloqueo de automatización resuelto por teclado; no intervención usuario necesaria. |
+| UI S06, R1/R2 05/11 | Auditoría independiente y correcciones Luna; rereview scoped R2 | Cuatro hallazgos iniciales corregidos; P2 nuevo de actualización explícita sin efecto también corregido. Revisión final de código approved,32tests/4files + Biome22 + web types/build PASS; no browser PASS. |
+| Infraestructura 05/11, solicitud explícita usuario | Recuperación controlada de WslService con UAC y autorización adicional de cierre forzado acotado | Normal stop falló; proceso SCM verificado5716 reemplazado por4380 RUNNING,9huellas protegidas OpenClaw coinciden. Listado de distros funciona; Linux/gateway/Docker siguen fallando por timeout. Supervisor restaurado unpaused/running; sin resets/borrados. Reinicio Windows por decidir; evidencia local en `%TEMP%/codex-wsl-recovery-20261105/`. |
+| Recuperación S06, 2026-11-05 | `git --no-optional-locks status --short --untracked-files=normal`; lectura de reportes S06 | Fuente local pendiente conservada; auditoría backend aprobada histórica, UI pendiente. No ejecución nueva de suites ni commit/push. |
+| Capacidad host, 2026-11-05 | Windows `GlobalMemoryStatusEx`, consulta readonly por helper ignorado | Memoria física disponible 2.97GB de17.05GB; compromiso disponible sólo562,688,000bytes de19,196,502,016bytes. CreateProcess error1455 confirmado. No ajustes de paginación ni procesos ajenos detenidos. |
+| Herramientas QA, 2026-11-05 | curl3115, navegador, estado de agentes | curl000/exit7; navegador `Transport closed`. Dos agentes quedaron pending_init y se interrumpieron antes de iniciar; no se acredita auditoría UI ni browser PASS. |
 | Baseline fb8639d | `git status --short`, `git fetch origin`, log/branch | limpio, main/origin main coinciden |
 | Baseline fb8639d | `pnpm test` | PASS: 465 tests / 51 archivos |
 | Diagnóstico runtime inicial | health Docker API + logs | API unhealthy; arranque previo falló con PostgreSQL 57P03 (DB iniciando). Reinicio aislado para revalidar. |
@@ -151,8 +158,7 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
   verificados. `main` no contiene S03. S04 Quote Policy está PASS / COMPLETE,
   publicada como `bd52fbd4df2def95942d7e69e1b4dd3039c00106` con SHA remoto
   idéntico. S05 está PASS / COMPLETE, publicada como
-  `4d5ed221ce668755cd29c89b9a09b8cd9604ec68` con SHA remoto idéntico. S06 reservada tras
-  checkpoint root; S07–S08 siguen pendientes.
+  `4d5ed221ce668755cd29c89b9a09b8cd9604ec68` con SHA remoto idéntico. S06 validada, pendiente de publicación; S07–S08 no iniciadas.
 - Las suites completas del cierre E14 pasaron; los gates actuales de S01 están
   delimitados en la tabla anterior. Persiste el límite histórico de BOM
   al reproducir toda la cadena pristine; se verificó esquema limpio y upgrade
@@ -160,8 +166,7 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
 - El cierre de E14 cumple el hito solicitado; se conserva la prioridad
   comercial P0 de conectar Baileys y probar backup/restore antes de cobrar.
 - E15 continúa por instrucción expresa del usuario. S02 y S03 están publicadas,
-  pero no integradas en main. S04 y S05 están publicadas. S06 queda reservada tras
-  el checkpoint root. Transporte real Baileys y
+  pero no integradas en main. S04 y S05 están publicadas. S06 está validada, pendiente de publicación. Transporte real Baileys y
   backup/restore P0 permanecen visibles y no se consideran resueltos por estos
   gates. Para S02 y S03 no se reclama full-workspace build.
 
@@ -550,3 +555,7 @@ Entregar briefs concretos y evitar contextos/suites/agentes duplicados.
 - 2026-10-30: cierre de S05 PASS / VALIDATED, publicación pendiente y sin SHA. Rereview `s05-rereview-round1.md` aprobado sin findings tras resolver los dos P2 y añadir regresión SoD del editor material. Final focal post-fix DB57/4files + API5/2files, cero skipped (`s05-r1-green-catalog-quotes.log`); unit552/60, root TypeScript, 17 workspace typechecks secuenciales, Biome522 sin warnings, diff-check, API build y Biome focal7 PASS. Full R0 anterior al fix pasó DB435/58, API232/29, jobs1, outbound3, isolation9+37, cero skipped; no se afirma full post-fix. Prisma7.9.1 validate/generate, clean SDL y canonical HEAD rehydration upgrade SQL40 con diff final cero; SQL37–40 checksums MATCH. SQL40 `20261028210000_e15_quote_approvals` SHA-256 `2ea04f4b854da03cb2318d7b454857d1146bcaae94e4e953919c62db3c7b804e`, inmutable. El checksum histórico literal `manual` de `20260827180000_add_ai_gateway_foundation` sigue como limitación separada; no se modificaron SQL históricos ni `_prisma_migrations` ni se afirma drift real. No se reserva S06 hasta publicar S05; S07–S08 siguen pendientes.
 
 - 2026-10-30: publicación S05 verificada, feature `4d5ed221ce668755cd29c89b9a09b8cd9604ec68`, push exit0 y SHA de ls-remote idéntico; árbol limpio. Main `fb8639db15ec262fcc13432f9aee4536deb8367e` no contiene S05 (merge-base exit1). S06 RESERVED / READY para `e15_s06_luna`, sólo Task6 UI, desde S05 y checkpoint posterior de root; esperar dicho checkpoint. Sin implementación ni PASS S06; S07–S08 pendientes.
+
+- 2026-10-30: S05 feature `4d5ed221ce668755cd29c89b9a09b8cd9604ec68` y checkpoint de publicación/reserva S06 `4a877437a0da41f6dbf3588f5f0582690e01108c` publicados, SHA remoto idéntico y árbol limpio verificados. Main permanece `fb8639db15ec262fcc13432f9aee4536deb8367e` y excluye S05. Comienza sólo S06 con `e15_s06_luna` (GPT-6 Luna). RED nav href:null→rutas reales reproducido; UI unit24/4files, web typecheck/build PASS tras corregir selector CSS Module; no browser PASS todavía. Se confirmó prerrequisito: listas Contact/OU generales exigen permisos CRM/admin ajenos a la operación comercial. ADR-0072/spec/plan/TESTING definen tres endpoints de selección acotados, de sólo lectura y con permisos comerciales existentes, sin schema/roles/deps nuevas. `e15_s06_lookup_luna` es único owner DB/API selección; RED autenticado200 esperado/404 real en sourceApp (`s06-red-api.log`), schema40 preparado label s06_lookup. Tiene ventana PG/compiler mientras UI sólo self-review/edición. `e15_s06_qa_luna` prepara helpers ignorados y evaluación Redis para QA aislada; no DB/servidores aún. Root docs/Git/browser. S07–S08 pendientes.
+
+- 2026-11-05: S06 PASS / VALIDATED desde `4a877437a0da41f6dbf3588f5f0582690e01108c`, sin publicar aún. Final focused DB60/5 files and API8/3 files, zero skipped, exit0; root post-R2 unit571/63 files; UI32/4 files, web types/build and scoped Biome22 passed. Root plus17 workspace typechecks and global Biome545 passed before the UI correction rounds; no post-R2 full workspace rerun is claimed. Backend y UI R2 approved; browser autenticado completo con datos sintéticos/cálculo exacto, snapshots/fecha, catálogo/archive, aprobación/rechazo/cancel/política, roles/tenants,1440/768/390, teclado/foco/reduced motion. Confirmación nativa y datetime.fill fueron artefactos de control resueltos; ningún PASS inventado. Overrides reset/sesión cerrada; stop QA y clean s06_ui/s06_lookup con guardas exit0; snapshot final rev11/88.08 SHA256 `2f59c3f2e3dc1e5fdd16900902d9be45ab2b944d47ec745743f4ed94fd527969`. S07 no comienza hasta commit/push/checkpoint S06.

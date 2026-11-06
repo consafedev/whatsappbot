@@ -406,6 +406,13 @@ entre checkout y Git, y la limitación de BOM de la cadena pristine. No cambiar
 Este protocolo es reproducible con Git, Prisma y PostgreSQL del proyecto; los
 wrappers locales son una comodidad y no sustituyen estas comprobaciones.
 
+Los selectores comerciales S06 (ADR-0072) prueban proyecciones mínimas de
+contactos/unidades, filas activas y paginación/search acotadas, A/B isolation,
+denegación de query con tenant/actor arbitrario, y permisos de operación sin
+exigir lectura general de CRM o administración. Contactos para cotización
+requieren CRM; unidades de cotización no. Unidades de catálogo funcionan sin
+cotizaciones/CRM. Las lecturas no escriben audit, outbox ni recibos.
+
 ---
 
 # 15. Document Engine
@@ -623,3 +630,42 @@ from each relevant package (replace the explicit path placeholder), and the exis
 `vitest.outbound-worker.config.mts` / `vitest.tenant-isolation.config.mts` for
 worker/isolation. The disposable schema-only dump retains raw SQL CHECKs/partial
 indexes. Prepared and full-run owned databases were removed after verification.
+
+## E15-S06 final UI verification (2026-11-05)
+
+Final focused DB60/5 files and API8/3 files, zero skipped, exit0; root post-R2 unit571/63 files; UI32/4 files, web types/build and scoped Biome22 passed. Root plus17 workspace typechecks and global Biome545 passed before the UI correction rounds; no post-R2 full workspace rerun is claimed.
+Final focused command: `e15-local.cjs run catalog-quotes --prepared s06_lookup`;
+log `s06-catalog-quotes-final.log`. Root unit log:
+`%TEMP%/whatsappbot-e15-s06-unit-r2-final.log`. Local SDD reports retain each
+review/correction round and authentic behavioral RED evidence.
+
+Browser uses a disposable schema40 PostgreSQL fixture, actual login/RBAC and
+the production standalone web build on3115 against isolated API3111 with
+NoopScheduledTaskQueue. No worker/provider is started. Verified:
+
+1. Create/edit/archive product, archived filter, customValues clear to null,
+   OU/contact options with commercial permissions and no broad admin grants.
+2. Exact large total9,999,999,989,900,000.00MXN; mixed quote total67.20;
+   product25→35 does not alter metadata-only quote snapshots/IDs/hash or the
+   unchanged20Nov12:34 local deadline (18:34Z). Explicit refresh-only yields
+   88.08, while manual conversion preserves IDs/quantity/discount/tax/amount.
+3. Request7→approve8 by separate actor→request9→reject10→cancel11. Policy
+   save needs both permissions. Readonly has no mutation controls; TenantB is
+   empty and disabled CRM/catalog block creation/direct catalog access.
+4. Desktop1440/tablet768/mobile390, no horizontal body overflow; mobile
+   product/quote inputs fit, Tab moves to the next named control with visible
+   focus, reduced-motion emulation works and is reset. Viewport reset/logout.
+
+Native window.confirm blocked CDP and Windows cursor/screenshot input initially;
+native Return/Escape resolved it, then cancellation/archive were verified.
+Datetime-local locator.fill did not update React state; native segmented keyboard
+entry did. Neither automation artifact is claimed as a source defect. No injected
+network-loss/replay-race browser test is claimed; automated DB/API cover those
+command invariants. Full-page proof images and the read-only scoped comparison
+are retained in the ignored local SDD workspace; no credential is documented.
+
+After verification, guarded stop checked recorded PID/creation time/command/port
+identity; both owned QA listeners and disposable s06_ui/s06_lookup databases
+were removed (exit0). The final scoped snapshot before cleanup records cancelled
+revision11/total88.08, product35/customValues null; SHA-256
+`2f59c3f2e3dc1e5fdd16900902d9be45ab2b944d47ec745743f4ed94fd527969`.

@@ -68,6 +68,31 @@ Cancellation outcome clarification2026-10-30: preserve lifecycle
 immutable receipt, so replay retains the original result. Neither a fresh-key
 no-op nor a replay adds a business audit/outbox event or increments revision.
 
+### Commercial selection prerequisite (2026-10-30)
+
+S06 inspection confirmed that the existing general Contact list requires
+`contacts.read`, and the administrative OU list requires
+`tenant.settings.manage`. Those APIs remain unchanged. Commercial forms get
+narrow read-only option projections under the same operation capability as
+their create/edit command, without requiring general CRM/admin visibility:
+
+- `GET /api/v1/quotes/options/contacts`: `quotes.create`, module.quotes and
+  module.crm_lite; active owned Contacts as `{id,name,phoneNumber}` only.
+- `GET /api/v1/quotes/options/organization-units`: `quotes.create` and
+  module.quotes; active owned OUs as `{id,name,code}` only.
+- `GET /api/v1/products/options/organization-units`: `catalog.manage` and
+  module.catalog; the same minimal OU projection, independent of quotes/CRM.
+
+Every endpoint uses the current tenant/session and existing global-grant RBAC
+(OU-constrained grants still fail closed). No new permissions or module keys.
+Accept only optional `search` (trimmed, at most100 characters, no controls),
+UUIDv7 `cursor`, and integer `limit`1–50 (default20). Order by id, fetch at most
+limit+1, and return `{items,nextCursor,limit}` inside the existing envelope.
+Keep all queries tenant-scoped, exclude inactive rows, reject unknown query
+fields, and project no email, tags, custom attributes or settings. GET writes
+no business data, audit, outbox or receipt. This is the explicitly required
+prerequisite to Task6 UI; it adds no schema, provider or general CRM capability.
+
 ### Command receipt resource identity
 
 Clarification2026-10-29: `QuoteCommandReceipt.resourceId` is required and binds

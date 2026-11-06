@@ -28,9 +28,12 @@ import {
   CatalogProductNotFoundError,
   type CatalogProductPatch,
   CatalogProductValidationError,
+  type CommercialSelectionFilters,
+  CommercialSelectionValidationError,
   createCatalogProduct,
   getCatalogProductById,
   listCatalogProducts,
+  listCommercialOrganizationUnitOptions,
   type TenantContext,
   TenantModuleEntitlementRequiredError,
   TenantNotOperationalError,
@@ -75,6 +78,8 @@ const PRODUCT_QUERY_KEYS = [
   "organizationUnitId",
   "search",
 ] as const;
+const OPTION_QUERY_KEYS = ["cursor", "limit", "search"] as const;
+const CONTROL_CHARACTERS = /\p{Cc}/u;
 
 function catalogAuthorized(...permissions: PermissionKey[]): MethodDecorator & ClassDecorator {
   return applyDecorators(
@@ -247,6 +252,44 @@ function parseQuery(value: unknown): CatalogProductListFilters {
   };
 }
 
+function parseOptionQuery(value: unknown): CommercialSelectionFilters {
+  const query = object(value);
+  exactKeys(query, OPTION_QUERY_KEYS);
+  const stringValue = (field: "cursor" | "limit" | "search"): string | undefined => {
+    const item = query[field];
+    if (item === undefined) return undefined;
+    if (typeof item !== "string")
+      throw new BadRequestException(`${field} must appear once as a string`);
+    return item;
+  };
+  const cursor = stringValue("cursor");
+  if (cursor !== undefined && !UUID_V7.test(cursor)) {
+    throw new BadRequestException("cursor must be a UUIDv7");
+  }
+  const limitValue = stringValue("limit");
+  let limit: number | undefined;
+  if (limitValue !== undefined) {
+    if (!/^[1-9]\d{0,1}$/.test(limitValue)) {
+      throw new BadRequestException("limit must be an integer from 1 to 50");
+    }
+    limit = Number.parseInt(limitValue, 10);
+    if (limit > 50) throw new BadRequestException("limit must be an integer from 1 to 50");
+  }
+  const searchValue = stringValue("search");
+  if (searchValue !== undefined && CONTROL_CHARACTERS.test(searchValue)) {
+    throw new BadRequestException("search must not contain control characters");
+  }
+  const search = searchValue?.trim();
+  if (search !== undefined && search.length > 100) {
+    throw new BadRequestException("search must not exceed 100 characters");
+  }
+  return {
+    ...(cursor === undefined ? {} : { cursor }),
+    ...(limit === undefined ? {} : { limit }),
+    ...(search === undefined ? {} : { search }),
+  };
+}
+
 function parseArchiveBody(body: unknown): void {
   if (body === undefined) return;
   if (
@@ -261,7 +304,11 @@ function parseArchiveBody(body: unknown): void {
 }
 
 function mapCatalogError(error: unknown): never {
-  if (error instanceof CatalogProductValidationError) throw new BadRequestException(error.message);
+  if (
+    error instanceof CatalogProductValidationError ||
+    error instanceof CommercialSelectionValidationError
+  )
+    throw new BadRequestException(error.message);
   if (error instanceof CatalogProductConflictError) throw new ConflictException(error.message);
   if (error instanceof CatalogProductNotFoundError) throw new NotFoundException(error.message);
   if (
@@ -297,6 +344,14 @@ export class CatalogService {
   async list(context: TenantContext, filters: CatalogProductListFilters) {
     try {
       return await listCatalogProducts(context, this.database, filters);
+    } catch (error) {
+      return mapCatalogError(error);
+    }
+  }
+
+  async listOrganizationUnitOptions(context: TenantContext, filters: CommercialSelectionFilters) {
+    try {
+      return await listCommercialOrganizationUnitOptions(context, this.database, filters);
     } catch (error) {
       return mapCatalogError(error);
     }
@@ -368,6 +423,18 @@ export class CatalogController {
   ): Promise<ApiResponse<Awaited<ReturnType<CatalogService["list"]>>>> {
     const data = await this.service.list(context, parseQuery(query));
     return { success: true, data };
+  }
+
+  @Get("options/organization-units")
+  @catalogAuthorized("catalog.manage")
+  async listOrganizationUnitOptions(
+    @CurrentTenantContext() context: TenantContext,
+    @Query() query: unknown,
+  ): Promise<ApiResponse<Awaited<ReturnType<CatalogService["listOrganizationUnitOptions"]>>>> {
+    return {
+      success: true,
+      data: await this.service.listOrganizationUnitOptions(context, parseOptionQuery(query)),
+    };
   }
 
   @Get(":id")

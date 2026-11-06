@@ -5,6 +5,7 @@ export default defineConfig({
     fileParallelism: false,
     include: [
       "src/catalog-manager.integration.ts",
+      "src/commercial-selection-manager.integration.ts",
       "src/quote-manager.integration.ts",
       "src/quote-policy-manager.integration.ts",
       "src/quote-approval-manager.integration.ts",

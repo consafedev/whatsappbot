@@ -295,6 +295,19 @@ export {
   updateChannelQrCode,
 } from "./channel-pairing-manager";
 export {
+  COMMERCIAL_SELECTION_LIMITS,
+  type CommercialSelectionContactDatabase,
+  type CommercialSelectionFilters,
+  type CommercialSelectionManagerDatabase,
+  type CommercialSelectionOrganizationUnitDatabase,
+  type CommercialSelectionPage,
+  CommercialSelectionValidationError,
+  type ContactOption,
+  listCommercialContactOptions,
+  listCommercialOrganizationUnitOptions,
+  type OrganizationUnitOption,
+} from "./commercial-selection-manager";
+export {
   CONTACT_STATUSES,
   type ContactCreateInput,
   type ContactItem,

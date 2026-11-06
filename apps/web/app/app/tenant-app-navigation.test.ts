@@ -6,8 +6,28 @@ describe("tenant app navigation", () => {
     const navigation = resolveTenantNavigation(["module.quotes"], ["quotes.read"]);
     const items = navigation.flatMap((group) => group.items);
     expect(items.map((item) => item.id)).toEqual(["home", "quotes"]);
-    expect(items.find((item) => item.id === "quotes")?.href).toBeNull();
+    expect(items.find((item) => item.id === "quotes")?.href).toBe("/app/quotes");
     expect(items.every((item) => item.href !== "#")).toBe(true);
+  });
+
+  it("navigationDestinationsAreRealOnlyForEntitledReaders", () => {
+    const noCatalogPermission = resolveTenantNavigation(["module.catalog"], []).flatMap(
+      (group) => group.items,
+    );
+    const noQuotesModule = resolveTenantNavigation([], ["quotes.read"]).flatMap(
+      (group) => group.items,
+    );
+    expect(noCatalogPermission.some((item) => item.id === "catalog")).toBe(false);
+    expect(noQuotesModule.some((item) => item.id === "quotes")).toBe(false);
+
+    const catalog = resolveTenantNavigation(["module.catalog"], ["catalog.read"])
+      .flatMap((group) => group.items)
+      .find((item) => item.id === "catalog");
+    const quotes = resolveTenantNavigation(["module.quotes"], ["quotes.read"])
+      .flatMap((group) => group.items)
+      .find((item) => item.id === "quotes");
+    expect(catalog?.href).toBe("/app/catalog");
+    expect(quotes?.href).toBe("/app/quotes");
   });
 
   it("does not infer access from a role name", () => {

@@ -1,0 +1,580 @@
+.page {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+  color: var(--tenant-text);
+}
+.pageHeader,
+.panelHeader,
+.editorHeader,
+.lineSection > header,
+.lineCard > header,
+.formActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+.pageHeader {
+  align-items: flex-end;
+}
+.pageHeader h1 {
+  margin: 0;
+  font-size: clamp(1.65rem, 3vw, 2.2rem);
+  letter-spacing: -0.035em;
+}
+.pageHeader p,
+.panelHeader p,
+.editorHeader p {
+  margin: 0.35rem 0 0;
+  color: var(--tenant-muted);
+}
+.page .eyebrow {
+  margin: 0 0 0.35rem;
+  color: var(--tenant-primary);
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.primaryButton,
+.secondaryButton,
+.dangerButton,
+.iconButton {
+  min-height: 2.5rem;
+  border: 1px solid transparent;
+  border-radius: 0.65rem;
+  padding: 0.55rem 0.9rem;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+.primaryButton {
+  color: var(--tenant-on-primary);
+  background: var(--tenant-primary);
+}
+.secondaryButton,
+.iconButton {
+  color: var(--tenant-text);
+  background: var(--tenant-surface);
+  border-color: var(--tenant-border);
+}
+.dangerButton {
+  color: #8f2b2b;
+  border-color: #e7b7b3;
+  background: #fff3f1;
+}
+.iconButton {
+  width: 2.5rem;
+  padding: 0;
+  font-size: 1.25rem;
+}
+.textButton {
+  border: 0;
+  padding: 0.2rem;
+  color: var(--tenant-primary);
+  background: none;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 650;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.primaryButton:disabled,
+.secondaryButton:disabled,
+.dangerButton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.primaryButton:focus-visible,
+.secondaryButton:focus-visible,
+.dangerButton:focus-visible,
+.iconButton:focus-visible,
+.textButton:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--tenant-primary) 38%, transparent);
+  outline-offset: 2px;
+}
+.filters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  border: 1px solid var(--tenant-border);
+  border-radius: 0.85rem;
+  padding: 0.8rem;
+  background: var(--tenant-surface);
+}
+.filters label,
+.formGrid label,
+.policyGrid label {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+  color: var(--tenant-muted);
+  font-size: 0.76rem;
+  font-weight: 650;
+}
+.filters input,
+.filters select,
+.formGrid input,
+.formGrid select,
+.formGrid textarea,
+.policyGrid input,
+.policyGrid select {
+  width: 100%;
+  min-width: 0;
+  min-height: 2.55rem;
+  box-sizing: border-box;
+  border: 1px solid var(--tenant-border);
+  border-radius: 0.55rem;
+  padding: 0.55rem 0.65rem;
+  color: var(--tenant-text);
+  background: var(--tenant-surface);
+  font: inherit;
+  font-size: 0.875rem;
+}
+.tableWrap {
+  overflow-x: auto;
+  border: 1px solid var(--tenant-border);
+  border-radius: 0.85rem;
+  background: var(--tenant-surface);
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+.table th,
+.table td {
+  padding: 0.8rem 0.9rem;
+  border-bottom: 1px solid var(--tenant-border);
+  vertical-align: top;
+}
+.table th {
+  color: var(--tenant-muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.table td {
+  font-size: 0.86rem;
+}
+.table td strong,
+.table td small {
+  display: block;
+}
+.table td small {
+  margin-top: 0.2rem;
+  color: var(--tenant-muted);
+  overflow-wrap: anywhere;
+}
+.status {
+  display: inline-flex;
+  border-radius: 99px;
+  padding: 0.2rem 0.55rem;
+  color: var(--tenant-text);
+  background: var(--tenant-primary-soft);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.emptyState,
+.accessState,
+.loadingState,
+.errorBanner,
+.errorState,
+.warning,
+.note,
+.panel {
+  border: 1px solid var(--tenant-border);
+  border-radius: 0.85rem;
+  padding: 1rem;
+  background: var(--tenant-surface);
+}
+.emptyState,
+.accessState,
+.errorState {
+  display: grid;
+  justify-items: center;
+  gap: 0.4rem;
+  padding: clamp(2rem, 5vw, 4rem) 1.2rem;
+  text-align: center;
+}
+.emptyState h2,
+.accessState h1 {
+  margin: 0.25rem 0;
+  font-size: 1.1rem;
+}
+.emptyState p,
+.accessState p {
+  max-width: 34rem;
+  margin: 0;
+  color: var(--tenant-muted);
+  line-height: 1.5;
+}
+.accessState {
+  max-width: 40rem;
+  margin: 3rem auto;
+}
+.accessMark {
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  color: var(--tenant-primary);
+  background: var(--tenant-primary-soft);
+  font-size: 1.35rem;
+}
+.loadingState {
+  padding: 2rem;
+  text-align: center;
+  color: var(--tenant-muted);
+}
+.errorState h2,
+.errorState p {
+  margin: 0;
+}
+.errorState p {
+  color: var(--tenant-muted);
+}
+.errorBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  color: #842e2e;
+  border-color: #e5b9b6;
+  background: #fff2f0;
+}
+.errorBanner button {
+  border: 0;
+  padding: 0;
+  color: inherit;
+  background: none;
+  text-decoration: underline;
+  font: inherit;
+  cursor: pointer;
+}
+.warning {
+  color: #694b0c;
+  border-color: #ead8a2;
+  background: #fff9e9;
+}
+.note {
+  color: var(--tenant-muted);
+  font-size: 0.83rem;
+  line-height: 1.5;
+}
+.reasonList {
+  margin: 0;
+  padding-left: 1.25rem;
+  color: var(--tenant-muted);
+  font-size: 0.83rem;
+  line-height: 1.5;
+}
+.panel {
+  display: grid;
+  gap: 0.65rem;
+}
+.panel h3,
+.lineSection h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+.panel > p {
+  margin: 0;
+  line-height: 1.45;
+}
+.policyGrid,
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+.checkGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+.checkGrid label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  color: var(--tenant-muted);
+  font-size: 0.82rem;
+}
+.checkGrid input {
+  margin: 0.15rem 0 0;
+}
+.actionRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.editorPanel {
+  border: 1px solid var(--tenant-border);
+  border-radius: 0.9rem;
+  background: var(--tenant-surface);
+}
+.editor {
+  display: grid;
+  gap: 0.9rem;
+  padding: 1rem;
+}
+.editorHeader h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+.page .formGrid small {
+  font-weight: 400;
+  line-height: 1.4;
+}
+.spanTwo {
+  grid-column: 1 / -1;
+}
+.lineSection {
+  display: grid;
+  gap: 0.7rem;
+}
+.lineSection > header {
+  flex-wrap: wrap;
+}
+.lineCard {
+  display: grid;
+  gap: 0.7rem;
+  border: 1px solid var(--tenant-border);
+  border-radius: 0.75rem;
+  padding: 0.8rem;
+  background: var(--tenant-surface);
+}
+.lineCard > header > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+.lineCard > header > strong {
+  font-size: 0.86rem;
+}
+.decisionNote {
+  display: grid;
+  gap: 0.35rem;
+  color: var(--tenant-muted);
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+.decisionNote textarea {
+  width: 100%;
+  min-height: 4rem;
+  box-sizing: border-box;
+  border: 1px solid var(--tenant-border);
+  border-radius: 0.55rem;
+  padding: 0.55rem 0.65rem;
+  color: var(--tenant-text);
+  background: var(--tenant-surface);
+  font: inherit;
+}
+.page .decisionNote small {
+  font-weight: 400;
+  line-height: 1.4;
+}
+.calculationSummary {
+  display: grid;
+  gap: 0.55rem;
+  border: 1px solid var(--tenant-border);
+  border-radius: 0.75rem;
+  padding: 0.85rem;
+  background: var(--tenant-canvas);
+}
+.calculationSummary h3 {
+  margin: 0;
+  font-size: 0.9rem;
+}
+.calculationSummary dl {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin: 0;
+}
+.calculationSummary dl > div {
+  min-width: 0;
+  border: 1px solid var(--tenant-border);
+  border-radius: 0.55rem;
+  padding: 0.55rem;
+  background: var(--tenant-surface);
+}
+.calculationSummary dt {
+  color: var(--tenant-muted);
+  font-size: 0.7rem;
+}
+.calculationSummary dd {
+  margin: 0.2rem 0 0;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.calculationSummary p {
+  margin: 0;
+  color: var(--tenant-muted);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+.detailPanel {
+  display: grid;
+  gap: 0.8rem;
+  border: 1px solid var(--tenant-border);
+  border-radius: 0.9rem;
+  padding: 1rem;
+  background: var(--tenant-surface);
+}
+.detailPanel > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+.detailPanel > header h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+.page .summaryGrid > div {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+  border: 1px solid var(--tenant-border);
+  border-radius: 0.6rem;
+  padding: 0.65rem;
+}
+.page .summaryGrid span,
+.page .summaryGrid small {
+  color: var(--tenant-muted);
+  font-size: 0.73rem;
+}
+.page .summaryGrid strong {
+  overflow-wrap: anywhere;
+}
+.detailLines {
+  display: grid;
+  gap: 0.45rem;
+}
+.detailLines article {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.8rem;
+  border: 1px solid var(--tenant-border);
+  border-radius: 0.6rem;
+  padding: 0.65rem;
+}
+.detailLines article > div {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+.page .detailLines small {
+  color: var(--tenant-muted);
+  overflow-wrap: anywhere;
+}
+.page .detailLines article > span {
+  flex: 0 0 auto;
+  font-weight: 700;
+  text-align: right;
+}
+.policySection {
+  border-top: 1px solid var(--tenant-border);
+  padding-top: 0.5rem;
+}
+.formActions {
+  justify-content: flex-end;
+  border-top: 1px solid var(--tenant-border);
+  padding-top: 0.8rem;
+}
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+@media (max-width: 700px) {
+  .pageHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .pageHeader > .primaryButton {
+    width: 100%;
+  }
+  .filters,
+  .formGrid,
+  .policyGrid,
+  .checkGrid,
+  .summaryGrid {
+    grid-template-columns: 1fr;
+  }
+  .spanTwo {
+    grid-column: auto;
+  }
+  .calculationSummary dl {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+  }
+  .table,
+  .table tbody,
+  .table tr,
+  .table td {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .table tr {
+    padding: 0.55rem 0.8rem;
+    border-bottom: 1px solid var(--tenant-border);
+  }
+  .table td {
+    display: grid;
+    grid-template-columns: minmax(6rem, 35%) minmax(0, 1fr);
+    gap: 0.5rem;
+    border: 0;
+    padding: 0.35rem 0;
+    overflow-wrap: anywhere;
+  }
+  .table td::before {
+    content: attr(data-label);
+    color: var(--tenant-muted);
+    font-size: 0.72rem;
+    font-weight: 650;
+  }
+  .actionRow > * {
+    flex: 1 1 auto;
+  }
+  .detailPanel > header,
+  .lineSection > header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .page.page *,
+  .page.page *::before,
+  .page.page *::after {
+    scroll-behavior: auto;
+    transition-duration: 0.01ms;
+    animation-duration: 0.01ms;
+  }
+}

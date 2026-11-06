@@ -961,6 +961,18 @@ Enviada ni promete PDF por una solicitud encolada. Conserva clave en reintento
 del mismo comando y distingue recibo histórico de estado actual. La conversión
 a línea manual es explícita; una edición de notas no cambia precios del catálogo.
 Importes permanecen exactos también al mostrarlos, sin Number/parseFloat.
+En el editor S06, los conceptos existentes del catálogo mantienen sus precios
+y datos guardados. Para modificar cantidad o descuento se exige conversión
+manual explícita o actualización explícita desde catálogo. Un reemplazo de
+líneas se bloquea si conserva algún concepto del catálogo sin esa confirmación,
+incluso al modificar una línea manual vecina; editar sólo encabezado/notas no
+reemplaza líneas. Actualizar desde catálogo sin otros cambios también debe
+ejecutar la actualización. Una fecha límite no editada conserva su instante
+exacto aunque la pantalla muestre hora local. Vaciar valores personalizados de
+un producto se guarda como borrado explícito del valor, no como campo omitido.
+S06 no ofrece otra solicitud desde aprobación pendiente sin evidencia legible
+de que su autorización quedó obsoleta; las transiciones finales siguen siendo
+validadas por la API. No se deduce autorización a partir de la interfaz.
 Permisos, módulos, lectura sola, loading/empty/error, teclado y responsive son
 gates de cada interfaz. La implementación presente se consulta en STATUS.
 

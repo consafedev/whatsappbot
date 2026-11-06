@@ -22,10 +22,14 @@ import {
 import {
   approveQuote,
   assertTenantModuleEntitled,
+  type CommercialSelectionFilters,
+  CommercialSelectionValidationError,
   cancelQuote,
   createQuoteDraft,
   getQuoteById,
   getQuotePolicy,
+  listCommercialContactOptions,
+  listCommercialOrganizationUnitOptions,
   listQuotes,
   type QuoteApprovalDatabase,
   type QuoteApprovalInput,
@@ -65,6 +69,7 @@ export const QUOTES_DATABASE = Symbol("QUOTES_DATABASE");
 type ApiResponse<T> = Readonly<{ success: true; data: T }>;
 
 const UUID_V7 = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const CONTROL_CHARACTERS = /\p{Cc}/u;
 
 function quoteAuthorized(...permissions: PermissionKey[]): MethodDecorator & ClassDecorator {
   return applyDecorators(
@@ -332,6 +337,44 @@ function parseListQuery(value: unknown): QuoteListFilters {
   };
 }
 
+function parseOptionQuery(value: unknown): CommercialSelectionFilters {
+  const query = object(value, "query");
+  exactKeys(query, ["cursor", "limit", "search"], "query");
+  const stringValue = (field: "cursor" | "limit" | "search"): string | undefined => {
+    const item = query[field];
+    if (item === undefined) return undefined;
+    if (typeof item !== "string")
+      throw new BadRequestException(`${field} must appear once as a string`);
+    return item;
+  };
+  const cursor = stringValue("cursor");
+  if (cursor !== undefined && !UUID_V7.test(cursor)) {
+    throw new BadRequestException("cursor must be a UUIDv7");
+  }
+  const limitValue = stringValue("limit");
+  let limit: number | undefined;
+  if (limitValue !== undefined) {
+    if (!/^[1-9]\d{0,1}$/.test(limitValue)) {
+      throw new BadRequestException("limit must be an integer from 1 to 50");
+    }
+    limit = Number.parseInt(limitValue, 10);
+    if (limit > 50) throw new BadRequestException("limit must be an integer from 1 to 50");
+  }
+  const searchValue = stringValue("search");
+  if (searchValue !== undefined && CONTROL_CHARACTERS.test(searchValue)) {
+    throw new BadRequestException("search must not contain control characters");
+  }
+  const search = searchValue?.trim();
+  if (search !== undefined && search.length > 100) {
+    throw new BadRequestException("search must not exceed 100 characters");
+  }
+  return {
+    ...(cursor === undefined ? {} : { cursor }),
+    ...(limit === undefined ? {} : { limit }),
+    ...(search === undefined ? {} : { search }),
+  };
+}
+
 function parsePolicyInput(value: unknown): QuotePolicyInput {
   const body = object(value, "quote policy request");
   exactKeys(
@@ -450,6 +493,8 @@ function parseLifecycleInput(
 function mapQuoteError(error: unknown): never {
   if (error instanceof QuoteAuthorizationError) throw new ForbiddenException("Forbidden");
   if (error instanceof QuoteValidationError) throw new BadRequestException(error.message);
+  if (error instanceof CommercialSelectionValidationError)
+    throw new BadRequestException(error.message);
   if (error instanceof QuoteCommandConflictError || error instanceof QuoteRevisionConflictError)
     throw new ConflictException(error.message);
   if (error instanceof QuoteNotFoundError) throw new NotFoundException(error.message);
@@ -514,6 +559,22 @@ export class QuotesService {
   async list(context: TenantContext, filters: QuoteListFilters) {
     try {
       return await listQuotes(context, this.database, filters);
+    } catch (error) {
+      return mapQuoteError(error);
+    }
+  }
+
+  async listContactOptions(context: TenantContext, filters: CommercialSelectionFilters) {
+    try {
+      return await listCommercialContactOptions(context, this.database, filters);
+    } catch (error) {
+      return mapQuoteError(error);
+    }
+  }
+
+  async listOrganizationUnitOptions(context: TenantContext, filters: CommercialSelectionFilters) {
+    try {
+      return await listCommercialOrganizationUnitOptions(context, this.database, filters);
     } catch (error) {
       return mapQuoteError(error);
     }
@@ -634,6 +695,31 @@ export class QuotesController {
     @Query() query: unknown,
   ): Promise<ApiResponse<Awaited<ReturnType<QuotesService["list"]>>>> {
     return { success: true, data: await this.service.list(context, parseListQuery(query)) };
+  }
+
+  @Get("options/contacts")
+  @RequireEntitlements("module.quotes", "module.crm_lite")
+  @quoteAuthorized("quotes.create")
+  async listContactOptions(
+    @CurrentTenantContext() context: TenantContext,
+    @Query() query: unknown,
+  ): Promise<ApiResponse<Awaited<ReturnType<QuotesService["listContactOptions"]>>>> {
+    return {
+      success: true,
+      data: await this.service.listContactOptions(context, parseOptionQuery(query)),
+    };
+  }
+
+  @Get("options/organization-units")
+  @quoteAuthorized("quotes.create")
+  async listOrganizationUnitOptions(
+    @CurrentTenantContext() context: TenantContext,
+    @Query() query: unknown,
+  ): Promise<ApiResponse<Awaited<ReturnType<QuotesService["listOrganizationUnitOptions"]>>>> {
+    return {
+      success: true,
+      data: await this.service.listOrganizationUnitOptions(context, parseOptionQuery(query)),
+    };
   }
 
   @Post()

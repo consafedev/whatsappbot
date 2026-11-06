@@ -125,6 +125,14 @@ All quote mutating commands obey this lock order: command-key advisory → tenan
 
 ## UI (S06)
 
+Required prerequisite found2026-10-30: general CRM/admin list permissions do
+not match commercial create/edit capabilities. ADR-0072 defines three new
+read-only, bounded active-Contact/OU option routes under quotes.create or
+catalog.manage and their actual module requirements. Use those minimal owned
+projections for form selectors; do not require contacts.read/admin settings,
+accept raw UUID entry as the normal flow, or expose private CRM fields. No new
+permission/module/schema or general CRM API is introduced.
+
 Create real Catalog and Quotes pages at the existing navigation destinations, replace current `href: null` entries, and use only the new API. Catalog: list/search/filter active, create/edit/archive, price/currency/tax inputs, explicit empty/loading/error/read-only/module states. S06 Quotes UI covers live list/draft/calculation/approval/policy only; it must not offer frozen-version history/preview or send-intent controls before those stories ship. Never render mock business data or enable an action the API does not support. Follow `UI_FLOWS.md` and `DESIGN.md` for responsive, keyboard, and existing component patterns.
 
 ## Immutable version and send intent (S07–S08)

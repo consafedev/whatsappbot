@@ -175,9 +175,7 @@ matching remote SHA and outside main. Base `0be1020`; root retains docs/Git.
 
 ### Task 6: E15-S06 — Catalog and Quote UI
 
-**RESERVED / READY:** `e15_s06_luna` (gpt-6-luna), based on published S05
-feature plus the later root checkpoint. Task6 UI only; root shared docs/Git
-and browser gates. Wait for checkpoint; no implementation or PASS yet.
+**PASS / VALIDATED; publication pending.** Base `4a877437a0da41f6dbf3588f5f0582690e01108c`. Luna implementation/corrections and independent backend/UI R2 audits complete. Final focused DB60/5 files and API8/3 files, zero skipped, exit0; root post-R2 unit571/63 files; UI32/4 files, web types/build and scoped Biome22 passed. Root plus17 workspace typechecks and global Biome545 passed before the UI correction rounds; no post-R2 full workspace rerun is claimed. Root browser matrix passed commercial lifecycle, policy/roles/tenants, responsive1440/768/390, keyboard/focus and reduced motion. Native-dialog automation incident resolved; no source change. S07–S08 not started.
 
 **Files**
 
@@ -187,16 +185,25 @@ and browser gates. Wait for checkpoint; no implementation or PASS yet.
 - Create apps/web/app/app/quotes/page.tsx, quotes-client.tsx, quotes-api.ts, quotes-view-model.ts, quotes-view-model.test.ts, quote-list.tsx, quote-editor.tsx, quote-editor-model.ts, quote-editor-model.test.ts, quote-approval-panel.tsx, quote-policy-panel.tsx, quotes.module.css
 - Reuse current API-fetch/UI patterns from appointments-client.tsx and navigation tests; reuse stableCommandKey and beginCommandIntent from appointment-command-key.ts. No new browser/test dependency.
 
+**Required selection prerequisite (2026-10-30):** existing general Contact/OU
+list routes require unrelated contacts.read/admin settings, blocking the
+planned commercial forms. ADR-0072 bounds the new context-specific option
+routes. This extends only Task6 with no schema or new permissions:
+
+- Create packages/database/src/commercial-selection-manager.ts and commercial-selection-manager.integration.ts; modify database index and focused config.
+- Modify apps/api/src/catalog.ts and quotes.ts; create apps/api/src/commercial-selection.integration.ts and include it in the focused API config.
+- Prove authenticated missing-route RED, tenant isolation, exact capability/module checks without broad CRM/admin grants, minimal active-row projection, bounded search/cursor pages, strict query DTOs and no GET side effects before UI/browser closure.
+
 **Interfaces**
 
 - catalog-api.ts: loadCatalog(filters), saveProduct(input), archiveProduct(id); catalog list/editor components consume bounded view-model types.
 - quotes-api.ts: loadQuotes(filters), saveQuoteDraft(id, expectedRevision, input), request/approve/reject, load/update policy; existing client orchestrates focused list/editor/approval/policy components.
 - Use API envelope, exact decimal strings, exact module/permission state and recorded replay outcome distinct from latest Quote. S06 exposes live draft/calculation/approval/policy only; no frozen version preview/history and no send intent controls yet.
 
-- [ ] Step 1 — RED: Add catalogGatesReadOnlyAndModuleStates, catalogErrorEmptyAndLoadedStates, quoteListAndEditorKeepExactDecimalStringsIncludingHugeTotals, quoteActionsFollowPermissionAndStatus, quoteEditorSerializesBoundedCatalogAndManualLinesWithoutTotalsOrActor, approvalAndPolicyPanelsReflectCurrentGuards, replayOutcomeIsLabeledSeparateFromCurrentQuote, and navigationDestinationsAreRealOnlyForEntitledReaders.
-- [ ] Step 2 — Run RED: pnpm exec vitest run apps/web/app/app/catalog/catalog-view-model.test.ts apps/web/app/app/quotes/quotes-view-model.test.ts apps/web/app/app/quotes/quote-editor-model.test.ts apps/web/app/app/tenant-app-navigation.test.ts. Expected missing page/view-model behavior.
-- [ ] Step 3 — Implement real pages against S01–S05 APIs, split API/model/list/editor/approval/policy responsibilities across focused files. Replace href:null; support list/create/edit/archive, catalog/manual line operations, calculations, approvals, policy. Render read-only/loading/empty/error/module states. Preserve command key across identical retry; start fresh key for a distinct intent. No version/send actions before S07/S08.
-- [ ] Step 4 — GREEN: targeted Vitest, pnpm typecheck, pnpm lint, pnpm --filter @whatsapp-platform/web build. Parent verifies responsive desktop/tablet/mobile, keyboard/focus, readonly and module-disabled behavior in browser. No automated browser harness exists; record manual evidence honestly.
+- [x] Step 1 — RED: Add catalogGatesReadOnlyAndModuleStates, catalogErrorEmptyAndLoadedStates, quoteListAndEditorKeepExactDecimalStringsIncludingHugeTotals, quoteActionsFollowPermissionAndStatus, quoteEditorSerializesBoundedCatalogAndManualLinesWithoutTotalsOrActor, approvalAndPolicyPanelsReflectCurrentGuards, replayOutcomeIsLabeledSeparateFromCurrentQuote, and navigationDestinationsAreRealOnlyForEntitledReaders.
+- [x] Step 2 — Run RED: pnpm exec vitest run apps/web/app/app/catalog/catalog-view-model.test.ts apps/web/app/app/quotes/quotes-view-model.test.ts apps/web/app/app/quotes/quote-editor-model.test.ts apps/web/app/app/tenant-app-navigation.test.ts. Expected missing page/view-model behavior.
+- [x] Step 3 — Implement real pages against S01–S05 APIs, split API/model/list/editor/approval/policy responsibilities across focused files. Replace href:null; support list/create/edit/archive, catalog/manual line operations, calculations, approvals, policy. Render read-only/loading/empty/error/module states. Preserve command key across identical retry; start fresh key for a distinct intent. No version/send actions before S07/S08.
+- [x] Step 4 — GREEN: targeted Vitest, pnpm typecheck, pnpm lint, pnpm --filter @whatsapp-platform/web build. Parent verifies responsive desktop/tablet/mobile, keyboard/focus, readonly and module-disabled behavior in browser. No automated browser harness exists; record manual evidence honestly.
 - [ ] Step 5 — Independent UX/API audit; parent docs/manifest and S06 commit/push before S07.
 
 ### Task 7: E15-S07 — Immutable Quote Version

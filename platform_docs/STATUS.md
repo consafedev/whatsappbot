@@ -1,11 +1,63 @@
 # STATUS.md — Estado operativo actual del proyecto
 
-**Actualizado:** 2026-10-30
+**Actualizado:** 2026-11-05
 **Versión de producto:** `0.0.0`  
-**Latest validated story:** E15-S05 — PASS / COMPLETE; published as `4d5ed221ce668755cd29c89b9a09b8cd9604ec68` on `codex/e15-catalog-quotes`.
+**Latest validated story:** E15-S06 — PASS / VALIDATED; publication pending.
 **Estado:** PORTAL-HUB-ROOT-ROUTE — PASS; Epic 10 — AI Gateway — PASS / COMPLETE; Epic 11 — Campaign Engine & Audience Broadcasts — PASS / COMPLETE; **Epic 12 — Reporting, Analytics & Operational Observability — PASS / COMPLETE (E12-S01, E12-S02, E12-S03, E12-S04, E12-S05 PASS); E13-S01 — PASS / COMPLETE; E13-S02 — PASS / COMPLETE; E13-S03 — PASS / COMPLETE; E13-S04 — PASS / COMPLETE; E14-S01 — PASS / COMPLETE; E14-S02 — PASS / COMPLETE; E14-S03 — PASS / COMPLETE; E14-S04 — PASS / COMPLETE; E14-S05 — PASS / COMPLETE; E14-S06 — PASS / COMPLETE; E14-S07 — PASS / COMPLETE; E14-S08 — PASS / COMPLETE; E14-S09 — PASS / COMPLETE; E14-S10 — PASS / COMPLETE**.
 
 ## Current milestone
+
+E15-S06 is PASS / VALIDATED from checkpoint `4a877437a0da41f6dbf3588f5f0582690e01108c`.
+Backend selector audit and independent UI rereview R2 are approved. Final focused DB60/5 files and API8/3 files, zero skipped, exit0; root post-R2 unit571/63 files; UI32/4 files, web types/build and scoped Biome22 passed. Root plus17 workspace typechecks and global Biome545 passed before the UI correction rounds; no post-R2 full workspace rerun is claimed.
+
+Authenticated browser QA on the actual production standalone build and isolated
+API/PostgreSQL fixture passed catalog create/edit/archive/clear JSON, bounded
+selectors without broad administrative permissions, exact huge totals, draft
+creation, metadata-only snapshot/deadline preservation, explicit catalog refresh,
+manual line conversion, request/approve/reject/cancel, dual-permission policy
+save, read-only access and Tenant B module/empty-state isolation. Desktop1440,
+tablet768 and mobile390 fit without horizontal body overflow; quote/product
+forms fit, keyboard Tab and visible focus work, and reduced motion was checked.
+Temporary viewport/media overrides were reset and the synthetic session logged
+out. Native confirmation initially blocked automation; keyboard resolved it,
+and persisted cancellation revision11/archive were observed. No user action is
+needed. No injected transport-failure/replay race is claimed as a browser case;
+the automated integration suites cover command invariants.
+
+Docker/WSL/OpenClaw recovery is verified: original D: data disk restored after
+40GB backup with matching SHA-256, original PostgreSQL/Redis volumes healthy,
+project workers remain stopped, and old development API responds200. QA used
+separate current-code listeners rather than old images. OpenClaw healthz/readyz
+returned200; host fingerprints match8/9 after reboot (gateways.json changed and
+was preserved). A diagnosed WSL clean-cache reclaim/compaction restored memory
+headroom without changing paging/configuration or killing unrelated processes.
+Local incident evidence: `%TEMP%/codex-wsl-recovery-20261105/recovery-status.md`.
+
+Owned QA listeners were stopped after identity checks and the disposable
+`s06_ui` / `s06_lookup` databases removed through the guarded helper (all exit0).
+Final scoped snapshot confirms cancelled revision11/total88.08 and is retained
+locally; original development services and protected OpenClaw were not changed
+by this cleanup.
+
+S06 publication remains pending; no feature SHA is claimed yet. S07–S08 have not
+started. Shared coordination: `platform_docs/avance_orquestador.md`.
+
+Explicit infrastructure-repair request (2026-11-05): the user authorized repair
+of WSL/Docker for Docker and OpenClaw, then accepted administrator consent and
+the bounded forced recovery of only the verified stuck WslService process.
+Normal shutdown and service stop timed out. The service was recovered from
+STOP_PENDING PID5716 to RUNNING PID4380 after identity/no-progress guards;
+all9 protected OpenClaw host config/credential/binary hashes matched at that
+pre-reboot checkpoint.
+Before reboot, distribution enumeration succeeded but Linux/gateway/Docker
+checks still timed out; this intermediate state did not establish recovery.
+The supervisor was restored to its original unpaused/running state. No distro,
+volume or credential was deleted; no VM/vmcompute/HNS force termination.
+The user authorized the Windows reboot and then requested development resume.
+Post-boot host fingerprints match8/9: gateways.json differs; the current working
+connection registry is preserved without a root edit/revert or an unsupported
+claim that all9 still match. Linux pre-repair agent hashes were unavailable.
+Evidence is in `%TEMP%/codex-wsl-recovery-20261105/recovery-status.md`.
 
 Epic 15 — Catalog + Quote, explicitly opened by the user on2026-10-28.
 Branch codex/e15-catalog-quotes starts from published281704d (E14 complete).
@@ -31,14 +83,15 @@ MATCH; SQL39 remains immutable. S04 feature
 SHA and is not in main. DB424/API232/jobs/outbound/isolation R0 preceded the
 parser fix; focused post-fix suites verify that correction. S05 Approval is PASS / COMPLETE, published as
 `4d5ed221ce668755cd29c89b9a09b8cd9604ec68` with identical remote SHA; main excludes it.
-S06 is reserved for `e15_s06_luna` after the root checkpoint; S07–S08 pending.
+S06 is PASS / VALIDATED from published checkpoint
+`4a877437a0da41f6dbf3588f5f0582690e01108c`; publication pending, S07–S08 not started.
 One epic is active. User-directed E15 priority does not certify or remove
 the outstanding real Baileys transport and backup/restore P0 gates.
 E14-S01–S03 are in main; S04–S10 remain delivered on the E14 feature ancestry.
 Epic 13 — Task Scheduling & Distributed Orchestration remains tracked below.
 Shared coordination and reservations: `platform_docs/avance_orquestador.md`.
 
-### E15 — Catalog + Quote (IN PROGRESS: S06 next)
+### E15 — Catalog + Quote (IN PROGRESS: S06 validated; publication pending)
 
 Two Luna reconnaissance slices found no existing Product/Quote implementation.
 ADR-0072/spec/plan were accepted and published. E15-S01 now delivers the
@@ -146,8 +199,9 @@ unit552/60, root TypeScript, 17 workspace typechecks, global Biome522 and diff-c
 passed. R0 full DB435/58, API232/29, jobs1, outbound3, isolation9+37 passed
 before the source fix; no post-fix full rerun is claimed. SQL40 checksum matches;
 the canonical HEAD rehydration upgrade had zero drift. Independent review is
-approved without findings. S06 is RESERVED / READY for `e15_s06_luna` after
-the root checkpoint, with no implementation or test PASS yet. S07–S08 pending. No E16
+approved without findings. S06 UI and the bounded commercial-selector prerequisite
+are PASS / VALIDATED after the final audits, focused gates and browser matrix
+recorded in Current milestone. Publication pending; S07–S08 not started. No E16
 document renderer or real WhatsApp delivery is implied.
 
 ### E14-S10 — Rules-driven WhatsApp booking (PASS / COMPLETE)
